@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../Xsl/doc2html.xsl"?>
+<doc>
+  <title>VCL/CLX/LCL Classes</title>
+  <chapter>
+    <title>VCL/CLX/LCL Classes</title>
+    <par>
+    Imaging contains <keyword>VCL/CLX/LCL </keyword>
+     <icode>TGraphic</icode> descendant which uses Imaging library
+    for saving and loading various different file formats.
+    They actually descend from <icode>TBitmap</icode> and override only
+    loading, saving, and assigning procedures.
+    These classes are implemented in <ref>ImagingComponents</ref> unit.
+    </par>
+    
+    <par>
+    Classes are automatically registered in unit's <icode>initialization</icode>
+    section so you only need to add <icode>ImagingComponents</icode> to
+    <icode>uses</icode> list somewhere in your project and
+    <icode>TPicture</icode> class will be able to load and save images using
+    Imaging.
+    There are packages for <keyword>Delphi</keyword>,
+    <keyword>Kylix</keyword>, and <keyword>Lazarus</keyword> in
+    <keyword>Source\Projects</keyword> directory which you can install
+    to your IDEs and use Imaging classes in form design stage too.
+    </par>
+    
+    <par>
+    Which component set is used is defined in <icode>ImagingOptions.inc</icode>
+    include file. There are defines <icode>COMPONENT_SET_VCL</icode>,
+    <icode>COMPONENT_SET_CLX</icode>, and <icode>COMPONENT_SET_LCL</icode>.
+    Define one you want to use (note that checks are made to make sure that
+    selected component set is valid for the current compiler and platform
+    i.e. if you use Free Pascal <keyword>LCL</keyword> is set automatically).
+    </par>
+    
+    <par>
+    Note that <icode>TImagingGraphic</icode> and all its descendants
+    can load images in all file formats supported by Imaging
+    but save images only in file format they are named after
+    (i.e. <icode>TImagingJpeg</icode> saves jpeg images).
+    <icode>TImagingGraphic</icode> itself cannot save images.
+    </par>
+
+    <table>
+      <title>Classes and functions in ImagingComponents</title>
+      <row><th>Classes</th></row>
+      <row><td><ref>TImagingGraphic</ref></td></row>
+      <row><td><ref>TImagingBitmap</ref></td></row>
+      <row><td><ref>TImagingJpeg</ref></td></row>
+      <row><td><ref>TImagingPNG</ref></td></row>
+      <row><td><ref>TImagingTarga</ref></td></row>
+      <row><td><ref>TImagingDDS</ref></td></row>
+      <row><td><ref>TImagingMNG</ref></td></row>
+      <row><td><ref>TImagingJNG</ref></td></row>
+      <row><th>Functions</th></row>
+      <row><td><ref>DataFormatToPixelFormat</ref></td></row>
+      <row><td><ref>PixelFormatToDataFormat</ref></td></row>
+      <row><td><ref>ConvertImageToBitmap</ref></td></row>
+      <row><td><ref>ConvertBitmapToImage</ref></td></row>
+      <row><td><ref>ConvertDataToBitmap</ref></td></row>
+      <row><td><ref>ConvertBitmapToData</ref></td></row>
+      <row><td><ref>DisplayImage</ref></td></row>
+      <row><td><ref>DisplayImageData</ref></td></row>
+      <row><th>Useful functions in other units</th></row>
+      <row><td><ref>GetImageFileFormatsFilter</ref></td></row>
+      <row><td><ref>GetFilterIndexExtension</ref></td></row>
+      <row><td><ref>GetExtensionFilterIndex</ref></td></row>
+    </table>
+    
+    <linklist>
+      <title>Information about the usage of VCL/CLX/LCL Classes</title>
+      <lslink url="../Procedures/Procedures.xml">How To ... </lslink>
+      <lslink url="../Demos/Pascal.xml">ObjectPascal Demos</lslink>
+    </linklist>
+    
+  </chapter>
+</doc>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../Xsl/doc2html.xsl"?>
+<doc>
+  <title>Extensions</title>
+  <chapter>
+    <title>Extensions</title>
+    <par>
+      Imaging's functionality can be extended by so called
+      extensions. These provide image effect functions, drawing functions
+      additional file formats and other.
+    </par>
+    <par>
+      Extensions can be divided into two categories. One that is used
+      automaticaly by Imaging core like image file format extensions.
+      Imaging will register all these extensions on startup.
+      These extensions create larger executables and libraries
+      which you may consider a bad thing especially
+      if you does not use any functions provided by these extensions.
+      Because of that extensions can be turned on or off during compilation.
+      This is done by defining/undefining <keyword>LINK_*</keyword>
+      symbols in <keyword>ImagingOptions.inc</keyword> include file
+      located in <keyword>Source</keyword> directory.
+      All these extensions are turned on by default in include file.
+    </par>
+    <par>
+      Second category extensions provide user interface to some
+      extended functions like <keyword>OpenGL</keyword> texture creation.
+      These extensions are ordinary Pascal units. If you want to use them
+      simply add these units to your project's uses list and call their functions.
+      Those extensions are currently not accessible using DLL/SO interface.
+    </par>
+
+    <linklist>
+      <title>Currently available extensions</title>
+      <lslink url="ExtFileFormats.xml">File Format Extensions</lslink>
+      <lslink url="OpenGL.xml">OpenGL Textures</lslink>
+      <lslink url="Direct3D.xml">Direct3D Textures</lslink>
+      <lslink url="SDL.xml">SDL Surfaces</lslink>
+    </linklist>
+
+
+
+  </chapter>
+</doc>

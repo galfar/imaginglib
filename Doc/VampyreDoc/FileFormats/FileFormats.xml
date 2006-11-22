@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../Xsl/doc2html.xsl"?>
+<doc>
+  <title>Supported File Formats</title>
+  <chapter>
+    <title>Supported File Formats</title>
+    <par>Image file format is device independent representation of image data.
+    Images in these formats are usually stored as external
+    files on hard disk. Many different file formats
+    have been created but majority of the images stored anywhere
+    are saved in one of a few most widely used formats.
+    Main goal of Imaging's file format support is to fully support
+    these widely used formats. This means
+    successful loading and saving of all images stored in these formats.
+    So if you have some image in one of supported formats and it can not
+    be loaded by Imaging, please send it to me so I will be able to fix it.
+    </par>
+
+    <linklist>
+      <title>In This Section</title>
+      <lslink url="Jpeg.xml">JPEG File Format</lslink>
+      <lslink url="Targa.xml">TGA Targa File Format</lslink>
+      <lslink url="Dds.xml">DDS DirectDraw Surface File Format</lslink>
+      <lslink url="Bitmap.xml">BMP Windows Bitmap File Format</lslink>
+      <lslink url="Png.xml">PNG Portable Network Graphics File Format</lslink>
+      <lslink url="Mng.xml">MNG Multiple Network Graphics File Format</lslink>
+      <lslink url="Jng.xml">JNG JPEG Network Graphics File Format</lslink>
+    </linklist>
+  </chapter>
+</doc>

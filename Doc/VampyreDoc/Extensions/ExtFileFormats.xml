@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../Xsl/doc2html.xsl"?>
+<doc>
+  <title>File Format Extensions</title>
+  <chapter>
+    <title>File Format Extensions</title>
+    <par>These extensions allow Imaging to load and save images from/to
+    files in various formats.</par>
+    
+    <linklist>
+      <title>More on supported file formats</title>
+      <lslink url="../FileFormats/FileFormats.xml">Supported File Formats</lslink>
+    </linklist>
+    
+    <table>
+      <title>Currently available file format extensions</title>
+      <row>
+        <th>Extension</th>
+        <th>$DEFINE symbol</th>
+        <th>exe/dll increase (D2k5)</th>
+        <th>exe/dll increase (FPC 2.0)</th>
+        <th>Description</th>
+      </row>
+      <row>
+        <td>JPEG File Format</td>
+        <td><keyword>LINK_JPEG</keyword></td>
+        <td>83 KiB</td>
+        <td>139 KiB</td>
+        <td>Loading and saving JPEG files</td>
+      </row>
+      <row>
+        <td>PNG File Format</td>
+        <td><keyword>LINK_PNG</keyword></td>
+        <td>38 KiB</td>
+        <td>59 KiB</td>
+        <td>Loading and saving PNG files</td>
+      </row>
+      <row>
+        <td>DDS File Format</td>
+        <td><keyword>LINK_DDS</keyword></td>
+        <td>6 KiB</td>
+        <td>9 KiB</td>
+        <td>Loading and saving DDS files</td>
+      </row>
+      <row>
+        <td>BMP File Format</td>
+        <td><keyword>LINK_BITMAP</keyword></td>
+        <td>6 KiB</td>
+        <td>9 KiB</td>
+        <td>Loading and saving BMP files</td>
+      </row>
+      <row>
+        <td>TGA File Format</td>
+        <td><keyword>LINK_TARGA</keyword></td>
+        <td>6 KiB</td>
+        <td>9 KiB</td>
+        <td>Loading and saving TGA files</td>
+      </row>
+      <row>
+        <td>MNG File Format</td>
+        <td><keyword>LINK_MNG</keyword></td>
+        <td colspan="2">uses PNG and JNG internally</td>
+        <td>Loading and saving MNG files</td>
+      </row>
+      <row>
+        <td>JNG File Format</td>
+        <td><keyword>LINK_JNG</keyword></td>
+        <td colspan="2">uses PNG and JPEG internally</td>
+        <td>Loading and saving JNG files</td>
+      </row>
+    </table>
+    
+  </chapter>
+</doc>

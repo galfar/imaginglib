@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../Xsl/doc2html.xsl"?>
+<doc>
+  <title>About</title>
+  <chapter>
+    <title>About</title>
+    <par>
+      <b>Imaging</b> is native <b>ObjectPascal</b> image loading, saving and
+      manipulation library. It is available for several platforms
+      and does not require any third party dynamic libraries or other compiled binaries.
+    </par>
+    <par>
+      Main development language is <b>ObjectPascal</b>
+      (<b>Delphi</b>, <b>Kylix</b> and <b>Free Pascal</b> compilers
+      are supported) and there are interfaces to the library
+      (compiled into dll/so) for other languages like <b>C/C++</b> and
+      <b>Delphi.NET</b>. Currently supported platforms are <b>Windows</b>,
+      x86/AMD64 <b>Linux</b>, <b>FreeBSD</b>, <b>DOS</b> (and <b>.NET</b> using unmanaged DLL).
+    </par>
+    <par>
+      Currently supported image file formats (loading and saving)
+      are: <b>PNG</b>, <b>JPEG</b>, <b>DDS</b>, <b>TGA</b>, <b>MNG</b>, <b>JNG</b>, and <b>BMP</b>.
+      Many internal image data formats are supported:
+      8/16/24/32/48/64 bit <b>RGB and ARGB</b> formats, indexed formats,
+      grayscale formats, <b>floating point</b> formats, and compressed formats like <b>DXTC</b>.
+    </par>
+  </chapter>
+</doc>

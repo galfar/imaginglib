@@ -1,0 +1,532 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../Xsl/doc2html.xsl"?>
+<doc>
+  <title>Vampyre Imaging Library History</title>
+  <chapter>
+    <anchor name="top">
+      <title>Vampyre Imaging Library History</title>
+    </anchor>
+    <par>
+    You can find a listing of Imaging versions on this page.
+    There is the release date of each version together with 
+    a short note and a list of the most important changes that were made.
+    You can find the change tags explained here 
+    <link url="#legend">Changes Legend</link>.</par>
+    
+    <!-- VERSION 0.20.0 -->
+    <section>
+      <mediumcap>Version 0.20.0 - 30.10.2006</mediumcap>
+      <bulletlist>
+        <li>
+          <keyword>[E]</keyword>
+          New demo <b>VampConvert</b> replaced old <b>DXTTool</b>.
+          Demo <b>High Level</b> was removed because other demos
+          now use high level interface more.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Added new unit <icode>ImagingCanvases</icode> with
+          classes for drawing/effects functions added
+          (not much functionality here yet).
+        </li>
+        <li>
+          <keyword>[+/F]</keyword>
+          High level interface in <icode>ImagingClasses</icode> unit
+          was extended and several bugs here were fixed.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Imaging now compiles and works on 64bit
+          <b>AMD64</b> CPU architecture (tested in Linux).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          VCL/CLX/LCL support in <icode>ImagingComponents</icode> unit
+          was extended.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New image data formats based on half-float (FP16) type added:
+          <icode>ifR32F</icode>, <icode>ifA16R16G16B16F</icode>, <icode>ifA16B16G16R16F</icode>.
+          <b>Direct3D</b> and <b>OpenGL</b> extensions now create textures in these formats too.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New low level interface functions:
+          <icode>IsFileFormatSupported, GetPixelDirect, SetPixelDirect,
+          GetPixel32, SetPixel32, GetPixelFP, SetPixelFP</icode>.
+          <icode>GetPixelBytes</icode> was removed (same data can be obtained by
+          <icode>GetImageFormatInfo</icode>).
+        </li>
+        <li>
+          <keyword>[F/*]</keyword>
+          Many many bug fixes in many parts of the library as well as some optimizations,
+          changes, and tweaks.
+        </li>
+       </bulletlist>
+    </section>
+        
+    
+    <!-- VERSION 00.18 -->
+    <section>
+      <mediumcap>Version 00.18 - 25.04.2006</mediumcap>
+      <note>Source code is about 620 KiB in size.</note>
+      <bulletlist>
+        <li>
+          <keyword>[D]</keyword>
+          Documentation updated to version <b>0.18</b>.
+        </li>
+        <li>
+          <keyword>[E]</keyword>
+          Demos were extended or updated.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          High level interface in <icode>ImagingClasses</icode> unit
+          was extended.
+        </li>
+        <li>
+          <keyword>[*/+]</keyword>
+          Mipmap generation in library core and
+          in <keyword>Direct3D 9</keyword> and <keyword>OpenGL</keyword>
+          extensions is now filtered.
+          Also <keyword>Direct3D 9</keyword> extension was extended and works
+          with D3D surfaces now.
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          There was a bug in conversion between Imaging image
+          and <icode>TBitmap</icode> in <icode>ImagingComponents</icode>
+          unit when using <b>LCL</b> component set (with <b>GTK</b> interface).
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Imaging now compiles and works in
+          <b>FreeBSD</b> and maybe in other Unixes as well.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Functions added to the low level interface:
+          <icode>StretchRect</icode>.
+        </li>
+        <li>
+          <keyword>[+/*]</keyword>
+          Filtered resizing and stretching implemented. <icode>ResizeImage</icode>
+          and other functions now take advantage of it.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>MNG (Multiple Network Graphics)</b> image file format loading and
+          saving added. Supports usage of <b>PNG</b> and <b>JNG</b> frames, animation
+          capabilities are not used.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>JNG (JPEG Network Graphics)</b> image file format loading and
+          saving added. Supports 8 bit gray and 24 bit RGB images with
+          optional alpha channel.
+        </li>
+        <li>
+          <keyword>[*/-]</keyword>
+          <b>PNG</b> support moved from <icode>ImagingPng</icode> unit to
+          the new <icode>ImagingNetworkGraphics</icode> unit. Old unit was
+          removed from Imaging.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New unit <icode>ImagingNetworkGraphics</icode> added for
+          future handling of all Network Graphics image formats.
+        </li>
+<!--        <li>
+          <keyword>[+]</keyword>
+          New unit <icode>ImagingColors</icode> added with functions for
+          manipulating and converting color values..
+        </li>
+-->
+      </bulletlist>
+    </section>
+    
+    
+    <!-- VERSION 00.16 -->
+    <section>
+      <mediumcap>Version 00.16 - 22.12.2005</mediumcap>
+      <note>Source code is about 535 KiB in size.</note>
+      <bulletlist>
+        <li>
+          <keyword>[D]</keyword>
+          Documentation updated to version <b>0.16</b>.
+        </li>
+        <li>
+          <keyword>[E]</keyword>
+          New demos created: <b>D3D Demo</b>, <b>OpenGL Demo</b> (ObjectPascal).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Functions added to the low level interface:
+          <icode>RotateImage</icode>.
+        </li>
+        <li>
+          <keyword>[E]</keyword>
+          New demos created: <b>SDL Demo</b>, <b>LCL Demo</b> (ObjectPascal).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Extension for creating/loading/saving <keyword>Direct3D 9</keyword>
+          textures using Imaging added to the new <icode>ImagingDirect3D9</icode> unit.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Extension for creating/loading/saving <keyword>SDL</keyword>
+          surfaces using Imaging added to the new <icode>ImagingSDL</icode> unit.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Extension for creating/loading/saving <keyword>OpenGL</keyword>
+          textures using Imaging added to the new <icode>ImagingOpenGL</icode> unit.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Functions added to the low level interface:
+          <icode>ReplaceColor</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <icode>TGraphic</icode> descendant classes which use Imaging
+          added for <keyword>VCL</keyword>, <keyword>CLX</keyword> and
+          <keyword>LCL</keyword> components sets. They are in the new
+          <icode>ImagingComponents</icode> unit.
+        </li>
+        <li>
+          <keyword>[F*]</keyword>
+          Bugs (in 48/64 bit image handling) fixed in
+          <b>PNG (Portable Network Graphics)</b> image file format
+          handling and support for color keying (if present in image) added.
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          Headers of some functions exported from Imaging dll/so library were
+          changed in <icode>ImagingExport</icode> unit and in the wrappers for
+          the other languages.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New options <icode>ImagingLoadOverrideFormat</icode> and
+          <icode>ImagingSaveOverrideFormat</icode> added. Also all
+          option values are checked for validity before they are used.
+        </li>
+      </bulletlist>
+    </section>
+
+    
+    <!-- VERSION 00.14 -->
+    <section>
+      <mediumcap>Version 00.14 - 10.07.2005</mediumcap>
+      <note>Source code is about 418 KiB in size.</note>
+      <bulletlist>
+        <li>
+          <keyword>[D]</keyword>
+          Documentation updated to version <b>0.14</b>.
+        </li>
+        <li>
+          <keyword>[E]</keyword>
+          New demos created: <b>High Level</b> (ObjectPascal),
+          <b>dotNET Demo01</b> (Delphi.NET).
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          You can now use Imaging with <b>MPL</b> or <b>LGPL</b> license.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Large changes in <b>Delphi.NET</b> wrapper. Function names and
+          parameter types are now almost same as in <b>ObjectPascal</b>
+          without using dll. Some <b>.NET</b> only things added too.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Functions added to low level interface:
+          <icode>NewPalette, CopyPalette, FreePalette,
+          DetermineFileFormat, DetermineStreamFormat, DetermineMemoryFormat, GetPixelsSize</icode>.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Pixel format conversions rewritten to get better color
+          quality when converting from low bitcounts to higher
+          (visible mainly when using formats like <icode>ifR3G3B2</icode>
+          or <icode>ifA4R4G4B4</icode>).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Functions added to low level interface:
+          <icode>MapImageToPalette, FillRect, SplitImage, MakePaletteForImages</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Basic high level interface created. Classes
+          <icode>TSingleImage</icode> and <icode>TMultiImage</icode>
+          added to <icode>ImagingClasses</icode> unit.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Functions added to low level interface:
+          <icode>CopyRect</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New image formats added: <icode>
+          ifA16Gray16</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>PNG (Portable Network Graphics)</b> image file format loading and
+          saving added. Supports 1, 2, 4, 8, 16, 24, 32, 48 and 64 bit images.
+          1, 2 and 4 bit images can be only loaded.
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          Various bugs fixed in <icode>Imaging, ImagingBitmap</icode>
+          and <icode>ImagingExport</icode> units,
+          look there for details.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Functions added to low level interface:
+          <icode>GenerateMipMaps, TestImagesInArray</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Added wrapper unit for <b>Delphi.NET</b>.
+        </li>
+      </bulletlist>
+    </section>
+    
+    <!-- VERSION 00.12 -->
+    <section>
+      <mediumcap>Version 00.12 - 13.03.2005</mediumcap>
+      <note>First version released to the public. Source code size
+      was about 250 KiB in size.</note>
+      <bulletlist>
+        <li>
+          <keyword>[*]</keyword>
+          <b>DXTC</b> compression and decompression code optimized
+          and it is now about 20% faster.
+        </li>
+        <li>
+          <keyword>[T]</keyword>
+          <b>VampyreDoc</b> tool for documentation management created.
+          It can create <b>XHMTL</b> and <b>HTMLHelp</b> documentation
+          from <b>XML</b> based projects.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New field <icode>IsRBSwapped</icode>
+          added to <icode>TImageFormatInfo</icode> record.
+          It is used in conversions and in channel related functions to
+          distinguish between ARGB and ABGR formats.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New image formats added: <icode>
+          ifA32R32G32B32F, ifA16B16G16R16, ifB16G16R16</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Functions added to low level interface:
+          <icode>ReduceColors, GetImageFormatInfo</icode>.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Image format conversions between all types of formats are now
+          supported (<icode>ChannelToIndex</icode> and
+          <icode>FloatToIndex</icode> implemented).
+        </li>
+        <li>
+          <keyword>[+]</keyword> Color quantization with support
+          for alpha channel (using Median Cut algorithm) added.
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          Fixed huge memory leak in <b>Windows Bitmap</b> file format (occurred when
+          loading 8bit uncompressed image).
+        </li>
+        <li>
+          <keyword>[E]</keyword>
+          Demos created: <b>DXT Tool</b> (ObjectPascal), <b>Test</b> (C/C++),
+          <b>VCL Image Browser</b> (ObjectPascal).
+        </li>
+        <li>
+          <keyword>[U]</keyword>
+          <b>Vampyre Imaging Library</b> project registered at
+          <link url="http://sourceforge.net">SourceForge</link> (03.12.2004).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Added <icode>PushOptions</icode> and
+          <icode>PopOptions</icode> low level functions for
+          pushing and popping Imaging options.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          <icode>SwapChannels</icode> and
+          <icode>SwapChannelsOfPalette</icode>
+          low level functions extended
+          to allow to swap all channels, not only red and blue.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Checked and if necessary added support for special image formats
+          (only <b>DXTC</b> images now) in all low level functions. 
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>DXT1, DXT3</b> and <b>DXT5</b> decoding and encoding added. 
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>DDS (DirecDraw Surface)</b> image file format saving added.
+          Supports mipmaps, cube maps, volume textures and ordinary images.
+        </li>
+        <li>
+          <keyword>[E]</keyword>
+          Demos created: <b>Benchmark</b> (ObjectPascal/C++).
+        </li>
+      </bulletlist>
+    </section>
+    
+    <!-- VERSION 00.11 -->
+    <section>
+      <mediumcap>Version 00.11 - 18.11.2004</mediumcap>
+      <note>Source code size was about 150 KiB in size.</note>
+      <bulletlist>
+        <li>
+          <keyword>[+]</keyword>
+          New image format added: <icode>
+          ifR32F, ifDXT1, ifDXT3, ifDXT5</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>DDS (DirecDraw Surface)</b> image file format loading added.
+          Supports mipmaps, cube maps, volume textures and ordinary images.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New image formats added: <icode>
+          ifX8R8G8B8, ifX1R5G5B5, ifX4R4G4B4</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Property <icode>SupportedFormats</icode> added to
+          <icode>TImageFileFormat</icode> class.
+          It is set of <icode>TImageFormat</icode> values
+          which can be saved by this file format. Also
+          <icode>MakeCompatible</icode> method was added.
+          It converts unsupported formats to supported before saving.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Made <b>PasZLib</b> library compatible with all compilers and platforms
+          supported by Imaging (needed for PNG support).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New low level functions for palette support added: <icode>
+          FindColor, FillGrayscalePalette, FillCustomPalette, SwapChannelsOfPalette</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Added import unit and header for ObjectPascal and C/C++ to
+          enable using Imaging library compiled into dynamic link library (<b>dll/so</b>).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>BMP (Windows Bitmap)</b> image file format loading and saving added.
+          Supports 1, 4, 8, 16, 24 and 32 bit images with or without RLE compression.
+          1 and 4 bit images can be only loaded.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Added support for function inlining in <b>Delphi 2005</b> (although not tested yet)
+          and <b>Free Pascal</b> (although compiler crashes on this now).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New image formats added: <icode>
+          ifA8Gray8, ifR3G3B2, ifR1G1B1</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New low level functions added: <icode>
+          ConvertImage, FlipImage, MirrorImage, SwapChannels, CloneImage,
+          FreeImagesInArray, ResizeImage</icode>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Added image format conversion engine which will support all
+          members of <icode>TImageFormat</icode>.
+          Some indexed and special format conversions are not implemented yet.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>TGA (Truevision Targa)</b> image file format loading and saving added.
+          Supports 8, 15/16, 24 and 32 bit images with or without RLE compression.
+        </li>
+      </bulletlist>
+    </section>
+    
+    <!-- VERSION 00.10 -->  
+    <section>
+    <mediumcap>Version 00.10 - 23.09.2004</mediumcap>
+    <note>First working version. Source code size was about 80 KiB in size.</note>
+    <bulletlist>
+      <li>
+        <keyword>[+]</keyword>
+        <b>JPEG (Joint Photographic Experts Group)</b> image file format loading and saving added.
+        Supports 8 and 24 bit images.
+      </li>
+      <li>
+        <keyword>[*]</keyword>
+        Made <b>PasJpeg</b> library compatible with all compilers and platforms
+        supported by Imaging.
+      </li>
+      <li>
+        <keyword>[+]</keyword>
+        Initial low level functions added: <icode>
+        InitImage, NewImage, TestImage, FreeImage,
+        LoadImageFromFile, LoadImageFromStream, LoadImageFromMemory,
+        LoadMultiImageFromFile, LoadMultiImageFromStream, LoadMultiImageFromMemory,
+        SaveImageToFile, SaveImageToStream, SaveImageToMemory, SaveMultiImageToFile,
+        SaveMultiImageToStream, SaveMultiImageToMemory, SetOption, GetOption,
+        SetUserFileIO, ResetFileIO, GetPixelBytes</icode>.
+      </li>
+      <li>
+        <keyword>[+]</keyword>
+        Initial image formats added: <icode>
+        ifUnknown, ifDefault, ifIndex8, ifGray8, ifGray16, ifGray32,
+        ifGray64, ifR5G6B5, ifA1R5G5B5, ifA4R4G4B4, ifR8G8B8,  ifA8R8G8B8,
+        ifR16G16B16, ifA16R16G16B16, ifA32B32G32R32F</icode>.
+      </li>
+      <li>
+        <keyword>[*]</keyword>
+        Basic structure of library created.
+      </li>
+      <li>
+        <keyword>[U]</keyword>
+        <b>Vampyre Imaging Library</b> project started (about 08.09.2004).
+      </li>
+    </bulletlist>
+    </section>
+    <br /><br />
+    <anchor name="legend"><scap>Changes Legend</scap></anchor>
+    <list>
+      <li><keyword>[+]</keyword> Addition (new features, functions etc.)</li>
+      <li><keyword>[-]</keyword> Removal (old features, functions etc.)</li>
+      <li><keyword>[*]</keyword> Change (existing features, functions etc. changed or extended)</li>
+      <li><keyword>[F]</keyword> Bug fix</li>
+      <li><keyword>[D]</keyword> Documentation related</li>
+      <li><keyword>[E]</keyword> Examples and demos related</li>
+      <li><keyword>[T]</keyword> Tools related</li>
+      <li><keyword>[U]</keyword> Unique event</li>
+    </list>  
+    <link url="#top">Top</link>
+  </chapter>
+</doc>
