@@ -38,9 +38,6 @@ uses
   Classes, ImagingTypes, Imaging, ImagingUtility, ImagingFormats, dzlib;
 
 type
-  TChar4 = array[0..3] of Char;
-  TChar8 = array[0..7] of Char;
-
   { Basic class for Network Graphics file formats loaders/savers.}
   TNetworkGraphicsFileFormat = class(TImageFileFormat)
   protected

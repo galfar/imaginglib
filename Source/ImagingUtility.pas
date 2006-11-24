@@ -1,5 +1,5 @@
 {
-  $Id: ImagingUtility.pas,v 1.22 2006/10/26 13:29:28 galfar Exp $
+  $Id: ImagingUtility.pas,v 1.21 2006/09/21 19:44:35 galfar Exp $
   Vampyre Imaging Library
   by Marek Mauder (pentar@seznam.cz)
   http://imaginglib.sourceforge.net
@@ -84,6 +84,10 @@ type
     Data2: Int64;
    end;
   PFloatHelper = ^TFloatHelper;
+
+  TChar2 = array[0..1] of Char;
+  TChar4 = array[0..3] of Char;
+  TChar8 = array[0..7] of Char;
 
 { Frees class instance and sets its reference to nil.}
 procedure FreeAndNil(var Obj); 

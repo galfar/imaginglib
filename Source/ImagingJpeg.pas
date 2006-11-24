@@ -46,7 +46,7 @@ unit ImagingJpeg;
 interface
 
 uses
-  ImagingTypes, Imaging,
+  SysUtils, ImagingTypes, Imaging,
 {$IFDEF IMJPEGLIB}
   imjpeglib, imjmorecfg, imjcomapi, imjdapimin,
   imjdapistd, imjcapimin, imjcapistd, imjdmarker, imjcparam,
@@ -98,12 +98,11 @@ const
 
 implementation
 
-type
-  TChar3 = array[0..2] of Char;
-
 const
-  { Jpeg file identifier.}
-  JpegMagic: TChar3 = #$FF#$D8#$FF;
+  { Jpeg file identifiers.}
+  JpegMagic: TChar2 = #$FF#$D8;
+  JFIFSignature: TChar4 = 'JFIF';
+  EXIFSignature: TChar4 = 'Exif';
   BufferSize = 16384;
 
 type
@@ -508,7 +507,7 @@ end;
 function TJpegFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
 var
   ReadCount: LongInt;
-  ID: TChar3;
+  ID: array[0..9] of Char;
 begin
   Result := False;
   if Handle <> nil then
@@ -517,7 +516,10 @@ begin
       FillChar(ID, SizeOf(ID), 0);
       ReadCount := Read(Handle, @ID, SizeOf(ID));
       Seek(Handle, -ReadCount, smFromCurrent);
-      Result := (ReadCount = SizeOf(ID)) and (ID = JpegMagic);
+      Result := (ReadCount = SizeOf(ID)) and
+        CompareMem(@ID, @JpegMagic, SizeOf(JpegMagic)) and
+        (CompareMem(@ID[6], @JFIFSignature, SizeOf(JFIFSignature)) or
+        CompareMem(@ID[6], @EXIFSignature, SizeOf(EXIFSignature)));
     end;
 end;
 
@@ -534,6 +536,9 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changes in TestFormat, now reads JFIF and EXIF signatures too
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - input position is now set correctly to the end of the image
