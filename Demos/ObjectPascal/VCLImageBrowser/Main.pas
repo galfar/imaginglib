@@ -40,6 +40,8 @@ uses
   ImagingClasses,
   ImagingComponents,
   ImagingCanvases,
+  { Uncomment this to get support for file formats declared in Extras package }
+  //ImagingExtraFileFormats,
   ImagingUtility;
 
 type
@@ -233,7 +235,10 @@ end;
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - nothing now
+    - add save image in desired format
+    - add first/last image buttons
+    - use left/right arrows to change active subimage
+    - data format always shows A8R8G8B8 for multimages at index 1+
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added canvas usage too

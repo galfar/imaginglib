@@ -1,7 +1,7 @@
 {
-  $Id: ImagingJpeg.pas,v 1.13 2006/09/21 19:44:35 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -76,14 +76,14 @@ type
     { If True Jpeg images are saved in progressive format. Accessible trough
       ImagingJpegProgressive option.}
     FProgressive: LongBool;
-  protected
     procedure SetJpegIO(const JpegIO: TIOFunctions); virtual;
     function GetSupportedFormats: TImageFormats; override;
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean); override;
-    procedure SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: LongInt); override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData): Boolean; override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
+      out MustBeFreed: Boolean): Boolean; override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -222,7 +222,7 @@ var
   Src: PSourceMgr;
 begin
   Src := PSourceMgr(cinfo.src);
-  // move stream position back just after EOI marker so that more that one
+  // Move stream position back just after EOI marker so that more that one
   // JPEG images can be loaded from one stream
   JIO.Seek(Src.Input, -Src.Pub.bytes_in_buffer, smFromCurrent);
 end;
@@ -369,7 +369,7 @@ var
   Pix: PColor24Rec;
 {$ENDIF}
 begin
-  // copy IO functions to global var used in JpegLib callbacks
+  // Copy IO functions to global var used in JpegLib callbacks
   SetJpegIO(GetIO);
   SetLength(Images, 1);
   InitDecompressor(Handle, jc);
@@ -410,29 +410,29 @@ begin
   end;
 end;
 
-procedure TJpegFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: LongInt);
+function TJpegFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
   Len, PtrInc, LinesWritten: LongInt;
   Src, Line: PByte;
   jc: TJpegContext;
   ImageToSave: TImageData;
   Info: TImageFormatInfo;
+  MustBeFreed: Boolean;
 {$IFDEF RGBSWAPPED}
   I: LongInt;
   Pix: PColor24Rec;
 {$ENDIF}
 begin
-  // check if option values are valid
+  // Check if option values are valid
   if not (FQuality in [1..100]) then
     FQuality := JpegDefaultQuality;
-  // copy IO functions to global var used in JpegLib callbacks
+  // Copy IO functions to global var used in JpegLib callbacks
   SetJpegIO(GetIO);
-  Len := Length(Images);
-  if Len = 0 then Exit;
-  if (Index = MaxInt) or (Len = 1) then Index := 0;
-  // makes image to save compatible with Jpeg saving capabilities
-  if MakeCompatible(Images[Index], ImageToSave) then 
+
+  Result := PrepareSave(Handle, Images, Index);
+  // Makes image to save compatible with Jpeg saving capabilities
+  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with JIO, ImageToSave do
   try
     GetImageFormatInfo(Format, Info);
@@ -483,7 +483,7 @@ begin
     jpeg_finish_compress(@jc.c);
   finally
     ReleaseContext(jc);
-    if Images[Index].Bits <> ImageToSave.Bits then
+    if MustBeFreed then
       FreeImage(ImageToSave);
   {$IFDEF RGBSWAPPED}
     FreeMem(Line);
@@ -492,9 +492,9 @@ begin
 end;
 
 function TJpegFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData): Boolean;
+  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
 begin
-  if not inherited MakeCompatible(Image, Comp) then
+  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
   begin
     if GetFormatInfo(Comp.Format).HasGrayChannel then
       ConvertImage(Comp, ifGray8)
@@ -538,6 +538,8 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit
     - changes in TestFormat, now reads JFIF and EXIF signatures too
 
   -- 0.19 Changes/Bug Fixes -----------------------------------

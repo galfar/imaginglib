@@ -1,7 +1,7 @@
 {
-  $Id: ImagingTarga.pas,v 1.10 2006/08/31 14:53:33 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -48,9 +48,10 @@ type
     function GetSupportedFormats: TImageFormats; override;
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean); override;
-    procedure SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: LongInt); override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData): Boolean; override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
+      out MustBeFreed: Boolean): Boolean; override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -136,7 +137,7 @@ var
   begin
     with GetIO, Images[0] do
     begin
-      // allocates buffer large enough to hold the worst case
+      // Alocates buffer large enough to hold the worst case
       // RLE compressed data and reads then from input
       BufSize := Width * Height * FmtInfo.BytesPerPixel;
       BufSize := BufSize + BufSize div 2 + 1;
@@ -154,12 +155,12 @@ var
         Inc(Src);
         if Rle < 128 then
         begin
-          // process uncompressed pixel
+          // Process uncompressed pixel
           Rle := Rle + 1;
           CPixel := CPixel + Rle;
           for I := 0 to Rle - 1 do
           begin
-            // copy pixel from src to dest
+            // Copy pixel from src to dest
             case Bpp of
               1: Dest^ := Src^;
               2: PWord(Dest)^ := PWord(Src)^;
@@ -172,10 +173,10 @@ var
         end
         else
         begin
-          // process compressed pixels
+          // Process compressed pixels
           Rle := Rle - 127;
           CPixel := CPixel + Rle;
-          // copy one pixel from src to dest (many times there)
+          // Copy one pixel from src to dest (many times there)
           for I := 0 to Rle - 1 do
           begin
             case Bpp of
@@ -200,11 +201,11 @@ begin
   SetLength(Images, 1);
   with GetIO, Images[0] do
   begin
-    // read targa header
+    // Read targa header
     Read(Handle, @Hdr, SizeOf(Hdr));
-    // skip image ID info
+    // Skip image ID info
     Seek(Handle, Hdr.IDLength, smFromCurrent);
-    // determine image format
+    // Determine image format
     Format := ifUnknown;
     case Hdr.ImageType of
       1, 9: Format := ifIndex8;
@@ -216,7 +217,7 @@ begin
         end;
       3, 11: Format := ifGray8;
     end;
-    // format was not assigned by previous testing (it should be in
+    // Format was not assigned by previous testing (it should be in
     // well formed targas), so formats which reflects bit dept are selected
     if Format = ifUnknown then
       case Hdr.PixelSize of
@@ -231,11 +232,11 @@ begin
 
     if (Hdr.ColorMapType = 1) and (Hdr.ImageType in [1, 9]) then
     begin
-      // read palette
+      // Read palette
       PSize := Hdr.ColorMapLength * (Hdr.ColorEntrySize shr 3);
       GetMem(Pal, PSize);
       Read(Handle, Pal, PSize);
-      // process palette
+      // Process palette
       PalSize := Iff(Hdr.ColorMapLength > FmtInfo.PaletteEntries,
         FmtInfo.PaletteEntries, Hdr.ColorMapLength);
       for I := 0 to PalSize - 1 do
@@ -271,14 +272,14 @@ begin
 
     case Hdr.ImageType of
       0, 1, 2, 3:
-        // load uncompressed mode images
+        // Load uncompressed mode images
         Read(Handle, Bits, Size);
       9, 10, 11:
-        // load RLE compressed mode images
+        // Load RLE compressed mode images
         LoadRLE;
     end;
 
-    // check if there is alpha channel present in A1R5GB5 images, if it is not
+    // Check if there is alpha channel present in A1R5GB5 images, if it is not
     // change format to X1R5G5B5
     if Format = ifA1R5G5B5 then
     begin
@@ -286,7 +287,7 @@ begin
         Format := ifX1R5G5B5;
     end;
 
-    // we must find true end of file and set input' position to it
+    // We must find true end of file and set input' position to it
     // paint programs appends extra info at the end of Targas
     // some of them multiple times (PSP Pro 8)
     repeat
@@ -314,20 +315,21 @@ begin
       end;
     until (not ExtFound) and (not FooterFound);
 
-    // some editors save targas flipped
+    // Some editors save targas flipped
     if Hdr.Desc < 31 then
       FlipImage(Images[0]);
   end;
 end;
 
-procedure TTargaFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer);
+function TTargaFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
   Len, I: LongInt;
   Hdr: TTargaHeader;
   FmtInfo: PImageFormatInfo;
   Pal: PPalette24;
   ImageToSave: TImageData;
+  MustBeFreed: Boolean;
 
   procedure SaveRLE;
   var
@@ -459,7 +461,7 @@ var
   begin
     with ImageToSave do
     begin
-      // allocate enough space to hold the worst case compression
+      // Allocate enough space to hold the worst case compression
       // result and then compress source's scanlines
       WidthBytes := Width * FmtInfo.BytesPerPixel;
       DestSize := WidthBytes * Height;
@@ -478,16 +480,12 @@ var
   end;
 
 begin
-  Len := Length(Images);
-  if Len = 0 then
-    Exit;
-  if (Index = MaxInt) or (Len = 1) then
-    Index := 0;
-  if MakeCompatible(Images[Index], ImageToSave) then
+  Result := PrepareSave(Handle, Images, Index);
+  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with GetIO, ImageToSave do
   try
     FmtInfo := GetFormatInfo(Format);
-    // fill targa header
+    // Fill targa header
     FillChar(Hdr, SizeOf(Hdr), 0);
     Hdr.IDLength := 0;
     Hdr.ColorMapType := Iff(FmtInfo.PaletteEntries > 0, 1, 0);
@@ -497,11 +495,11 @@ begin
     Hdr.ColorMapLength := fmtInfo.PaletteEntries;
     Hdr.ColorEntrySize := Iff(FmtInfo.PaletteEntries > 0, 24, 0);
     Hdr.ColorMapOff := 0;
-    // this indicates that targa is stored in top-left format
+    // This indicates that targa is stored in top-left format
     // as our images -> no flipping is needed.
     Hdr.Desc := 32;
 
-    // choose image type
+    // Choose image type
     if FmtInfo.IsIndexed then
       Hdr.ImageType := Iff(FUseRLE, 9, 1)
     else
@@ -512,7 +510,7 @@ begin
 
     Write(Handle, @Hdr, SizeOf(Hdr));
 
-    // write palette
+    // Write palette
     if FmtInfo.PaletteEntries > 0 then
     begin
       GetMem(Pal, FmtInfo.PaletteEntries * SizeOf(TColor24Rec));
@@ -528,42 +526,41 @@ begin
     end;
 
     if FUseRLE then
-      SaveRLE //save rle compressed mode images
+      // Save rle compressed mode images
+      SaveRLE
     else
-      Write(Handle, Bits, Size); //save uncompressed mode images
+      // Save uncompressed mode images
+      Write(Handle, Bits, Size);
   finally
-    if Images[Index].Bits <> ImageToSave.Bits then
+    if MustBeFreed then
       FreeImage(ImageToSave);
   end;
 end;
 
 function TTargaFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData): Boolean;
+  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
 var
   Info: PImageFormatInfo;
   ConvFormat: TImageFormat;
 begin
-  if not inherited MakeCompatible(Image, Comp) then
+  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
   begin
     Info := GetFormatInfo(Comp.Format);
     if Info.HasGrayChannel then
       // convert all grayscale images to Gray8
       ConvFormat := ifGray8
+    else if Info.IsIndexed then
+      // convert all indexed images to Index8
+      ConvFormat := ifIndex8
+    else if Info.HasAlphaChannel then
+      // convert images with alpha channel to A8R8G8B8
+      ConvFormat := ifA8R8G8B8
+    else if Info.UsePixelFormat then
+      // convert 16bit images (without alpha channel) to A1R5G5B5
+      ConvFormat := ifA1R5G5B5
     else
-      if Info.IsIndexed then
-        // convert all indexed images to Index8
-        ConvFormat := ifIndex8
-      else
-        if Info.HasAlphaChannel then
-          // convert images with alpha channel to A8R8G8B8
-          ConvFormat := ifA8R8G8B8
-        else
-          if Info.UsePixelFormat then
-            // convert 16bit images (without alpha channel) to A1R5G5B5
-            ConvFormat := ifA1R5G5B5
-          else
-            // convert all other formats to R8G8B8
-            ConvFormat := ifR8G8B8;
+      // convert all other formats to R8G8B8
+      ConvFormat := ifR8G8B8;
 
       ConvertImage(Comp, ConvFormat);
   end;
@@ -577,13 +574,15 @@ var
 begin
   Result := False;
   if Handle <> nil then
-    with GetIO do
-    begin
-      ReadCount := Read(Handle, @Hdr, SizeOf(Hdr));
-      Seek(Handle, -ReadCount, smFromCurrent);
-      Result := (Hdr.ImageType in [0, 1, 2, 3, 9, 10, 11]) and
-        (Hdr.PixelSize in [1, 8, 15, 16, 24, 32]);
-    end;
+  begin
+    ReadCount := GetIO.Read(Handle, @Hdr, SizeOf(Hdr));
+    GetIO.Seek(Handle, -ReadCount, smFromCurrent);
+    Result := (ReadCount >= SizeOf(Hdr)) and
+      (Hdr.ImageType in [0, 1, 2, 3, 9, 10, 11]) and
+      (Hdr.PixelSize in [1, 8, 15, 16, 24, 32]) and
+      (Hdr.ColorEntrySize in [0, 16, 24, 32]) and
+      (Hdr.ColorMapLength <= 256);
+  end;
 end;
 
 initialization
@@ -594,6 +593,10 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit
 
   -- 0.17 Changes/Bug Fixes -----------------------------------
     - 16 bit images are usually without alpha but some has alpha

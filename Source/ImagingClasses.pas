@@ -1,7 +1,7 @@
 {
-  $Id: ImagingClasses.pas,v 1.19 2006/10/26 13:29:28 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -540,6 +540,7 @@ constructor TMultiImage.CreateFromParams(AWidth, AHeight: LongInt;
 var
   I: LongInt;
 begin
+  Imaging.FreeImagesInArray(FDataArray);
   SetLength(FDataArray, Images);
   for I := 0 to GetImageCount - 1 do
     Imaging.NewImage(AWidth, AHeight, AFormat, FDataArray[I]);
@@ -831,6 +832,9 @@ end;
   -- TODOS ----------------------------------------------------
     - add SetPalette,
     - create new HighLevel demo - rewrite old one, rewrite Img Browser to use high level
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------  
+    - fixed memory leak in TMultiImage.CreateFromParams
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added ResizeImages method to TMultiImage

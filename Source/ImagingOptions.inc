@@ -1,4 +1,4 @@
-{ $Id: ImagingOptions.inc,v 1.23 2006/10/26 13:29:28 galfar Exp $ }
+{ $Id$ }
 
 { Imaging options }
 
@@ -6,10 +6,8 @@
                               // works in Free Pascal and Delphi 9+
 {$DEFINE USE_ASM}             // if defined, assembler versions of some
                               // functions will be used (only for x86)
-{ $DEFINE DEBUG}               // if defined, debug info and range/IO/overflow
+{$DEFINE DEBUG}               // if defined, debug info and range/IO/overflow
                               // checking and stack frames will be turned on
-{$DEFINE RAISE_EXCEPTIONS}    // if defined, errors in Imaging will raise
-                              // EImaginError exceptions on some errors
 
 // define component set used in ImagignComponents.pas unit
 {$DEFINE COMPONENT_SET_VCL}   // use Borland's VCL
@@ -54,7 +52,7 @@
   {$IFDEF DCC}
     {$OPTIMIZATION OFF}
     {$STACKFRAMES ON}
-    { $DEFINE MEMCHECK}
+    {$DEFINE MEMCHECK}
   {$ENDIF}
   {$IFDEF FPC}
     {$S+}

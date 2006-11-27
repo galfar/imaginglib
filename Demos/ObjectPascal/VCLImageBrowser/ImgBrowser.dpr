@@ -1,7 +1,7 @@
 program ImgBrowser;
 
 uses
-  Forms, 
+  Forms,
   Main;
 
 {$R *.res}

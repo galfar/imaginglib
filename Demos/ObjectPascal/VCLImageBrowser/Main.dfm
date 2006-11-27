@@ -1,9 +1,9 @@
 object MainForm: TMainForm
-  Left = 140
-  Top = 114
-  Width = 808
-  Height = 634
+  Left = 228
+  Top = 184
   Caption = 'Vampyre Imaging Library Demo - VCL Image Browser'
+  ClientHeight = 600
+  ClientWidth = 800
   Color = clWhite
   Font.Charset = EASTEUROPE_CHARSET
   Font.Color = clWindowText

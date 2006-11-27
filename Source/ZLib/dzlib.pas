@@ -11,7 +11,7 @@
 {
   Modified for 
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   You can choose which pascal zlib implementation will be

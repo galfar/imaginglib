@@ -1,7 +1,7 @@
 {
-  $Id: ImagingTypes.pas,v 1.23 2006/10/26 13:29:28 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -37,7 +37,7 @@ const
   { Current Major version of Imaging.}
   ImagingVersionMajor = 0;
   { Current Minor version of Imaging.}
-  ImagingVersionMinor = 20;
+  ImagingVersionMinor = 21;
   { Current patch of Imaging.}
   ImagingVersionPatch = 0;
 

@@ -1,7 +1,7 @@
 {
-  $Id: Imaging.pas,v 1.29 2006/10/26 13:29:28 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -335,24 +335,28 @@ type
     FCanLoad: Boolean;
     FCanSave: Boolean;
     FIsMultiImageFormat: Boolean;
+    FFirstIdx, FLastIdx: LongInt;
     procedure AddExtensions(const AExtensions: string);
     function GetFormatInfo(Format: TImageFormat): PImageFormatInfo;
     function GetSupportedFormats: TImageFormats; virtual;
+    function PrepareSave(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      var Index: LongInt): Boolean;
     { Method which must be overrided in descendants if they' are be capable
       of loading images.}
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstFrame: Boolean); virtual;
     { Method which must be overrided in descendants if they are be capable
-      of saving images. If Index is MaxInt all images in array are saved, otherwise
+      of saving images. If Index is -1 all images in array are saved, otherwise
       only image at index is saved.}
-    procedure SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: LongInt = MaxInt); virtual;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; virtual;
     { Creates clone of image compatible with format's saving function.
       It can convert image to another format, swap channels of image, ...
       Note that if input Image is already compatible it is returned in Comp,
       so before freeing Comp you must test if it is not original Image.
       Returns True if Comp is returned in compatible format}
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData): Boolean; virtual;
+    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
+      out MustBeFreed: Boolean): Boolean; virtual;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -2396,7 +2400,6 @@ begin
 end;
 
 procedure RaiseImaging(const Msg: string; const Args: array of const);
-{$IFDEF RAISE_EXCEPTIONS}
 var
   WholeMsg: string;
 begin
@@ -2406,10 +2409,6 @@ begin
       GetExceptObject.Message;
   raise EImagingError.CreateFmt(WholeMsg, Args);
 end;
-{$ELSE}
-begin
-end;
-{$ENDIF}
 
 { Internal unit functions }
 
@@ -2607,9 +2606,11 @@ begin
 end;
 
 function TImageFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData): Boolean;
+  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
 begin
   InitImage(Comp);
+  MustBeFreed := True;
+
   if (SaveOverrideFormat in GetSupportedFormats) and
     (SaveOverrideFormat <> Image.Format) then
   begin
@@ -2617,26 +2618,61 @@ begin
     ConvertImage(Comp, SaveOverrideFormat);
     Result := True;
   end
+  else if Image.Format in GetSupportedFormats then
+  begin
+    Comp := Image;
+    Result := True;
+    MustBeFreed := False;
+  end
   else
-    if Image.Format in GetSupportedFormats then
+  begin
+    CloneImage(Image, Comp);
+    Result := False;
+  end;
+end;
+
+function TImageFileFormat.PrepareSave(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; var Index: Integer): Boolean;
+var
+  Len: LongInt;
+begin
+  Result := False;
+  if FCanSave then
+  begin
+    Len := Length(Images);
+    // If there are no images to be saved exit
+    if Len = 0 then Exit;
+
+    // Check index of image to be saved (-1 as index means save all images)
+    if FIsMultiImageFormat then
     begin
-      Comp := Image;
-      Result := True;
+      if (Index >= Len) then
+        Index := 0;
+
+      if Index < 0 then
+      begin
+        Index := 0;
+        FFirstIdx := 0;
+        FLastIdx := Len - 1;
+      end
+      else
+      begin
+        FFirstIdx := Index;
+        FLastIdx := Index;
+      end;
     end
     else
     begin
-      CloneImage(Image, Comp);
-      Result := False;
+      if (Index >= Len) or (Index < 0) then
+        Index := 0;
     end;
+
+    Result := True;
+  end;
 end;
 
-function TImageFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
-begin
-  Result := False;
-end;
-
-procedure TImageFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: LongInt);
+function TImageFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 begin
   RaiseImaging(SFileFormatCanNotSave, [FName]);
 end;
@@ -2660,9 +2696,9 @@ begin
       Handle := IO.OpenWrite(PChar(FileName));
       try
         if OnlyFirstLevel then
-          SaveData(Handle, Images, 0)
+          Result := SaveData(Handle, Images, 0)
         else
-          SaveData(Handle, Images);
+          Result := SaveData(Handle, Images, -1);
       finally
         IO.Close(Handle);
       end;
@@ -2672,17 +2708,19 @@ begin
       // write multi image to file sequence
       Ext := ExtractFileExt(FileName);
       FName := ChangeFileExt(FileName, '');
+      Result := True;
       for I := 0 to Len - 1 do
       begin
         Handle := IO.OpenWrite(PChar(Format(FName + '%.3d' + Ext, [I])));
         try
-          SaveData(Handle, Images, I);
+          Result := Result and SaveData(Handle, Images, I);
+          if not Result then
+            Break;
         finally
           IO.Close(Handle);
         end;
       end;
     end;
-    Result := True;
   except
     RaiseImaging(SErrorSavingFile, [FileName]);
   end;
@@ -2706,13 +2744,21 @@ begin
       FIsMultiImageFormat then
     begin
       if OnlyFirstLevel then
-        SaveData(Handle, Images, 0)
+        Result := SaveData(Handle, Images, 0)
       else
-        SaveData(Handle, Images);
+        Result := SaveData(Handle, Images, -1);
     end
     else
+    begin
+      Result := True;
       for I := 0 to Len - 1 do
-        SaveData(Handle, Images, I);
+      begin
+        Result := Result and SaveData(Handle, Images, I);
+        if not Result then
+          Break;
+      end;
+    end;
+
     IO.Close(Handle);
     Result := True;
   except
@@ -2742,19 +2788,31 @@ begin
       FIsMultiImageFormat then
     begin
       if OnlyFirstLevel then
-        SaveData(Handle, Images, 0)
+        Result := SaveData(Handle, Images, 0)
       else
-        SaveData(Handle, Images);
+        Result := SaveData(Handle, Images, -1);
     end
     else
+    begin
+      Result := True;
       for I := 0 to Len - 1 do
-        SaveData(Handle, Images, I);
+      begin
+        Result := Result and SaveData(Handle, Images, I);
+        if not Result then
+          Break;
+      end;
+    end;
+
     IO.Close(Handle);
     Size := IORec.Written;
-    Result := True;
   except
     RaiseImaging(SErrorSavingMemory, [Data, Size]);
   end;
+end;
+
+function TImageFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
+begin
+  Result := False;
 end;
 
 
@@ -2841,6 +2899,17 @@ finalization
     - add some color functions - create, convert, add, merge, ...
     - do not load all frames when only one is required, possible?
       (LoadImageFromFile on MNG/DDS)
+    - add to GetImageFileFormatsFilter - specify save/load filter
+    - replace extensions with filters (texture.*)   
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changed TImageFileFormat.SaveData procedure to function and
+      put here code that was duplicate in all SaveData methods of
+      TImageFileFormat descendants
+    - removed RAISE_EXCEPTIONS define, exceptions are now raised everytime  
+    - added MustBeFreed parameter to TImageFileFormat.MakeComptible method
+      that indicates that compatible image returned by this method must be
+      freed after its usage
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - fixed bug in NewImage: if given format was ifDefault it wasn't
@@ -2863,7 +2932,7 @@ finalization
     - removed GetPixelBytes low level intf function - redundant
       (same data can be obtained by GetImageFormatInfo)
     - made small changes in many parts of library to compile
-      on AMD64 CPU (Linux with FPC) 
+      on AMD64 CPU (Linux with FPC)
     - changed InitImage to procedure (function was pointless)
     - Method TestFormat of TImageFileFormat class made public
       (was protected)

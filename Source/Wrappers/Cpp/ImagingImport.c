@@ -1,7 +1,7 @@
 /*
-  $Id: ImagingImport.c,v 1.8 2006/10/26 13:29:30 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla

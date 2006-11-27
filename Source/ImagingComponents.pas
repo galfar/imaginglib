@@ -1,7 +1,7 @@
 {
-  $Id: ImagingComponents.pas,v 1.10 2006/10/26 13:29:28 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla

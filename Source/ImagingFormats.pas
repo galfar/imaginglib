@@ -1,7 +1,7 @@
 {
-  $Id: ImagingFormats.pas,v 1.22 2006/10/26 13:29:28 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -1918,11 +1918,15 @@ const
   HalfPosInf:  THalfFloat = 31744;
   HalfNegInf:  THalfFloat = 64512;
 
-{
-  Half/Float conversions inspired by half class from OpenEXR library.
 
-  Float (Pascal Single type) is an IEEE 754 single-precision
-  floating point number.
+{
+
+  Half/Float conversions inspired by half class from OpenEXR library.
+
+
+  Float (Pascal Single type) is an IEEE 754 single-precision
+
+  floating point number.
 
   Bit layout of Single:
 
@@ -1949,7 +1953,8 @@ const
   S is the sign-bit, e is the exponent and m is the significand (mantissa).
 }
 
-function HalfToFloat(Half: THalfFloat): Single;
+
+function HalfToFloat(Half: THalfFloat): Single;
 var
   Dst, Sign, Mantissa: LongWord;
   Exp: LongInt;
@@ -3674,8 +3679,6 @@ begin
       end;
   end;
 end;
-
-
 
 {
   File Notes:

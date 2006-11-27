@@ -1,7 +1,7 @@
 {
-  $Id: ImagingBitmap.pas,v 1.12 2006/10/26 13:29:28 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -49,9 +49,10 @@ type
     function GetSupportedFormats: TImageFormats; override;
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean); override;
-    procedure SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: LongInt); override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData): Boolean; override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
+      out MustBeFreed: Boolean): Boolean; override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -516,16 +517,17 @@ begin
   end;
 end;
 
-procedure TBitmapFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer);
+function TBitmapFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
-  Len, StartPos, EndPos, WidthBytes, AlignedSize: LongInt;
+  StartPos, EndPos, WidthBytes, AlignedSize: LongInt;
   Data: Pointer;
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
   FmtInfo: PImageFormatInfo;
   ImageToSave: TImageData;
   LocalPF: TLocalPixelFormat;
+  MustBeFreed: Boolean;
 
   procedure SaveRLE8;
   const
@@ -654,11 +656,8 @@ var
   end;
 
 begin
-  Len := Length(Images);
-  if Len = 0 then Exit;
-  if (Index = MaxInt) or (Len = 1) then Index := 0;
-
-  if MakeCompatible(Images[Index], ImageToSave) then
+  Result := PrepareSave(Handle, Images, Index);
+  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with GetIO, ImageToSave do
   try
     FmtInfo := GetFormatInfo(Format);
@@ -724,18 +723,18 @@ begin
     Write(Handle, @BI, SizeOf(BI));
     Seek(Handle, EndPos, smFromBeginning);
   finally
-    if Images[Index].Bits <> ImageToSave.Bits then
+    if MustBeFreed then
       FreeImage(ImageToSave);
   end;
 end;
 
 function TBitmapFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData): Boolean;
+  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
 var
   Info: PImageFormatInfo;
   ConvFormat: TImageFormat;
 begin
-  if not inherited MakeCompatible(Image, Comp) then
+  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
   begin
     Info := GetFormatInfo(Comp.Format);
     if Info.HasGrayChannel or Info.IsIndexed then
@@ -781,7 +780,11 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - rewrite SaveRLE8, there is some error with MemCheck
-    - add alpha check as with 16bit bitmaps to 32bt bitmaps too
+    - add alpha check as with 16b bitmaps to 32b bitmaps too
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - fixed wrong const that caused A4R4G4B4 BMPs to load as A1R5G5B5

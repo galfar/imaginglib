@@ -1,7 +1,7 @@
 {
-  $Id: VampyreImaging.dpr,v 1.13 2006/09/21 19:44:36 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla

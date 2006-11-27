@@ -19,7 +19,7 @@
 			<Compiler Name="A">8</Compiler>
 			<Compiler Name="B">0</Compiler>
 			<Compiler Name="C">1</Compiler>
-			<Compiler Name="D">0</Compiler>
+			<Compiler Name="D">1</Compiler>
 			<Compiler Name="E">0</Compiler>
 			<Compiler Name="F">0</Compiler>
 			<Compiler Name="G">1</Compiler>
@@ -27,7 +27,7 @@
 			<Compiler Name="I">1</Compiler>
 			<Compiler Name="J">0</Compiler>
 			<Compiler Name="K">0</Compiler>
-			<Compiler Name="L">0</Compiler>
+			<Compiler Name="L">1</Compiler>
 			<Compiler Name="M">0</Compiler>
 			<Compiler Name="N">1</Compiler>
 			<Compiler Name="O">1</Compiler>
@@ -174,8 +174,9 @@
 			<Language Name="ActiveLang"></Language>
 			<Language Name="ProjectLang">$00000000</Language>
 			<Language Name="RootDir"></Language>
-		</Language>  <Excluded_Packages>
-      <Excluded_Packages Name="C:\Documents and Settings\Mark\Dokumenty\Borland Studio Projects\Bpl\DJcl90.bpl">JEDI Code Library RTL package for Delphi 2005</Excluded_Packages>
+		</Language>  
+    <Excluded_Packages>
+      <Excluded_Packages Name="C:\DOCUME~1\Mark\DOKUME~1\BORLAN~1\Bpl\JclVersionControlExpert100.bpl">JCL Integration of version control systems in the IDE</Excluded_Packages>
     </Excluded_Packages>
   </Delphi.Personality>
 </BorlandProject>

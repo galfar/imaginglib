@@ -1,7 +1,7 @@
 {
-  $Id: ImagingNetworkGraphics.pas,v 1.3 2006/08/31 14:53:33 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder 
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -49,8 +49,10 @@ type
     FQuality: LongInt;
     FProgressive: LongBool;
     function GetSupportedFormats: TImageFormats; override;
-    procedure SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray; Index: LongInt); override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData): Boolean; override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
+      out MustBeFreed: Boolean): Boolean; override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -70,7 +72,8 @@ type
   TPNGFileFormat = class(TNetworkGraphicsFileFormat)
   protected
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray; OnlyFirstLevel: Boolean); override;
-    procedure SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray; Index: LongInt); override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
   public
     constructor Create; override;
   end;
@@ -92,7 +95,8 @@ type
   TMNGFileFormat = class(TNetworkGraphicsFileFormat)
   protected
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray; OnlyFirstLevel: Boolean); override;
-    procedure SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray; Index: LongInt); override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
   public
     constructor Create; override;
   end;
@@ -115,7 +119,8 @@ type
   TJNGFileFormat = class(TNetworkGraphicsFileFormat)
   protected
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray; OnlyFirstLevel: Boolean); override;
-    procedure SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray; Index: LongInt); override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
   public
     constructor Create; override;
   end;
@@ -1154,7 +1159,7 @@ begin
   IsColorFormat := (Frame.IsJNG and (Frame.JHDR.ColorType in [10, 14])) or
     (not Frame.IsJNG and (Frame.IHDR.ColorType in [2, 6]));
 
-  // convert some chunk data to useful format
+  // Convert some chunk data to useful format
   if Frame.Transparency <> nil then
     ConverttRNS;
   if Frame.Background <> nil then
@@ -1700,12 +1705,12 @@ begin
 end;
 
 function TNetworkGraphicsFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData): Boolean;
+  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
 var
   Info: PImageFormatInfo;
   ConvFormat: TImageFormat;
 begin
-  if not inherited MakeCompatible(Image, Comp) then
+  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
   begin
     Info := GetFormatInfo(Comp.Format);
     if not FLossyCompression then
@@ -1730,13 +1735,12 @@ begin
         if Info.IsFloatingPoint then
           // Convert floating point images to 64 bit ARGB
           ConvFormat := ifA16B16G16R16
+        else if Info.HasAlphaChannel or Info.IsSpecial then
+          // Convert all other images with alpha or special images to A8R8G8B8
+          ConvFormat := ifA8R8G8B8
         else
-          if Info.HasAlphaChannel or Info.IsSpecial then
-            // Convert all other images with alpha or special images to A8R8G8B8
-            ConvFormat := ifA8R8G8B8
-          else
-            // Convert images without alpha to R8G8B8
-            ConvFormat := ifR8G8B8;
+          // Convert images without alpha to R8G8B8
+          ConvFormat := ifR8G8B8;
     end
     else
     begin
@@ -1752,8 +1756,8 @@ begin
   Result := Comp.Format in GetSupportedFormats;
 end;
 
-procedure TNetworkGraphicsFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer);
+function TNetworkGraphicsFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 begin
   // Just check if save options has valid values
   if not (FPreFilter in [0..6]) then
@@ -1762,6 +1766,7 @@ begin
     FCompressLevel := NGDefaultCompressLevel;
   if not (FQuality in [1..100]) then
     FQuality := NGDefaultQuality;
+  Result := True;
 end;
 
 function TNetworkGraphicsFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
@@ -1814,18 +1819,15 @@ begin
   end;
 end;
 
-procedure TPNGFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: LongInt);
+function TPNGFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
-  Len: LongInt;
   ImageToSave: TImageData;
+  MustBeFreed: Boolean;
 begin
-  inherited SaveData(Handle, Images, Index);
-  Len := Length(Images);
-  if Len = 0 then Exit;
-  if (Index = MaxInt) or (Len = 1) then Index := 0;
+  Result := inherited SaveData(Handle, Images, Index) and PrepareSave(Handle, Images, Index);
   // Make image PNG compatible, store it in saver, and save it to file
-  if MakeCompatible(Images[Index], ImageToSave) then
+  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with NGFileSaver do
   try
     FileType := ngPNG;
@@ -1835,7 +1837,7 @@ begin
   finally
     // Clear NG saver and compatible image
     Clear;
-    if Images[Index].Bits <> ImageToSave.Bits then
+    if MustBeFreed then
       FreeImage(ImageToSave);
   end;
 end;
@@ -1899,27 +1901,16 @@ begin
   end;
 end;
 
-procedure TMNGFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: LongInt);
+function TMNGFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
-  I, FirstIdx, LastIdx, Len, LargestWidth, LargestHeight: LongInt;
+  I, LargestWidth, LargestHeight: LongInt;
   ImageToSave: TImageData;
+  MustBeFreed: Boolean;
 begin
-  inherited SaveData(Handle, Images, Index);
-  Len := Length(Images);
-  if Len = 0 then Exit;
-  // Determine whether all frames or just one should be saved
-  if (Index = MaxInt) or (Index > Len - 1) then
-  begin
-    FirstIdx := 0;
-    LastIdx := Len - 1;
-  end
-  else
-  begin
-    FirstIdx := Index;
-    LastIdx := Index;
-  end;
-
+  Result := inherited SaveData(Handle, Images, Index) and PrepareSave(Handle, Images, Index);
+  if not Result then Exit;
+                 
   LargestWidth := 0;
   LargestHeight := 0;
 
@@ -1929,9 +1920,9 @@ begin
   with NGFileSaver do
   try
     // Store all frames to be saved frames file saver
-    for I := FirstIdx to LastIdx do
+    for I := FFirstIdx to FLastIdx do
     begin
-      if MakeCompatible(Images[I], ImageToSave) then
+      if MakeCompatible(Images[I], ImageToSave, MustBeFreed) then
       try
         // Add image as PNG or JNG frame
         AddFrame(ImageToSave, FLossyCompression);
@@ -1939,7 +1930,7 @@ begin
         LargestWidth := Iff(LargestWidth < ImageToSave.Width, ImageToSave.Width, LargestWidth);
         LargestHeight := Iff(LargestHeight < ImageToSave.Height, ImageToSave.Height, LargestHeight);
       finally
-        if Images[I].Bits <> ImageToSave.Bits then
+        if MustBeFreed then
           FreeImage(ImageToSave);
       end;
     end;
@@ -2003,18 +1994,15 @@ begin
   end;
 end;
 
-procedure TJNGFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: LongInt);
+function TJNGFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
-  Len: LongInt;
   ImageToSave: TImageData;
+  MustBeFreed: Boolean;
 begin
-  inherited SaveData(Handle, Images, Index);
-  Len := Length(Images);
-  if Len = 0 then Exit;
-  if (Index = MaxInt) or (Len = 1) then Index := 0;
+  Result := inherited SaveData(Handle, Images, Index) and PrepareSave(Handle, Images, Index);
   // Make image JNG compatible, store it in saver, and save it to file
-  if MakeCompatible(Images[Index], ImageToSave) then
+  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with NGFileSaver do
   try
     FileType := ngJNG;
@@ -2024,7 +2012,7 @@ begin
   finally
     // Clear NG saver and compatible image
     Clear;
-    if Images[Index].Bits <> ImageToSave.Bits then
+    if MustBeFreed then
       FreeImage(ImageToSave);
   end;
 end;

@@ -4,10 +4,10 @@ object MainForm: TMainForm
   Top = 404
   Width = 840
   HorzScrollBar.Page = 839
-  VertScrollBar.Page = 617
+  VertScrollBar.Page = 621
   AutoSize = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
-  ClientHeight = 618
+  ClientHeight = 622
   ClientWidth = 840
   Color = clGray
   Icon.Data = {
@@ -116,7 +116,7 @@ object MainForm: TMainForm
   Position = poDesktopCenter
   object Image: TImage
     Cursor = crHandPoint
-    Height = 618
+    Height = 622
     Width = 840
     Align = alClient
     AutoSize = True

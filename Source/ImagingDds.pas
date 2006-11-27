@@ -1,7 +1,7 @@
 {
-  $Id: ImagingDds.pas,v 1.18 2006/10/26 13:29:28 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -59,9 +59,10 @@ type
     function GetSupportedFormats: TImageFormats; override;
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean); override;
-    procedure SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: LongInt); override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData): Boolean; override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
+      out MustBeFreed: Boolean): Boolean; override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -509,21 +510,19 @@ begin
   end;
 end;
 
-procedure TDDSFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer);
+function TDDSFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
   Hdr: TDDSFileHeader;
   MainImage, ImageToSave: TImageData;
   I, MainIdx, Len, ImageCount: LongInt;
   J: LongWord;
   FmtInfo: PImageFormatInfo;
+  MustBeFreed: Boolean;
 begin
-  Len := Length(Images);
-  if Len = 0 then Exit;
-  if (Index = MaxInt) or (Index > Len - 1) then
-    MainIdx := 0
-  else
-    MainIdx := Index;
+  Result := PrepareSave(Handle, Images, Index);
+  if not Result then Exit;
+  MainIdx := FFirstIdx;
 
   // check if we have enough images on Input to save cube map
   if FSaveCubeMap then
@@ -545,8 +544,9 @@ begin
     if Len - MainIdx < FSaveMipMapCount then
       FSaveMipMapCount := 1;
   end;
+
   // we create compatible main image and fill headers
-  if MakeCompatible(Images[MainIdx], MainImage) then 
+  if MakeCompatible(Images[MainIdx], MainImage, MustBeFreed) then
   with GetIO, MainImage, Hdr do
   try
     FmtInfo := GetFormatInfo(Format);
@@ -644,7 +644,7 @@ begin
             Desc.PixelFormat.BlueMask := FmtInfo.PixelFormat.BBitMask;
           end;
         end;
-    // header and main image are wriiten to output
+    // header and main image are written to output
     Write(Handle, @Hdr, SizeOf(Hdr));
     Write(Handle, MainImage.Bits, MainImage.Size);
     // write the rest of the images (and convert them to
@@ -663,57 +663,52 @@ begin
         FreeImage(ImageToSave);
     end;
   finally
-    if Images[MainIdx].Bits <> MainImage.Bits then
+    if MustBeFreed then
       FreeImage(MainImage);
   end;
 end;
 
 function TDDSFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData): Boolean;
+  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
 var
   Info: PImageFormatInfo;
   ConvFormat: TImageFormat;
 begin
-  if not inherited MakeCompatible(Image, Comp) then
+  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
   begin
     Info := GetFormatInfo(Comp.Format);
     if Info.IsIndexed or Info.IsSpecial then
       // convert indexed and unsupported special formatd to A8R8G8B8
       ConvFormat := ifA8R8G8B8
-    else
-      if Info.IsFloatingPoint then
-      begin
-        if Info.Format = ifA16R16G16B16F then
-          // only swap channels here
-          ConvFormat := ifA16B16G16R16F
-        else
-          // convert other floating point formats to A32B32G32R32F
-          ConvFormat := ifA32B32G32R32F
-      end
+    else if Info.IsFloatingPoint then
+    begin
+      if Info.Format = ifA16R16G16B16F then
+        // only swap channels here
+        ConvFormat := ifA16B16G16R16F
       else
-        if Info.HasGrayChannel then
-        begin
-          if Info.HasAlphaChannel then
-            // convert grayscale with alpha to A8Gray8
-            ConvFormat := ifA8Gray8
-          else
-            if Info.BytesPerPixel = 1 then
-              // convert 8bit grayscale to Gray8
-              ConvFormat := ifGray8
-            else
-              // convert 16-64bit grayscales to Gray16
-              ConvFormat := ifGray16;
-        end
-        else
-          if Info.BytesPerPixel > 4 then
-            ConvFormat := ifA16B16G16R16
-          else
-            if Info.HasAlphaChannel then
-              // convert the other images with alpha channel to A8R8G8B8
-              ConvFormat := ifA8R8G8B8
-            else
-              // convert the other formats to X8R8G8B8
-              ConvFormat := ifX8R8G8B8;
+        // convert other floating point formats to A32B32G32R32F
+        ConvFormat := ifA32B32G32R32F
+    end
+    else if Info.HasGrayChannel then
+    begin
+      if Info.HasAlphaChannel then
+        // convert grayscale with alpha to A8Gray8
+        ConvFormat := ifA8Gray8
+      else if Info.BytesPerPixel = 1 then
+        // convert 8bit grayscale to Gray8
+        ConvFormat := ifGray8
+      else
+        // convert 16-64bit grayscales to Gray16
+        ConvFormat := ifGray16;
+    end
+    else if Info.BytesPerPixel > 4 then
+      ConvFormat := ifA16B16G16R16
+    else if Info.HasAlphaChannel then
+      // convert the other images with alpha channel to A8R8G8B8
+      ConvFormat := ifA8R8G8B8
+    else
+      // convert the other formats to X8R8G8B8
+      ConvFormat := ifX8R8G8B8;
 
     ConvertImage(Comp, ConvFormat);
   end;
@@ -748,6 +743,10 @@ initialization
       saved and with proper dims and format
     - always store more images if they are on input, not only when
       SaveMipMapCount is set (problem in VampConvert)  
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added support for half-float image formats

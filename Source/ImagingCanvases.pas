@@ -1,7 +1,7 @@
 {
-  $Id: ImagingCanvases.pas,v 1.5 2006/10/26 13:29:28 galfar Exp $
+  $Id$
   Vampyre Imaging Library
-  by Marek Mauder (pentar@seznam.cz)
+  by Marek Mauder
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -710,6 +710,7 @@ finalization
     - add blending (image and object drawing)
     - add image drawing
     - more objects (rect, framerect)
+    - add channel write/read masks (like apply conv only on Red channel,...) 
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added TFastARGB32Canvas
