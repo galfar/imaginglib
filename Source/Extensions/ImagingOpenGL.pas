@@ -630,7 +630,7 @@ begin
   Result := CreateMultiImageFromGLTexture(Texture, Arr);
   if Result then
   begin
-    Fmt := FindImageFileFormat(GetFileExt(FileName));
+    Fmt := FindImageFileFormatByName(FileName);
     if Fmt <> nil then
     begin
       IsDDS := SameText(Fmt.Extensions[0], 'dds');
@@ -656,7 +656,7 @@ begin
   Result := CreateMultiImageFromGLTexture(Texture, Arr);
   if Result then
   begin
-    Fmt := FindImageFileFormat(Ext);
+    Fmt := FindImageFileFormatByExt(Ext);
     if Fmt <> nil then
     begin
       IsDDS := SameText(Fmt.Extensions[0], 'dds');
@@ -682,7 +682,7 @@ begin
   Result := CreateMultiImageFromGLTexture(Texture, Arr);
   if Result then
   begin
-    Fmt := FindImageFileFormat(Ext);
+    Fmt := FindImageFileFormatByExt(Ext);
     if Fmt <> nil then
     begin
       IsDDS := SameText(Fmt.Extensions[0], 'dds');

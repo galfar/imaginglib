@@ -138,12 +138,12 @@ const
     ifA16B16G16R16];
   NGLossyFormats: TImageFormats = [ifGray8, ifA8Gray8, ifR8G8B8, ifA8R8G8B8];
 
-  SPNGExtensions = 'png';
   SPNGFormatName = 'Portable Network Graphics';
-  SMNGExtensions = 'mng';
+  SPNGMasks      = '*.png';
   SMNGFormatName = 'Multiple Network Graphics';
-  SJNGExtensions = 'jng';
+  SMNGMasks      = '*.mng';
   SJNGFormatName = 'JPEG Network Graphics';
+  SJNGMasks      = '*.jng';
 
 implementation
 
@@ -1794,7 +1794,7 @@ begin
 
   FSignature := PNGSignature;
 
-  AddExtensions(SPNGExtensions);
+  AddMasks(SPNGMasks);
   RegisterOption(ImagingPNGPreFilter, @FPreFilter);
   RegisterOption(ImagingPNGCompressLevel, @FCompressLevel);
 end;
@@ -1853,7 +1853,7 @@ begin
   FIsMultiImageFormat := True;
   FSignature := MNGSignature;
 
-  AddExtensions(SMNGExtensions);
+  AddMasks(SMNGMasks);
 
   RegisterOption(ImagingMNGLossyCompression, @FLossyCompression);
   RegisterOption(ImagingMNGLossyAlpha, @FLossyAlpha);
@@ -1965,7 +1965,7 @@ begin
 
   FLossyCompression := True;
   
-  AddExtensions(SJNGExtensions);
+  AddMasks(SJNGMasks);
 
   RegisterOption(ImagingJNGLossyAlpha, @FLossyAlpha);
   RegisterOption(ImagingJNGAlphaPreFilter, @FPreFilter);
@@ -2038,6 +2038,11 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changed extensions to filename masks
+    - changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit
 
   -- 0.17 Changes/Bug Fixes -----------------------------------
     - MNG and JNG support added, PNG support redesigned to support NG file handlers

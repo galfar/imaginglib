@@ -58,8 +58,8 @@ type
   end;
 
 const
-  STargaExtensions = 'tga';
   STargaFormatName = 'Truevision Targa Image';
+  STargaMasks      = '*.tga';
   TargaSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA1R5G5B5,
     ifR8G8B8, ifA8R8G8B8];
   TargaDefaultRLE = False;  
@@ -108,7 +108,7 @@ begin
 
   FUseRLE := TargaDefaultRLE;
 
-  AddExtensions(STargaExtensions);
+  AddMasks(STargaMasks);
   RegisterOption(ImagingTargaRLE, @FUseRLE);
 end;
 
@@ -595,6 +595,7 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changed extensions to filename masks
     - changed SaveData, LoadData, and MakeCompatible methods according
       to changes in base class in Imaging unit
 

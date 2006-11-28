@@ -1,6 +1,8 @@
+{ This is an automatically generated lazarus resource file }
+
 LazarusResources.Add('TMainForm','FORMDATA',[
-  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3#141#0#6'Height'#3#130#2#3'Top'#3#148
-  +#1#5'Width'#3'H'#3#18'HorzScrollBar.Page'#3'G'#3#18'VertScrollBar.Page'#3'm'
+  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3#169#0#6'Height'#3#130#2#3'Top'#3#140
+  +#0#5'Width'#3'H'#3#18'HorzScrollBar.Page'#3'G'#3#18'VertScrollBar.Page'#3'm'
   +#2#8'AutoSize'#9#7'Caption'#6')LCL Imager (Vampyre Imaging Library Demo)'#12
   +'ClientHeight'#3'n'#2#11'ClientWidth'#3'H'#3#5'Color'#7#6'clGray'#9'Icon.Dat'
   +'a'#10':'#12#0#0'6'#12#0#0'BM6'#12#0#0#0#0#0#0'6'#0#0#0'('#0#0#0' '#0#0#0' '

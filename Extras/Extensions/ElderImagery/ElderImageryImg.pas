@@ -44,7 +44,7 @@ type
     and may contain palette although most images use external palettes.
     Some files have no header at all so exact file size must be known
     prior to loading.}
-  TIMGFileFormat = class(TDaggerfallFileFormat)
+  TIMGFileFormat = class(TElderFileFormat)
   protected
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean); override;
@@ -55,8 +55,8 @@ type
   end;
 
 const
-  SIMGExtensions = 'img';
   SIMGFormatName = 'Daggerfall Image';
+  SIMGMasks      = '*.img';
 
   { Info about special images without header.}
   NoHeaderIMGInfos: array[0..18] of TNoHeaderFileInfo = (
@@ -93,7 +93,7 @@ begin
   inherited Create;
   FIsMultiImageFormat := False;
   FName := SIMGFormatName;
-  AddExtensions(SIMGExtensions);
+  AddMasks(SIMGMasks);
 end;
 
 procedure TIMGFileFormat.LoadData(Handle: TImagingHandle;
@@ -174,6 +174,7 @@ begin
         Palette[I].G := PalUsed[I].G;
         Palette[I].B := PalUsed[I].R;
       end;
+      Palette[0].A := 0;
     end
     else
       Move(FARGBPalette[0], Palette[0], Length(FPalette) * SizeOf(TColor32Rec));

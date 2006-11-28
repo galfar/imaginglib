@@ -69,8 +69,8 @@ type
   end;
 
 const
-  SDDSExtensions = 'dds';
   SDDSFormatName = 'DirectDraw Surface';
+  SDDSMasks      = '*.dds';
   DDSSupportedFormats: TImageFormats = [ifR8G8B8, ifA8R8G8B8, ifA1R5G5B5,
     ifA4R4G4B4, ifX1R5G5B5, ifX4R4G4B4, ifR5G6B5, ifA16B16G16R16, ifR32F,
     ifA32B32G32R32F, ifR16F, ifA16B16G16R16F, ifR3G3B2, ifGray8, ifA8Gray8,
@@ -203,7 +203,7 @@ begin
   FSaveMipMapCount := 1;
   FSaveDepth := 1;
 
-  AddExtensions(SDDSExtensions);
+  AddMasks(SDDSMasks);
   RegisterOption(ImagingDDSLoadedCubeMap, @FLoadedCubeMap);
   RegisterOption(ImagingDDSLoadedVolume, @FLoadedVolume);
   RegisterOption(ImagingDDSLoadedMipMapCount, @FLoadedMipMapCount);
@@ -490,12 +490,14 @@ begin
       else
         LoadSize := PitchOrLinear;
 
-      if LoadSize = Images[I].Size then
-        // if DDS does not use Pitch we can simply copy data
+      if not UseAsPitch then
+      begin
+        // If DDS does not use Pitch we can simply copy data
         Read(Handle, Images[I].Bits, LoadSize)
+      end
       else
       begin
-        // if DDS uses Pitch we must load aligned scanlines
+        // If DDS uses Pitch we must load aligned scanlines
         // and then remove padding
         GetMem(Data, LoadSize);
         Read(Handle, Data, LoadSize);
@@ -558,7 +560,7 @@ begin
     Desc.Flags := DDS_SAVE_FLAGS;
     Desc.Caps.Caps1 := DDSCAPS_TEXTURE;
     Desc.PixelFormat.Size := SizeOf(Desc.PixelFormat);
-    Desc.PitchOrLinearSize := Images[MainIdx].Size;
+    Desc.PitchOrLinearSize := MainImage.Size;
     ImageCount := FSaveMipMapCount;
 
     if FSaveMipMapCount > 1 then
@@ -745,8 +747,11 @@ initialization
       SaveMipMapCount is set (problem in VampConvert)  
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - changed SaveData, LoadData, and MakeCompatible methods according
-      to changes in base class in Imaging unit
+    - Fixed bug that sometimes saved non-standard DDS files and another
+      one that caused crash when these files were loaded.
+    - Changed extensions to filename masks.
+    - Changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added support for half-float image formats

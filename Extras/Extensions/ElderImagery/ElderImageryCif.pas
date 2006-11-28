@@ -45,7 +45,7 @@ type
     CIF files can be RLE compressed and there are also special CIFs without header.
     Total number of frames in file is known after the whole file was parsed
     so exact file size must be known prior to loading.}
-  TCIFFileFormat = class(TDaggerfallFileFormat)
+  TCIFFileFormat = class(TElderFileFormat)
   protected
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean); override;
@@ -69,8 +69,8 @@ type
   end;
 
 const
-  SCIFExtensions = 'cif,rci';
   SCIFFormatName = 'Daggerfall MultiImage';
+  SCIFMasks      = '*.cif,*.rci';
 
   { Info about special CIFs without header.}
   NoHeaderCIFInfos: array[0..6] of TNoHeaderFileInfo = (
@@ -93,7 +93,7 @@ constructor TCIFFileFormat.Create;
 begin
   inherited Create;
   FName := SCIFFormatName;
-  AddExtensions(SCIFExtensions);
+  AddMasks(SCIFMasks);
 end;
 
 procedure TCIFFileFormat.LoadData(Handle: TImagingHandle;

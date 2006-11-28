@@ -330,17 +330,24 @@ type
     descend from this class.}
   TImageFileFormat = class(TObject)
   protected
-    FExtensions: TStringList;
     FName: string;
     FCanLoad: Boolean;
     FCanSave: Boolean;
     FIsMultiImageFormat: Boolean;
+    FExtensions: TStringList;
+    FMasks: TStringList;
     FFirstIdx, FLastIdx: LongInt;
-    procedure AddExtensions(const AExtensions: string);
+    { Defines filename masks for this image file format. AMasks should be
+      in format '*.ext1,*.ext2,umajo.*'.}
+    procedure AddMasks(const AMasks: string);
     function GetFormatInfo(Format: TImageFormat): PImageFormatInfo;
-    function GetSupportedFormats: TImageFormats; virtual;
+    { Helper function to be called in SaveData methods of descendants (ensures proper
+      index and sets FFirstIdx and FLastIdx for multi-images).}
     function PrepareSave(Handle: TImagingHandle; const Images: TDynImageDataArray;
       var Index: LongInt): Boolean;
+    { Returns set of TImageData formats that can be saved in this file format
+      without need for conversion.}
+    function GetSupportedFormats: TImageFormats; virtual;
     { Method which must be overrided in descendants if they' are be capable
       of loading images.}
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
@@ -354,7 +361,7 @@ type
       It can convert image to another format, swap channels of image, ...
       Note that if input Image is already compatible it is returned in Comp,
       so before freeing Comp you must test if it is not original Image.
-      Returns True if Comp is returned in compatible format}
+      Returns True if Comp is returned in compatible format.}
     function MakeCompatible(const Image: TImageData; var Comp: TImageData;
       out MustBeFreed: Boolean): Boolean; virtual;
   public
@@ -393,18 +400,29 @@ type
     { Returns True if data located in source identified by Handle
       represent valid image in current format.}
     function TestFormat(Handle: TImagingHandle): Boolean; virtual;
+    { Resturns True if the given FileName matches filter for this file format.
+      For most formats it just checks filename extensions.
+      It uses filename masks in from Masks property so it can recognize
+      filenames like this 'umajoXXXumajo.j0j' if one of themasks is
+      'umajo*umajo.j?j'.}
+    function TestFileName(const FileName: string): Boolean;
 
-    { List of file extensions for this format}
-    property Extensions: TStringList read FExtensions;
-    { Description of this format}
+    { Description of this format.}
     property Name: string read FName;
-    { Indicates whether images in this format can be loaded}
+    { Indicates whether images in this format can be loaded.}
     property CanLoad: Boolean read FCanLoad;
-    { Indicates whether images in this format can be saved}
+    { Indicates whether images in this format can be saved.}
     property CanSave: Boolean read FCanSave;
-    { Indicates whether images in this format can contain multiple image levels}
+    { Indicates whether images in this format can contain multiple image levels.}
     property IsMultiImageFormat: Boolean read FIsMultiImageFormat;
-    { Set of TImageFormats supported by saving/loading functions of this format}
+    { List of filename extensions for this format.}
+    property Extensions: TStringList read FExtensions;
+    { List of filename mask that are used to associate filenames
+      with TImageFileFormat descendants. Typical mask looks like
+      '*.bmp' or 'texture.*' (supports file formats which use filename instead
+      of extension to identify image files).}
+    property Masks: TStringList read FMasks;
+    { Set of TImageFormats supported by saving/loading functions of this format.}
     property SupportedFormats: TImageFormats read GetSupportedFormats;
   end;
 
@@ -424,29 +442,34 @@ function IffFormat(Condition: Boolean; const TruePart, FalsePart: TImageFormat):
 procedure RegisterImageFileFormat(AClass: TImageFileFormatClass);
 { Registers new option so it can be used by Srt/GetOption functions.}
 procedure RegisterOption(OptionId: LongInt; Variable: PLongInt);
-{ Returns image format loader/saver asociated with given file
-  extension or nil if not found.}
-function FindImageFileFormat(const Ext: string): TImageFileFormat; overload;
+{ Returns image format loader/saver according to given extension
+  or nil if not found.}
+function FindImageFileFormatByExt(const Ext: string): TImageFileFormat;
+{ Returns image format loader/saver according to given filename
+  or nil if not found.}
+function FindImageFileFormatByName(const FileName: string): TImageFileFormat;
 { Returns image format loader/saver based on its class
   or nil if not found or not registered.}
-function FindImageFileFormat(AClass: TImageFileFormatClass): TImageFileFormat; overload;
+function FindImageFileFormatByClass(AClass: TImageFileFormatClass): TImageFileFormat;
 { Returns filter string for usage with open and save picture dialogs
   which contains all registered image file formats.
-  If AllFilter is True filter for all known graphic files
-  (like All(*.jpg;*.png;....) is added too at the first index
-  (good for open image dialogs).}
-function GetImageFileFormatsFilter(AllFilter: Boolean): string;
+  Set OpenFileFilter to True if you want filter for open dialog
+  and to False if you want save dialog filter (formats that cannot save to files
+  are not added then).
+  For open dialog filter for all known graphic files
+  (like All(*.jpg;*.png;....) is added too at the first index.}
+function GetImageFileFormatsFilter(OpenFileFilter: Boolean): string;
 { Returns file extension (without dot) of image format selected
   by given filter index. Used filter string is defined by GetImageFileFormatsFilter
   function. This function can be used with save dialogs (with filters created
   by GetImageFileFormatsFilter) to get the extension of file format selected
   in dialog quickly. Index is in range 1..N (as FilterIndex property
   of TOpenDialog/TSaveDialog)}
-function GetFilterIndexExtension(Index: LongInt; AllFilter: Boolean): string;
+function GetFilterIndexExtension(Index: LongInt; OpenFileFilter: Boolean): string;
 { Returns filter index of image file format specified by Ext. Used filter
   string is defined by GetImageFileFormatsFilter function.
   Returned index is in range 1..N (as FilterIndex property of TOpenDialog/TSaveDialog)}
-function GetExtensionFilterIndex(const Ext: string; AllFilter: Boolean): LongInt;
+function GetFileNameFilterIndex(const FileName: string; OpenFileFilter: Boolean): LongInt;
 { Returns current IO functions.}
 function GetIO: TIOFunctions;
 { Raises EImagingError with given message.}
@@ -587,7 +610,7 @@ procedure FreeOptions; forward;
 
 {$IFDEF USE_INLINE}
 { Those inline functions are copied here from ImagingFormats
-  because Delphi 9 cannot inline them if they are declared in
+  because Delphi 9/10 cannot inline them if they are declared in
   circularly dependent units.}
 
 procedure CopyPixel(Src, Dest: Pointer; BytesPerPixel: LongInt); inline;
@@ -643,7 +666,7 @@ begin
   try
     Image.Width := Width;
     Image.Height := Height;
-    // if desired format is not valid then default format is selected
+    // If desired format is not valid then default format is selected
     if (ImageFormatInfos[Format] = nil) or (Format = ifDefault)  then
       Image.Format := DefaultImageFormat
     else
@@ -652,10 +675,10 @@ begin
     Image.Size := FInfo.GetPixelsSize(FInfo.Format, Image.Width, Image.Height);
     if FInfo.IsSpecial then
       FInfo.CheckDimensions(FInfo.Format, Image.Width, Image.Height);
-    // image bits are allocated and set to zeroes
+    // Image bits are allocated and set to zeroes
     GetMem(Image.Bits, Image.Size);
     FillChar(Image.Bits^, Image.Size, 0);
-    // palette is allocated and set to zeroes
+    // Palette is allocated and set to zeroes
     GetMem(Image.Palette, FInfo.PaletteEntries * SizeOf(TColor32Rec));
     FillChar(Image.Palette^, FInfo.PaletteEntries * SizeOf(TColor32Rec), 0);
 
@@ -726,6 +749,18 @@ begin
   try
     Handle := IO.OpenRead(PChar(FileName));
     try
+      // First file format according to FileName and test if the data in
+      // file is really in that format
+      for I := 0 to ImageFileFormats.Count - 1 do
+      begin
+        Fmt := TImageFileFormat(ImageFileFormats[I]);
+        if Fmt.TestFileName(FileName) and Fmt.TestFormat(Handle) then
+        begin
+          Result := Fmt.Extensions[0];
+          Exit;
+        end;
+      end;
+      // No file format was found with filename search so try data-based search
       for I := 0 to ImageFileFormats.Count - 1 do
       begin
         Fmt := TImageFileFormat(ImageFileFormats[I]);
@@ -796,7 +831,7 @@ end;
 
 function IsFileFormatSupported(const FileName: string): Boolean;
 begin
-  Result := FindImageFileFormat(GetFileExt(FileName)) <> nil;
+  Result := FindImageFileFormatByName(FileName) <> nil;
 end;
 
 { Loading Functions }
@@ -809,7 +844,7 @@ var
   I: LongInt;
 begin
   Result := False;
-  Format := FindImageFileFormat(DetermineFileFormat(FileName));
+  Format := FindImageFileFormatByExt(DetermineFileFormat(FileName));
   if Format <> nil then
   begin
     FreeImage(Image);
@@ -832,7 +867,7 @@ var
   I: LongInt;
 begin
   Result := False;
-  Format := FindImageFileFormat(DetermineStreamFormat(Stream));
+  Format := FindImageFileFormatByExt(DetermineStreamFormat(Stream));
   if Format <> nil then
   begin
     FreeImage(Image);
@@ -855,7 +890,7 @@ var
   I: LongInt;
 begin
   Result := False;
-  Format := FindImageFileFormat(DetermineMemoryFormat(Data, Size));
+  Format := FindImageFileFormatByExt(DetermineMemoryFormat(Data, Size));
   if Format <> nil then
   begin
     FreeImage(Image);
@@ -877,7 +912,7 @@ var
   Format: TImageFileFormat;
 begin
   Result := False;
-  Format := FindImageFileFormat(DetermineFileFormat(FileName));
+  Format := FindImageFileFormatByExt(DetermineFileFormat(FileName));
   if Format <> nil then
   begin
     FreeImagesInArray(Images);
@@ -890,7 +925,7 @@ var
   Format: TImageFileFormat;
 begin
   Result := False;
-  Format := FindImageFileFormat(DetermineStreamFormat(Stream));
+  Format := FindImageFileFormatByExt(DetermineStreamFormat(Stream));
   if Format <> nil then
   begin
     FreeImagesInArray(Images);
@@ -904,7 +939,7 @@ var
   Format: TImageFileFormat;
 begin
   Result := False;
-  Format := FindImageFileFormat(DetermineMemoryFormat(Data, Size));
+  Format := FindImageFileFormatByExt(DetermineMemoryFormat(Data, Size));
   if Format <> nil then
   begin
     FreeImagesInArray(Images);
@@ -916,13 +951,11 @@ end;
 
 function SaveImageToFile(const FileName: string; const Image: TImageData): Boolean;
 var
-  Ext: string;
   Format: TImageFileFormat;
   IArray: TDynImageDataArray;
 begin
   Result := False;
-  Ext := GetFileExt(FileName);
-  Format := FindImageFileFormat(Ext);
+  Format := FindImageFileFormatByName(FileName);
   if Format <> nil then
   begin
     SetLength(IArray, 1);
@@ -938,7 +971,7 @@ var
   IArray: TDynImageDataArray;
 begin
   Result := False;
-  Format := FindImageFileFormat(Ext);
+  Format := FindImageFileFormatByExt(Ext);
   if Format <> nil then
   begin
     SetLength(IArray, 1);
@@ -954,7 +987,7 @@ var
   IArray: TDynImageDataArray;
 begin
   Result := False;
-  Format := FindImageFileFormat(Ext);
+  Format := FindImageFileFormatByExt(Ext);
   if Format <> nil then
   begin
     SetLength(IArray, 1);
@@ -966,12 +999,10 @@ end;
 function SaveMultiImageToFile(const FileName: string;
   const Images: TDynImageDataArray): Boolean;
 var
-  Ext: string;
   Format: TImageFileFormat;
 begin
   Result := False;
-  Ext := GetFileExt(FileName);
-  Format := FindImageFileFormat(Ext);
+  Format := FindImageFileFormatByName(FileName);
   if Format <> nil then
     Result := Format.SaveToFile(FileName, Images);
 end;
@@ -982,7 +1013,7 @@ var
   Format: TImageFileFormat;
 begin
   Result := False;
-  Format := FindImageFileFormat(Ext);
+  Format := FindImageFileFormatByExt(Ext);
   if Format <> nil then
     Result := Format.SaveToStream(Stream, Images);
 end;
@@ -993,7 +1024,7 @@ var
   Format: TImageFileFormat;
 begin
   Result := False;
-  Format := FindImageFileFormat(Ext);
+  Format := FindImageFileFormatByExt(Ext);
   if Format <> nil then
     Result := Format.SaveToMemory(Data, Size, Images);
 end;
@@ -1169,7 +1200,7 @@ begin
     WidthBytes := Width * ImageFormatInfos[Format].BytesPerPixel;
     GetMem(Buff, WidthBytes);
     try
-      // swap all scanlines of image
+      // Swap all scanlines of image
       for I := 0 to Height div 2 - 1 do
       begin
         P1 := @PByteArray(Bits)[I * WidthBytes];
@@ -1206,7 +1237,7 @@ begin
     Bpp := ImageFormatInfos[Format].BytesPerPixel;
     WidthDiv2 := Width div 2;
     WidthBytes := Width * Bpp;
-    // mirror all pixels on each scanline of image
+    // Mirror all pixels on each scanline of image
     for Y := 0 to Height - 1 do
     begin
       Scanline := @PByteArray(Bits)[Y * WidthBytes];
@@ -1275,7 +1306,7 @@ begin
     Info := ImageFormatInfos[Format];
     Data := Bits;
 
-    // first swap channels of most common formats
+    // First swap channels of most common formats
     if (Info.Format = ifA8R8G8B8) or ((Info.Format = ifR8G8B8) and
        (SrcChannel <> ChannelAlpha) and (DstChannel <> ChannelAlpha)) then
       for I := 0 to NumPixels - 1 do
@@ -1287,14 +1318,14 @@ begin
           Inc(Data, Info.BytesPerPixel);
         end
     else
-      // swap palette channels of indexed images
+      // Swap palette channels of indexed images
       if Info.IsIndexed then
       begin
         SwapChannelsOfPalette(Palette, Info.PaletteEntries, SrcChannel,
           DstChannel)
       end
       else
-        // swap channels of floating point images
+        // Swap channels of floating point images
         if Info.IsFloatingPoint then
         begin
           for I := 0 to NumPixels - 1 do
@@ -1311,7 +1342,7 @@ begin
           end;
         end
         else
-          // swap channels of special format images
+          // Swap channels of special format images
           if Info.IsSpecial then
           begin
             ConvertImage(Image, ifDefault);
@@ -1324,7 +1355,7 @@ begin
               begin
                 for I := 0 to NumPixels - 1 do
                 begin
-                  // if we have grayscale image with alpha and alpha is channel
+                  // If we have grayscale image with alpha and alpha is channel
                   // to be swapped, we swap it
                   GrayGetSrcPixel(Data, Info, Pix64, Alpha);
                   Swap := Alpha;
@@ -1335,7 +1366,7 @@ begin
                 end;
               end
             else
-              // then do general swap on other channel image formats
+              // Then do general swap on other channel image formats
               for I := 0 to NumPixels - 1 do
               begin
                 ChannelGetSrcPixel(Data, Info, Pix64);
@@ -1367,7 +1398,7 @@ begin
   if TestImage(Image) then
   with Image do
   try
-    // first create temp image info and allocate output bits and palette
+    // First create temp image info and allocate output bits and palette
     MaxColors := Iff(MaxColors > $FFFF, $FFFF, MaxColors);
     OldFmt := Format;
     FillChar(TmpInfo, SizeOf(TmpInfo), 0);
@@ -1377,13 +1408,13 @@ begin
     GetMem(Data, NumPixels * TmpInfo.BytesPerPixel);
     GetMem(Pal, MaxColors * SizeOf(TColor32Rec));
     ConvertImage(Image, ifA8R8G8B8);
-    // we use median cut algorithm to create reduced palette and to
+    // We use median cut algorithm to create reduced palette and to
     // fill Data with indices to this palette
     ReduceColorsMedianCut(NumPixels, Bits, PByte(Data),
       ImageFormatInfos[Format], @TmpInfo, MaxColors, ColorReductionMask, Pal);
     Col := Bits;
     Index := Data;
-    // then we write reduced colors to the input image
+    // Then we write reduced colors to the input image
     for I := 0 to NumPixels - 1 do
     begin
       Col.Color := Pal[Index^].Color;
@@ -1392,7 +1423,7 @@ begin
     end;
     FreeMemNil(Data);
     FreeMemNil(Pal);
-    // and convert it to its original format
+    // And convert it to its original format
     ConvertImage(Image, OldFmt);
     Result := True;
   except
@@ -1471,7 +1502,7 @@ begin
   Result := False;
   if TestImage(Image) and (Entries <= 256) then
   try
-    // we create clone of source image in A8R8G8B8 and
+    // We create clone of source image in A8R8G8B8 and
     // then recreate source image in ifIndex8 format
     // with palette taken from Pal parameter
     InitImage(CloneARGB);
@@ -1486,7 +1517,7 @@ begin
     PIndex := Image.Bits;
     PColor := CloneARGB.Bits;
 
-    // for every pixel of ARGB clone we find closest color in
+    // For every pixel of ARGB clone we find closest color in
     // given palette and assign its index to resulting image's pixel
     // procedure used here is very slow but simple and memory usage friendly
     // (contrary to other methods)
@@ -1521,16 +1552,16 @@ begin
     if Info.IsSpecial then
       ConvertImage(Image, ifDefault);
 
-    // we compute make sure that chunks are not larger than source image or negative
+    // We compute make sure that chunks are not larger than source image or negative
     ChunkWidth := ClampInt(ChunkWidth, 0, Image.Width);
     ChunkHeight := ClampInt(ChunkHeight, 0, Image.Height);
-    // number of chunks along X and Y axes is computed
+    // Number of chunks along X and Y axes is computed
     XChunks := Trunc(Ceil(Image.Width / ChunkWidth));
     YChunks := Trunc(Ceil(Image.Height / ChunkHeight));
 
     FreeImagesInArray(Chunks);
     SetLength(Chunks, XChunks * YChunks);
-    // for every chunk we create new image and copy a portion of
+    // For every chunk we create new image and copy a portion of
     // the source image to it. If chunk is on the edge of the source image
     // we fill enpty space with Fill pixel data if PreserveSize is set or
     // make the chunk smaller if it is not set
@@ -1556,7 +1587,7 @@ begin
           CopyRect(Image, X * ChunkWidth, Y * ChunkHeight, XTrunc, YTrunc,
             Chunks[Y * XChunks + X], 0, 0);
         end;
-        // if source image is in indexed format we copy its palette to chunk
+        // If source image is in indexed format we copy its palette to chunk
         if Info.IsIndexed then
         begin
           Move(Image.Palette^, Chunks[Y * XChunks + X].Palette^,
@@ -1588,16 +1619,16 @@ begin
   Result := False;
   if TestImagesInArray(Images) then
   try
-    // null the color histogram
+    // Null the color histogram
     ReduceColorsMedianCut(0, nil, nil, nil, nil, 0, 0, nil, [raCreateHistogram]);
     for I := 0 to Length(Images) - 1 do
     begin
       SrcInfo := ImageFormatInfos[Images[I].Format];
-      // update histogram with colors of each input image
+      // Update histogram with colors of each input image
       ReduceColorsMedianCut(Images[I].Width * Images[I].Height, Images[I].Bits,
         nil, SrcInfo, nil, MaxColors, ColorReductionMask, nil, [raUpdateHistogram]);
     end;
-    // construct reduced color map from the histogram
+    // Construct reduced color map from the histogram
     ReduceColorsMedianCut(0, nil, nil, nil, nil, MaxColors, ColorReductionMask,
       Pal, [raMakeColorMap]);
 
@@ -1611,7 +1642,7 @@ begin
         SrcInfo := ImageFormatInfos[Images[I].Format];
         InitImage(Target);
         NewImage(Images[I].Width, Images[I].Height, DstFormat, Target);
-        // we map each input image to reduced palette and replace
+        // We map each input image to reduced palette and replace
         // image in array with mapped image
         ReduceColorsMedianCut(Images[I].Width * Images[I].Height, Images[I].Bits,
           Target.Bits, SrcInfo, DstInfo, MaxColors, 0, nil, [raMapImage]);
@@ -1733,7 +1764,7 @@ begin
     Info := ImageFormatInfos[DstImage.Format];
     if Info.IsSpecial then
     begin
-      // if dest image is in special format we convert it to default
+      // If dest image is in special format we convert it to default
       OldFormat := Info.Format;
       ConvertImage(DstImage, ifDefault);
       Info := ImageFormatInfos[DstImage.Format];
@@ -1748,7 +1779,7 @@ begin
     else
       WorkImage := SrcImage;
 
-    // make sure we are still copying image to image, not invalid pointer to protected memory
+    // Make sure we are still copying image to image, not invalid pointer to protected memory
     ClipCopyBounds(SrcX, SrcY, Width, Height, DstX, DstY, SrcImage.Width, SrcImage.Height,
       Rect(0, 0, DstImage.Width, DstImage.Height));
   
@@ -2054,7 +2085,7 @@ begin
   Col.Color := Color;
   if Pal <> nil then
   try
-    // first try to find exact match
+    // First try to find exact match
     for I := 0 to Entries - 1 do
       with Pal[I] do
       begin
@@ -2066,7 +2097,7 @@ begin
         end;
       end;
 
-    // if exact match was not found, find nearest color
+    // If exact match was not found, find nearest color
     MinDif := 1020;
     for I := 0 to Entries - 1 do
       with Pal[I] do
@@ -2296,7 +2327,7 @@ begin
   end;
 end;
 
-function FindImageFileFormat(const Ext: string): TImageFileFormat;
+function FindImageFileFormatByExt(const Ext: string): TImageFileFormat;
 var
   I: LongInt;
 begin
@@ -2305,11 +2336,24 @@ begin
     if TImageFileFormat(ImageFileFormats[I]).Extensions.IndexOf(Ext) >= 0 then
     begin
       Result := TImageFileFormat(ImageFileFormats[I]);
-      Break;
+      Exit;
     end;
 end;
 
-function FindImageFileFormat(AClass: TImageFileFormatClass): TImageFileFormat;
+function FindImageFileFormatByName(const FileName: string): TImageFileFormat;
+var
+  I: LongInt;
+begin
+  Result := nil;
+  for I := 0 to ImageFileFormats.Count - 1 do
+    if TImageFileFormat(ImageFileFormats[I]).TestFileName(FileName) then
+    begin
+      Result := TImageFileFormat(ImageFileFormats[I]);
+      Exit;
+    end;
+end;
+
+function FindImageFileFormatByClass(AClass: TImageFileFormatClass): TImageFileFormat;
 var
   I: LongInt;
 begin
@@ -2322,24 +2366,31 @@ begin
     end;
 end;
 
-function GetImageFileFormatsFilter(AllFilter: Boolean): string;
+function GetImageFileFormatsFilter(OpenFileFilter: Boolean): string;
 var
-  I, J: LongInt;
+  I, J, Count: LongInt;
   Descriptions: string;
   Filters, CurFilter: string;
   FileFormat: TImageFileFormat;
 begin
   Descriptions := '';
   Filters := '';
+  Count := 0;
+
   for I := 0 to ImageFileFormats.Count - 1 do
   begin
     FileFormat := TObject(ImageFileFormats[I]) as TImageFileFormat;
-    CurFilter := '';
 
-    for J := 0 to FileFormat.Extensions.Count - 1 do
+    // If we are creating filter for save dialog and this format cannot save
+    // files the we skip it
+    if not OpenFileFilter and not FileFormat.CanSave then
+      Continue;
+
+    CurFilter := '';
+    for J := 0 to FileFormat.Masks.Count - 1 do
     begin
-      CurFilter := CurFilter + Format('*.%s', [FileFormat.Extensions[J]]);
-      if J < FileFormat.Extensions.Count - 1 then
+      CurFilter := CurFilter + FileFormat.Masks[J];
+      if J < FileFormat.Masks.Count - 1 then
         CurFilter := CurFilter + ';';
     end;
 
@@ -2348,20 +2399,25 @@ begin
 
     if I < ImageFileFormats.Count - 1 then
         Descriptions := Descriptions + '|';
+
+    Inc(Count);
   end;
 
-  if (ImageFileFormats.Count > 1) and AllFilter then
+  if (Count > 1) and OpenFileFilter then
     FmtStr(Descriptions, '%s (%s)|%1:s|%s', [SAllFilter, Filters, Descriptions]);
 
-  Result := Descriptions;  
+  Result := Descriptions;
 end;
 
-function GetFilterIndexExtension(Index: LongInt; AllFilter: Boolean): string;
+function GetFilterIndexExtension(Index: LongInt; OpenFileFilter: Boolean): string;
 var
+  I, Count: LongInt;
   FileFormat: TImageFileFormat;
 begin
+  // -1 because filter indices are in 1..n range
   Index := Index - 1;
-  if AllFilter then
+  Result := '';
+  if OpenFileFilter then
   begin
     if Index > 0 then
       Index := Index - 1;
@@ -2369,29 +2425,45 @@ begin
 
   if (Index >= 0) and (Index < ImageFileFormats.Count) then
   begin
-    FileFormat := TObject(ImageFileFormats[Index]) as TImageFileFormat;
-    if FileFormat.Extensions.Count > 0 then
-      Result := FileFormat.Extensions[0]
-    else
-      Result := '';
-  end
-  else
-    Result := '';
+    Count := 0;
+    for I := 0 to ImageFileFormats.Count - 1 do
+    begin
+      FileFormat := TObject(ImageFileFormats[I]) as TImageFileFormat;
+      if not OpenFileFilter and not FileFormat.CanSave then
+        Continue;
+      if Index = Count then
+      begin
+        if FileFormat.Extensions.Count > 0 then
+          Result := FileFormat.Extensions[0];
+        Exit;
+      end;
+      Inc(Count);
+    end;
+  end;
 end;
 
-function GetExtensionFilterIndex(const Ext: string; AllFilter: Boolean): LongInt;
+function GetFileNameFilterIndex(const FileName: string; OpenFileFilter: Boolean): LongInt;
 var
+  I: LongInt;
   FileFormat: TImageFileFormat;
 begin
-  FileFormat := FindImageFileFormat(Ext);
-  if FileFormat <> nil then
+  Result := 0;
+  for I := 0 to ImageFileFormats.Count - 1 do
   begin
-    Result := ImageFileFormats.IndexOf(FileFormat) + 1;
-    if AllFilter then
+    FileFormat := TObject(ImageFileFormats[I]) as TImageFileFormat;
+    if not OpenFileFilter and not FileFormat.CanSave then
+      Continue;
+    if FileFormat.TestFileName(FileName) then
+    begin
+      // +1 because filter indices are in 1..n range
       Inc(Result);
-  end
-  else
-    Result := -1;
+      if OpenFileFilter then
+        Inc(Result);
+      Exit;
+    end;
+    Inc(Result);
+  end;
+  Result := -1;
 end;
 
 function GetIO: TIOFunctions;
@@ -2476,159 +2548,36 @@ begin
   inherited Create;
   FName := SUnknownFormat;
   FExtensions := TStringList.Create;
+  FMasks := TStringList.Create;
 end;
 
 destructor TImageFileFormat.Destroy;
 begin
   FExtensions.Free;
+  FMasks.Free;
   inherited Destroy;
 end;
 
-procedure TImageFileFormat.AddExtensions(const AExtensions: string);
+procedure TImageFileFormat.AddMasks(const AMasks: string);
+var
+  I: LongInt;
+  Ext: string;
 begin
-  FExtensions.CommaText := AExtensions;
+  FExtensions.Clear;
+  FMasks.CommaText := AMasks;
+
+  for I := 0 to FMasks.Count - 1 do
+  begin
+    FMasks[I] := Trim(FMasks[I]);
+    Ext := GetFileExt(FMasks[I]);
+    if (Ext <> '') and (Ext <> '*') then
+      FExtensions.Add(Ext);
+  end;
 end;
 
 function TImageFileFormat.GetFormatInfo(Format: TImageFormat): PImageFormatInfo;
 begin
   Result := ImageFormatInfos[Format];
-end;
-
-function TImageFileFormat.GetSupportedFormats: TImageFormats;
-begin
-  Result := [];
-end;
-
-procedure TImageFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstFrame: Boolean);
-begin
-  RaiseImaging(SFileFormatCanNotLoad, [FName]);
-end;
-
-function TImageFileFormat.LoadFromFile(const FileName: string;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
-var
-  I: LongInt;
-  Handle: TImagingHandle;
-begin
-  Result := False;
-  if FCanLoad then
-  try
-    // set IO ops to file ops and open given file
-    SetFileIO;
-    Handle := IO.OpenRead(PChar(FileName));
-    try
-      // test if file contains valid image and if so then load it
-      if TestFormat(Handle) then
-      begin
-        LoadData(Handle, Images, OnlyFirstlevel);
-        Result := True;
-      end
-      else
-        RaiseImaging(SFileNotValid, [FileName, Name]);
-    finally
-      IO.Close(Handle);
-    end;
-    // convert to overriden format if set
-    if LoadOverrideFormat <> ifUnknown then
-      for I := 0 to Length(Images) - 1 do
-        ConvertImage(Images[I], LoadOverrideFormat);
-  except
-    RaiseImaging(SErrorLoadingFile, [FileName]);
-  end;
-end;
-
-function TImageFileFormat.LoadFromStream(Stream: TStream;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
-var
-  I: LongInt;
-  Handle: TImagingHandle;
-  OldPosition: Int64;
-begin
-  Result := False;
-  OldPosition := Stream.Position;
-  if FCanLoad then
-  try
-    // set IO ops to stream ops and "open" given memory
-    SetStreamIO;
-    Handle := IO.OpenRead(Pointer(Stream));
-    if TestFormat(Handle) then
-    begin
-      // test if stream contains valid image and if so then load it
-      LoadData(Handle, Images, OnlyFirstlevel);
-      Result := True;
-    end
-    else
-      RaiseImaging(SStreamNotValid, [@Stream, Name]);
-    IO.Close(Handle);
-    // convert to overriden format if set
-    if LoadOverrideFormat <> ifUnknown then
-      for I := 0 to Length(Images) - 1 do
-        ConvertImage(Images[I], LoadOverrideFormat);
-  except
-    Stream.Position := OldPosition;
-    RaiseImaging(SErrorLoadingStream, [@Stream]);
-  end;
-end;
-
-function TImageFileFormat.LoadFromMemory(Data: Pointer; Size: LongInt; var
-  Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
-var
-  I: LongInt;
-  Handle: TImagingHandle;
-  IORec: TMemoryIORec;
-begin
-  Result := False;
-  if FCanLoad then
-  try
-    // set IO ops to memory ops and "open" given memory
-    SetMemoryIO;
-    IORec.Data := Data;
-    IORec.Position := 0;
-    IORec.Size := Size;
-    Handle := IO.OpenRead(@IORec);
-    if TestFormat(Handle) then
-    begin
-      // test if memory contains valid image and if so then load it
-      LoadData(Handle, Images, OnlyFirstlevel);
-      Result := True;
-    end
-    else
-      RaiseImaging(SMemoryNotValid, [Data, Size, Name]);
-    IO.Close(Handle);
-    // convert to overriden format if set
-    if LoadOverrideFormat <> ifUnknown then
-      for I := 0 to Length(Images) - 1 do
-        ConvertImage(Images[I], LoadOverrideFormat);
-  except
-    RaiseImaging(SErrorLoadingMemory, [Data, Size]);
-  end;
-end;
-
-function TImageFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
-begin
-  InitImage(Comp);
-  MustBeFreed := True;
-
-  if (SaveOverrideFormat in GetSupportedFormats) and
-    (SaveOverrideFormat <> Image.Format) then
-  begin
-    CloneImage(Image, Comp);
-    ConvertImage(Comp, SaveOverrideFormat);
-    Result := True;
-  end
-  else if Image.Format in GetSupportedFormats then
-  begin
-    Comp := Image;
-    Result := True;
-    MustBeFreed := False;
-  end
-  else
-  begin
-    CloneImage(Image, Comp);
-    Result := False;
-  end;
 end;
 
 function TImageFileFormat.PrepareSave(Handle: TImagingHandle;
@@ -2671,10 +2620,147 @@ begin
   end;
 end;
 
+function TImageFileFormat.GetSupportedFormats: TImageFormats;
+begin
+  Result := [];
+end;
+
+procedure TImageFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstFrame: Boolean);
+begin
+  RaiseImaging(SFileFormatCanNotLoad, [FName]);
+end;
+
 function TImageFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 begin
   RaiseImaging(SFileFormatCanNotSave, [FName]);
+end;
+
+function TImageFileFormat.MakeCompatible(const Image: TImageData;
+  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
+begin
+  InitImage(Comp);
+  MustBeFreed := True;
+
+  if (SaveOverrideFormat in GetSupportedFormats) and
+    (SaveOverrideFormat <> Image.Format) then
+  begin
+    CloneImage(Image, Comp);
+    ConvertImage(Comp, SaveOverrideFormat);
+    Result := True;
+  end
+  else if Image.Format in GetSupportedFormats then
+  begin
+    Comp := Image;
+    Result := True;
+    MustBeFreed := False;
+  end
+  else
+  begin
+    CloneImage(Image, Comp);
+    Result := False;
+  end;
+end;
+
+function TImageFileFormat.LoadFromFile(const FileName: string;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+var
+  I: LongInt;
+  Handle: TImagingHandle;
+begin
+  Result := False;
+  if FCanLoad then
+  try
+    // Set IO ops to file ops and open given file
+    SetFileIO;
+    Handle := IO.OpenRead(PChar(FileName));
+    try
+      // Test if file contains valid image and if so then load it
+      if TestFormat(Handle) then
+      begin
+        LoadData(Handle, Images, OnlyFirstlevel);
+        Result := True;
+      end
+      else
+        RaiseImaging(SFileNotValid, [FileName, Name]);
+    finally
+      IO.Close(Handle);
+    end;
+    // Convert to overriden format if set
+    if LoadOverrideFormat <> ifUnknown then
+      for I := 0 to Length(Images) - 1 do
+        ConvertImage(Images[I], LoadOverrideFormat);
+  except
+    RaiseImaging(SErrorLoadingFile, [FileName]);
+  end;
+end;
+
+function TImageFileFormat.LoadFromStream(Stream: TStream;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+var
+  I: LongInt;
+  Handle: TImagingHandle;
+  OldPosition: Int64;
+begin
+  Result := False;
+  OldPosition := Stream.Position;
+  if FCanLoad then
+  try
+    // Set IO ops to stream ops and "open" given memory
+    SetStreamIO;
+    Handle := IO.OpenRead(Pointer(Stream));
+    if TestFormat(Handle) then
+    begin
+      // Test if stream contains valid image and if so then load it
+      LoadData(Handle, Images, OnlyFirstlevel);
+      Result := True;
+    end
+    else
+      RaiseImaging(SStreamNotValid, [@Stream, Name]);
+    IO.Close(Handle);
+    // Convert to overriden format if set
+    if LoadOverrideFormat <> ifUnknown then
+      for I := 0 to Length(Images) - 1 do
+        ConvertImage(Images[I], LoadOverrideFormat);
+  except
+    Stream.Position := OldPosition;
+    RaiseImaging(SErrorLoadingStream, [@Stream]);
+  end;
+end;
+
+function TImageFileFormat.LoadFromMemory(Data: Pointer; Size: LongInt; var
+  Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+var
+  I: LongInt;
+  Handle: TImagingHandle;
+  IORec: TMemoryIORec;
+begin
+  Result := False;
+  if FCanLoad then
+  try
+    // Set IO ops to memory ops and "open" given memory
+    SetMemoryIO;
+    IORec.Data := Data;
+    IORec.Position := 0;
+    IORec.Size := Size;
+    Handle := IO.OpenRead(@IORec);
+    if TestFormat(Handle) then
+    begin
+      // Test if memory contains valid image and if so then load it
+      LoadData(Handle, Images, OnlyFirstlevel);
+      Result := True;
+    end
+    else
+      RaiseImaging(SMemoryNotValid, [Data, Size, Name]);
+    IO.Close(Handle);
+    // convert to overriden format if set
+    if LoadOverrideFormat <> ifUnknown then
+      for I := 0 to Length(Images) - 1 do
+        ConvertImage(Images[I], LoadOverrideFormat);
+  except
+    RaiseImaging(SErrorLoadingMemory, [Data, Size]);
+  end;
 end;
 
 function TImageFileFormat.SaveToFile(const FileName: string;
@@ -2692,7 +2778,7 @@ begin
     if ((not FIsMultiImageFormat) and (OnlyFirstLevel or (Len = 1))) or
       FIsMultiImageFormat then
     begin
-      // write multi image to one file
+      // Write multi image to one file
       Handle := IO.OpenWrite(PChar(FileName));
       try
         if OnlyFirstLevel then
@@ -2705,7 +2791,7 @@ begin
     end
     else
     begin
-      // write multi image to file sequence
+      // Write multi image to file sequence
       Ext := ExtractFileExt(FileName);
       FName := ChangeFileExt(FileName, '');
       Result := True;
@@ -2815,6 +2901,21 @@ begin
   Result := False;
 end;
 
+function TImageFileFormat.TestFileName(const FileName: string): Boolean;
+var
+  I: LongInt;
+  OnlyName: string;
+begin
+  OnlyName := ExtractFileName(FileName);
+  // For each mask test if filename matches it 
+  for I := 0 to FMasks.Count - 1 do
+    if MatchFileNameMask(OnlyName, FMasks[I], False) then
+    begin
+      Result := True;
+      Exit;
+    end;
+  Result := False;
+end;
 
 { TOptionStack  class implementation }
 
@@ -2900,16 +3001,31 @@ finalization
     - do not load all frames when only one is required, possible?
       (LoadImageFromFile on MNG/DDS)
     - add to GetImageFileFormatsFilter - specify save/load filter
-    - replace extensions with filters (texture.*)   
+    - change LoadData to function too, put FreeImagesInArray to TImageFileFormat.LoadData
+      put here Result := Length(Images) = 0;
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - changed TImageFileFormat.SaveData procedure to function and
+    - Split overloaded FindImageFileFormat functions to
+      FindImageFileFormatByClass and FindImageFileFormatByExt and created new
+      FindImageFileFormatByName which operates on whole filenames.
+    - Function GetExtensionFilterIndex renamed to GetFileNameFilterIndex
+      (because it now works with filenames not extensions).
+    - DetermineFileFormat now first searches by filename and if not found
+      then by data.
+    - Added TestFileName method to TImageFileFormat.
+    - Updated GetImageFileFormatsFilter to uses Masks instead of Extensions
+      property of TImageFileFormat. Also you can now request
+      OpenDialog and SaveDialog type filters
+    - Added Masks property and AddMasks method to TImageFileFormat.
+      AddMasks replaces AddExtensions, it uses filename masks instead
+      of sime filename extensions to identify supported files.
+    - Changed TImageFileFormat.SaveData procedure to function and
       put here code that was duplicate in all SaveData methods of
-      TImageFileFormat descendants
-    - removed RAISE_EXCEPTIONS define, exceptions are now raised everytime  
-    - added MustBeFreed parameter to TImageFileFormat.MakeComptible method
+      TImageFileFormat descendants.
+    - Removed RAISE_EXCEPTIONS define, exceptions are now raised everytime
+    - Added MustBeFreed parameter to TImageFileFormat.MakeComptible method
       that indicates that compatible image returned by this method must be
-      freed after its usage
+      freed after its usage.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - fixed bug in NewImage: if given format was ifDefault it wasn't

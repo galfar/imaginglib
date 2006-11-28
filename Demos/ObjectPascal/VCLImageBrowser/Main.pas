@@ -126,7 +126,7 @@ procedure TMainForm.SetSupported;
 begin
   // Update image info and enable previous/next buttons
   LabDim.Caption := Format('%dx%d pixels', [FImg.Width, FImg.Height]);
-  LabFileFormat.Caption := Imaging.FindImageFileFormat(GetFileExt(FFileName)).Name;
+  LabFileFormat.Caption := Imaging.FindImageFileFormatByName(FFileName).Name;
   LabDataFormat.Caption := Imaging.GetFormatName(FImg.Format);
   LabActImage.Caption := Format('%d/%d', [FImg.ActiveImage + 1, FImg.ImageCount]);
   BtnPrev.Enabled := True;
@@ -190,7 +190,7 @@ begin
   // supported formats
   FFileName := Tree.Path;
   LabFileName.Caption := ExtractFileName(FFileName);
-  if FileExists(FFileName) and Assigned(Imaging.FindImageFileFormat(GetFileExt(FFileName))) then
+  if FileExists(FFileName) and Assigned(Imaging.FindImageFileFormatByName(FFileName)) then
     LoadFile
   else
     SetUnsupported;

@@ -90,8 +90,8 @@ type
   end;
 
 const
-  SJpegExtensions = 'jpg,jpeg,jfif,jpe,jif';
   SJpegFormatName = 'Joint Photographic Experts Group Image';
+  SJpegMasks      = '*.jpg,*.jpeg,*.jfif,*.jpe,*.jif';
   JpegSupportedFormats: TImageFormats = [ifR8G8B8, ifGray8];
   JpegDefaultQuality = 90;
   JpegDefaultProgressive = False;
@@ -346,7 +346,7 @@ begin
   FQuality := JpegDefaultQuality;
   FProgressive := JpegDefaultProgressive;
 
-  AddExtensions(SJpegExtensions);
+  AddMasks(SJpegMasks);
   RegisterOption(ImagingJpegQuality, @FQuality);
   RegisterOption(ImagingJpegProgressive, @FProgressive);
 end;
@@ -538,6 +538,7 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changed extensions to filename masks
     - changed SaveData, LoadData, and MakeCompatible methods according
       to changes in base class in Imaging unit
     - changes in TestFormat, now reads JFIF and EXIF signatures too

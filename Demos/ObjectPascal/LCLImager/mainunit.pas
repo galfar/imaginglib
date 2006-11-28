@@ -486,7 +486,7 @@ procedure TMainForm.MenuItem5Click(Sender: TObject);
 begin
   SaveD.Filter := GetImageFileFormatsFilter(False);
   SaveD.FileName := ChangeFileExt(ExtractFileName(FFileName), '');
-  SaveD.FilterIndex := GetExtensionFilterIndex(GetFileExt(FFileName), False);
+  SaveD.FilterIndex := GetFileNameFilterIndex(FFileName, False);
   if SaveD.Execute then
   begin
     FFileName := ChangeFileExt(SaveD.FileName, '.' + GetFilterIndexExtension(SaveD.FilterIndex, False));

@@ -926,13 +926,13 @@ end;
 
 procedure TImagingGraphic.AssignFromImage(Image: TBaseImage);
 begin
-  if Image <> nil then
+  if (Image <> nil) and Image.Valid then
     AssignFromImageData(Image.ImageDataPointer^);
 end;
 
 procedure TImagingGraphic.AssignToImage(Image: TBaseImage);
 begin
-  if Image <> nil then
+  if (Image <> nil) and (Image.ImageDataPointer <> nil) then
     AssignToImageData(Image.ImageDataPointer^);
 end;
 
@@ -972,7 +972,7 @@ end;
 
 class function TImagingBitmap.GetFileFormat: TImageFileFormat;
 begin
-  Result := FindImageFileFormat(TBitmapFileFormat);
+  Result := FindImageFileFormatByClass(TBitmapFileFormat);
 end;
 
 procedure TImagingBitmap.SaveToStream(Stream: TStream);
@@ -997,7 +997,7 @@ end;
 
 class function TImagingJpeg.GetFileFormat: TImageFileFormat;
 begin
-  Result := FindImageFileFormat(TJpegFileFormat);
+  Result := FindImageFileFormatByClass(TJpegFileFormat);
 end;
 
 {$IFDEF COMPONENT_SET_LCL}
@@ -1031,7 +1031,7 @@ end;
 
 class function TImagingPNG.GetFileFormat: TImageFileFormat;
 begin
-  Result := FindImageFileFormat(TPNGFileFormat);
+  Result := FindImageFileFormatByClass(TPNGFileFormat);
 end;
 
 procedure TImagingPNG.SaveToStream(Stream: TStream);
@@ -1056,7 +1056,7 @@ end;
 
 class function TImagingTarga.GetFileFormat: TImageFileFormat;
 begin
-  Result := FindImageFileFormat(TTargaFileFormat);
+  Result := FindImageFileFormatByClass(TTargaFileFormat);
 end;
 
 procedure TImagingTarga.SaveToStream(Stream: TStream);
@@ -1080,7 +1080,7 @@ end;
 
 class function TImagingDDS.GetFileFormat: TImageFileFormat;
 begin
-  Result := FindImageFileFormat(TDdsFileFormat);
+  Result := FindImageFileFormatByClass(TDdsFileFormat);
 end;
 
 procedure TImagingDDS.SaveToStream(Stream: TStream);
@@ -1118,7 +1118,7 @@ end;
 
 class function TImagingMNG.GetFileFormat: TImageFileFormat;
 begin
-  Result := FindImageFileFormat(TMNGFileFormat);
+  Result := FindImageFileFormatByClass(TMNGFileFormat);
 end;
 
 {$IFDEF COMPONENT_SET_LCL}
@@ -1158,7 +1158,7 @@ end;
 
 class function TImagingJNG.GetFileFormat: TImageFileFormat;
 begin
-  Result := FindImageFileFormat(TJNGFileFormat);
+  Result := FindImageFileFormatByClass(TJNGFileFormat);
 end;
 
 procedure TImagingJNG.SaveToStream(Stream: TStream);

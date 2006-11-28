@@ -46,8 +46,8 @@ type
   { Palette format used by 8bit Bethesda images (its BGR not RGB used by Imaging).}
   TElderPalette = array[0..255] of TColor24Rec;
 
-  TDaggerfallFileFormat = class;
-  TDaggerfallFileFormatClass = class of TDaggerfallFileFormat;
+  TElderFileFormat = class;
+  TDaggerfallFileFormatClass = class of TElderFileFormat;
 
   { Used to hold information about some special images without headers.}
   TNoHeaderFileInfo = record
@@ -57,7 +57,7 @@ type
   end;
 
   { Basic class for image formats used mainly in TES2: Daggerfall.}
-  TDaggerfallFileFormat = class(TImageFileFormat)
+  TElderFileFormat = class(TImageFileFormat)
   protected
     FPalette: TElderPalette;
     FARGBPalette: PPalette32;
@@ -65,6 +65,7 @@ type
     procedure DagRLEDecode(InData: Pointer; InSize, OutSize: LongInt; out OutData: Pointer);
     function FindNoHeaderInfo(Size: LongInt; Infos: array of TNoHeaderFileInfo): LongInt;
     function TestNoHeaderFormat(Handle: TImagingHandle): TDaggerfallFileFormatClass;
+    procedure ConvertPalette(const ElderPal: TElderPalette; ARGBPal: PPalette32);
     function GetInputSize(Handle: TImagingHandle): LongInt;
     procedure SetPalette(const Value: TElderPalette);
     function GetSupportedFormats: TImageFormats; override;
@@ -192,7 +193,7 @@ uses
 
 { TDaggerfallFileFormat class implementation }
 
-constructor TDaggerfallFileFormat.Create;
+constructor TElderFileFormat.Create;
 begin
   inherited Create;
   FCanLoad := True;
@@ -203,13 +204,13 @@ begin
   SetPalette(DaggerfallPalette);
 end;
 
-destructor TDaggerfallFileFormat.Destroy;
+destructor TElderFileFormat.Destroy;
 begin
   FreeMem(FARGBPalette);
   inherited Destroy;
 end;
 
-procedure TDaggerfallFileFormat.DagRLEDecode(InData: Pointer; InSize, OutSize: LongInt;
+procedure TElderFileFormat.DagRLEDecode(InData: Pointer; InSize, OutSize: LongInt;
   out OutData: Pointer);
 var
   I, Pos, CByte: LongInt;
@@ -242,7 +243,7 @@ begin
   end;
 end;
 
-function TDaggerfallFileFormat.FindNoHeaderInfo(Size: LongInt;
+function TElderFileFormat.FindNoHeaderInfo(Size: LongInt;
   Infos: array of TNoHeaderFileInfo): LongInt;
 var
   I: LongInt;
@@ -258,7 +259,7 @@ begin
   Result := -1;
 end;
 
-function TDaggerfallFileFormat.TestNoHeaderFormat(Handle: TImagingHandle): TDaggerfallFileFormatClass;
+function TElderFileFormat.TestNoHeaderFormat(Handle: TImagingHandle): TDaggerfallFileFormatClass;
 var
   InputSize, I: LongInt;
 begin
@@ -283,7 +284,23 @@ begin
   end;
 end;
 
-function TDaggerfallFileFormat.GetInputSize(Handle: TImagingHandle): LongInt;
+procedure TElderFileFormat.ConvertPalette(const ElderPal: TElderPalette;
+  ARGBPal: PPalette32);
+var
+  I: LongInt;
+begin
+  for I := Low(ElderPal) to High(ElderPal) do
+  begin
+    ARGBPal[I].A := $FF;
+    ARGBPal[I].R := FPalette[I].B;
+    ARGBPal[I].G := FPalette[I].G;
+    ARGBPal[I].B := FPalette[I].R;
+  end;
+  // Palette index 0 represents transparent color
+  ARGBPal[0].A := 0;
+end;
+
+function TElderFileFormat.GetInputSize(Handle: TImagingHandle): LongInt;
 var
   OldPos: LongInt;
 begin
@@ -293,28 +310,18 @@ begin
   GetIO.Seek(Handle, OldPos, smFromBeginning);
 end;
 
-procedure TDaggerfallFileFormat.SetPalette(const Value: TElderPalette);
-var
-  I: LongInt;
+procedure TElderFileFormat.SetPalette(const Value: TElderPalette);
 begin
   FPalette := Value;
-  for I := Low(FPalette) to High(FPalette) do
-  begin
-    FARGBPalette[I].A := $FF;
-    FARGBPalette[I].R := FPalette[I].B;
-    FARGBPalette[I].G := FPalette[I].G;
-    FARGBPalette[I].B := FPalette[I].R;
-  end;
-  // Palette index 0 represents transparent color
-  FARGBPalette[0].A := 0;
+  ConvertPalette(FPalette, FARGBPalette);
 end;
 
-function TDaggerfallFileFormat.GetSupportedFormats: TImageFormats;
+function TElderFileFormat.GetSupportedFormats: TImageFormats;
 begin
   Result := [];
 end;
 
-function TDaggerfallFileFormat.MakeCompatible(const Image: TImageData;
+function TElderFileFormat.MakeCompatible(const Image: TImageData;
   var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
 begin
   inherited MakeCompatible(Image, Comp, MustBeFreed);
@@ -323,7 +330,7 @@ begin
   Result := True;
 end;
 
-function TDaggerfallFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
+function TElderFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
 var
   Hdr: TImgHeader;
   DagClass: TDaggerfallFileFormatClass;
@@ -362,8 +369,8 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - added transparency to Daggerfall palettes
-    - initial version created based on my older code
+    - Added transparency to Daggerfall palettes.
+    - Initial version created based on my older code.
 }
 
 end.

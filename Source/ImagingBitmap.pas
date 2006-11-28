@@ -59,8 +59,8 @@ type
   end;
 
 const
-  SBitmapExtensions = 'bmp,dib';
   SBitmapFormatName = 'Windows Bitmap Image';
+  SBitmapMasks =      '*.bmp,*.dib';
   BitmapSupportedFormats: TImageFormats = [ifIndex8, ifA1R5G5B5, ifA4R4G4B4,
     ifR8G8B8, ifA8R8G8B8, ifX1R5G5B5, ifX4R4G4B4, ifX8R8G8B8];
   BitmapDefaultRLE = True;  
@@ -159,7 +159,7 @@ begin
 
   FUseRLE := BitmapDefaultRLE;
 
-  AddExtensions(SBitmapExtensions);
+  AddMasks(SBitmapMasks);
   RegisterOption(ImagingBitmapRLE, @FUseRLE);
 end;
 
@@ -783,6 +783,7 @@ initialization
     - add alpha check as with 16b bitmaps to 32b bitmaps too
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - changed extensions to filename masks
     - changed SaveData, LoadData, and MakeCompatible methods according
       to changes in base class in Imaging unit
 

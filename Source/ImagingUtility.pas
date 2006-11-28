@@ -96,6 +96,11 @@ procedure FreeMemNil(var P); {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Replacement of standard System.FreeMem procedure which checks if P is nil
   (this is only needed for Free Pascal, Delphi makes checks in its FreeMem).}
 procedure FreeMem(P: Pointer); {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Returns current exception object. Do not call outside exception handler.}
+function GetExceptObject: Exception; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Returns time value with microsecond resolution. Use for some time counters.}
+function GetTimeMicroseconds: Int64;
+
 { Returns file extension (without "." dot)}
 function GetFileExt(const FileName: string): string;
 { Returns file name of application's executable.}
@@ -103,10 +108,10 @@ function GetAppExe: string;
 { Returns directory where application's exceutable is located without
   path delimiter at the end.}
 function GetAppDir:string;
-{ Returns current exception object. Do not call outside exception handler.}
-function GetExceptObject: Exception; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Returns time value with microsecond resolution. Use for some time counters.}
-function GetTimeMicroseconds: Int64;
+{ Returns True if FileName matches given Mask with optional case sensitivity.
+  Mask can contain ? and * special characters: ? matches
+  one character, * matches zero or more characters.}
+function MatchFileNameMask(const FileName, Mask: string; CaseSensitive: Boolean = False): Boolean;
 
 { Clamps integer value to range <Min, Max>}
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -254,44 +259,6 @@ begin
     System.FreeMem(P);
 end;
 
-function GetFileExt(const FileName: string): string;
-begin
-  Result := ExtractFileExt(FileName);
-  if Length(Result) > 1 then
-    Delete(Result, 1, 1);
-end;
-
-function GetAppExe: string;
-{$IFDEF MSWINDOWS}
-var
-  FileName: array[0..MAX_PATH] of Char;
-begin
-  SetString(Result, FileName,
-    Windows.GetModuleFileName(MainInstance, FileName, SizeOf(FileName)));
-{$ENDIF}
-{$IFDEF UNIX}
-  {$IFDEF KYLIX}
-var
-  FileName: array[0..FILENAME_MAX] of Char;
-begin
-  SetString(Result, FileName,
-    System.GetModuleFileName(MainInstance, FileName, SizeOf(FileName)));
-  {$ELSE}
-begin
-  Result := FExpand(ParamStr(0));
-  {$ENDIF}
-{$ENDIF}
-{$IFDEF MSDOS}
-begin
-  Result := ParamStr(0);
-{$ENDIF}
-end;
-
-function GetAppDir:string;
-begin
-  Result := ExtractFileDir(GetAppExe);
-end;
-
 function GetExceptObject: Exception;
 begin
   Result := Exception(ExceptObject);
@@ -359,6 +326,122 @@ asm
   ADC    EDX, 0
 end;
 {$ENDIF}
+
+function GetFileExt(const FileName: string): string;
+begin
+  Result := ExtractFileExt(FileName);
+  if Length(Result) > 1 then
+    Delete(Result, 1, 1);
+end;
+
+function GetAppExe: string;
+{$IFDEF MSWINDOWS}
+var
+  FileName: array[0..MAX_PATH] of Char;
+begin
+  SetString(Result, FileName,
+    Windows.GetModuleFileName(MainInstance, FileName, SizeOf(FileName)));
+{$ENDIF}
+{$IFDEF UNIX}
+  {$IFDEF KYLIX}
+var
+  FileName: array[0..FILENAME_MAX] of Char;
+begin
+  SetString(Result, FileName,
+    System.GetModuleFileName(MainInstance, FileName, SizeOf(FileName)));
+  {$ELSE}
+begin
+  Result := FExpand(ParamStr(0));
+  {$ENDIF}
+{$ENDIF}
+{$IFDEF MSDOS}
+begin
+  Result := ParamStr(0);
+{$ENDIF}
+end;
+
+function GetAppDir:string;
+begin
+  Result := ExtractFileDir(GetAppExe);
+end;
+
+function MatchFileNameMask(const FileName, Mask: string; CaseSensitive: Boolean): Boolean;
+var
+  MaskLen, KeyLen : LongInt;
+
+  function CharMatch(A, B: Char): Boolean;
+  begin
+    if CaseSensitive then
+      Result := A = B
+    else
+      Result := UpCase(A) = UpCase(B);
+  end;
+
+  function MatchAt(MaskPos, KeyPos: LongInt): Boolean;
+  begin
+    while (MaskPos <= MaskLen) and (KeyPos <= KeyLen) do
+    begin
+      case Mask[MaskPos] of
+        '?' :
+          begin
+            Inc(MaskPos);
+            Inc(KeyPos);
+          end;
+        '*' :
+          begin
+            while (MaskPos <= MaskLen) and (Mask[MaskPos] = '*') do
+              Inc(MaskPos);
+            if MaskPos > MaskLen then
+            begin
+              Result := True;
+              Exit;
+            end;
+            repeat
+              if MatchAt(MaskPos, KeyPos) then
+              begin
+                Result := True;
+                Exit;
+              end;
+              Inc(KeyPos);
+            until KeyPos > KeyLen;
+            Result := False;
+            Exit;
+          end;
+        else
+          if not CharMatch(Mask[MaskPos], FileName[KeyPos]) then
+          begin
+            Result := False;
+            Exit;
+          end
+          else
+          begin
+            Inc(MaskPos);
+            Inc(KeyPos);
+          end;
+      end;
+    end;  
+
+    while (MaskPos <= MaskLen) and (Mask[MaskPos] in ['?', '*']) do
+      Inc(MaskPos);
+    if (MaskPos <= MaskLen) or (KeyPos <= KeyLen) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
+    Result := True;
+  end;
+
+begin
+  MaskLen := Length(Mask);
+  KeyLen := Length(FileName);
+  if MaskLen = 0 then
+  begin
+    Result := True;
+    Exit;
+  end;
+  Result := MatchAt(1, 1);
+end;
 
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt;
 begin
@@ -1054,18 +1137,25 @@ initialization
 {
   File Notes:
 
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added MatchFileNameMask function.
+
   -- 0.19 Changes/Bug Fixes -----------------------------------
-    - added ScaleRectToRect (thanks to Paul Michell) 
+    - added ScaleRectToRect (thanks to Paul Michell)
     - added BoundsToRect, ClipBounds, ClipCopyBounds, ClipStretchBounds functions
     - added MulDiv function
     - FreeAndNil is not inline anymore - caused AV in one program
+    
   -- 0.17 Changes/Bug Fixes -----------------------------------
+
     - GetAppExe didn't return absolute path in FreeBSD, fixed
     - added debug message output
     - fixed Unix compatibility issues (thanks to Ales Katona).
       Imaging now compiles in FreeBSD and maybe in other Unixes as well.
+
   -- 0.15 Changes/Bug Fixes -----------------------------------
     - added some new utility functions
+
   -- 0.13 Changes/Bug Fixes -----------------------------------
     - added many new utility functions
     - minor change in SwapEndian to avoid range check error

@@ -44,17 +44,18 @@ type
     non-standard RLE, many unknowns) so module supports only loading.
     These texture files cannot be recognized by filename extension because
     their filenames are in form texture.### where # is number.}
-  TTextureFileFormat = class(TDaggerfallFileFormat)
-  protected
+  TTextureFileFormat = class(TElderFileFormat)
+  private
     FLastTextureName: string;
     { Deletes non-valid chars from texture name.}
     function RepairName(const S: string): string;
+  protected
     procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean); override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
-
+    { Internal name of the last texture loaded.}
     property LastTextureName: string read FLastTextureName;
   end;
 
@@ -101,8 +102,8 @@ type
   end;
 
 const
-  STextureExtensions = 'texture';
   STextureFormatName = 'Daggerfall Texture';
+  STextureMasks      = 'texture.*,*.dagtexture';
 
 implementation
 
@@ -114,7 +115,7 @@ begin
   FCanSave := False;
 
   FName := STextureFormatName;
-  AddExtensions(STextureExtensions);
+  AddMasks(STextureMasks);
 end;
 
 function TTextureFileFormat.RepairName(const S: string): string;
