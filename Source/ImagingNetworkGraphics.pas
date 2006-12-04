@@ -1942,6 +1942,7 @@ var
 begin
   Result := inherited SaveData(Handle, Images, Index);
   if not Result then Exit;
+  Result := False;
 
   LargestWidth := 0;
   LargestHeight := 0;
@@ -1964,7 +1965,9 @@ begin
       finally
         if MustBeFreed then
           FreeImage(ImageToSave);
-      end;
+      end
+      else
+        Exit;
     end;
 
     // Fill MNG header
@@ -1978,6 +1981,7 @@ begin
 
     // Finally save MNG file
     SaveFile(Handle);
+    Result := True;
   finally
     Clear;
   end;

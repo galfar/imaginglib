@@ -251,29 +251,29 @@ var
   MustBeFreed: Boolean;
   I: LongInt;
 begin
-  Result := PrepareSave(Handle, Images, Index);
-  if Result then
+  Result := False;
+  for I := FFirstIdx to FLastIdx do
   begin
-    for I := FFirstIdx to FLastIdx do
-    begin
-      if MakeCompatible(Images[I], ImageToSave, MustBeFreed) then
-      with GetIO, ImageToSave do
-      try
-        FillChar(Hdr, SizeOf(Hdr), 0);
-        Hdr.Width := Width;
-        Hdr.Height := Height;
-        // Hdr.ImageSize is Word so max size of image in bytes can be 65535
-        if Width * Height > High(Word) then
-          RaiseImaging(SInvalidImageSize, [ImageToStr(ImageToSave)]);
-        Hdr.ImageSize := Width * Height;
-        Write(Handle, @Hdr, SizeOf(Hdr));
-        Write(Handle, Bits, Hdr.ImageSize);
-      finally
-        if MustBeFreed then
-          FreeImage(ImageToSave);
-      end;
-    end;
+    if MakeCompatible(Images[I], ImageToSave, MustBeFreed) then
+    with GetIO, ImageToSave do
+    try
+      FillChar(Hdr, SizeOf(Hdr), 0);
+      Hdr.Width := Width;
+      Hdr.Height := Height;
+      // Hdr.ImageSize is Word so max size of image in bytes can be 65535
+      if Width * Height > High(Word) then
+        RaiseImaging(SInvalidImageSize, [ImageToStr(ImageToSave)]);
+      Hdr.ImageSize := Width * Height;
+      Write(Handle, @Hdr, SizeOf(Hdr));
+      Write(Handle, Bits, Hdr.ImageSize);
+    finally
+      if MustBeFreed then
+        FreeImage(ImageToSave);
+    end
+    else
+      Exit;
   end;
+  Result := True;
 end;
 
 {

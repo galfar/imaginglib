@@ -218,7 +218,7 @@ var
     GetMem(RLESrc, BI.SizeImage);
     GetIO.Read(Handle, RLESrc, BI.SizeImage);
     with Images[0] do
-    begin
+    try
       Pixels := Bits;
       SrcPos := 0;
       NegHeightBitmap := BI.Height < 0;
@@ -296,6 +296,8 @@ var
           end;
         end;
       end;
+    finally
+      FreeMem(RLESrc);
     end;
   end;
 
@@ -311,7 +313,7 @@ var
     GetMem(RLESrc, BI.SizeImage);
     GetIO.Read(Handle, RLESrc, BI.SizeImage);
     with Images[0] do
-    begin
+    try
       Pixels := Bits;
       SrcPos := 0;
       NegHeightBitmap := BI.Height < 0;
@@ -374,6 +376,8 @@ var
           Inc(Col, OpCode.Count);
         end;
       end;
+    finally
+      FreeMem(RLESrc);
     end;
   end;
 

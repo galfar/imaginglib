@@ -112,6 +112,7 @@ var
   end;
 
 begin
+  Result := False;
   SetLength(Images, 1);
   with GetIO, Images[0] do
   begin

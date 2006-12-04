@@ -29,6 +29,8 @@
 { This unit contains image format loader for ZSoft Paintbrush images known as PCX.}
 unit ImagingPcx;
 
+{$I ImagingOptions.inc}
+
 interface
 
 uses
@@ -135,6 +137,7 @@ var
   end;
 
 begin
+  Result := False;
   SetLength(Images, 1);
   with GetIO, Images[0] do
   begin
