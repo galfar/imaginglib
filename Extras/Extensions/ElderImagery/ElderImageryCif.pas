@@ -35,7 +35,7 @@ unit ElderImageryCif;
 interface
 
 uses
-  ImagingTypes, Imaging, ElderImagery;
+  ImagingTypes, Imaging, ImagingIO, ElderImagery;
 
 type
   { Class for loading and saving of multi-images in CIF format. It is
@@ -47,8 +47,8 @@ type
     so exact file size must be known prior to loading.}
   TCIFFileFormat = class(TElderFileFormat)
   protected
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
-      OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
   public
@@ -96,8 +96,8 @@ begin
   AddMasks(SCIFMasks);
 end;
 
-procedure TCIFFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TCIFFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Hdr: TImgHeader;
   Group: TCIFGroup;
@@ -118,7 +118,7 @@ begin
   SetLength(Images, 0);
   with GetIO do
   begin
-    InputSize := GetInputSize(Handle);
+    InputSize := GetInputSize(GetIO, Handle);
     HasHeader := True;
     IsWeapon := False;
     IsW9 := False;
@@ -177,11 +177,14 @@ begin
         end
         else
         begin
-          // Read RLE compressed data
           GetMem(Data, Hdr.ImageSize);
-          Read(Handle, Data, Hdr.ImageSize);
-          DagRLEDecode(Data, Hdr.ImageSize, Images[Index].Size, Images[Index].Bits);
-          FreeMem(Data);
+          try
+            // Read RLE compressed data
+            Read(Handle, Data, Hdr.ImageSize);
+            DagRLEDecode(Data, Images[Index].Size, Images[Index].Bits);
+          finally
+            FreeMem(Data);
+          end;
         end;
       end
       else if not HasHeader then
@@ -224,16 +227,19 @@ begin
             Index := AddImage(Group.Width, Group.Height);
             // Read current image from current group and decode it
             GetMem(Data, BufferSize);
-            Read(Handle, Data, BufferSize);
-            DagRLEDecode(Data, Group.ImageSize, Images[Index].Size,
-              Images[Index].Bits);
-            FreeMem(Data);
-            Inc(I);
+            try
+              Read(Handle, Data, BufferSize);
+              DagRLEDecode(Data, Images[Index].Size, Images[Index].Bits);
+              Inc(I);
+            finally
+              FreeMem(Data);
+            end;
           end;
           Seek(Handle, OldPos + Group.Offsets[31], smFromBeginning);
         end;
       end;
     end;
+    Result := True;
   end;
 end;
 
@@ -277,7 +283,7 @@ end;
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - initial version created based on my older code (fixed few things)
+    - Initial version created based on my older code (fixed few things).
 }
 
 end.

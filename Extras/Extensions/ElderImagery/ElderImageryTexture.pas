@@ -34,7 +34,7 @@ unit ElderImageryTexture;
 interface
 
 uses
-  ImagingTypes, Imaging, ElderImagery, ImagingUtility;
+  ImagingTypes, Imaging, ElderImagery, ImagingIO, ImagingUtility;
 
 type
   { Class that proveides loading of textures from TES2: Daggerfall
@@ -50,8 +50,8 @@ type
     { Deletes non-valid chars from texture name.}
     function RepairName(const S: string): string;
   protected
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
-      OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -114,6 +114,8 @@ begin
   inherited Create;
   FCanSave := False;
 
+  Palette := FutureShockPalette;
+
   FName := STextureFormatName;
   AddMasks(STextureMasks);
 end;
@@ -140,8 +142,8 @@ begin
   end;
 end;
 
-procedure TTextureFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TTextureFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Hdr: TTexHeader;
   InputSize, BasePos, HdrPos, Index, I, Bias: LongInt;
@@ -272,10 +274,11 @@ var
   end;
 
 begin
+  Result := False;
   SetLength(Images, 0);
   with GetIO do
   begin
-    InputSize := GetInputSize(Handle);
+    InputSize := GetInputSize(GetIO, Handle);
     BasePos := Tell(Handle);
     Read(Handle, @Hdr, SizeOf(Hdr));
     FLastTextureName := RepairName(Hdr.TexName);
@@ -294,44 +297,48 @@ begin
         FillMemory(Images[Index].Bits, Images[Index].Size, I + Bias);
       end;
     end
-    else if (InputSize = 46) or (InputSize = 266) then
+    else if (InputSize = 46) or (InputSize = 126) or (InputSize = 266) then
     begin
       // These textures don't contain any image data
-      AddImage(16, 16);
+      Exit;
     end
     else
     begin
       GetMem(List, Hdr.ImgCount * SizeOf(TOffset));
-      // Load offsets
-      for I := 0 to Hdr.ImgCount - 1 do
-        Read(Handle, @List[I], SizeOf(TOffset));
-      // Load subimages one by one
-      for I := 0 to Hdr.ImgCount - 1 do
-      begin
-        // Jump at position of image header
-        Seek(Handle, BasePos + List[I].HdrOffset, smFromBeginning);
-        HdrPos := Tell(Handle);
-        Read(Handle, @ImageHdr, SizeOf(ImageHdr));
-        Seek(Handle, HdrPos + ImageHdr.ImageOff, smFromBeginning);
-        // According to number of subimages and RLE settings appropriate
-        // procedure is called to load subimages
-        if ImageHdr.SubImages = 1 then
+      try
+        // Load offsets
+        for I := 0 to Hdr.ImgCount - 1 do
+          Read(Handle, @List[I], SizeOf(TOffset));
+        // Load subimages one by one
+        for I := 0 to Hdr.ImgCount - 1 do
         begin
-          if (ImageHdr.Unk1 <> $1108) and (ImageHdr.Unk1 <> $0108) then
-            LoadUncompressed
+          // Jump at position of image header
+          Seek(Handle, BasePos + List[I].HdrOffset, smFromBeginning);
+          HdrPos := Tell(Handle);
+          Read(Handle, @ImageHdr, SizeOf(ImageHdr));
+          Seek(Handle, HdrPos + ImageHdr.ImageOff, smFromBeginning);
+          // According to number of subimages and RLE settings appropriate
+          // procedure is called to load subimages
+          if ImageHdr.SubImages = 1 then
+          begin
+            if (ImageHdr.Unk1 <> $1108) and (ImageHdr.Unk1 <> $0108) then
+              LoadUncompressed
+            else
+              LoadRLESubImages;
+          end
           else
-            LoadRLESubImages;
-        end
-        else
-        begin
-          if (ImageHdr.Unk1 <> $0108) then
-            LoadUncompressedSubImages
-          else
-            LoadRLESubImages;
+          begin
+            if (ImageHdr.Unk1 <> $0108) then
+              LoadUncompressedSubImages
+            else
+              LoadRLESubImages;
+          end;
         end;
+      finally
+        FreeMem(List);
       end;
-      FreeMem(List);
     end;
+    Result := True;
   end;
 end;
 
@@ -352,7 +359,7 @@ begin
       for I := 0 to High(Hdr.TexName) do
       begin
         if not (Hdr.TexName[I] in [#0, #32, 'a'..'z', 'A'..'Z', '0'..'9', '.',
-          '(', ')', '_', ',', '-', '''', '"', '/', #9, '+']) then
+          '(', ')', '_', ',', '-', '''', '"', '/', '\', #9, '+']) then
         begin
           Result := False;
           Exit;
@@ -361,5 +368,15 @@ begin
     end;
   end;
 end;
+
+{
+  File Notes:
+
+  -- TODOS ----------------------------------------------------
+    - nothing now
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Initial version created based on my older code (fixed few things).
+}
 
 end.

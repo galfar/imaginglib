@@ -41,7 +41,7 @@ uses
   ImagingComponents,
   ImagingCanvases,
   { Uncomment this to get support for file formats declared in Extras package }
-  //ImagingExtraFileFormats,
+  ImagingExtraFileFormats,
   ImagingUtility;
 
 type
@@ -66,16 +66,22 @@ type
     StatusBar: TStatusBar;
     BtnPrev: TSpeedButton;
     BtnNext: TSpeedButton;
+    BtnFirst: TSpeedButton;
+    BtnLast: TSpeedButton;
     procedure PaintBoxPaint(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure TreeChange(Sender: TObject; Node: TTreeNode);
     procedure BtnPrevClick(Sender: TObject);
     procedure BtnNextClick(Sender: TObject);
+    procedure TreeKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure BtnFirstClick(Sender: TObject);
+    procedure BtnLastClick(Sender: TObject);
   private
     FImg: TMultiImage; // Class that hold multiple images (load from MNG or DDS files for instance)
     FFileName: string;
     FLastTime: LongInt;
+    FOriginalFormats: array of TImageFormat;
   public
     procedure SetSupported;
     procedure SetUnsupported;
@@ -97,6 +103,7 @@ implementation
 
 procedure TMainForm.LoadFile;
 var
+  I: LongInt;
   T: Int64;
 begin
   try
@@ -104,16 +111,23 @@ begin
     // file format identifier (like 'jpg', 'tga') if file is valid,
     // otherwise empty string is returned
     if Imaging.DetermineFileFormat(FFileName) <> '' then
-    begin
+    try
       // Load all subimages in file
       T := ImagingUtility.GetTimeMicroseconds;
       FImg.LoadMultiFromFile(FFileName);
       FLastTime := (ImagingUtility.GetTimeMicroseconds - T) div 1000;
       StatusBar.SimpleText := Format('Last image loaded in: %.0n ms', [FLastTime * 1.0]);
-      SetSupported;
+      // Store original data formats for later use
+      SetLength(FOriginalFormats, FImg.ImageCount);
+      for I := 0 to FImg.ImageCount - 1 do
+        FOriginalFormats[I] := FImg.Images[I].Format;
       // Convert images to 32bit ARGB format for easier drawing later
       FImg.ConvertImages(ifA8R8G8B8);
+      SetSupported;
       PaintBox.Repaint;
+    except
+      SetUnsupported;
+      raise;
     end
     else
       SetUnsupported;
@@ -127,10 +141,12 @@ begin
   // Update image info and enable previous/next buttons
   LabDim.Caption := Format('%dx%d pixels', [FImg.Width, FImg.Height]);
   LabFileFormat.Caption := Imaging.FindImageFileFormatByName(FFileName).Name;
-  LabDataFormat.Caption := Imaging.GetFormatName(FImg.Format);
+  LabDataFormat.Caption := Imaging.GetFormatName(FOriginalFormats[FImg.ActiveImage]);
   LabActImage.Caption := Format('%d/%d', [FImg.ActiveImage + 1, FImg.ImageCount]);
   BtnPrev.Enabled := True;
   BtnNext.Enabled := True;
+  BtnFirst.Enabled := True;
+  BtnLast.Enabled := True;
 end;
 
 procedure TMainForm.SetUnsupported;
@@ -146,6 +162,8 @@ begin
   StatusBar.SimpleText := 'No image loaded';
   BtnPrev.Enabled := False;
   BtnNext.Enabled := False;
+  BtnFirst.Enabled := False;
+  BtnLast.Enabled := False;
 
   if Assigned(FImg) then
   begin
@@ -171,15 +189,29 @@ end;
 
 procedure TMainForm.BtnPrevClick(Sender: TObject);
 begin
-  FImg.ActiveImage := FImg.ActiveImage - 1;
   SetSupported;
+  FImg.ActiveImage := FImg.ActiveImage - 1;
+  PaintBox.Repaint;
+end;
+
+procedure TMainForm.BtnFirstClick(Sender: TObject);
+begin
+  SetSupported;
+  FImg.ActiveImage := 0;
+  PaintBox.Repaint;
+end;
+
+procedure TMainForm.BtnLastClick(Sender: TObject);
+begin
+  SetSupported;
+  FImg.ActiveImage := FImg.ImageCount - 1;
   PaintBox.Repaint;
 end;
 
 procedure TMainForm.BtnNextClick(Sender: TObject);
 begin
-  FImg.ActiveImage := FImg.ActiveImage + 1;
   SetSupported;
+  FImg.ActiveImage := FImg.ActiveImage + 1;
   PaintBox.Repaint;
 end;
 
@@ -194,6 +226,16 @@ begin
     LoadFile
   else
     SetUnsupported;
+end;
+
+procedure TMainForm.TreeKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if FImg.ImageCount > 1 then
+  begin
+    if Key = VK_SPACE then
+      BtnNextClick(Self);
+  end;
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
@@ -236,9 +278,12 @@ end;
 
   -- TODOS ----------------------------------------------------
     - add save image in desired format
-    - add first/last image buttons
-    - use left/right arrows to change active subimage
-    - data format always shows A8R8G8B8 for multimages at index 1+
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added First/Last subimage buttons.
+    - Original data format of subimages at index >1 is displayed right now
+      (was always A8R8G8B8)
+    - Space key now shows next subimage if multi-images is loaded.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added canvas usage too

@@ -327,8 +327,20 @@ type
   end;
 
   { Base class for various image file format loaders/savers which
-    descend from this class.}
+    descend from this class. If you want to add support for new image file
+    format the best way is probably to look at TImageFileFormat descendants'
+    implementations that are already part of Imaging.}
   TImageFileFormat = class(TObject)
+  private
+    { Does various checks and actions before LoadData method is called.}
+    function PrepareLoad(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstFrame: Boolean): Boolean;
+    { Processes some actions according to result of LoadData.}
+    function PostLoadCheck(var Images: TDynImageDataArray; LoadResult: Boolean): Boolean;
+    { Helper function to be called in SaveData methods of descendants (ensures proper
+      index and sets FFirstIdx and FLastIdx for multi-images).}
+    function PrepareSave(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      var Index: LongInt): Boolean;
   protected
     FName: string;
     FCanLoad: Boolean;
@@ -341,20 +353,21 @@ type
       in format '*.ext1,*.ext2,umajo.*'.}
     procedure AddMasks(const AMasks: string);
     function GetFormatInfo(Format: TImageFormat): PImageFormatInfo;
-    { Helper function to be called in SaveData methods of descendants (ensures proper
-      index and sets FFirstIdx and FLastIdx for multi-images).}
-    function PrepareSave(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      var Index: LongInt): Boolean;
     { Returns set of TImageData formats that can be saved in this file format
       without need for conversion.}
     function GetSupportedFormats: TImageFormats; virtual;
     { Method which must be overrided in descendants if they' are be capable
-      of loading images.}
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
-      OnlyFirstFrame: Boolean); virtual;
+      of loading images. Images are already freed and length is set to zero
+      whenever this method gets called. Also Handle is assured to be valid
+      and contains data that passed TestFormat method's check.}
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstFrame: Boolean): Boolean; virtual;
     { Method which must be overrided in descendants if they are be capable
-      of saving images. If Index is -1 all images in array are saved, otherwise
-      only image at index is saved.}
+      of saving images. Images are checked to have length >0 and
+      that they contain valid images. For single-image file formats
+      Index contain valid index to Images array (to image which should be saved).
+      Multi-image formats should use FFirstIdx and FLastIdx fields to
+      to get all images that are to be saved.}
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; virtual;
     { Creates clone of image compatible with format's saving function.
@@ -2128,16 +2141,16 @@ begin
   if Pal <> nil then
   try
     for I := 0 to Entries - 1 do
-      with Pal[I] do
-      begin
-        A := $FF;
-        R := Byte(I);
-        G := Byte(I);
-        B := Byte(I);
-      end;
-      Result := True;
+    with Pal[I] do
+    begin
+      A := $FF;
+      R := Byte(I);
+      G := Byte(I);
+      B := Byte(I);
+    end;
+    Result := True;
   except
-     RaiseImaging(SErrorGrayscalePalette, [Pal, Entries]);
+    RaiseImaging(SErrorGrayscalePalette, [Pal, Entries]);
   end;
 end;
 
@@ -2153,19 +2166,19 @@ begin
   if Pal <> nil then
   try
     for I := 0 to MaxEntries - 1 do
-      with Pal[I] do
-      begin
-        A := Alpha;
-        if RBits > 0 then
-          R := ((I shr Max(0, GBits + BBits - 1)) and (1 shl RBits - 1)) * 255 div (1 shl RBits - 1);
-        if GBits > 0 then
-          G := ((I shr Max(0, BBits - 1)) and (1 shl GBits - 1)) * 255 div (1 shl GBits - 1);
-        if BBits > 0 then
-          B := ((I shr 0) and (1 shl BBits - 1)) * 255 div (1 shl BBits - 1);
-      end;
-      Result := True;
+    with Pal[I] do
+    begin
+      A := Alpha;
+      if RBits > 0 then
+        R := ((I shr Max(0, GBits + BBits - 1)) and (1 shl RBits - 1)) * 255 div (1 shl RBits - 1);
+      if GBits > 0 then
+        G := ((I shr Max(0, BBits - 1)) and (1 shl GBits - 1)) * 255 div (1 shl GBits - 1);
+      if BBits > 0 then
+        B := ((I shr 0) and (1 shl BBits - 1)) * 255 div (1 shl BBits - 1);
+    end;
+    Result := True;
   except
-     RaiseImaging(SErrorCustomPalette, [Pal, Entries]);
+    RaiseImaging(SErrorCustomPalette, [Pal, Entries]);
   end;
 end;
 
@@ -2179,15 +2192,15 @@ begin
   if Pal <> nil then
   try
     for I := 0 to Entries - 1 do
-      with Pal[I] do
-      begin
-        Swap := Channels[SrcChannel];
-        Channels[SrcChannel] := Channels[DstChannel];
-        Channels[DstChannel] := Swap;
-      end;
-      Result := True;
+    with Pal[I] do
+    begin
+      Swap := Channels[SrcChannel];
+      Channels[SrcChannel] := Channels[DstChannel];
+      Channels[DstChannel] := Swap;
+    end;
+    Result := True;
   except
-     RaiseImaging(SErrorSwapPalette, [Pal, Entries]);
+    RaiseImaging(SErrorSwapPalette, [Pal, Entries]);
   end;
 end;
 
@@ -2209,7 +2222,9 @@ begin
   Result := InvalidOption;
   if (OptionId >= 0) and (OptionId < Length(Options)) and
     (Options[OptionID] <> nil) then
+  begin
     Result := Options[OptionID]^;
+  end;
 end;
 
 function PushOptions: Boolean;
@@ -2558,32 +2573,31 @@ begin
   inherited Destroy;
 end;
 
-procedure TImageFileFormat.AddMasks(const AMasks: string);
-var
-  I: LongInt;
-  Ext: string;
+function TImageFileFormat.PrepareLoad(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstFrame: Boolean): Boolean;
 begin
-  FExtensions.Clear;
-  FMasks.CommaText := AMasks;
+  FreeImagesInArray(Images);
+  SetLength(Images, 0);
+  Result := Handle <> nil;
+end;
 
-  for I := 0 to FMasks.Count - 1 do
+function TImageFileFormat.PostLoadCheck(var Images: TDynImageDataArray;
+  LoadResult: Boolean): Boolean;
+begin
+  if not LoadResult then
   begin
-    FMasks[I] := Trim(FMasks[I]);
-    Ext := GetFileExt(FMasks[I]);
-    if (Ext <> '') and (Ext <> '*') then
-      FExtensions.Add(Ext);
-  end;
+    FreeImagesInArray(Images);
+    SetLength(Images, 0);
+    Result := False;
+  end
+  else
+    Result := (Length(Images) > 0) and TestImagesInArray(Images);
 end;
-
-function TImageFileFormat.GetFormatInfo(Format: TImageFormat): PImageFormatInfo;
-begin
-  Result := ImageFormatInfos[Format];
-end;
-
+  
 function TImageFileFormat.PrepareSave(Handle: TImagingHandle;
   const Images: TDynImageDataArray; var Index: Integer): Boolean;
 var
-  Len: LongInt;
+  Len, I: LongInt;
 begin
   Result := False;
   if FCanSave then
@@ -2609,15 +2623,43 @@ begin
         FFirstIdx := Index;
         FLastIdx := Index;
       end;
+
+      for I := FFirstIdx to FLastIdx - 1 do
+        if not TestImage(Images[I]) then
+          Exit;
     end
     else
     begin
       if (Index >= Len) or (Index < 0) then
         Index := 0;
+      if not TestImage(Images[Index]) then
+        Exit;
     end;
 
     Result := True;
   end;
+end;
+
+procedure TImageFileFormat.AddMasks(const AMasks: string);
+var
+  I: LongInt;
+  Ext: string;
+begin
+  FExtensions.Clear;
+  FMasks.CommaText := AMasks;
+
+  for I := 0 to FMasks.Count - 1 do
+  begin
+    FMasks[I] := Trim(FMasks[I]);
+    Ext := GetFileExt(FMasks[I]);
+    if (Ext <> '') and (Ext <> '*') then
+      FExtensions.Add(Ext);
+  end;
+end;
+
+function TImageFileFormat.GetFormatInfo(Format: TImageFormat): PImageFormatInfo;
+begin
+  Result := ImageFormatInfos[Format];
 end;
 
 function TImageFileFormat.GetSupportedFormats: TImageFormats;
@@ -2625,15 +2667,17 @@ begin
   Result := [];
 end;
 
-procedure TImageFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstFrame: Boolean);
+function TImageFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstFrame: Boolean): Boolean;
 begin
+  Result := False;
   RaiseImaging(SFileFormatCanNotLoad, [FName]);
 end;
 
 function TImageFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 begin
+  Result := False;
   RaiseImaging(SFileFormatCanNotSave, [FName]);
 end;
 
@@ -2679,8 +2723,9 @@ begin
       // Test if file contains valid image and if so then load it
       if TestFormat(Handle) then
       begin
-        LoadData(Handle, Images, OnlyFirstlevel);
-        Result := True;
+        Result := PrepareLoad(Handle, Images, OnlyFirstLevel) and
+          LoadData(Handle, Images, OnlyFirstlevel);
+        Result := Result and PostLoadCheck(Images, Result);
       end
       else
         RaiseImaging(SFileNotValid, [FileName, Name]);
@@ -2710,15 +2755,19 @@ begin
     // Set IO ops to stream ops and "open" given memory
     SetStreamIO;
     Handle := IO.OpenRead(Pointer(Stream));
-    if TestFormat(Handle) then
-    begin
+    try
       // Test if stream contains valid image and if so then load it
-      LoadData(Handle, Images, OnlyFirstlevel);
-      Result := True;
-    end
-    else
-      RaiseImaging(SStreamNotValid, [@Stream, Name]);
-    IO.Close(Handle);
+      if TestFormat(Handle) then
+      begin
+        Result := PrepareLoad(Handle, Images, OnlyFirstLevel) and
+          LoadData(Handle, Images, OnlyFirstlevel);
+        Result := Result and PostLoadCheck(Images, Result);
+      end
+      else
+        RaiseImaging(SStreamNotValid, [@Stream, Name]);
+    finally
+      IO.Close(Handle);
+    end;
     // Convert to overriden format if set
     if LoadOverrideFormat <> ifUnknown then
       for I := 0 to Length(Images) - 1 do
@@ -2741,20 +2790,22 @@ begin
   try
     // Set IO ops to memory ops and "open" given memory
     SetMemoryIO;
-    IORec.Data := Data;
-    IORec.Position := 0;
-    IORec.Size := Size;
+    IORec := PrepareMemIO(Data, Size);
     Handle := IO.OpenRead(@IORec);
-    if TestFormat(Handle) then
-    begin
+    try
       // Test if memory contains valid image and if so then load it
-      LoadData(Handle, Images, OnlyFirstlevel);
-      Result := True;
-    end
-    else
-      RaiseImaging(SMemoryNotValid, [Data, Size, Name]);
-    IO.Close(Handle);
-    // convert to overriden format if set
+      if TestFormat(Handle) then
+      begin
+        Result := PrepareLoad(Handle, Images, OnlyFirstLevel) and
+          LoadData(Handle, Images, OnlyFirstlevel);
+        Result := Result and PostLoadCheck(Images, Result);
+      end
+      else
+        RaiseImaging(SMemoryNotValid, [Data, Size, Name]);
+    finally
+      IO.Close(Handle);
+    end;
+    // Convert to overriden format if set
     if LoadOverrideFormat <> ifUnknown then
       for I := 0 to Length(Images) - 1 do
         ConvertImage(Images[I], LoadOverrideFormat);
@@ -2767,7 +2818,7 @@ function TImageFileFormat.SaveToFile(const FileName: string;
   const Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Handle: TImagingHandle;
-  Len, I: LongInt;
+  Len, Index, I: LongInt;
   Ext, FName: string;
 begin
   Result := False;
@@ -2775,16 +2826,17 @@ begin
   try
     SetFileIO;
     Len := Length(Images);
-    if ((not FIsMultiImageFormat) and (OnlyFirstLevel or (Len = 1))) or
-      FIsMultiImageFormat then
+    if FIsMultiImageFormat or
+      (not FIsMultiImageFormat and (OnlyFirstLevel or (Len = 1))) then
     begin
-      // Write multi image to one file
       Handle := IO.OpenWrite(PChar(FileName));
       try
         if OnlyFirstLevel then
-          Result := SaveData(Handle, Images, 0)
+          Index := 0
         else
-          Result := SaveData(Handle, Images, -1);
+          Index := -1;
+        // Write multi image to one file
+        Result := PrepareSave(Handle, Images, Index) and SaveData(Handle, Images, Index);
       finally
         IO.Close(Handle);
       end;
@@ -2799,7 +2851,9 @@ begin
       begin
         Handle := IO.OpenWrite(PChar(Format(FName + '%.3d' + Ext, [I])));
         try
-          Result := Result and SaveData(Handle, Images, I);
+          Index := I;
+          Result := Result and PrepareSave(Handle, Images, Index) and
+            SaveData(Handle, Images, Index);
           if not Result then
             Break;
         finally
@@ -2816,7 +2870,7 @@ function TImageFileFormat.SaveToStream(Stream: TStream;
   const Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Handle: TImagingHandle;
-  Len, I: LongInt;
+  Len, Index, I: LongInt;
   OldPosition: Int64;
 begin
   Result := False;
@@ -2824,29 +2878,34 @@ begin
   if FCanSave and TestImagesInArray(Images) then
   try
     SetStreamIO;
-    Len := Length(Images);
     Handle := IO.OpenWrite(PChar(Stream));
-    if ((not FIsMultiImageFormat) and (OnlyFirstLevel or (Len = 1))) or
-      FIsMultiImageFormat then
-    begin
-      if OnlyFirstLevel then
-        Result := SaveData(Handle, Images, 0)
-      else
-        Result := SaveData(Handle, Images, -1);
-    end
-    else
-    begin
-      Result := True;
-      for I := 0 to Len - 1 do
+    try
+      if FIsMultiImageFormat or OnlyFirstLevel then
       begin
-        Result := Result and SaveData(Handle, Images, I);
-        if not Result then
-          Break;
+        if OnlyFirstLevel then
+          Index := 0
+        else
+          Index := -1;
+        // Write multi image in one run
+        Result := PrepareSave(Handle, Images, Index) and SaveData(Handle, Images, Index);
+      end
+      else
+      begin
+        // Write multi image to sequence
+        Result := True;
+        Len := Length(Images);
+        for I := 0 to Len - 1 do
+        begin
+          Index := I;
+          Result := Result and PrepareSave(Handle, Images, Index) and
+            SaveData(Handle, Images, Index);
+          if not Result then
+            Break;
+        end;
       end;
+    finally
+      IO.Close(Handle);
     end;
-
-    IO.Close(Handle);
-    Result := True;
   except
     Stream.Position := OldPosition;
     RaiseImaging(SErrorSavingStream, [@Stream]);
@@ -2857,40 +2916,43 @@ function TImageFileFormat.SaveToMemory(Data: Pointer; var Size: LongInt;
   const Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Handle: TImagingHandle;
-  Len, I: LongInt;
+  Len, Index, I: LongInt;
   IORec: TMemoryIORec;
 begin
   Result := False;
   if FCanSave and TestImagesInArray(Images) then
   try
     SetMemoryIO;
-    IORec.Data := Data;
-    IORec.Position := 0;
-    IORec.Size := Size;
-    IORec.Written := 0;
-    Len := Length(Images);
+    IORec := PrepareMemIO(Data, Size);
     Handle := IO.OpenWrite(PChar(@IORec));
-    if ((not FIsMultiImageFormat) and (OnlyFirstLevel or (Len = 1))) or
-      FIsMultiImageFormat then
-    begin
-      if OnlyFirstLevel then
-        Result := SaveData(Handle, Images, 0)
-      else
-        Result := SaveData(Handle, Images, -1);
-    end
-    else
-    begin
-      Result := True;
-      for I := 0 to Len - 1 do
+    try
+      if FIsMultiImageFormat or OnlyFirstLevel then
       begin
-        Result := Result and SaveData(Handle, Images, I);
-        if not Result then
-          Break;
+        if OnlyFirstLevel then
+          Index := 0
+        else
+          Index := -1;
+        // Write multi image in one run
+        Result := PrepareSave(Handle, Images, Index) and SaveData(Handle, Images, Index);
+      end
+      else
+      begin
+        // Write multi image to sequence
+        Result := True;
+        Len := Length(Images);
+        for I := 0 to Len - 1 do
+        begin
+          Index := I;
+          Result := Result and PrepareSave(Handle, Images, Index) and
+            SaveData(Handle, Images, Index);
+          if not Result then
+            Break;
+        end;
       end;
+      Size := IORec.Written;
+    finally
+      IO.Close(Handle);
     end;
-
-    IO.Close(Handle);
-    Size := IORec.Written;
   except
     RaiseImaging(SErrorSavingMemory, [Data, Size]);
   end;
@@ -3000,9 +3062,8 @@ finalization
     - add some color functions - create, convert, add, merge, ...
     - do not load all frames when only one is required, possible?
       (LoadImageFromFile on MNG/DDS)
-    - add to GetImageFileFormatsFilter - specify save/load filter
-    - change LoadData to function too, put FreeImagesInArray to TImageFileFormat.LoadData
-      put here Result := Length(Images) = 0;
+    - put changing format according to ImagingOverrideFormat to PostLoadCheck
+      to avoid duplicity
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Split overloaded FindImageFileFormat functions to
@@ -3019,9 +3080,12 @@ finalization
     - Added Masks property and AddMasks method to TImageFileFormat.
       AddMasks replaces AddExtensions, it uses filename masks instead
       of sime filename extensions to identify supported files.
+    - Changed TImageFileFormat.LoadData procedure to function and
+      moved varios duplicate code from its descandats (check index,...)
+      here to TImageFileFormat helper methods.
     - Changed TImageFileFormat.SaveData procedure to function and
-      put here code that was duplicate in all SaveData methods of
-      TImageFileFormat descendants.
+      moved varios duplicate code from its descandats (check index,...)
+      here to TImageFileFormat helper methods.
     - Removed RAISE_EXCEPTIONS define, exceptions are now raised everytime
     - Added MustBeFreed parameter to TImageFileFormat.MakeComptible method
       that indicates that compatible image returned by this method must be

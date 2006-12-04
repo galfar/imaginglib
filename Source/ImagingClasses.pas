@@ -45,8 +45,6 @@ type
   { Base abstract high level class wrapper to low level Imaging structures and
     functions.}
   TBaseImage = class(TPersistent)
-  private
-    function GetPixelPointer(X, Y: Integer): Pointer;
   protected
     FPData: PImageData;
     FOnDataSizeChanged: TNotifyEvent;
@@ -59,8 +57,9 @@ type
     function GetPalette: PPalette32; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetPaletteEntries: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetScanLine(Index: LongInt): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetPixelPointer(X, Y: Integer): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetFormatInfo: TImageFormatInfo; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetValid: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetValid: Boolean; virtual;
     function GetBoundsRect: TRect;
     procedure SetFormat(Value: TImageFormat); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetHeight(Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -177,6 +176,7 @@ type
   protected
     FDataArray: TDynImageDataArray;
     FActiveImage: LongInt;
+    function GetValid: Boolean; override;
     procedure SetActiveImage(Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetImageCount: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetImageCount(Value: LongInt);
@@ -351,7 +351,7 @@ end;
 
 procedure TBaseImage.SetWidth(Value: LongInt);
 begin
-  if FPData.Width <> Value then
+  if GetValid and (FPData.Width <> Value) then
   begin
     Resize(Value, FPData.Height, rfNearest);
     DoDataSizeChanged;
@@ -360,7 +360,7 @@ end;
 
 procedure TBaseImage.SetHeight(Value: LongInt);
 begin
-  if FPData.Height <> Value then
+  if GetValid and (FPData.Height <> Value) then
   begin
     Resize(FPData.Width, Value, rfNearest);
     DoDataSizeChanged;
@@ -369,7 +369,7 @@ end;
 
 procedure TBaseImage.SetFormat(Value: TImageFormat);
 begin
-  if (FPData.Format <> Value) and IsImageFormatValid(Value) then
+  if GetValid and (FPData.Format <> Value) and IsImageFormatValid(Value) then
   begin
     if Imaging.ConvertImage(FPData^, Value) then
       DoDataSizeChanged;
@@ -578,6 +578,11 @@ destructor TMultiImage.Destroy;
 begin
   Imaging.FreeImagesInArray(FDataArray);
   inherited Destroy;
+end;
+
+function TMultiImage.GetValid: Boolean;
+begin
+  Result := (FActiveImage >= 0) and inherited GetValid;
 end;
 
 procedure TMultiImage.SetActiveImage(Value: LongInt);
@@ -831,10 +836,11 @@ end;
   
   -- TODOS ----------------------------------------------------
     - add SetPalette,
-    - create new HighLevel demo - rewrite old one, rewrite Img Browser to use high level
+    - test TMultiImage with array of length 0 (maybe add dummy TImageData
+      to point to when active image = -1)
 
-  -- 0.21 Changes/Bug Fixes -----------------------------------  
-    - fixed memory leak in TMultiImage.CreateFromParams
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Fixed memory leak in TMultiImage.CreateFromParams.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added ResizeImages method to TMultiImage

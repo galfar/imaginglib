@@ -56,6 +56,32 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+    { Sets precompression filter used when saving images with lossless compression.
+      Allowed values are: 0 (none), 1 (sub), 2 (up), 3 (average), 4 (paeth),
+      5 (use 0 for indexed/gray images and 4 for RGB/ARGB images),
+      6 (adaptive filtering - use best filter for each scanline - very slow).
+      Note that filters 3 and 4 are much slower than filters 1 and 2.
+      Default value is 5.}
+    property PreFilter: LongInt read FPreFilter write FPreFilter;
+    { Sets ZLib compression level used when saving images with lossless compression.
+      Allowed values are in range 0 (no compresstion) to 9 (best compression).
+      Default value is 5.}
+    property CompressLevel: LongInt read FCompressLevel write FCompressLevel;
+    { Specifies whether MNG animation frames are saved with lossy or lossless
+      compression. Lossless frames are saved as PNG images and lossy frames are
+      saved as JNG images. Allowed values are 0 (False) and 1 (True).
+      Default value is 0.}
+    property LossyCompression: LongBool read FLossyCompression write FLossyCompression;
+    { Defines whether alpha channel of lossy MNG frames or JNG images
+      is lossy compressed too. Allowed values are 0 (False) and 1 (True).
+      Default value is 0.}
+    property LossyAlpha: LongBool read FLossyAlpha write FLossyAlpha;
+    { Specifies compression quality used when saving lossy MNG frames or JNG images.
+      For details look at ImagingJpegQuality option.}
+    property Quality: LongInt read FQuality write FQuality;
+    { Specifies whether images are saved in progressive format when saving lossy
+      MNG frames or JNG images. For details look at ImagingJpegProgressive.}
+    property Progressive: LongBool read FProgressive write FProgressive;
   end;
 
   { Class for loading Portable Network Graphics Images.
@@ -71,7 +97,8 @@ type
     with alpha = 0).}
   TPNGFileFormat = class(TNetworkGraphicsFileFormat)
   protected
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray; OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
   public
@@ -94,7 +121,8 @@ type
     Many frame compression settings can be modified by options interface.}
   TMNGFileFormat = class(TNetworkGraphicsFileFormat)
   protected
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray; OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
   public
@@ -118,7 +146,8 @@ type
     with alpha = 0).}
   TJNGFileFormat = class(TNetworkGraphicsFileFormat)
   protected
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray; OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
   public
@@ -474,9 +503,8 @@ var
     GetMem(ChunkData, Chunk.DataSize);
     ReadBytes := GetIO.Read(Handle, ChunkData, Chunk.DataSize);
     GetIO.Read(Handle, @ChunkCrc, SizeOf(ChunkCrc));
-
     if ReadBytes <> Chunk.DataSize then
-      raise EImagingError.CreateFmt(SErrorLoadingChunk, [string(Chunk.ChunkID)]);
+      RaiseImaging(SErrorLoadingChunk, [string(Chunk.ChunkID)]);
   end;
 
   procedure SkipChunkData;
@@ -1799,9 +1827,10 @@ begin
   RegisterOption(ImagingPNGCompressLevel, @FCompressLevel);
 end;
 
-procedure TPNGFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TPNGFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 begin
+  Result := False;
   try
     // Use NG file parser to load file
     if NGFileLoader.LoadFile(Handle) and (Length(NGFileLoader.Frames) > 0) then
@@ -1813,6 +1842,7 @@ begin
         NGFileLoader.LoadImageFromPNGFrame(IHDR, IDATMemory, Images[0]);
       // Build palette, aply color key or background
       NGFileLoader.ApplyFrameSettings(NGFileLoader.Frames[0], Images[0]);
+      Result := True;
     end;
   finally
     NGFileLoader.Clear;
@@ -1825,7 +1855,7 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
 begin
-  Result := inherited SaveData(Handle, Images, Index) and PrepareSave(Handle, Images, Index);
+  Result := inherited SaveData(Handle, Images, Index);
   // Make image PNG compatible, store it in saver, and save it to file
   if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with NGFileSaver do
@@ -1863,11 +1893,12 @@ begin
   RegisterOption(ImagingMNGProgressive, @FProgressive);
 end;
 
-procedure TMNGFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TMNGFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   I, Len: LongInt;
 begin
+  Result := False;
   try
     // Use NG file parser to load file
     if NGFileLoader.LoadFile(Handle) then
@@ -1895,6 +1926,7 @@ begin
         with NGFileLoader.MHDR do
           NewImage(FrameWidth, FrameWidth, ifDefault, Images[0]);
       end;
+      Result := True;
     end;
   finally
     NGFileLoader.Clear;
@@ -1908,9 +1940,9 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
 begin
-  Result := inherited SaveData(Handle, Images, Index) and PrepareSave(Handle, Images, Index);
+  Result := inherited SaveData(Handle, Images, Index);
   if not Result then Exit;
-                 
+
   LargestWidth := 0;
   LargestHeight := 0;
 
@@ -1974,9 +2006,10 @@ begin
   RegisterOption(ImagingJNGProgressive, @FProgressive);
 end;
 
-procedure TJNGFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TJNGFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 begin
+  Result := False;
   try
     // Use NG file parser to load file
     if NGFileLoader.LoadFile(Handle) and (Length(NGFileLoader.Frames) > 0) then
@@ -1988,6 +2021,7 @@ begin
         NGFileLoader.LoadImageFromJNGFrame(JHDR, IDATMemory, JDATMemory, JDAAMemory, Images[0]);
       // Build palette, aply color key or background
       NGFileLoader.ApplyFrameSettings(NGFileLoader.Frames[0], Images[0]);
+      Result := True;
     end;
   finally
     NGFileLoader.Clear;
@@ -2000,7 +2034,7 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
 begin
-  Result := inherited SaveData(Handle, Images, Index) and PrepareSave(Handle, Images, Index);
+  Result := inherited SaveData(Handle, Images, Index);
   // Make image JNG compatible, store it in saver, and save it to file
   if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with NGFileSaver do
@@ -2040,9 +2074,11 @@ finalization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - changed extensions to filename masks
-    - changed SaveData, LoadData, and MakeCompatible methods according
-      to changes in base class in Imaging unit
+    - Made public properties for options registered to SetOption/GetOption
+      functions.
+    - Changed extensions to filename masks.
+    - Changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit.
 
   -- 0.17 Changes/Bug Fixes -----------------------------------
     - MNG and JNG support added, PNG support redesigned to support NG file handlers

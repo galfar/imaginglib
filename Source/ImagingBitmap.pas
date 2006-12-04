@@ -34,7 +34,7 @@ unit ImagingBitmap;
 interface
 
 uses
-  ImagingTypes, Imaging, ImagingUtility, ImagingFormats;
+  classes, sysutils, ImagingTypes, Imaging, ImagingUtility, ImagingFormats, ImagingIO;
 
 type
   { Class for loading and saving Windows Bitmap images.
@@ -43,12 +43,10 @@ type
     indexed images and OS2 bitmaps.}
   TBitmapFileFormat = class(TImageFileFormat)
   protected
-    { Controls that RLE compression is used during saving. Accessible trough
-      ImagingBitmapRLE option.}
     FUseRLE: LongBool;
     function GetSupportedFormats: TImageFormats; override;
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
-      OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
     function MakeCompatible(const Image: TImageData; var Comp: TImageData;
@@ -56,6 +54,9 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+    { Controls that RLE compression is used during saving. Accessible trough
+      ImagingBitmapRLE option.}
+    property UseRLE: LongBool read FUseRLE write FUseRLE;
   end;
 
 const
@@ -116,36 +117,12 @@ type
     RBitMask, GBitMask, BBitMask: LongWord;
   end;
 
-procedure Convert1To8(DataIn: Pointer; DataOut: Pointer; Width, Height,
-  WidthBytes: LongInt);
-const
-  Mask1: array[0..7] of Byte = ($80, $40, $20, $10, $08, $04, $02, $01);
-  Shift1: array[0..7] of Byte = (7, 6, 5, 4, 3, 2, 1, 0);
-var
-  X, Y: LongInt;
-begin
-  for Y := 0 to Height - 1 do
-    for X := 0 to Width - 1 do
-      PByteArray(DataOut)[Y * Width + X] :=
-        (PByteArray(DataIn)[Y * WidthBytes + X shr 3] and
-        Mask1[X and 7]) shr Shift1[X and 7];
-end;
-
-procedure Convert4To8(DataIn: Pointer; DataOut: Pointer; Width, Height,
-  WidthBytes: LongInt);
-const
-  Mask4: array[0..1] of Byte = ($F0, $0F);
-  Shift4: array[0..1] of Byte = (4, 0);
-var
-  X, Y: LongInt;
-begin
-  for Y := 0 to Height - 1 do
-    for X := 0 to Width - 1 do
-      PByteArray(DataOut)[Y * Width + X] :=
-        (PByteArray(DataIn)[Y * WidthBytes + X shr 1] and
-        Mask4[X and 1]) shr Shift4[X and 1];
-end;
-
+  { Used in RLE encoding and decoding.} 
+  TRLEOpcode = packed record
+    Count: Byte;
+    Command: Byte;
+  end;
+  PRLEOpcode = ^TRLEOpcode;
 
 { TBitmapFileFormat class implementation }
 
@@ -168,8 +145,8 @@ begin
   Result := BitmapSupportedFormats;
 end;
 
-procedure TBitmapFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TBitmapFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
@@ -188,202 +165,223 @@ var
   begin
     with Images[0], GetIO do
     begin
-      // if BI.Height is < 0 then image data are stored non-flipped
+      // If BI.Height is < 0 then image data are stored non-flipped
       // but default in windows is flipped so if Height is positive we must
       // flip it
 
       if BI.BitCount < 8 then
       begin
-        // for 1 and 4 bit images load aligned data, they will be converted to
+        // For 1 and 4 bit images load aligned data, they will be converted to
         // 8 bit and unaligned later
         GetMem(Data, AlignedSize);
 
         if BI.Height < 0 then
-        begin
-          Read(Handle, Data, AlignedSize);
-        end
+          Read(Handle, Data, AlignedSize)
         else
           for I := Height - 1 downto 0 do
             Read(Handle, @PByteArray(Data)[I * AlignedWidthBytes], AlignedWidthBytes);
       end
       else
       begin
-        // images with pixels of size >= 1 Byte are read line by line and
+        // Images with pixels of size >= 1 Byte are read line by line and
         // copied to image bits without padding bytes
         GetMem(LineBuffer, AlignedWidthBytes);
-
-        if BI.Height < 0 then
-        begin
-          for I := 0 to Height - 1 do
-          begin
-            Read(Handle, LineBuffer, AlignedWidthBytes);
-            Move(LineBuffer^, PByteArray(Bits)[I * WidthBytes], WidthBytes);
-          end;
-        end
-        else
-        begin
-          for I := Height - 1 downto 0 do
-          begin
-            Read(Handle, LineBuffer, AlignedWidthBytes);
-            Move(LineBuffer^, PByteArray(Bits)[I * WidthBytes], WidthBytes);
-          end;
+        try
+          if BI.Height < 0 then
+            for I := 0 to Height - 1 do
+            begin
+              Read(Handle, LineBuffer, AlignedWidthBytes);
+              Move(LineBuffer^, PByteArray(Bits)[I * WidthBytes], WidthBytes);
+            end
+          else
+            for I := Height - 1 downto 0 do
+            begin
+              Read(Handle, LineBuffer, AlignedWidthBytes);
+              Move(LineBuffer^, PByteArray(Bits)[I * WidthBytes], WidthBytes);
+            end;
+        finally
+          FreeMemNil(LineBuffer);
         end;
-
-        FreeMemNil(LineBuffer);
       end;
     end;
   end;
 
   procedure LoadRLE4;
   var
-    RLEData, Src, PLine, P: PByte;
-    X, Y, I, S, C: LongInt;
+    RLESrc: PByteArray;
+    SrcPos, Row, Col, WriteRow, I: LongInt;
+    DeltaX, DeltaY, Low, High: Byte;
+    Pixels: PByteArray;
+    OpCode: TRLEOpcode;
+    NegHeightBitmap: Boolean;
   begin
-    GetMem(Data, AlignedSize);
-    GetMem(RLEData, BI.SizeImage);
-    GetIO.Read(Handle, RLEData, BI.SizeImage);
+    GetMem(RLESrc, BI.SizeImage);
+    GetIO.Read(Handle, RLESrc, BI.SizeImage);
     with Images[0] do
-    try
-      Src := RLEData;
-      Y := 0;
-      X := 0;
-      while Y < Height do
+    begin
+      Pixels := Bits;
+      SrcPos := 0;
+      NegHeightBitmap := BI.Height < 0;
+      Row := 0; // Current row in dest image
+      Col := 0; // Current column in dest image
+      // Row in dest image where actuall writting will be done
+      WriteRow := Iff(NegHeightBitmap, Row, Height - 1 - Row);
+      while (Row < Height) and (SrcPos < BI.SizeImage) do
       begin
-        C := Src^;
-        Inc(Src);
-        S := Src^;
-        Inc(Src);
-        if C = 0 then
+        // Read RLE op-code
+        OpCode := PRLEOpcode(@RLESrc[SrcPos])^;
+        Inc(SrcPos, SizeOf(OpCode));
+        if OpCode.Count = 0 then
         begin
-          case S of
+          // A byte Count of zero means that this is a special
+          // instruction.
+          case OpCode.Command of
             0:
               begin
-                // next line
-                Inc(Y);
-                X := 0;
-              end;
-            1: Break; // end of bitmap
+                // Move to next row
+                Inc(Row);
+                WriteRow := Iff(NegHeightBitmap, Row, Height - 1 - Row);
+                Col := 0;
+              end ;
+            1: Break; // Image is finished
             2:
               begin
-                // delta of coordinates
-                Inc(Src);
-                Inc(X, Src^);
-                Inc(Src);
-                Inc(Y, Src^);
-              end;
+                // Move to a new relative position
+                DeltaX := RLESrc[SrcPos];
+                DeltaY := RLESrc[SrcPos + 1];
+                Inc(SrcPos, 2);
+                Inc(Col, DeltaX);
+                Inc(Row, DeltaY);
+              end
           else
+            // Do not read data after EOF
+            if SrcPos + OpCode.Command > BI.SizeImage then
+              OpCode.Command := BI.SizeImage - SrcPos;
+            // Take padding bytes and nibbles into account
+            if Col + OpCode.Command > Width then
+              OpCode.Command := Width - Col;
+            // Store absolute data. Command code is the
+            // number of absolute bytes to store
+            for I := 0 to OpCode.Command - 1 do
             begin
-              // absolute data
-              PLine := @PByteArray(Data)[Y * AlignedWidthBytes];
-              for I := 0 to S - 1 do
+              if (I and 1) = 0 then
               begin
-                if I and 1 = 0 then
-                begin
-                  C := Src^;
-                  Inc(Src);
-                end
-                else
-                begin
-                  C := C shl 4;
-                end;
-                P := @PByteArray(PLine)[X shr 1];
-                if X and 1 = 0 then
-                  P^ := (P^ and $0F) or (C and $F0)
-                else
-                  P^ := (P^ and $F0) or ((C and $F0) shr 4);
-                Inc(X);
-              end;
+                High := RLESrc[SrcPos] shr 4;
+                Low := RLESrc[SrcPos] and $F;
+                Pixels[WriteRow * Width + Col] := High;
+                Inc(SrcPos);
+              end
+              else
+                Pixels[WriteRow * Width + Col] := Low;
+              Inc(Col);
             end;
+            // Odd number of bytes is followed by a pad byte
+            if (OpCode.Command mod 4) in [1, 2] then
+              Inc(SrcPos);
           end;
         end
         else
         begin
-          // encoded data
-          PLine := @PByteArray(Data)[Y * AlignedWidthBytes];
-          for I := 0 to C - 1 do
+          // Take padding bytes and nibbles into account
+          if Col + OpCode.Count > Width then
+            OpCode.Count := Width - Col;
+          // Store a run of the same color value
+          for I := 0 to OpCode.Count - 1 do
           begin
-            P := @PByteArray(PLine)[X shr 1];
-            if X and 1 = 0 then
-              P^ := (P^ and $0F) or (S and $F0)
+            if (I and 1) = 0 then
+              Pixels[WriteRow * Width + Col] := OpCode.Command shr 4
             else
-              P^ := (P^ and $F0) or ((S and $F0) shr 4);
-            Inc(X);
-            S := (S shr 4) or (S shl 4);
+              Pixels[WriteRow * Width + Col] := OpCode.Command and $F;
+            Inc(Col);
           end;
         end;
-        Inc(Src, Longint(Src) and 1);
       end;
-    finally
-      FreeMem(RLEData);
     end;
   end;
 
   procedure LoadRLE8;
   var
-    RLEData, Src: PByte;
-    X, Y, I, S: LongInt;
+    RLESrc: PByteArray;
+    SrcPos, SrcCount, Row, Col, WriteRow: LongInt;
+    DeltaX, DeltaY: Byte;
+    Pixels: PByteArray;
+    OpCode: TRLEOpcode;
+    NegHeightBitmap: Boolean;
   begin
-    GetMem(Data, AlignedSize);
-    GetMem(RLEData, BI.SizeImage);
-    GetIO.Read(Handle, RLEData, BI.SizeImage);
+    GetMem(RLESrc, BI.SizeImage);
+    GetIO.Read(Handle, RLESrc, BI.SizeImage);
     with Images[0] do
-    try
-      Src := RLEData;
-      Y := 0;
-      X := 0;
-      while Y < Height do
+    begin
+      Pixels := Bits;
+      SrcPos := 0;
+      NegHeightBitmap := BI.Height < 0;
+      Row := 0; // Current row in dest image
+      Col := 0; // Current column in dest image
+      // Row in dest image where actuall writting will be done
+      WriteRow := Iff(NegHeightBitmap, Row, Height - 1 - Row);
+      while (Row < Height) and (SrcPos < BI.SizeImage) do
       begin
-        if Src^ = 0 then
+        // Read RLE op-code
+        OpCode := PRLEOpcode(@RLESrc[SrcPos])^;
+        Inc(SrcPos, SizeOf(OpCode));
+        if OpCode.Count = 0 then
         begin
-          Inc(Src);
-          case Src^ of
+          // A byte Count of zero means that this is a special
+          // instruction.
+          case OpCode.Command of
             0:
               begin
-                // next line
-                Inc(Y);
-                X := 0;
-              end;
-            1: Break; // end of bitmap
+                // Move to next row
+                Inc(Row);
+                WriteRow := Iff(NegHeightBitmap, Row, Height - 1 - Row);
+                Col := 0;
+              end ;
+            1: Break; // Image is finished
             2:
               begin
-                // delta of coordinates
-                Inc(Src);
-                Inc(X, Src^);
-                Inc(Src);
-                Inc(Y, Src^);
-              end;
+                // Move to a new relative position
+                DeltaX := RLESrc[SrcPos];
+                DeltaY := RLESrc[SrcPos + 1];
+                Inc(SrcPos, 2);
+                Inc(Col, DeltaX);
+                Inc(Row, DeltaY);
+              end
           else
-            begin
-              // absolute data
-              I := Src^;
-              S := (I + 1) and (not 1);
-              Inc(Src);
-              Move(Src^, PByteArray(Data)[Y * LongInt(AlignedWidthBytes) + X], S);
-              Inc(Src, S - 1);
-              Inc(X, I);
-            end;
+            SrcCount := OpCode.Command;
+            // Do not read data after EOF
+            if SrcPos + OpCode.Command > BI.SizeImage then
+              OpCode.Command := BI.SizeImage - SrcPos;
+            // Take padding bytes into account
+            if Col + OpCode.Command > Width then
+              OpCode.Command := Width - Col;
+            // Store absolute data. Command code is the
+            // number of absolute bytes to store
+            Move(RLESrc[SrcPos], Pixels[WriteRow * Width + Col], OpCode.Command);
+            Inc(SrcPos, SrcCount);
+            Inc(Col, OpCode.Command);
+            // Odd number of bytes is followed by a pad byte
+            if (SrcCount mod 2) = 1 then
+              Inc(SrcPos);
           end;
         end
         else
         begin
-          // encoded data
-          I := Src^;
-          Inc(Src);
-          FillChar(PByteArray(Data)[Y * LongInt(AlignedWidthBytes) + X], I, Src^);
-          Inc(X, I);
+          // Take padding bytes into account
+          if Col + OpCode.Count > Width then
+            OpCode.Count := Width - Col;
+          // Store a run of the same color value. Count is number of bytes to store
+          FillChar(Pixels [WriteRow * Width + Col], OpCode.Count, OpCode.Command);
+          Inc(Col, OpCode.Count);
         end;
-        Inc(Src);
       end;
-
-    finally
-      FreeMem(RLEData);
     end;
   end;
 
 begin
+  Data := nil;
   SetLength(Images, 1);
   with GetIO, Images[0] do
-  begin
+  try
     StartPos := Tell(Handle);
     Read(Handle, @BF, SizeOf(BF));
     Read(Handle, @BI.Size, SizeOf(BI.Size));
@@ -425,11 +423,10 @@ begin
       16:
         if LocalPF.RBitMask = $0F00 then
           Format := ifX4R4G4B4
+        else if LocalPF.RBitMask = $F800 then
+          Format := ifR5G6B5
         else
-          if LocalPF.RBitMask = $F800 then
-            Format := ifR5G6B5
-          else
-            Format := ifA1R5G5B5;
+          Format := ifA1R5G5B5;
       24: Format := ifR8G8B8;
       32: Format := ifA8R8G8B8;
     end;
@@ -443,7 +440,7 @@ begin
     // Palette settings and reading
     if BI.BitCount <= 8 then
     begin
-      // seek to the begining of palette
+      // Seek to the begining of palette
       Seek(Handle, StartPos + SizeOf(TBitmapFileHeader) + LongInt(BI.Size),
         smFromBeginning);
       if IsOS2 then
@@ -451,15 +448,18 @@ begin
         // OS/2 type
         FPalSize := 1 shl BI.BitCount;
         GetMem(PalRGB, FPalSize * SizeOf(TColor24Rec));
-        Read(Handle, PalRGB, FPalSize * SizeOf(TColor24Rec));
-        for I := 0 to FPalSize - 1 do
+        try
+          Read(Handle, PalRGB, FPalSize * SizeOf(TColor24Rec));
+          for I := 0 to FPalSize - 1 do
           with PalRGB[I] do
           begin
             Palette[I].R := R;
             Palette[I].G := G;
             Palette[I].B := B;
           end;
-        FreeMem(PalRGB);
+        finally
+          FreeMemNil(PalRGB);
+        end;
       end
       else
       begin
@@ -473,7 +473,7 @@ begin
         Palette[I].A := $FF;
     end;
 
-    // seek to the begining of image bits
+    // Seek to the beginning of image bits
     Seek(Handle, StartPos + LongInt(BF.Offset), smFromBeginning);
 
     case BI.Compression of
@@ -483,12 +483,19 @@ begin
       BI_BITFIELDS: LoadRGB;
     end;
 
-    // check if there is alpha channel present in A1R5GB5 images, if it is not
-    // change format to X1R5G5B5
     if Format = ifA1R5G5B5 then
     begin
+      // Check if there is alpha channel present in A1R5GB5 images, if it is not
+      // change format to X1R5G5B5
       if not Has16BitImageAlpha(Width * Height, Bits) then
         Format := ifX1R5G5B5;
+    end
+    else if Format = ifA8R8G8B8 then
+    begin
+      // Check if there is alpha channel present in A8R8G8B8 images, if it is not
+      // change format to X8R8G8B8
+      if not Has32BitImageAlpha(Width * Height, Bits) then
+        Format := ifX8R8G8B8;
     end;
 
     if BI.BitCount < 8 then
@@ -497,23 +504,20 @@ begin
       // so we now convert them to 8bpp (and unalign scanlines).
       case BI.BitCount of
         1: Convert1To8(Data, Bits, Width, Height, AlignedWidthBytes);
-        4: Convert4To8(Data, Bits, Width, Height, AlignedWidthBytes);
+        4:
+          begin
+            // RLE4 bitmaps are translated to 8bit during RLE decoding
+            if BI.Compression <> BI_RLE4 then
+               Convert4To8(Data, Bits, Width, Height, AlignedWidthBytes);
+          end;
       end;
-      FreeMem(Data);
-      // enlarge palette
+      // Enlarge palette
       ReallocMem(Palette, FmtInfo.PaletteEntries * SizeOf(TColor32Rec));
-    end
-    else if BI.Compression = BI_RLE8 then
-    begin
-      // scanlines were not unaligned during decoding so remove pad bytes now
-      RemovePadBytes(Data, Bits, Width, Height, FmtInfo.BytesPerPixel, AlignedWidthBytes);
-      FreeMem(Data);
     end;
 
-    // images were not flipped when decoding
-    if BI.Compression in [BI_RLE4, BI_RLE8] then
-      if BI.Height > 0 then
-        FlipImage(Images[0]);
+    Result := True;
+  finally
+    FreeMemNil(Data);
   end;
 end;
 
@@ -560,7 +564,6 @@ var
           if (ImageToSave.Width - X > 2) and
             (Src^ = PByteArray(Src)[1]) then
           begin
-            // encoding mode
             B1 := 2;
             B2 := Src^;
             Inc(X, 2);
@@ -578,7 +581,6 @@ var
             if (ImageToSave.Width - X > 2) and (Src^ <> PByteArray(Src)[1]) and
               (PByteArray(Src)[1] = PByteArray(Src)[2]) then
             begin
-              // encoding mode
               AllocByte^ := 1;
               AllocByte^ := Src^;
               Inc(Src);
@@ -590,7 +592,6 @@ var
               begin
                 if ImageToSave.Width - X = 2 then
                 begin
-                  // encoding mode
                   AllocByte^ := 1;
                   AllocByte^ := Src^;
                   Inc(Src);
@@ -609,7 +610,6 @@ var
               end
               else
               begin
-                // absolute mode
                 L1 := Pos;
                 AllocByte;
                 L2 := Pos;
@@ -642,11 +642,9 @@ var
           if Pos and 1 = 1 then
             AllocByte;
         end;
-        // end of line
         AllocByte^ := 0;
         AllocByte^ := 0;
       end;
-      // end of bitmap
       AllocByte^ := 0;
       AllocByte^ := 1;
       GetIO.Write(Handle, Buf, Pos);
@@ -656,42 +654,43 @@ var
   end;
 
 begin
-  Result := PrepareSave(Handle, Images, Index);
-  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
+  Result := False;
+  Data := nil;
+  if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with GetIO, ImageToSave do
   try
     FmtInfo := GetFormatInfo(Format);
     StartPos := Tell(Handle);
     FillChar(BF, SizeOf(BF), 0);
     FillChar(BI, SizeOf(BI), 0);
-    // other fields will be filled later - we don't know all values now
+    // Other fields will be filled later - we don't know all values now
     BF.ID := BMMagic;
     Write(Handle, @BF, SizeOF(BF));
-    // other fields will be filled later - we don't know all values now
     BI.Size := SizeOf(BI);
     BI.Width := Width;
     BI.Height := -Height;
     BI.Planes := 1;
     BI.BitCount := FmtInfo.BytesPerPixel * 8;
-    // set compression
+
+    // Set compression
     if (FmtInfo.BytesPerPixel = 1) and FUseRLE then
       BI.Compression := BI_RLE8
+    else if (Format <> ifA1R5G5B5) and (FmtInfo.BytesPerPixel = 2) then
+      BI.Compression := BI_BITFIELDS
     else
-      if (Format <> ifA1R5G5B5) and (FmtInfo.BytesPerPixel = 2) then
-        BI.Compression := BI_BITFIELDS
-      else
-        BI.Compression := BI_RGB;
+      BI.Compression := BI_RGB;
     Write(Handle, @BI, SizeOF(BI));
-    // write mask info
+
+    // Write mask info
     if BI.Compression = BI_BITFIELDS then
-      with FmtInfo.PixelFormat^ do
-      begin
-        LocalPF.RBitMask := RBitMask;
-        LocalPF.GBitMask := GBitMask;
-        LocalPF.BBitMask := BBitMask;
-        Write(Handle, @LocalPF, SizeOf(LocalPF));
-      end;
-    // write palette
+    with FmtInfo.PixelFormat^ do
+    begin
+      LocalPF.RBitMask := RBitMask;
+      LocalPF.GBitMask := GBitMask;
+      LocalPF.BBitMask := BBitMask;
+      Write(Handle, @LocalPF, SizeOf(LocalPF));
+    end;
+    // Write palette
     if Palette <> nil then
       Write(Handle, Palette, FmtInfo.PaletteEntries * SizeOf(TColor32Rec));
 
@@ -711,18 +710,21 @@ begin
       SaveRLE8
     else
       Write(Handle, Data, AlignedSize);
-    if Data <> Bits then
-      FreeMem(Data);
 
     EndPos := Tell(Handle);
     Seek(Handle, StartPos, smFromBeginning);
-    // rewrite header with new values
+    // Rewrite header with new values
     BF.Size := EndPos - StartPos;
     BI.SizeImage := BF.Size - BF.Offset;
     Write(Handle, @BF, SizeOf(BF));
     Write(Handle, @BI, SizeOf(BI));
     Seek(Handle, EndPos, smFromBeginning);
+
+    Result := True;
   finally
+    // Free aligned temp data
+    if (Data <> nil) and (Data <> Bits) then
+      FreeMemNil(Data);
     if MustBeFreed then
       FreeImage(ImageToSave);
   end;
@@ -738,19 +740,17 @@ begin
   begin
     Info := GetFormatInfo(Comp.Format);
     if Info.HasGrayChannel or Info.IsIndexed then
-      // convert all grayscale and indexed images to Index8
+      // Convert all grayscale and indexed images to Index8
       ConvFormat := ifIndex8
+    else if Info.HasAlphaChannel or Info.IsFloatingPoint then
+      // Convert images with alpha channel or float to A8R8G8B8
+      ConvFormat := ifA8R8G8B8
+    else if Info.UsePixelFormat then
+      // Convert 16bit RGB images to A1R5G5B5
+      ConvFormat := ifA1R5G5B5
     else
-      if Info.HasAlphaChannel or Info.IsFloatingPoint then
-        // convert images with alpha channel or float to A8R8G8B8
-        ConvFormat := ifA8R8G8B8
-      else
-        if Info.UsePixelFormat then
-          // convert 16bit RGB images to A1R5G5B5
-          ConvFormat := ifA1R5G5B5
-        else
-          // convert all other formats to R8G8B8
-          ConvFormat := ifR8G8B8;
+      // Convert all other formats to R8G8B8
+      ConvFormat := ifR8G8B8;
 
     ConvertImage(Comp, ConvFormat);
   end;
@@ -779,13 +779,19 @@ initialization
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - rewrite SaveRLE8, there is some error with MemCheck
-    - add alpha check as with 16b bitmaps to 32b bitmaps too
+    - rewrite SaveRLE8
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - changed extensions to filename masks
-    - changed SaveData, LoadData, and MakeCompatible methods according
-      to changes in base class in Imaging unit
+    - Rewritten LoadRLE4 and LoadRLE8 nested procedures.
+      Should be less buggy an more readable (load inspired by Colosseum Builders' code).
+    - Made public properties for options registered to SetOption/GetOption
+      functions. 
+    - Addded alpha check to 32b bitmap loading too (teh same as in 16b
+      bitmap loading).
+    - Moved Convert1To8 and Convert4To8 to ImagingFormats
+    - Changed extensions to filename masks.
+    - Changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - fixed wrong const that caused A4R4G4B4 BMPs to load as A1R5G5B5

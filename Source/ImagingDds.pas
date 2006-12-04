@@ -57,8 +57,8 @@ type
     FSaveMipMapCount: LongInt;
     FSaveDepth: LongInt;
     function GetSupportedFormats: TImageFormats; override;
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
-      OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
     function MakeCompatible(const Image: TImageData; var Comp: TImageData;
@@ -219,8 +219,8 @@ begin
   Result := DDSSupportedFormats;
 end;
 
-procedure TDDSFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TDDSFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Hdr: TDDSFileHeader;
   SrcFormat: TImageFormat;
@@ -291,6 +291,8 @@ var
   end;
 
 begin
+  Result := False;
+  Data := nil;
   with GetIO, Hdr, Hdr.Desc.PixelFormat do
   begin
     Read(Handle, @Hdr, SizeOF(Hdr));
@@ -420,14 +422,9 @@ begin
     FLoadedVolume := False;
     FLoadedCubeMap := False;
 
-    // if DDS format is not supported we will exit with one image
-    // created in default format. Should we raise some error instead?
+    // if DDS format is not supported we will exit
     if SrcFormat = ifUnknown then
-    begin
-      SetLength(Images, 1);
-      NewImage(Desc.Width, Desc.Height, ifDefault, Images[0]);
       Exit;
-    end;
 
     // file contains mipmaps for each subimage
     if ((Desc.Caps.Caps1 and DDSCAPS_MIPMAP) = DDSCAPS_MIPMAP) and
@@ -496,18 +493,21 @@ begin
         Read(Handle, Images[I].Bits, LoadSize)
       end
       else
-      begin
+      try
         // If DDS uses Pitch we must load aligned scanlines
         // and then remove padding
         GetMem(Data, LoadSize);
         Read(Handle, Data, LoadSize);
         RemovePadBytes(Data, Images[I].Bits, CurWidth, CurHeight,
           FmtInfo.BytesPerPixel, PitchOrLinear);
+      finally
         FreeMem(Data);
       end;
 
       if NeedsSwapChannels then
         SwapChannels(Images[I], ChannelRed, ChannelBlue);
+
+      Result := True;
     end;
   end;
 end;
@@ -522,9 +522,9 @@ var
   FmtInfo: PImageFormatInfo;
   MustBeFreed: Boolean;
 begin
-  Result := PrepareSave(Handle, Images, Index);
-  if not Result then Exit;
+  Result := False;
   MainIdx := FFirstIdx;
+  Len := Length(Images);
 
   // check if we have enough images on Input to save cube map
   if FSaveCubeMap then
@@ -664,6 +664,8 @@ begin
       if Images[I].Bits <> ImageToSave.Bits then
         FreeImage(ImageToSave);
     end;
+
+    Result := True;
   finally
     if MustBeFreed then
       FreeImage(MainImage);

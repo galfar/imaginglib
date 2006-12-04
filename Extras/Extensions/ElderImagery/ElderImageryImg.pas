@@ -35,7 +35,7 @@ unit ElderImageryImg;
 interface
 
 uses
-  ImagingTypes, Imaging, ElderImagery;
+  ImagingTypes, Imaging, ImagingIO, ElderImagery;
 
 type
   { Class for loading and saving of images in IMG format. It is
@@ -46,8 +46,8 @@ type
     prior to loading.}
   TIMGFileFormat = class(TElderFileFormat)
   protected
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
-      OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
   public
@@ -84,7 +84,6 @@ implementation
 
 resourcestring
   SInvalidImageSize = 'Size of image in IMG format cannot exceed 65535 bytes. %s';
-  SArenaCompressedIMG = 'Unsupported file format: Compressed IMG from TES: Arena';
 
 { TIMGFileFormat class implementation }
 
@@ -96,8 +95,8 @@ begin
   AddMasks(SIMGMasks);
 end;
 
-procedure TIMGFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TIMGFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Hdr: TImgHeader;
   PalUsed: TElderPalette;
@@ -116,7 +115,7 @@ begin
   SetLength(Images, 1);
   with GetIO, Images[0] do
   begin
-    InputSize := GetInputSize(Handle);
+    InputSize := GetInputSize(GetIO, Handle);
     Format := ifIndex8;
     IsRLE := False;
 
@@ -142,7 +141,7 @@ begin
       // compression algorithm is unknown to me now
       // if Unk = 264 then after header is word size of original data
       // if Unk = 260 no size after head
-      RaiseImaging(SArenaCompressedIMG, []);
+      Exit;
     end;
 
     if not IsRLE then
@@ -153,11 +152,14 @@ begin
     end
     else
     begin
-      // Read compressed data
       GetMem(Data, Hdr.ImageSize);
-      Read(Handle, Data, Hdr.ImageSize);
-      DagRLEDecode(Data, Hdr.ImageSize, Size, Bits);
-      FreeMem(Data);
+      try
+        // Read compressed data
+        Read(Handle, Data, Hdr.ImageSize);
+        DagRLEDecode(Data, Size, Bits);
+      finally
+        FreeMem(Data);
+      end;
     end;
 
     // Palette handling
@@ -178,6 +180,8 @@ begin
     end
     else
       Move(FARGBPalette[0], Palette[0], Length(FPalette) * SizeOf(TColor32Rec));
+
+    Result := True;
   end;
 end;
 
@@ -188,8 +192,8 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
 begin
-  Result := PrepareSave(Handle, Images, Index);
-  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
+  Result := False;
+  if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with GetIO, ImageToSave do
   try
     FillChar(Hdr, SizeOf(Hdr), 0);
@@ -201,6 +205,7 @@ begin
     Hdr.ImageSize := Width * Height;
     Write(Handle, @Hdr, SizeOf(Hdr));
     Write(Handle, Bits, Hdr.ImageSize);
+    Result := True;
   finally
     if MustBeFreed then
       FreeImage(ImageToSave);
@@ -214,7 +219,7 @@ end;
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - initial version created based on my older code (fixed few things)
+    - Initial version created based on my older code (fixed few things).
 }
 
 end.

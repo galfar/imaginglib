@@ -125,11 +125,27 @@ procedure AddPadBytes(DataIn: Pointer; DataOut: Pointer; Width, Height,
 procedure RemovePadBytes(DataIn: Pointer; DataOut: Pointer; Width, Height,
   Bpp, WidthBytes: LongInt);
 
+{ Converts 1bit image data to 8bit (without scaling). Used by file
+  loaders for formats supporting 1bit images.}
+procedure Convert1To8(DataIn, DataOut: Pointer; Width, Height,
+  WidthBytes: LongInt);
+{ Converts 2bit image data to 8bit (without scaling). Used by file
+  loaders for formats supporting 2bit images.}
+procedure Convert2To8(DataIn, DataOut: Pointer; Width, Height,
+  WidthBytes: LongInt);
+{ Converts 4bit image data to 8bit (without scaling). Used by file
+  loaders for formats supporting 4bit images.}
+procedure Convert4To8(DataIn, DataOut: Pointer; Width, Height,
+  WidthBytes: LongInt);
+
 { Helper function for image file loaders. Some 15 bit images (targas, bitmaps)
   may contain 1 bit alpha but there is no indication of it. This function checks
-  all 16 bit(shoul be X1R5G5B5 or A1R5G5B5 format) pixels and some of them have
+  all 16 bit(should be X1R5G5B5 or A1R5G5B5 format) pixels and some of them have
   alpha bit set it returns True, otherwise False.}
 function Has16BitImageAlpha(NumPixels: LongInt; Data: PWord): Boolean;
+{ Helper function for image file loaders. This function checks is similar
+  to Has16BitImageAlpha but works with A8R8G8B8 format.}
+function Has32BitImageAlpha(NumPixels: LongInt; Data: PLongWord): Boolean;
 { Provides indexed access to each line of pixels. Does not work with special
   format images.}
 function GetScanLine(ImageBits: Pointer; const FormatInfo: TImageFormatInfo;
@@ -1878,6 +1894,51 @@ begin
     Move(PByteArray(DataIn)[I * WidthBytes], PByteArray(DataOut)[I * W], W);
 end;
 
+procedure Convert1To8(DataIn, DataOut: Pointer; Width, Height,
+  WidthBytes: LongInt);
+const
+  Mask1: array[0..7] of Byte = ($80, $40, $20, $10, $08, $04, $02, $01);
+  Shift1: array[0..7] of Byte = (7, 6, 5, 4, 3, 2, 1, 0);
+var
+  X, Y: LongInt;
+begin
+  for Y := 0 to Height - 1 do
+    for X := 0 to Width - 1 do
+      PByteArray(DataOut)[Y * Width + X] :=
+        (PByteArray(DataIn)[Y * WidthBytes + X shr 3] and
+        Mask1[X and 7]) shr Shift1[X and 7];
+end;
+
+procedure Convert2To8(DataIn, DataOut: Pointer; Width, Height,
+  WidthBytes: LongInt);
+const
+  Mask2: array[0..3] of Byte = ($C0, $30, $0C, $03);
+Shift2: array[0..3] of Byte = (6, 4, 2, 0);
+var
+  X, Y: LongInt;
+begin
+  for Y := 0 to Height - 1 do
+    for X := 0 to Width - 1 do
+      PByteArray(DataOut)[Y * Width + X] :=
+        (PByteArray(DataIn)[X shr 2] and Mask2[X and 3]) shr
+        Shift2[X and 3];
+end;
+
+procedure Convert4To8(DataIn, DataOut: Pointer; Width, Height,
+  WidthBytes: LongInt);
+const
+  Mask4: array[0..1] of Byte = ($F0, $0F);
+  Shift4: array[0..1] of Byte = (4, 0);
+var
+  X, Y: LongInt;
+begin
+  for Y := 0 to Height - 1 do
+    for X := 0 to Width - 1 do
+      PByteArray(DataOut)[Y * Width + X] :=
+        (PByteArray(DataIn)[Y * WidthBytes + X shr 1] and
+        Mask4[X and 1]) shr Shift4[X and 1];
+end;
+
 function Has16BitImageAlpha(NumPixels: LongInt; Data: PWord): Boolean;
 var
   I: LongInt;
@@ -1886,6 +1947,22 @@ begin
   for I := 0 to NumPixels - 1 do
   begin
     if Data^ >= 1 shl 15 then
+    begin
+      Result := True;
+      Exit;
+    end;
+    Inc(Data);
+  end;
+end;
+
+function Has32BitImageAlpha(NumPixels: LongInt; Data: PLongWord): Boolean;
+var
+  I: LongInt;
+begin
+  Result := False;
+  for I := 0 to NumPixels - 1 do
+  begin
+    if Data^ >= 1 shl 24 then
     begin
       Result := True;
       Exit;
@@ -2110,8 +2187,8 @@ end;
 
 { Pixel readers/writers for different image formats }
 
-procedure ChannelGetSrcPixel(Src: PByte; SrcInfo: PImageFormatInfo; var Pix:
-  TColor64Rec);
+procedure ChannelGetSrcPixel(Src: PByte; SrcInfo: PImageFormatInfo;
+  var Pix: TColor64Rec);
 var
   A, R, G, B: Byte;
 begin
@@ -3685,6 +3762,11 @@ end;
 
   -- TODOS ----------------------------------------------------
     - rewrite StretchRect for 8bit channels to use integer math
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Moved Convert1To8 and Convert4To8 functions from ImagingBitmaps here
+     and created new Convert2To8 function. They are now used by more than one
+     file format loader. 
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - StretchResample now uses pixel get/set functions stored in

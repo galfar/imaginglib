@@ -78,7 +78,7 @@ const
     of the next saved DDS file.}
   ImagingDDSSaveDepth          = 21;
 
-  { Sets precompression filter used when saving PNG images. Possible values
+  { Sets precompression filter used when saving PNG images. Allowed values
     are: 0 (none), 1 (sub), 2 (up), 3 (average), 4 (paeth),
     5 (use 0 for indexed/gray images and 4 for RGB/ARGB images),
     6 (adaptive filtering - use best filter for each scanline - very slow).
@@ -86,7 +86,7 @@ const
     Default value is 5.}
   ImagingPNGPreFilter          = 25;
   { Sets ZLib compression level used when saving PNG images.
-    Possible values are in range 0 (no compresstion) to 9 (best compression).
+    Allowed values are in range 0 (no compresstion) to 9 (best compression).
     Default value is 5.}
   ImagingPNGCompressLevel      = 26;
 
@@ -298,13 +298,14 @@ type
   TColorHFRecArray = array[0..MaxInt div SizeOf(TColorHFRec) - 1] of TColorHFRec;
   PColorHFRecArray = ^TColorHFRecArray;
 
-  { Palette for indexd mode images with 32 bit colors.}
+  { Palette for indexed mode images with 32 bit colors.}
   TPalette32 = TColor32RecArray;
+  TPalette32Size256 = array[0..255] of TColor32Rec;
   PPalette32 = ^TPalette32;
-  PPPalette32 = ^PPalette32;
 
   { Palette for indexd mode images with 24 bit colors.}
   TPalette24 = TColor24RecArray;
+  TPalette24Size256 = array[0..255] of TColor24Rec;
   PPalette24 = ^TPalette24;
 
   { Record that stores single image data and information describing it.}
@@ -423,6 +424,9 @@ implementation
 
   -- TODOS ----------------------------------------------------
     - add lookup tables to pixel formats for fast conversions
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added TPalette32Size256 and TPalette24Size256 types.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added ImagingVersionPatch constant so bug fix only releases

@@ -1183,8 +1183,7 @@ finalization
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - test all, check loading more images from single stream
-    - add filtered resize to TImagingGraphic
+    - nothing now
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added DisplayImage procedures (thanks to Paul Michell, modified)

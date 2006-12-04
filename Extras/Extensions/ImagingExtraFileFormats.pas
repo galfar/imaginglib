@@ -35,7 +35,7 @@ interface
 
 uses
 //  ImagingJpeg2000,
-//  ImagingPcx,
+  ImagingPcx,
   ElderImagery;
 
 implementation

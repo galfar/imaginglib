@@ -42,12 +42,10 @@ type
     24 bit RGB and 32 bit ARGB images with or without RLE compression.}
   TTargaFileFormat = class(TImageFileFormat)
   protected
-    { Controls that RLE compression is used during saving. Accessible trough
-      ImagingTargaRLE option.}
     FUseRLE: LongBool;
     function GetSupportedFormats: TImageFormats; override;
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
-      OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
     function MakeCompatible(const Image: TImageData; var Comp: TImageData;
@@ -55,6 +53,9 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+    { Controls that RLE compression is used during saving. Accessible trough
+      ImagingTargaRLE option.}
+    property UseRLE: LongBool read FUseRLE write FUseRLE;
   end;
 
 const
@@ -117,8 +118,8 @@ begin
   Result := TargaSupportedFormats;
 end;
 
-procedure TTargaFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TTargaFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Hdr: TTargaHeader;
   Foo: TTargaFooter;
@@ -235,39 +236,42 @@ begin
       // Read palette
       PSize := Hdr.ColorMapLength * (Hdr.ColorEntrySize shr 3);
       GetMem(Pal, PSize);
-      Read(Handle, Pal, PSize);
-      // Process palette
-      PalSize := Iff(Hdr.ColorMapLength > FmtInfo.PaletteEntries,
-        FmtInfo.PaletteEntries, Hdr.ColorMapLength);
-      for I := 0 to PalSize - 1 do
-        case Hdr.ColorEntrySize of
-          24:
-            with Palette[I] do
-            begin
-              A := $FF;
-              R := PPalette24(Pal)[I].R;
-              G := PPalette24(Pal)[I].G;
-              B := PPalette24(Pal)[I].B;
-            end;
-          // I've never seen tga with these palettes so they are untested
-          16:
-            with Palette[I] do
-            begin
-              A := (PWordArray(Pal)[I] and $8000) shr 12;
-              R := (PWordArray(Pal)[I] and $FC00) shr 7;
-              G := (PWordArray(Pal)[I] and $03E0) shr 2;
-              B := (PWordArray(Pal)[I] and $001F) shl 3;
-            end;
-          32:
-            with Palette[I] do
-            begin
-              A := PPalette32(Pal)[I].A;
-              R := PPalette32(Pal)[I].R;
-              G := PPalette32(Pal)[I].G;
-              B := PPalette32(Pal)[I].B;
-            end;
-        end;
-      FreeMemNil(Pal);
+      try
+        Read(Handle, Pal, PSize);
+        // Process palette
+        PalSize := Iff(Hdr.ColorMapLength > FmtInfo.PaletteEntries,
+          FmtInfo.PaletteEntries, Hdr.ColorMapLength);
+        for I := 0 to PalSize - 1 do
+          case Hdr.ColorEntrySize of
+            24:
+              with Palette[I] do
+              begin
+                A := $FF;
+                R := PPalette24(Pal)[I].R;
+                G := PPalette24(Pal)[I].G;
+                B := PPalette24(Pal)[I].B;
+              end;
+            // I've never seen tga with these palettes so they are untested
+            16:
+              with Palette[I] do
+              begin
+                A := (PWordArray(Pal)[I] and $8000) shr 12;
+                R := (PWordArray(Pal)[I] and $FC00) shr 7;
+                G := (PWordArray(Pal)[I] and $03E0) shr 2;
+                B := (PWordArray(Pal)[I] and $001F) shl 3;
+              end;
+            32:
+              with Palette[I] do
+              begin
+                A := PPalette32(Pal)[I].A;
+                R := PPalette32(Pal)[I].R;
+                G := PPalette32(Pal)[I].G;
+                B := PPalette32(Pal)[I].B;
+              end;
+          end;
+      finally
+        FreeMemNil(Pal);
+      end;
     end;
 
     case Hdr.ImageType of
@@ -318,13 +322,15 @@ begin
     // Some editors save targas flipped
     if Hdr.Desc < 31 then
       FlipImage(Images[0]);
+
+    Result := True;
   end;
 end;
 
 function TTargaFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
-  Len, I: LongInt;
+  I: LongInt;
   Hdr: TTargaHeader;
   FmtInfo: PImageFormatInfo;
   Pal: PPalette24;
@@ -468,20 +474,23 @@ var
       DestSize := DestSize + DestSize div 2 + 1;
       GetMem(Dest, DestSize);
       Total := 0;
-      for I := 0 to Height - 1 do
-      begin
-        RleCompressLine(@PByteArray(Bits)[I * WidthBytes], Width,
-          FmtInfo.BytesPerPixel, @PByteArray(Dest)[Total], Written);
-        Total := Total + Written;
+      try
+        for I := 0 to Height - 1 do
+        begin
+          RleCompressLine(@PByteArray(Bits)[I * WidthBytes], Width,
+            FmtInfo.BytesPerPixel, @PByteArray(Dest)[Total], Written);
+          Total := Total + Written;
+        end;
+        GetIO.Write(Handle, Dest, Total);
+      finally
+        FreeMem(Dest);
       end;
-      GetIO.Write(Handle, Dest, Total);
-      FreeMem(Dest);
     end;
   end;
 
 begin
-  Result := PrepareSave(Handle, Images, Index);
-  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
+  Result := False;
+  if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with GetIO, ImageToSave do
   try
     FmtInfo := GetFormatInfo(Format);
@@ -514,15 +523,18 @@ begin
     if FmtInfo.PaletteEntries > 0 then
     begin
       GetMem(Pal, FmtInfo.PaletteEntries * SizeOf(TColor24Rec));
-      for I := 0 to FmtInfo.PaletteEntries - 1 do
-        with Pal[I] do
-        begin
-          R := Palette[I].R;
-          G := Palette[I].G;
-          B := Palette[I].B;
-        end;
-      Write(Handle, Pal, FmtInfo.PaletteEntries * SizeOf(TColor24Rec));
-      FreeMem(Pal);
+      try
+        for I := 0 to FmtInfo.PaletteEntries - 1 do
+          with Pal[I] do
+          begin
+            R := Palette[I].R;
+            G := Palette[I].G;
+            B := Palette[I].B;
+          end;
+        Write(Handle, Pal, FmtInfo.PaletteEntries * SizeOf(TColor24Rec));
+      finally
+        FreeMemNil(Pal);
+      end;
     end;
 
     if FUseRLE then
@@ -531,6 +543,8 @@ begin
     else
       // Save uncompressed mode images
       Write(Handle, Bits, Size);
+
+    Result := True;
   finally
     if MustBeFreed then
       FreeImage(ImageToSave);
@@ -547,19 +561,19 @@ begin
   begin
     Info := GetFormatInfo(Comp.Format);
     if Info.HasGrayChannel then
-      // convert all grayscale images to Gray8
+      // Convert all grayscale images to Gray8
       ConvFormat := ifGray8
     else if Info.IsIndexed then
-      // convert all indexed images to Index8
+      // Convert all indexed images to Index8
       ConvFormat := ifIndex8
     else if Info.HasAlphaChannel then
-      // convert images with alpha channel to A8R8G8B8
+      // Convert images with alpha channel to A8R8G8B8
       ConvFormat := ifA8R8G8B8
     else if Info.UsePixelFormat then
-      // convert 16bit images (without alpha channel) to A1R5G5B5
+      // Convert 16bit images (without alpha channel) to A1R5G5B5
       ConvFormat := ifA1R5G5B5
     else
-      // convert all other formats to R8G8B8
+      // Convert all other formats to R8G8B8
       ConvFormat := ifR8G8B8;
 
       ConvertImage(Comp, ConvFormat);
@@ -595,9 +609,11 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - changed extensions to filename masks
-    - changed SaveData, LoadData, and MakeCompatible methods according
-      to changes in base class in Imaging unit
+    - Made public properties for options registered to SetOption/GetOption
+      functions.
+    - Changed extensions to filename masks.
+    - Changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit.
 
   -- 0.17 Changes/Bug Fixes -----------------------------------
     - 16 bit images are usually without alpha but some has alpha

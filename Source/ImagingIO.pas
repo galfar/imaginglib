@@ -52,6 +52,12 @@ var
   StreamIO: TIOFunctions;
   MemoryIO: TIOFunctions;
 
+{ Helper function that returns size of input represented by Handle (and opened
+  and operated on by members of IOFunctions)}
+function GetInputSize(IOFunctions: TIOFunctions; Handle: TImagingHandle): LongInt;
+{ Helper function that initializes TMemoryIORec with given params.}
+function PrepareMemIO(Data: Pointer; Size: LongInt): TMemoryIORec;
+
 implementation
 
 function FileOpenRead(FileName: PChar): TImagingHandle; cdecl;
@@ -204,6 +210,24 @@ begin
   Rec.Written := Rec.Written + Result;
 end;
 
+function GetInputSize(IOFunctions: TIOFunctions; Handle: TImagingHandle): LongInt;
+var
+  OldPos: LongInt;
+begin
+  OldPos := IOFunctions.Tell(Handle);
+  IOFunctions.Seek(Handle, 0, smFromEnd);
+  Result := IOFunctions.Tell(Handle);
+  IOFunctions.Seek(Handle, OldPos, smFromBeginning);
+end;
+
+function PrepareMemIO(Data: Pointer; Size: LongInt): TMemoryIORec;
+begin
+  Result.Data := Data;
+  Result.Position := 0;
+  Result.Size := Size;
+  Result.Written := 0;
+end;
+
 initialization
   OriginalFileIO.OpenRead := FileOpenRead;
   OriginalFileIO.OpenWrite := FileOpenWrite;
@@ -239,6 +263,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added GetInputSize and PrepareMemIO helper functions.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - changed behaviour of MemorySeek to act as TStream

@@ -69,17 +69,12 @@ type
   private
     FGrayScale: Boolean;
   protected
-    { Controls Jpeg save compression quality. It is number in range 1..100.
-      1 means small/ugly file, 100 means large/nice file. Accessible trough
-      ImagingJpegQuality option.}
     FQuality: LongInt;
-    { If True Jpeg images are saved in progressive format. Accessible trough
-      ImagingJpegProgressive option.}
     FProgressive: LongBool;
     procedure SetJpegIO(const JpegIO: TIOFunctions); virtual;
     function GetSupportedFormats: TImageFormats; override;
-    procedure LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
-      OnlyFirstLevel: Boolean); override;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
     function MakeCompatible(const Image: TImageData; var Comp: TImageData;
@@ -87,6 +82,13 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+    { Controls Jpeg save compression quality. It is number in range 1..100.
+      1 means small/ugly file, 100 means large/nice file. Accessible trough
+      ImagingJpegQuality option.}
+    property Quality: LongInt read FQuality write FQuality;
+    { If True Jpeg images are saved in progressive format. Accessible trough
+      ImagingJpegProgressive option.}
+    property Progressive: LongBool read FProgressive write FProgressive;
   end;
 
 const
@@ -356,13 +358,12 @@ begin
   Result := JpegSupportedFormats;
 end;
 
-procedure TJpegFileFormat.LoadData(Handle: TImagingHandle;
-  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean);
+function TJpegFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   PtrInc, LinesPerCall, LinesRead: LongInt;
   Dest: PByte;
   jc: TJpegContext;
-  Format: TImageFormat;
   Info: TImageFormatInfo;
 {$IFDEF RGBSWAPPED}
   I: LongInt;
@@ -372,22 +373,18 @@ begin
   // Copy IO functions to global var used in JpegLib callbacks
   SetJpegIO(GetIO);
   SetLength(Images, 1);
-  InitDecompressor(Handle, jc);
-  if (jc.d.out_color_space = JCS_GRAYSCALE) then
-    Format := ifGray8
-  else
-    Format := ifR8G8B8;
-  NewImage(jc.d.image_width, jc.d.image_height, Format, Images[0]);
-
   with JIO, Images[0] do
-  begin
+  try
+    InitDecompressor(Handle, jc);
+    NewImage(jc.d.image_width, jc.d.image_height,
+      IffFormat(jc.d.out_color_space = JCS_GRAYSCALE, ifGray8, ifR8G8B8), Images[0]);
     jpeg_start_decompress(@jc.d);
     GetImageFormatInfo(Format, Info);
     PtrInc := Width * Info.BytesPerPixel;
     LinesPerCall := 1;
     Dest := Bits;
 
-    while (jc.d.output_scanline < jc.d.output_height) do
+    while jc.d.output_scanline < jc.d.output_height do
     begin
       LinesRead := jpeg_read_scanlines(@jc.d, @Dest, LinesPerCall);
     {$IFDEF RGBSWAPPED}
@@ -397,7 +394,7 @@ begin
         for I := 0 to Width - 1 do
         begin
           SwapValues(Pix.R, Pix.B);
-          Inc(Pix, 1);
+          Inc(Pix);
         end;
       end;
     {$ENDIF}
@@ -406,6 +403,8 @@ begin
 
     jpeg_finish_output(@jc.d);
     jpeg_finish_decompress(@jc.d);
+    Result := True;
+  finally
     ReleaseContext(jc);
   end;
 end;
@@ -413,7 +412,7 @@ end;
 function TJpegFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
-  Len, PtrInc, LinesWritten: LongInt;
+  PtrInc, LinesWritten: LongInt;
   Src, Line: PByte;
   jc: TJpegContext;
   ImageToSave: TImageData;
@@ -424,15 +423,14 @@ var
   Pix: PColor24Rec;
 {$ENDIF}
 begin
+  Result := False;
   // Check if option values are valid
   if not (FQuality in [1..100]) then
     FQuality := JpegDefaultQuality;
   // Copy IO functions to global var used in JpegLib callbacks
   SetJpegIO(GetIO);
-
-  Result := PrepareSave(Handle, Images, Index);
   // Makes image to save compatible with Jpeg saving capabilities
-  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
+  if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with JIO, ImageToSave do
   try
     GetImageFormatInfo(Format, Info);
@@ -481,6 +479,7 @@ begin
     end;
 
     jpeg_finish_compress(@jc.c);
+    Result := True;
   finally
     ReleaseContext(jc);
     if MustBeFreed then
@@ -538,10 +537,12 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - changed extensions to filename masks
-    - changed SaveData, LoadData, and MakeCompatible methods according
-      to changes in base class in Imaging unit
-    - changes in TestFormat, now reads JFIF and EXIF signatures too
+    - Made public properties for options registered to SetOption/GetOption
+      functions.
+    - Changed extensions to filename masks.
+    - Changed SaveData, LoadData, and MakeCompatible methods according
+      to changes in base class in Imaging unit.
+    - Changes in TestFormat, now reads JFIF and EXIF signatures too.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - input position is now set correctly to the end of the image

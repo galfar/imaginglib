@@ -174,8 +174,6 @@
 			<Language Name="ActiveLang"></Language>
 			<Language Name="ProjectLang">$00000000</Language>
 			<Language Name="RootDir"></Language>
-		</Language>  <Excluded_Packages>
-      <Excluded_Packages Name="C:\DOCUME~1\Mark\DOKUME~1\BORLAN~1\Bpl\JclVersionControlExpert100.bpl">JCL Integration of version control systems in the IDE</Excluded_Packages>
-    </Excluded_Packages>
-  </Delphi.Personality>
+		</Language>
+	</Delphi.Personality>
 </BorlandProject>
