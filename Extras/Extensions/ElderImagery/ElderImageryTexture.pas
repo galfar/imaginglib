@@ -113,9 +113,6 @@ constructor TTextureFileFormat.Create;
 begin
   inherited Create;
   FCanSave := False;
-
-  Palette := FutureShockPalette;
-
   FName := STextureFormatName;
   AddMasks(STextureMasks);
 end;
