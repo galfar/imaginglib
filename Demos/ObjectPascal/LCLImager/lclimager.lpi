@@ -59,7 +59,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source\"/>
-      <OtherUnitFiles Value="..\..\..\Source\;..\..\..\Source\ZLib\;..\..\..\Source\JpegLib\;..\..\..\Extras\Extensions\;..\..\..\Extras\Extensions\Jpeg2000\;..\..\..\Extras\Extensions\ElderImagery\;..\Common\;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\"/>
+      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;..\..\..\Source\;..\..\..\Source\ZLib\;..\..\..\Source\JpegLib\;..\..\..\Extras\Extensions\;..\..\..\Extras\Extensions\Jpeg2000\;..\..\..\Extras\Extensions\ElderImagery\;..\Common\"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

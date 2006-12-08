@@ -34,7 +34,7 @@ unit ImagingBitmap;
 interface
 
 uses
-  classes, sysutils, ImagingTypes, Imaging, ImagingUtility, ImagingFormats, ImagingIO;
+  ImagingTypes, Imaging, ImagingUtility, ImagingFormats, ImagingIO;
 
 type
   { Class for loading and saving Windows Bitmap images.
@@ -44,13 +44,12 @@ type
   TBitmapFileFormat = class(TImageFileFormat)
   protected
     FUseRLE: LongBool;
-    function GetSupportedFormats: TImageFormats; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
-      out MustBeFreed: Boolean): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -133,16 +132,12 @@ begin
   FCanLoad := True;
   FCanSave := True;
   FIsMultiImageFormat := False;
+  FSupportedFormats := BitmapSupportedFormats;
 
   FUseRLE := BitmapDefaultRLE;
 
   AddMasks(SBitmapMasks);
   RegisterOption(ImagingBitmapRLE, @FUseRLE);
-end;
-
-function TBitmapFileFormat.GetSupportedFormats: TImageFormats;
-begin
-  Result := BitmapSupportedFormats;
 end;
 
 function TBitmapFileFormat.LoadData(Handle: TImagingHandle;
@@ -155,7 +150,7 @@ var
   LocalPF: TLocalPixelFormat;
   PalRGB: PPalette24;
   I, FPalSize, AlignedSize, StartPos, AlignedWidthBytes, WidthBytes: LongInt;
-  FmtInfo: PImageFormatInfo;
+  FmtInfo: TImageFormatInfo;
   Data: Pointer;
 
   procedure LoadRGB;
@@ -209,7 +204,8 @@ var
   procedure LoadRLE4;
   var
     RLESrc: PByteArray;
-    SrcPos, Row, Col, WriteRow, I: LongInt;
+    Row, Col, WriteRow, I: LongInt;
+    SrcPos: LongWord;
     DeltaX, DeltaY, Low, High: Byte;
     Pixels: PByteArray;
     OpCode: TRLEOpcode;
@@ -219,6 +215,7 @@ var
     GetIO.Read(Handle, RLESrc, BI.SizeImage);
     with Images[0] do
     try
+      Low := 0;
       Pixels := Bits;
       SrcPos := 0;
       NegHeightBitmap := BI.Height < 0;
@@ -304,7 +301,8 @@ var
   procedure LoadRLE8;
   var
     RLESrc: PByteArray;
-    SrcPos, SrcCount, Row, Col, WriteRow: LongInt;
+    SrcCount, Row, Col, WriteRow: LongInt;
+    SrcPos: LongWord;
     DeltaX, DeltaY: Byte;
     Pixels: PByteArray;
     OpCode: TRLEOpcode;
@@ -532,7 +530,7 @@ var
   Data: Pointer;
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
-  FmtInfo: PImageFormatInfo;
+  FmtInfo: TImageFormatInfo;
   ImageToSave: TImageData;
   LocalPF: TLocalPixelFormat;
   MustBeFreed: Boolean;
@@ -734,31 +732,25 @@ begin
   end;
 end;
 
-function TBitmapFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
+procedure TBitmapFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
 var
-  Info: PImageFormatInfo;
   ConvFormat: TImageFormat;
 begin
-  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
-  begin
-    Info := GetFormatInfo(Comp.Format);
-    if Info.HasGrayChannel or Info.IsIndexed then
-      // Convert all grayscale and indexed images to Index8
-      ConvFormat := ifIndex8
-    else if Info.HasAlphaChannel or Info.IsFloatingPoint then
-      // Convert images with alpha channel or float to A8R8G8B8
-      ConvFormat := ifA8R8G8B8
-    else if Info.UsePixelFormat then
-      // Convert 16bit RGB images to A1R5G5B5
-      ConvFormat := ifA1R5G5B5
-    else
-      // Convert all other formats to R8G8B8
-      ConvFormat := ifR8G8B8;
+  if Info.HasGrayChannel or Info.IsIndexed then
+    // Convert all grayscale and indexed images to Index8
+    ConvFormat := ifIndex8
+  else if Info.HasAlphaChannel or Info.IsFloatingPoint then
+    // Convert images with alpha channel or float to A8R8G8B8
+    ConvFormat := ifA8R8G8B8
+  else if Info.UsePixelFormat then
+    // Convert 16bit RGB images to A1R5G5B5
+    ConvFormat := ifA1R5G5B5
+  else
+    // Convert all other formats to R8G8B8
+    ConvFormat := ifR8G8B8;
 
-    ConvertImage(Comp, ConvFormat);
-  end;
-  Result := Comp.Format in GetSupportedFormats;
+  ConvertImage(Image, ConvFormat);
 end;
 
 function TBitmapFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
@@ -768,12 +760,12 @@ var
 begin
   Result := False;
   if Handle <> nil then
-    with GetIO do
-    begin
-      ReadCount := Read(Handle, @Hdr, SizeOf(Hdr));
-      Seek(Handle, -ReadCount, smFromCurrent);
-      Result := (Hdr.ID = BMMagic) and (ReadCount = SizeOf(Hdr));
-    end;
+  with GetIO do
+  begin
+    ReadCount := Read(Handle, @Hdr, SizeOf(Hdr));
+    Seek(Handle, -ReadCount, smFromCurrent);
+    Result := (Hdr.ID = BMMagic) and (ReadCount = SizeOf(Hdr));
+  end;
 end;
 
 initialization
@@ -786,6 +778,8 @@ initialization
     - rewrite SaveRLE8
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - MakeCompatible method moved to base class, put ConvertToSupported here.
+      GetSupportedFormats removed, it is now set in constructor.
     - Rewritten LoadRLE4 and LoadRLE8 nested procedures.
       Should be less buggy an more readable (load inspired by Colosseum Builders' code).
     - Made public properties for options registered to SetOption/GetOption

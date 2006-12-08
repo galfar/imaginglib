@@ -99,7 +99,7 @@ function TIMGFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Hdr: TImgHeader;
-  PalUsed: TElderPalette;
+  PalUsed: TPalette24Size256;
   Data: Pointer;
   IsRLE: Boolean;
   InputSize, I: LongInt;

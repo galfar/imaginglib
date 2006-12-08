@@ -60,49 +60,274 @@ function PrepareMemIO(Data: Pointer; Size: LongInt): TMemoryIORec;
 
 implementation
 
+const
+  ReadBufferSize  = 16 * 1024;
+  WriteBufferSize = 16 * 1024;
+
+type
+  TBufferedFile = class(TObject)
+  protected
+    FStream: TFileStream;
+    FBuffer: PByteArray;
+    FBufSize: LongInt;
+    FBufPos: LongInt;
+    FBufEnd: LongInt;
+    function GetSize: LongInt;
+    function GetPosition: LongInt; virtual; abstract;
+    procedure SetPosition(Value: LongInt); virtual; abstract;
+    procedure FlushBuffer; virtual; abstract;
+  public
+    constructor Create(const AFileName: string; Mode: Word; ABufferSize: LongInt);
+    destructor Destroy; override;
+    property Position: LongInt read GetPosition write SetPosition;
+    property Size: LongInt read GetSize;
+  end;
+
+  { Simple file reader with buffering. Small reads are buffered
+    (size < ABufferSize) and large ones are read whole at once.}
+  TBufferedReadFile = class(TBufferedFile)
+  protected
+    function GetPosition: LongInt; override;
+    procedure SetPosition(Value: LongInt); override;
+    procedure FlushBuffer; override;
+  public
+    constructor Create(const AFileName: string; ABufferSize: LongInt);
+    destructor Destroy; override;
+    function Read(var DestBuffer; Count: LongInt): LongInt;
+  end;
+
+  { Simple file writer with buffering. Small writes are buffered
+    (size < ABufferSize) and large ones are written whole at once.}
+  TBufferedWriteFile = class(TBufferedFile)
+  protected
+    function GetPosition: LongInt; override;
+    procedure SetPosition(Value: LongInt); override;
+    procedure FlushBuffer; override;
+  public
+    constructor Create(const AFileName: string; ABufferSize: LongInt);
+    destructor Destroy; override;
+    function Write(var SrcBuffer; Count: LongInt): LongInt;
+  end;
+
+{ TBufferedFile }
+
+constructor TBufferedFile.Create(const AFileName: string; Mode: Word;
+  ABufferSize: LongInt);
+begin
+  FStream := TFileStream.Create(AFileName, Mode);
+  FBufSize := ABufferSize;
+  GetMem(FBuffer, FBufSize);
+end;
+
+destructor TBufferedFile.Destroy;
+begin
+  FreeMem(FBuffer);
+  FStream.Free;
+  inherited Destroy;
+end;
+
+function TBufferedFile.GetSize: LongInt;
+begin
+  Result := FStream.Size;
+end;
+
+{ TBufferedReadFile }
+
+constructor TBufferedReadFile.Create(const AFileName: string;
+  ABufferSize: LongInt);
+begin
+  inherited Create(AFileName, fmOpenRead or fmShareDenyWrite, ABufferSize);
+end;
+
+destructor TBufferedReadFile.Destroy;
+begin
+  // Set stream position to real position it would have without buffering
+  SetPosition(Position);
+  inherited Destroy;
+end;
+
+function TBufferedReadFile.Read(var DestBuffer; Count: LongInt): LongInt;
+var
+  CopyNow: LongInt;
+  Dest: PByte;
+begin
+  if Count >= FBufSize then
+  begin
+    // Large data chunks are read directly from file, SetPosition is called
+    // to invalidate current buffer
+    SetPosition(Position);
+    Result := FStream.Read(DestBuffer, Count);
+  end
+  else
+  begin
+    Dest := @DestBuffer;
+    Result := 0;
+    while Count > 0 do
+    begin
+      if FBufPos >= FBufEnd then
+      begin
+        // Current buffer position is >= buffer's current size so
+        // new data is read to buffer
+        FlushBuffer;
+        if FBufEnd = 0 then
+          // This happens if no new data was read to buffer - stream reached
+          // end of file
+          Exit;
+      end;
+      // Get exact number of bytes to copy
+      CopyNow := FBufEnd - FBufPos;
+      if CopyNow > Count then
+        CopyNow := Count;
+      // Copy data from buffer to dest and update counts
+      Move(FBuffer[FBufPos], Dest^, CopyNow);
+      Inc(FBufPos, CopyNow);
+      Inc(Dest, CopyNow);
+      Inc(Result, CopyNow);
+      Dec(Count, CopyNow);
+    end;
+  end;
+end;
+
+function TBufferedReadFile.GetPosition: LongInt;
+begin
+  Result := FStream.Position - (FBufEnd - FBufPos);
+end;
+
+procedure TBufferedReadFile.SetPosition(Value: LongInt);
+begin
+  // Set stream position and invalidate buffer
+  FStream.Position := Value;
+  FBufPos := 0;
+  FBufEnd := 0;
+end;
+
+procedure TBufferedReadFile.FlushBuffer;
+begin
+  FBufEnd := FStream.Read(FBuffer^, FBufSize);
+  FBufPos := 0;
+end;
+
+{ TBufferedWriteFile }
+
+constructor TBufferedWriteFile.Create(const AFileName: string;
+  ABufferSize: LongInt);
+begin
+  inherited Create(AFileName, fmCreate or fmShareExclusive, ABufferSize);
+end;
+
+destructor TBufferedWriteFile.Destroy;
+begin
+  // Buffer must be flushed before closing then file
+  FlushBuffer;
+  inherited Destroy;
+end;
+
+function TBufferedWriteFile.Write(var SrcBuffer; Count: LongInt): LongInt;
+var
+  CopyNow: LongInt;
+  Src: PByte;
+begin
+  if Count >= FBufSize then
+  begin
+    // Large data chunks are written directly to file, current buffer is flushed first
+    FlushBuffer;
+    Result := FStream.Write(SrcBuffer, Count);
+  end
+  else
+  begin
+    Src := @SrcBuffer;
+    Result := 0;
+    while Count > 0 do
+    begin
+      // Get exact number of bytes to copy
+      CopyNow := Count;
+      if CopyNow > FBufSize - FBufPos then
+        CopyNow := FBufSize - FBufPos;
+      // Copy bytes from source to buffer   
+      Move(Src^, FBuffer[FBufPos], CopyNow);
+      Inc(FBufPos, CopyNow);
+      Inc(Src, CopyNow);
+      Inc(Result, CopyNow);
+      Dec(Count, CopyNow);
+      // Flush buffer if it is full
+      if FBufPos = FBufSize then
+        FlushBuffer;
+    end;
+  end;
+end;
+
+function TBufferedWriteFile.GetPosition: LongInt;
+begin
+  Result := FStream.Position + FBufPos;
+end;
+
+procedure TBufferedWriteFile.SetPosition(Value: LongInt);
+begin
+  FlushBuffer;
+  FStream.Position := Value;
+end;
+
+procedure TBufferedWriteFile.FlushBuffer;
+begin
+  if FBufPos > 0 then
+  begin
+    FStream.WriteBuffer(FBuffer^, FBufPos);
+    FBufPos := 0;
+  end;
+end;
+
+{ File IO functions }
+
 function FileOpenRead(FileName: PChar): TImagingHandle; cdecl;
 begin
-  Result := TFileStream.Create(FileName, fmOpenRead);
+  Result := TBufferedReadFile.Create(FileName, ReadBufferSize);
 end;
 
 function FileOpenWrite(FileName: PChar): TImagingHandle; cdecl;
 begin
-  Result := TFileStream.Create(FileName, fmCreate);
+  Result := TBufferedWriteFile.Create(FileName, ReadBufferSize);
 end;
 
 procedure FileClose(Handle: TImagingHandle); cdecl;
 begin
-  TFileStream(Handle).Free;
+  TObject(Handle).Free;
 end;
 
 function FileEof(Handle: TImagingHandle): Boolean; cdecl;
 begin
-  Result := TFileStream(Handle).Position = TFileStream(Handle).Size;
+  Result := TBufferedFile(Handle).Position = TBufferedFile(Handle).Size;
 end;
 
 function FileSeek(Handle: TImagingHandle; Offset: LongInt; Mode: TSeekMode):
   LongInt; cdecl;
 begin
-  Result := TFileStream(Handle).Seek(Offset, LongInt(Mode));
+  Result := TBufferedFile(Handle).Position;
+  case Mode of
+    smFromBeginning: Result := Offset;
+    smFromCurrent:   Result := TBufferedFile(Handle).Position + Offset;
+    smFromEnd:       Result := TBufferedFile(Handle).Size + Offset;
+  end;
+  TBufferedFile(Handle).Position := Result;
 end;
 
 function FileTell(Handle: TImagingHandle): LongInt; cdecl;
 begin
-  Result := TFileStream(Handle).Position;
+  Result := TBufferedFile(Handle).Position;
 end;
 
 function FileRead(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt):
   LongInt; cdecl;
 begin
-  Result := TFileStream(Handle).Read(Buffer^, Count);
+  Result := TBufferedReadFile(Handle).Read(Buffer^, Count);
 end;
 
 function FileWrite(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt):
   LongInt; cdecl;
 begin
-  Result := TFileStream(Handle).Write(Buffer^, Count);
+  Result := TBufferedWriteFile(Handle).Write(Buffer^, Count);
 end;
 
+{ Stream IO functions }
 
 function StreamOpenRead(FileName: PChar): TImagingHandle; cdecl;
 begin
@@ -146,6 +371,8 @@ begin
   Result := TStream(Handle).Write(Buffer^, Count);
 end;
 
+{ Memory IO functions }
+
 function MemoryOpenRead(FileName: PChar): TImagingHandle; cdecl;
 begin
   Result := FileName;
@@ -168,11 +395,11 @@ end;
 function MemorySeek(Handle: TImagingHandle; Offset: LongInt; Mode: TSeekMode):
   LongInt; cdecl;
 begin
-  Result := 0;
+  Result := PMemoryIORec(Handle).Position;
   case Mode of
     smFromBeginning: Result := Offset;
-    smFromCurrent: Result := PMemoryIORec(Handle).Position + Offset;
-    smFromEnd: Result := PMemoryIORec(Handle).Size + Offset;
+    smFromCurrent:   Result := PMemoryIORec(Handle).Position + Offset;
+    smFromEnd:       Result := PMemoryIORec(Handle).Size + Offset;
   end;
   Result := ClampInt(Result, 0, PMemoryIORec(Handle).Size);
   PMemoryIORec(Handle).Position := Result;
@@ -209,6 +436,8 @@ begin
   Rec.Position := Rec.Position + Result;
   Rec.Written := Rec.Written + Result;
 end;
+
+{ Helper IO functions }
 
 function GetInputSize(IOFunctions: TIOFunctions; Handle: TImagingHandle): LongInt;
 var
@@ -265,6 +494,12 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added TBufferedReadFile and TBufferedWriteFile classes for
+      buffered file reading/writting. File IO functions now use these
+      classes resulting in performance increase mainly in file formats
+      that read/write many small chunks. 
+    - Added fmShareDenyWrite to FileOpenRead. You can now read
+      files opened for reading by Imaging from other apps.
     - Added GetInputSize and PrepareMemIO helper functions.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------

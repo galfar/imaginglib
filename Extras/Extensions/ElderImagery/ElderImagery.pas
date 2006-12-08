@@ -40,14 +40,11 @@ unit ElderImagery;
 interface
 
 uses
-  ImagingTypes, Imaging;
+  SysUtils, ImagingTypes, Imaging;
 
 type
-  { Palette format used by 8bit Bethesda images (its BGR not RGB used by Imaging).}
-  TElderPalette = array[0..255] of TColor24Rec;
-
   TElderFileFormat = class;
-  TDaggerfallFileFormatClass = class of TElderFileFormat;
+  TElderFileFormatClass = class of TElderFileFormat;
 
   { Used to hold information about some special images without headers.}
   TNoHeaderFileInfo = record
@@ -59,17 +56,17 @@ type
   { Basic class for image formats used mainly in TES2: Daggerfall.}
   TElderFileFormat = class(TImageFileFormat)
   protected
-    FPalette: TElderPalette;
+    FPalette: TPalette24Size256;
     FARGBPalette: PPalette32;
     { Decodes RLE compressed data.}
     procedure DagRLEDecode(InData: Pointer; OutSize: LongInt; out OutData: Pointer);
     function FindNoHeaderInfo(Size: LongInt; Infos: array of TNoHeaderFileInfo): LongInt;
-    function TestNoHeaderFormat(Handle: TImagingHandle): TDaggerfallFileFormatClass;
-    procedure ConvertPalette(const ElderPal: TElderPalette; ARGBPal: PPalette32);
-    procedure SetPalette(const Value: TElderPalette);
-    function GetSupportedFormats: TImageFormats; override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
-      out MustBeFreed: Boolean): Boolean; override;
+    function TestNoHeaderFormat(Handle: TImagingHandle): TElderFileFormatClass;
+    procedure ConvertPalette(const ElderPal: TPalette24Size256; ARGBPal: PPalette32);
+    procedure SetPalette(const Value: TPalette24Size256);
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
+    function IsSupported(const Image: TImageData): Boolean; override;
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -77,7 +74,7 @@ type
     { Current palette used when loading and saving images. Nearly all images
       in Daggerfall use external palettes. Change this property if you want
       images that don't use default palette to load correctly.}
-    property Palette: TElderPalette read FPalette write SetPalette;
+    property Palette: TPalette24Size256 read FPalette write SetPalette;
   end;
 
   { Header of IMG and CIF files.}
@@ -93,7 +90,7 @@ type
 const
   { This is default Daggerfall's palette (C:\Dagger\Arena2\pal.pal).
     Every TElderFileFormat descendant loads this pal in constructor.}
-  DaggerfallPalette: TElderPalette = (
+  DaggerfallPalette: TPalette24Size256 = (
     (B:   0; G:   0; R:   0), (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255),
     (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255),
     (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255),
@@ -183,7 +180,7 @@ const
 
   { This is default Redguard's palette (Redguard\fxart\Redguard.col).
     It is default palette for BSI image file format.}
-  RedguardPalette: TElderPalette = (
+  RedguardPalette: TPalette24Size256 = (
     (B:   0; G:   0; R:   0), (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255), 
     (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255), 
     (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255), (B: 255; G:   0; R: 255), 
@@ -272,7 +269,7 @@ const
     (B:  12; G:  15; R:  19));
 
   { This is default Arena's palette (Arena\pal.col).}
-  ArenaPalette: TElderPalette = (
+  ArenaPalette: TPalette24Size256 = (
     (B:   0; G:   0; R:   0), (B:   0; G:   0; R: 170), (B:   0; G: 170; R:   0),
     (B:   0; G: 170; R: 170), (B: 170; G:   0; R:   0), (B: 170; G:   0; R: 170),
     (B: 170; G:  85; R:   0), (B: 170; G: 170; R: 170), (B:  85; G:  85; R:  85),
@@ -361,7 +358,7 @@ const
     (B:  52; G:  52; R:  52));
 
   { This is default Terminator Future Shock's palette (Shock\Gamedata\Shock.col).}
-  FutureShockPalette: TElderPalette = (
+  FutureShockPalette: TPalette24Size256 = (
     (B:   0; G:   0; R:   0), (B: 255; G: 255; R: 255), (B: 255; G: 255; R: 211), 
     (B: 255; G: 255; R: 177), (B: 255; G: 255; R: 127), (B: 255; G: 255; R:  97), 
     (B: 255; G: 210; R:  67), (B: 255; G: 166; R:  55), (B: 255; G:   0; R:   0), 
@@ -467,6 +464,7 @@ begin
   FCanLoad := True;
   FCanSave := True;
   FIsMultiImageFormat := True;
+  FSupportedFormats := [];
 
   GetMem(FARGBPalette, Length(FPalette) * SizeOf(TColor32Rec));
   SetPalette(DaggerfallPalette);
@@ -527,7 +525,7 @@ begin
   Result := -1;
 end;
 
-function TElderFileFormat.TestNoHeaderFormat(Handle: TImagingHandle): TDaggerfallFileFormatClass;
+function TElderFileFormat.TestNoHeaderFormat(Handle: TImagingHandle): TElderFileFormatClass;
 var
   InputSize, I: LongInt;
 begin
@@ -552,7 +550,7 @@ begin
   end;
 end;
 
-procedure TElderFileFormat.ConvertPalette(const ElderPal: TElderPalette;
+procedure TElderFileFormat.ConvertPalette(const ElderPal: TPalette24Size256;
   ARGBPal: PPalette32);
 var
   I: LongInt;
@@ -568,30 +566,30 @@ begin
   ARGBPal[0].A := 0;
 end;
 
-procedure TElderFileFormat.SetPalette(const Value: TElderPalette);
+procedure TElderFileFormat.SetPalette(const Value: TPalette24Size256);
 begin
   FPalette := Value;
   ConvertPalette(FPalette, FARGBPalette);
 end;
 
-function TElderFileFormat.GetSupportedFormats: TImageFormats;
+procedure TElderFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
 begin
-  Result := [];
+  // Map image to current palette
+  MapImageToPalette(Image, FARGBPalette, Length(FPalette));
 end;
 
-function TElderFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
+function TElderFileFormat.IsSupported(const Image: TImageData): Boolean;
 begin
-  inherited MakeCompatible(Image, Comp, MustBeFreed);
-  MapImageToPalette(Comp, FARGBPalette, Length(FPalette));
-  MustBeFreed := True;
-  Result := True;
+  // Image is supported for saving if its indexed and is mapped to current palette
+  Result := (Image.Format = ifIndex8) and
+    CompareMem(Image.Palette, FARGBPalette, Length(FPalette) * SizeOf(TColor32Rec));
 end;
 
 function TElderFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
 var
   Hdr: TImgHeader;
-  DagClass: TDaggerfallFileFormatClass;
+  DagClass: TElderFileFormatClass;
   ReadCount: LongInt;
 begin
   // TestFormat for both IMG and CIF formats
@@ -624,9 +622,11 @@ initialization
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - replace TElderPalette by pal256 from ImagingTypes
+    - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - MakeCompatible method moved to base class, put ConvertToSupported here.
+      GetSupportedFormats removed, it is now set in constructor.
     - Added default palettes for more games.
     - Added transparency to Daggerfall palettes.
     - Initial version created based on my older code.

@@ -43,13 +43,12 @@ type
   TTargaFileFormat = class(TImageFileFormat)
   protected
     FUseRLE: LongBool;
-    function GetSupportedFormats: TImageFormats; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
-      out MustBeFreed: Boolean): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -106,16 +105,12 @@ begin
   FCanLoad := True;
   FCanSave := True;
   FIsMultiImageFormat := False;
+  FSupportedFormats := TargaSupportedFormats;
 
   FUseRLE := TargaDefaultRLE;
 
   AddMasks(STargaMasks);
   RegisterOption(ImagingTargaRLE, @FUseRLE);
-end;
-
-function TTargaFileFormat.GetSupportedFormats: TImageFormats;
-begin
-  Result := TargaSupportedFormats;
 end;
 
 function TTargaFileFormat.LoadData(Handle: TImagingHandle;
@@ -126,7 +121,7 @@ var
   FooterFound, ExtFound: Boolean;
   I, PSize, PalSize: LongWord;
   Pal: Pointer;
-  FmtInfo: PImageFormatInfo;
+  FmtInfo: TImageFormatInfo;
   WordValue: Word;
 
   procedure LoadRLE;
@@ -332,7 +327,7 @@ function TTargaFileFormat.SaveData(Handle: TImagingHandle;
 var
   I: LongInt;
   Hdr: TTargaHeader;
-  FmtInfo: PImageFormatInfo;
+  FmtInfo: TImageFormatInfo;
   Pal: PPalette24;
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
@@ -551,34 +546,28 @@ begin
   end;
 end;
 
-function TTargaFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
+procedure TTargaFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
 var
-  Info: PImageFormatInfo;
   ConvFormat: TImageFormat;
 begin
-  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
-  begin
-    Info := GetFormatInfo(Comp.Format);
-    if Info.HasGrayChannel then
-      // Convert all grayscale images to Gray8
-      ConvFormat := ifGray8
-    else if Info.IsIndexed then
-      // Convert all indexed images to Index8
-      ConvFormat := ifIndex8
-    else if Info.HasAlphaChannel then
-      // Convert images with alpha channel to A8R8G8B8
-      ConvFormat := ifA8R8G8B8
-    else if Info.UsePixelFormat then
-      // Convert 16bit images (without alpha channel) to A1R5G5B5
-      ConvFormat := ifA1R5G5B5
-    else
-      // Convert all other formats to R8G8B8
-      ConvFormat := ifR8G8B8;
+  if Info.HasGrayChannel then
+    // Convert all grayscale images to Gray8
+    ConvFormat := ifGray8
+  else if Info.IsIndexed then
+    // Convert all indexed images to Index8
+    ConvFormat := ifIndex8
+  else if Info.HasAlphaChannel then
+    // Convert images with alpha channel to A8R8G8B8
+    ConvFormat := ifA8R8G8B8
+  else if Info.UsePixelFormat then
+    // Convert 16bit images (without alpha channel) to A1R5G5B5
+    ConvFormat := ifA1R5G5B5
+  else
+    // Convert all other formats to R8G8B8
+    ConvFormat := ifR8G8B8;
 
-      ConvertImage(Comp, ConvFormat);
-  end;
-  Result := Comp.Format in GetSupportedFormats;
+  ConvertImage(Image, ConvFormat);
 end;
 
 function TTargaFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
@@ -609,6 +598,8 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - MakeCompatible method moved to base class, put ConvertToSupported here.
+      GetSupportedFormats removed, it is now set in constructor.
     - Made public properties for options registered to SetOption/GetOption
       functions.
     - Changed extensions to filename masks.

@@ -332,6 +332,8 @@ type
     implementations that are already part of Imaging.}
   TImageFileFormat = class(TObject)
   private
+    FExtensions: TStringList;
+    FMasks: TStringList;
     { Does various checks and actions before LoadData method is called.}
     function PrepareLoad(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstFrame: Boolean): Boolean;
@@ -346,13 +348,12 @@ type
     FCanLoad: Boolean;
     FCanSave: Boolean;
     FIsMultiImageFormat: Boolean;
-    FExtensions: TStringList;
-    FMasks: TStringList;
+    FSupportedFormats: TImageFormats;
     FFirstIdx, FLastIdx: LongInt;
     { Defines filename masks for this image file format. AMasks should be
       in format '*.ext1,*.ext2,umajo.*'.}
     procedure AddMasks(const AMasks: string);
-    function GetFormatInfo(Format: TImageFormat): PImageFormatInfo;
+    function GetFormatInfo(Format: TImageFormat): TImageFormatInfo;
     { Returns set of TImageData formats that can be saved in this file format
       without need for conversion.}
     function GetSupportedFormats: TImageFormats; virtual;
@@ -370,13 +371,17 @@ type
       to get all images that are to be saved.}
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; virtual;
-    { Creates clone of image compatible with format's saving function.
-      It can convert image to another format, swap channels of image, ...
-      Note that if input Image is already compatible it is returned in Comp,
-      so before freeing Comp you must test if it is not original Image.
-      Returns True if Comp is returned in compatible format.}
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
-      out MustBeFreed: Boolean): Boolean; virtual;
+    { This method is called internaly by MakeCompatible when input image
+      is in format not supported by this file format. Image is clone of
+      MakeCompatible's input and Info is its extended format info.}
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); virtual;
+    { Returns True if given image is supported for saving by this file format.
+      Most file formats don't need to override this method. It checks
+      (in this base class) if Image's format is in SupportedFromats set.
+      But you may override it if you want further checks
+      (proper widht and height for example).}
+    function IsSupported(const Image: TImageData): Boolean; virtual;
   public
     constructor Create; virtual;
     destructor Destroy; override;
@@ -410,6 +415,17 @@ type
     function SaveToMemory(Data: Pointer; var Size: LongInt;
       const Images: TDynImageDataArray; OnlyFirstLevel: Boolean = False): Boolean;
 
+    { Makes Image compatible with this file format (that means it is in one
+      of data formats in Supported formats set). If input is already
+      in supported format then Compatible just use value from input
+      (Compatible := Image) so must not free it after you are done with it
+      (image bits pointer points to input image's bits).
+      If input is not in supported format then it is cloned to Compatible
+      and concerted to one of supported formats (which one dependeds on
+      this file format). If image is cloned MustBeFreed is set to True
+      to indicated that you must free Compatible after you are done with it.}
+    function MakeCompatible(const Image: TImageData; var Compatible: TImageData;
+      out MustBeFreed: Boolean): Boolean;   
     { Returns True if data located in source identified by Handle
       represent valid image in current format.}
     function TestFormat(Handle: TImagingHandle): Boolean; virtual;
@@ -435,7 +451,8 @@ type
       '*.bmp' or 'texture.*' (supports file formats which use filename instead
       of extension to identify image files).}
     property Masks: TStringList read FMasks;
-    { Set of TImageFormats supported by saving/loading functions of this format.}
+    { Set of TImageFormats supported by saving functions of this format. Images
+      can be saved only in one those formats.}
     property SupportedFormats: TImageFormats read GetSupportedFormats;
   end;
 
@@ -1109,6 +1126,7 @@ begin
       (DstInfo.RBSwapFormat = SrcInfo.Format) then
     begin
       Result := SwapChannels(Image, ChannelRed, ChannelBlue);
+      Image.Format := SrcInfo.RBSwapFormat;
       Exit;
     end;
 
@@ -2657,14 +2675,14 @@ begin
   end;
 end;
 
-function TImageFileFormat.GetFormatInfo(Format: TImageFormat): PImageFormatInfo;
+function TImageFileFormat.GetFormatInfo(Format: TImageFormat): TImageFormatInfo;
 begin
-  Result := ImageFormatInfos[Format];
+  Result := ImageFormatInfos[Format]^;
 end;
 
 function TImageFileFormat.GetSupportedFormats: TImageFormats;
 begin
-  Result := [];
+  Result := FSupportedFormats;
 end;
 
 function TImageFileFormat.LoadData(Handle: TImagingHandle;
@@ -2681,30 +2699,14 @@ begin
   RaiseImaging(SFileFormatCanNotSave, [FName]);
 end;
 
-function TImageFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
+procedure TImageFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
 begin
-  InitImage(Comp);
-  MustBeFreed := True;
+end;
 
-  if (SaveOverrideFormat in GetSupportedFormats) and
-    (SaveOverrideFormat <> Image.Format) then
-  begin
-    CloneImage(Image, Comp);
-    ConvertImage(Comp, SaveOverrideFormat);
-    Result := True;
-  end
-  else if Image.Format in GetSupportedFormats then
-  begin
-    Comp := Image;
-    Result := True;
-    MustBeFreed := False;
-  end
-  else
-  begin
-    CloneImage(Image, Comp);
-    Result := False;
-  end;
+function TImageFileFormat.IsSupported(const Image: TImageData): Boolean;
+begin
+  Result := Image.Format in GetSupportedFormats;
 end;
 
 function TImageFileFormat.LoadFromFile(const FileName: string;
@@ -2958,6 +2960,45 @@ begin
   end;
 end;
 
+function TImageFileFormat.MakeCompatible(const Image: TImageData;
+  var Compatible: TImageData; out MustBeFreed: Boolean): Boolean;
+begin
+  InitImage(Compatible);
+
+  if SaveOverrideFormat <> ifUnknown then
+  begin
+    // Save format override is active. Clone input and convert it to override format.
+    CloneImage(Image, Compatible);
+    ConvertImage(Compatible, SaveOverrideFormat);
+    // Now check if override format is supported by file format. If it is not
+    // then file format specific conversion (virtual method) is called.
+    Result := IsSupported(Compatible);
+    if not Result then
+    begin
+      ConvertToSupported(Compatible, GetFormatInfo(Compatible.Format));
+      Result := IsSupported(Compatible);
+    end;
+  end     // Add IsCompatible function! not only checking by Format
+  else if IsSupported(Image) then
+  begin
+    // No save format override and input is in format supported by this
+    // file format. Just copy Image's fields to Compatible
+    Compatible := Image;
+    Result := True;
+  end
+  else
+  begin
+    // No override and input's format is not compatible with file format.
+    // Clone it and the call file format specific conversion (virtual method).
+    CloneImage(Image, Compatible);
+    ConvertToSupported(Compatible, GetFormatInfo(Compatible.Format));
+    Result := IsSupported(Compatible);
+  end;
+  // Tell the user that he must free Compatible after he's done with it
+  // (if necessary).
+  MustBeFreed := Image.Bits <> Compatible.Bits;
+end;
+
 function TImageFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
 begin
   Result := False;
@@ -3064,8 +3105,22 @@ finalization
       (LoadImageFromFile on MNG/DDS)
     - put changing format according to ImagingOverrideFormat to PostLoadCheck
       to avoid duplicity
+    - handle SupportedFormats in TImageFileFormat like in Portable maps
+    - make simpler MakeCompatible (make it public), avoid code duplicity as it is now
+      just override new format selection part - ConvertToCompatible
+    - create giga test of MakeCompatible - for all file fromats try
+      to send all possible data formats to MakeCompatible and observe the results  
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Bug in ConvertImage: if some format was converted to similar format
+      only with swapped channels (R16G16B16<>B16G16R16) then channels were
+      swapped correctly but new data format (swapped one) was not set.
+    - Made TImageFileFormat.MakeCompatible public non-virtual method
+      (and modified its function). Created new virtual
+      ConvertToSupported which should be overriden by descendants.
+      Main reason for doint this is to avoid duplicate code that was in all
+      TImageFileFormat's descendants.
+    - Changed TImageFileFormat.GetFormatInfo's result type to TImageFormatInfo.
     - Split overloaded FindImageFileFormat functions to
       FindImageFileFormatByClass and FindImageFileFormatByExt and created new
       FindImageFileFormatByName which operates on whole filenames.

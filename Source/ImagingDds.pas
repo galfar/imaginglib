@@ -56,13 +56,12 @@ type
     FSaveVolume: LongBool;
     FSaveMipMapCount: LongInt;
     FSaveDepth: LongInt;
-    function GetSupportedFormats: TImageFormats; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
-      out MustBeFreed: Boolean): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -198,8 +197,10 @@ begin
   FCanLoad := True;
   FCanSave := True;
   FIsMultiImageFormat := True;
+  FSupportedFormats := DDSSupportedFormats;
+
   FSaveCubeMap := False;
-  FSaveVolume := False ;
+  FSaveVolume := False;
   FSaveMipMapCount := 1;
   FSaveDepth := 1;
 
@@ -214,17 +215,12 @@ begin
   RegisterOption(ImagingDDSSaveDepth, @FSaveDepth);
 end;
 
-function TDDSFileFormat.GetSupportedFormats: TImageFormats;
-begin
-  Result := DDSSupportedFormats;
-end;
-
 function TDDSFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Hdr: TDDSFileHeader;
   SrcFormat: TImageFormat;
-  FmtInfo: PImageFormatInfo;
+  FmtInfo: TImageFormatInfo;
   NeedsSwapChannels, HasMipMaps: Boolean;
   CurWidth, CurHeight, ImageCount, LoadSize, I, PitchOrLinear: LongInt;
   Data: PByte;
@@ -519,7 +515,7 @@ var
   MainImage, ImageToSave: TImageData;
   I, MainIdx, Len, ImageCount: LongInt;
   J: LongWord;
-  FmtInfo: PImageFormatInfo;
+  FmtInfo: TImageFormatInfo;
   MustBeFreed: Boolean;
 begin
   Result := False;
@@ -672,51 +668,45 @@ begin
   end;
 end;
 
-function TDDSFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
+procedure TDDSFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
 var
-  Info: PImageFormatInfo;
   ConvFormat: TImageFormat;
 begin
-  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
+  if Info.IsIndexed or Info.IsSpecial then
+    // convert indexed and unsupported special formatd to A8R8G8B8
+    ConvFormat := ifA8R8G8B8
+  else if Info.IsFloatingPoint then
   begin
-    Info := GetFormatInfo(Comp.Format);
-    if Info.IsIndexed or Info.IsSpecial then
-      // convert indexed and unsupported special formatd to A8R8G8B8
-      ConvFormat := ifA8R8G8B8
-    else if Info.IsFloatingPoint then
-    begin
-      if Info.Format = ifA16R16G16B16F then
-        // only swap channels here
-        ConvFormat := ifA16B16G16R16F
-      else
-        // convert other floating point formats to A32B32G32R32F
-        ConvFormat := ifA32B32G32R32F
-    end
-    else if Info.HasGrayChannel then
-    begin
-      if Info.HasAlphaChannel then
-        // convert grayscale with alpha to A8Gray8
-        ConvFormat := ifA8Gray8
-      else if Info.BytesPerPixel = 1 then
-        // convert 8bit grayscale to Gray8
-        ConvFormat := ifGray8
-      else
-        // convert 16-64bit grayscales to Gray16
-        ConvFormat := ifGray16;
-    end
-    else if Info.BytesPerPixel > 4 then
-      ConvFormat := ifA16B16G16R16
-    else if Info.HasAlphaChannel then
-      // convert the other images with alpha channel to A8R8G8B8
-      ConvFormat := ifA8R8G8B8
+    if Info.Format = ifA16R16G16B16F then
+      // only swap channels here
+      ConvFormat := ifA16B16G16R16F
     else
-      // convert the other formats to X8R8G8B8
-      ConvFormat := ifX8R8G8B8;
+      // convert other floating point formats to A32B32G32R32F
+      ConvFormat := ifA32B32G32R32F
+  end
+  else if Info.HasGrayChannel then
+  begin
+    if Info.HasAlphaChannel then
+      // convert grayscale with alpha to A8Gray8
+      ConvFormat := ifA8Gray8
+    else if Info.BytesPerPixel = 1 then
+      // convert 8bit grayscale to Gray8
+      ConvFormat := ifGray8
+    else
+      // convert 16-64bit grayscales to Gray16
+      ConvFormat := ifGray16;
+  end
+  else if Info.BytesPerPixel > 4 then
+    ConvFormat := ifA16B16G16R16
+  else if Info.HasAlphaChannel then
+    // convert the other images with alpha channel to A8R8G8B8
+    ConvFormat := ifA8R8G8B8
+  else
+    // convert the other formats to X8R8G8B8
+    ConvFormat := ifX8R8G8B8;
 
-    ConvertImage(Comp, ConvFormat);
-  end;
-  Result := Comp.Format in GetSupportedFormats;
+  ConvertImage(Image, ConvFormat);
 end;
 
 function TDDSFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
@@ -746,9 +736,12 @@ initialization
     - when saving multi image to DDS make sure all levels are
       saved and with proper dims and format
     - always store more images if they are on input, not only when
-      SaveMipMapCount is set (problem in VampConvert)  
+      SaveMipMapCount is set (problem in VampConvert)
+    - fix fix   
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - MakeCompatible method moved to base class, put ConvertToSupported here.
+      GetSupportedFormats removed, it is now set in constructor.
     - Fixed bug that sometimes saved non-standard DDS files and another
       one that caused crash when these files were loaded.
     - Changed extensions to filename masks.

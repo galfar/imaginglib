@@ -51,8 +51,8 @@ type
     function GetSupportedFormats: TImageFormats; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
-      out MustBeFreed: Boolean): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -1604,7 +1604,7 @@ var
 
 begin
   Result := False;
-  try
+  begin
     case FileType of
       ngPNG: GetIO.Write(Handle, @PNGSignature, SizeOf(TChar8));
       ngMNG: GetIO.Write(Handle, @MNGSignature, SizeOf(TChar8));
@@ -1692,9 +1692,6 @@ begin
       Chunk.ChunkID := MENDChunk;
       WriteChunk(Chunk, nil);
     end;
-
-  finally
-
   end;
 end;
 
@@ -1732,56 +1729,50 @@ begin
     Result := NGLosslessFormats;
 end;
 
-function TNetworkGraphicsFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
+procedure TNetworkGraphicsFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
 var
-  Info: PImageFormatInfo;
   ConvFormat: TImageFormat;
 begin
-  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
+  if not FLossyCompression then
   begin
-    Info := GetFormatInfo(Comp.Format);
-    if not FLossyCompression then
+    // Convert formats for lossless compression
+    if Info.HasGrayChannel then
     begin
-      // Convert formats for lossless compression
-      if Info.HasGrayChannel then
+      if Info.HasAlphaChannel then
       begin
-        if Info.HasAlphaChannel then
-        begin
-          if Info.BytesPerPixel <= 2 then
-            // Convert <= 16bit grayscale images with alpha to ifA8Gray8
-            ConvFormat := ifA8Gray8
-          else
-            // Convert > 16bit grayscale images with alpha to ifA16Gray16
-            ConvFormat := ifA16Gray16
-        end
+        if Info.BytesPerPixel <= 2 then
+          // Convert <= 16bit grayscale images with alpha to ifA8Gray8
+          ConvFormat := ifA8Gray8
         else
-          // Convert grayscale images without alpha to ifGray16
-          ConvFormat := ifGray16;
+          // Convert > 16bit grayscale images with alpha to ifA16Gray16
+          ConvFormat := ifA16Gray16
       end
       else
-        if Info.IsFloatingPoint then
-          // Convert floating point images to 64 bit ARGB
-          ConvFormat := ifA16B16G16R16
-        else if Info.HasAlphaChannel or Info.IsSpecial then
-          // Convert all other images with alpha or special images to A8R8G8B8
-          ConvFormat := ifA8R8G8B8
-        else
-          // Convert images without alpha to R8G8B8
-          ConvFormat := ifR8G8B8;
+        // Convert grayscale images without alpha to ifGray16
+        ConvFormat := ifGray16;
     end
     else
-    begin
-      // Convert formats for lossy compression
-      if Info.HasGrayChannel then
-        ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8Gray8, ifGray8)
+      if Info.IsFloatingPoint then
+        // Convert floating point images to 64 bit ARGB
+        ConvFormat := ifA16B16G16R16
+      else if Info.HasAlphaChannel or Info.IsSpecial then
+        // Convert all other images with alpha or special images to A8R8G8B8
+        ConvFormat := ifA8R8G8B8
       else
-        ConvFormat := IffFormat(Info.HasAlphaChannel, ifR8G8B8, ifA8R8G8B8)
-    end;
-
-    ConvertImage(Comp, ConvFormat);
+        // Convert images without alpha to R8G8B8
+        ConvFormat := ifR8G8B8;
+  end
+  else
+  begin
+    // Convert formats for lossy compression
+    if Info.HasGrayChannel then
+      ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8Gray8, ifGray8)
+    else
+      ConvFormat := IffFormat(Info.HasAlphaChannel, ifR8G8B8, ifA8R8G8B8)
   end;
-  Result := Comp.Format in GetSupportedFormats;
+
+  ConvertImage(Image, ConvFormat);
 end;
 
 function TNetworkGraphicsFileFormat.SaveData(Handle: TImagingHandle;
@@ -2078,6 +2069,8 @@ finalization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - MakeCompatible method moved to base class, put ConvertToSupported here.
+      GetSupportedFormats removed, it is now set in constructor.
     - Made public properties for options registered to SetOption/GetOption
       functions.
     - Changed extensions to filename masks.

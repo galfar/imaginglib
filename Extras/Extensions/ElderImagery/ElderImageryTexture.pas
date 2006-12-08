@@ -374,6 +374,7 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now
+    - weird colors, how?
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Initial version created based on my older code (fixed few things).

@@ -7,8 +7,6 @@ object MainForm: TMainForm
   VertScrollBar.Page = 621
   AutoSize = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
-  ClientHeight = 622
-  ClientWidth = 840
   Color = clGray
   Icon.Data = {
     360C0000424D360C000000000000360000002800000020000000200000000100
@@ -322,15 +320,18 @@ object MainForm: TMainForm
     top = 83
     object ActViewFitToWindow: TAction
       Caption = 'Fit To Window'
+      DisableIfNoHandler = True
       OnExecute = ActViewFitToWindowExecute
     end
     object ActViewRealSize: TAction
       Caption = 'Real Size'
       Checked = True
+      DisableIfNoHandler = True
       OnExecute = ActViewRealSizeExecute
     end
     object ActViewInfo: TAction
       Caption = 'Image Info'
+      DisableIfNoHandler = True
       OnExecute = ActViewInfoExecute
     end
   end

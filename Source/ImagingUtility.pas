@@ -58,6 +58,8 @@ type
       1: (Low, High: Byte);
   end;
   PWordRec = ^TWordRec;
+  TWordRecArray = array[0..MaxInt div 2 - 1] of TWordRec;
+  PWordRecArray = ^TWordRecArray;
 
   TLongWordRec = packed record
     case Integer of
@@ -68,6 +70,8 @@ type
       3: (Bytes: array[0..3] of Byte);
   end;
   PLongWordRec = ^TLongWordRec;
+  TLongWordRecArray = array[0..MaxInt div 4 - 1] of TLongWordRec;
+  PLongWordRecArray = ^TLongWordRecArray;
 
   TInt64Rec = packed record
     case Integer of
@@ -78,6 +82,8 @@ type
       3: (Bytes: array[0..7] of Byte);
   end;
   PInt64Rec = ^TInt64Rec;
+  TInt64RecArray = array[0..MaxInt div 8 - 1] of TInt64Rec;
+  PInt64RecArray = ^TInt64RecArray;
 
   TFloatHelper = record
     Data1: Int64;
@@ -166,6 +172,9 @@ function Iff(Condition, TruePart, FalsePart: Boolean): Boolean; overload; {$IFDE
 function Iff(Condition: Boolean; const TruePart, FalsePart: string): string; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { If Condition is True then TruePart is retured, otherwise
   FalsePart is returned.}
+function Iff(Condition: Boolean; const TruePart, FalsePart: Char): Char; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ If Condition is True then TruePart is retured, otherwise
+  FalsePart is returned.}
 function IffFloat(Condition: Boolean; TruePart, FalsePart: Single): Single; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Swaps two Byte values}
 procedure SwapValues(var A, B: Byte); overload;
@@ -177,6 +186,8 @@ procedure SwapValues(var A, B: LongInt); overload;
 procedure SwapValues(var A, B: Single); overload;
 { Swaps two LongInt values if necessary to ensure that Min <= Max.}
 procedure SwapMin(var Min, Max: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ This function returns True if running on little endian machine.}
+function IsLittleEndian: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Swaps byte order of Word value.}
 function SwapEndianWord(Value: Word): Word; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Swaps byte order of multiple Word values.}
@@ -605,6 +616,14 @@ begin
     Result := FalsePart;
 end;
 
+function Iff(Condition: Boolean; const TruePart, FalsePart: Char): Char;
+begin
+  if Condition then
+    Result := TruePart
+  else
+    Result := FalsePart;
+end;
+
 function IffFloat(Condition: Boolean; TruePart, FalsePart: Single): Single;
 begin
   if Condition then
@@ -696,6 +715,14 @@ end;
 function MulDiv(Number, Numerator, Denominator: LongInt): LongInt;
 begin
   Result := Number * Numerator div Denominator;
+end;
+
+function IsLittleEndian: Boolean;
+var
+  W: Word;
+begin
+  W := $00FF;
+  Result := PByte(@W)^ = $FF;
 end;
 
 function SwapEndianWord(Value: Word): Word;
@@ -1137,7 +1164,13 @@ initialization
 {
   File Notes:
 
+  -- TODOS ----------------------------------------------------
+    - nothing now
+
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added Iff function for Char type.
+    - Added IsLittleEndian function.
+    - Added array types for TWordRec, TLongWordRec, and TInt64Rec.
     - Added MatchFileNameMask function.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------

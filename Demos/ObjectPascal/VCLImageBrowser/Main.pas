@@ -40,8 +40,9 @@ uses
   ImagingClasses,
   ImagingComponents,
   ImagingCanvases,
+  ImagingFormats, 
   { Uncomment this to get support for file formats declared in Extras package }
-  ImagingExtraFileFormats,
+  //ImagingExtras,
   ImagingUtility;
 
 type

@@ -1913,7 +1913,7 @@ procedure Convert2To8(DataIn, DataOut: Pointer; Width, Height,
   WidthBytes: LongInt);
 const
   Mask2: array[0..3] of Byte = ($C0, $30, $0C, $03);
-Shift2: array[0..3] of Byte = (6, 4, 2, 0);
+  Shift2: array[0..3] of Byte = (6, 4, 2, 0);
 var
   X, Y: LongInt;
 begin

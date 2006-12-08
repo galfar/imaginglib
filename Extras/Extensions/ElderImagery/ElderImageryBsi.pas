@@ -147,7 +147,7 @@ var
   ChunkData: Pointer;
   DATASize: LongInt;
   BHDR: TBHDRChunk;
-  PalLoaded: TElderPalette;
+  PalLoaded: TPalette24Size256;
   HICL: PByteArray;
   HTBL: PWordArray;
   IsMulti: Boolean;
@@ -334,14 +334,16 @@ begin
   IsMulti := IsMultiBSI(Handle);
   with GetIO do
   begin
+    // Redguard textures can contain more than one image. Try to read texture
+    // header and if ImageSize is >0 there is another image.
     ReadTextureHeader;
-
     while TextureHdr.ImageSize > 0 do
     try
       PaletteFound := False;
       ReadChunk;
       SkipChunkData;
-
+      // Read data chunks. If they are recognized their data is stored for
+      // later image reconstruction
       repeat
         ReadChunk;
         if Chunk.ChunkID = BHDRSignature then
@@ -357,9 +359,9 @@ begin
         else
           SkipChunkData;
       until Eof(Handle) or (Chunk.ChunkID = ENDSignature);
-
+      // Recontruct current image according to data read from chunks
       Reconstruct;
-
+      // Read header for next image
       ReadTextureHeader;
     finally
       FreeMemNil(ChunkData);

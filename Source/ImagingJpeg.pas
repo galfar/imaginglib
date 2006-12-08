@@ -72,13 +72,12 @@ type
     FQuality: LongInt;
     FProgressive: LongBool;
     procedure SetJpegIO(const JpegIO: TIOFunctions); virtual;
-    function GetSupportedFormats: TImageFormats; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-    function MakeCompatible(const Image: TImageData; var Comp: TImageData;
-      out MustBeFreed: Boolean): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -344,6 +343,7 @@ begin
   FCanLoad := True;
   FCanSave := True;
   FIsMultiImageFormat := False;
+  FSupportedFormats := JpegSupportedFormats;
 
   FQuality := JpegDefaultQuality;
   FProgressive := JpegDefaultProgressive;
@@ -351,11 +351,6 @@ begin
   AddMasks(SJpegMasks);
   RegisterOption(ImagingJpegQuality, @FQuality);
   RegisterOption(ImagingJpegProgressive, @FProgressive);
-end;
-
-function TJpegFileFormat.GetSupportedFormats: TImageFormats;
-begin
-  Result := JpegSupportedFormats;
 end;
 
 function TJpegFileFormat.LoadData(Handle: TImagingHandle;
@@ -490,17 +485,13 @@ begin
   end;
 end;
 
-function TJpegFileFormat.MakeCompatible(const Image: TImageData;
-  var Comp: TImageData; out MustBeFreed: Boolean): Boolean;
+procedure TJpegFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
 begin
-  if not inherited MakeCompatible(Image, Comp, MustBeFreed) then
-  begin
-    if GetFormatInfo(Comp.Format).HasGrayChannel then
-      ConvertImage(Comp, ifGray8)
-    else
-      ConvertImage(Comp, ifR8G8B8);
-  end;
-  Result := Comp.Format in GetSupportedFormats;
+  if Info.HasGrayChannel then
+    ConvertImage(Image, ifGray8)
+  else
+    ConvertImage(Image, ifR8G8B8);
 end;
 
 function TJpegFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
@@ -537,6 +528,8 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - MakeCompatible method moved to base class, put ConvertToSupported here.
+      GetSupportedFormats removed, it is now set in constructor.
     - Made public properties for options registered to SetOption/GetOption
       functions.
     - Changed extensions to filename masks.
