@@ -1,0 +1,925 @@
+{
+  $Id$
+  Vampyre Imaging Library
+  by Marek Mauder
+  http://imaginglib.sourceforge.net
+
+  The contents of this file are used with permission, subject to the Mozilla
+  Public License Version 1.1 (the "License"); you may not use this file except
+  in compliance with the License. You may obtain a copy of the License at
+  http://www.mozilla.org/MPL/MPL-1.1.html
+
+  Software distributed under the License is distributed on an "AS IS" basis,
+  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License for
+  the specific language governing rights and limitations under the License.
+
+  Alternatively, the contents of this file may be used under the terms of the
+  GNU Lesser General Public License (the  "LGPL License"), in which case the
+  provisions of the LGPL License are applicable instead of those above.
+  If you wish to allow use of your version of this file only under the terms
+  of the LGPL License and not to allow others to use your version of this file
+  under the MPL, indicate your decision by deleting  the provisions above and
+  replace  them with the notice and other provisions required by the LGPL
+  License.  If you do not delete the provisions above, a recipient may use
+  your version of this file under either the MPL or the LGPL License.
+
+  For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
+}
+
+{ This unit contains loader/saver for Portable Maps file format family (or PNM).
+  That includes PBM, PGM, PPM, PAM, and PFM formats.}
+unit ImagingPortableMaps;
+
+{$I ImagingOptions.inc}
+
+interface
+
+uses
+  SysUtils, ImagingTypes, Imaging, ImagingExtras, ImagingFormats, ImagingUtility;
+
+type
+  { Types of pixels of PNM images.}
+  TTupleType = (ttInvalid, ttBlackAndWhite, ttGrayScale, ttRGB, ttBlackAndWhiteAlpha,
+    ttGrayScaleAlpha, ttRGBAlpha, ttGrayScaleFP, ttRGBFP);
+
+  { Record with info about PNM image used in both loading and saving functions.}
+  TPortableMapInfo = record
+    Width: LongInt;
+    Height: LongInt;
+    FormatId: Char;
+    MaxVal: LongInt;
+    BitCount: LongInt;
+    Depth: LongInt;
+    TupleType: TTupleType;
+    Binary: Boolean;
+    HasPAMHeader: Boolean;
+    IsBigEndian: Boolean;
+  end;
+
+  { Base class for Portable Map file formats (or Portable AnyMaps or PNM).
+    There are several types of PNM file formats that share common
+    (simple) structure. This class can actually load all supported PNM formats.
+    Saving is also done by this class but descendants (each for different PNM
+    format) control it.}
+  TPortableMapFileFormat = class(TImageFileFormat)
+  protected
+    FIdNumbers: TChar2;
+    FSaveBinary: LongBool;
+    FMapInfo: TPortableMapInfo;
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+  public
+    constructor Create; override;
+    function TestFormat(Handle: TImagingHandle): Boolean; override;
+    { If set to True images will be saved in binary format. If it is False
+      they will be saved in text format (which could result in 5-10x bigger file).
+      Default is value True. Note that PAM files are always saved in binary.}
+    property SaveBinary: LongBool read FSaveBinary write FSaveBinary;
+  end;
+
+  { Portable Bit Map is used to store monochrome 1bit images. Raster data
+    can be saved as text or binary data. Either way value of 0 represents white
+    and 1 is black. As Imaging does not have support for 1bit data formats
+    PBM images can be loaded but not saved. Loaded images are returned in
+    ifGray8 format (witch pixel values scaled from 1bit to 8bit).}
+  TPBMFileFormat = class(TPortableMapFileFormat)
+  public
+    constructor Create; override;
+  end;
+
+  { Portable Gray Map is used to store grayscale 8bit or 16bit images.
+    Raster data can be saved as text or binary data.}
+  TPGMFileFormat = class(TPortableMapFileFormat)
+  protected
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
+  public
+    constructor Create; override;
+  end;
+
+  { Portable Pixel Map is used to store RGB images with 8bit or 16bit channels.
+    Raster data can be saved as text or binary data.}
+  TPPMFileFormat = class(TPortableMapFileFormat)
+  protected
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
+  public
+    constructor Create; override;
+  end;
+
+  { Portable Arbitrary Map is format that can store image data formats
+    of PBM, PGM, and PPM formats with optional alpha channel. Raster data
+    can be stored only in binary format. All data formats supported
+    by this format are ifGray8, ifGray16, ifA8Gray8, ifA16Gray16,
+    ifR8G8B8, ifR16G16R16, ifA8R8G8B8, and ifA16R16G16B16.}
+  TPAMFileFormat = class(TPortableMapFileFormat)
+  protected
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
+  public
+    constructor Create; override;
+  end;
+
+  { Portable Float Map is unofficial extension of PNM format family which
+    can store images with floating point pixels. Raster data is saved in
+    binary format as array of IEEE 32 bit floating point numbers. One channel
+    or RGB images are supported by PFM format (so no alpha).}
+  TPFMFileFormat = class(TPortableMapFileFormat)
+  protected
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
+  public
+    constructor Create; override;
+  end;
+
+const
+  PortableMapDefaultBinary = True;
+
+  SPBMFormatName = 'Portable Bit Map';
+  SPBMMasks =      '*.pbm';
+  SPGMFormatName = 'Portable Gray Map';
+  SPGMMasks =      '*.pgm';
+  PGMSupportedFormats = [ifGray8, ifGray16];
+  SPPMFormatName = 'Portable Pixel Map';
+  SPPMMasks =      '*.ppm';
+  PPMSupportedFormats = [ifR8G8B8, ifR16G16B16];
+  SPAMFormatName = 'Portable Arbitrary Map';
+  SPAMMasks =      '*.pam';
+  PAMSupportedFormats = [ifGray8, ifGray16, ifA8Gray8, ifA16Gray16,
+    ifR8G8B8, ifR16G16B16, ifA8R8G8B8, ifA16R16G16B16];
+  SPFMFormatName = 'Portable Float Map';
+  SPFMMasks =      '*.pfm';
+  PFMSupportedFormats = [ifR32F, ifA32B32G32R32F];
+
+implementation
+
+const
+  { TAB, CR, LF, and Space are used as seperators in Portable map headers.}
+  WhiteSpaces = [#9, #10, #13, #32];
+  SPAMWidth = 'WIDTH';
+  SPAMHeight = 'HEIGHT';
+  SPAMDepth = 'DEPTH';
+  SPAMMaxVal = 'MAXVAL';
+  SPAMTupleType = 'TUPLTYPE';
+  SPAMEndHdr = 'ENDHDR';
+
+  { Size of buffer used to speed up text PNM loading/saving.}
+  LineBufferCapacity = 16 * 1024;
+
+  TupleTypeNames: array[TTupleType] of string = (
+    'INVALID', 'BLACKANDWHITE', 'GRAYSCALE', 'RGB',
+    'BLACKANDWHITE_ALPHA', 'GRAYSCALE_ALPHA', 'RGB_ALPHA', 'GRAYSCALEFP',
+    'RGBFP');
+
+{ TPortableMapFileFormat }
+
+constructor TPortableMapFileFormat.Create;
+begin
+  inherited Create;
+  FCanLoad := True;
+  FCanSave := True;
+  FIsMultiImageFormat := False;
+  FSaveBinary := PortableMapDefaultBinary;
+end;
+
+function TPortableMapFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+var
+  I, ScanLineSize, MonoSize: LongInt;
+  Dest: PByte;
+  MonoData: Pointer;
+  Info: TImageFormatInfo;
+  PixelFP: TColorFPRec;
+  LineBuffer: array[0..LineBufferCapacity - 1] of Char;
+  LineEnd, LinePos: LongInt;
+
+  procedure CheckBuffer;
+  begin
+    if (LineEnd = 0) or (LinePos = LineEnd) then
+    begin
+      // Reload buffer if its is empty or its end was reached
+      LineEnd := GetIO.Read(Handle, @LineBuffer[0], LineBufferCapacity);
+      LinePos := 0;
+    end;
+  end;
+
+  procedure FixInputPos;
+  begin
+    // Sets input's position to its real pos as it would be without buffering
+    if LineEnd > 0 then
+    begin
+      GetIO.Seek(Handle, -LineEnd + LinePos, smFromCurrent);
+      LineEnd := 0;
+    end;
+  end;
+
+  function ReadString: string;
+  var
+    S: AnsiString;
+  begin
+    // First skip all whitespace chars
+    SetLength(S, 1);
+    repeat
+      CheckBuffer;
+      S[1] := LineBuffer[LinePos];
+      Inc(LinePos);
+      if S[1] = '#' then
+      repeat
+        // Comment detected, skip everything until next line is reached
+        CheckBuffer;
+        S[1] := LineBuffer[LinePos];
+        Inc(LinePos);
+      until S[1] = #10;
+    until not(S[1] in WhiteSpaces);
+    // Now we have reached some chars other than white space, read them until
+    // there is whitespace again
+    repeat
+      SetLength(S, Length(S) + 1);
+      CheckBuffer;
+      S[Length(S)] := LineBuffer[LinePos];
+      Inc(LinePos);
+      // Repeat until current char is whitespace or end of file is reached
+      // (Line buffer has 0 bytes which happens only on EOF)
+    until (S[Length(S)] in WhiteSpaces) or (LineEnd = 0);
+    // Get rid of last char - whitespace or null
+    SetLength(S, Length(S) - 1);
+    Result := S;
+  end;
+
+  function ReadIntValue: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
+  begin
+    Result := StrToInt(ReadString);
+  end;
+
+  function ParseHeader: Boolean;
+  var
+    Id: TChar2;
+    I: TTupleType;
+    TupleTypeName: string;
+    Scale: Single;
+    OldSeparator: Char;
+  begin
+    Result := False;
+    with GetIO do
+    begin
+      FillChar(FMapInfo, SizeOf(FMapInfo), 0);
+      Read(Handle, @Id, SizeOf(Id));
+      if Id[1] in ['1'..'6'] then
+      begin
+        // Read header for PBM, PGM, and PPM files
+        FMapInfo.Width := ReadIntValue;
+        FMapInfo.Height := ReadIntValue;
+        if Id[1] in ['1', '4'] then
+        begin
+          FMapInfo.MaxVal := 1;
+          FMapInfo.BitCount := 1
+        end
+        else
+        begin
+          // Read channel max value, <=255 for 8bit images, >255 for 16bit images
+          // but some programs think its max colors so put <=256 here
+          FMapInfo.MaxVal := ReadIntValue;
+          FMapInfo.BitCount := Iff(FMapInfo.MaxVal <= 256, 8, 16);
+        end;
+
+        FMapInfo.Depth := 1;
+        case Id[1] of
+          '1', '4': FMapInfo.TupleType := ttBlackAndWhite;
+          '2', '5': FMapInfo.TupleType := ttGrayScale;
+          '3', '6':
+            begin
+              FMapInfo.TupleType := ttRGB;
+              FMapInfo.Depth := 3;
+            end;
+        end;
+      end
+      else if Id[1] = '7' then
+      begin
+        // Read values from PAM header
+        // WIDTH
+        if (ReadString <> SPAMWidth) then Exit;
+        FMapInfo.Width := ReadIntValue;
+        // HEIGHT
+        if (ReadString <> SPAMheight) then Exit;
+        FMapInfo.Height := ReadIntValue;
+        // DEPTH
+        if (ReadString <> SPAMDepth) then Exit;
+        FMapInfo.Depth := ReadIntValue;
+        // MAXVAL
+        if (ReadString <> SPAMMaxVal) then Exit;
+        FMapInfo.MaxVal := ReadIntValue;
+        FMapInfo.BitCount := Iff(FMapInfo.MaxVal <= 256, 8, 16);
+        // TUPLETYPE
+        if (ReadString <> SPAMTupleType) then Exit;
+        TupleTypeName := ReadString;
+        for I := Low(TTupleType) to High(TTupleType) do
+          if SameText(TupleTypeName, TupleTypeNames[I]) then
+          begin
+            FMapInfo.TupleType := I;
+            Break;
+          end;
+        // ENDHDR
+        if (ReadString <> SPAMEndHdr) then Exit;
+      end
+      else if Id[1] in ['F', 'f'] then
+      begin
+        // Read header of PFM file
+        FMapInfo.Width := ReadIntValue;
+        FMapInfo.Height := ReadIntValue;
+        OldSeparator := DecimalSeparator;
+        DecimalSeparator := '.';
+        Scale := StrToFloatDef(ReadString, 0);
+        DecimalSeparator := OldSeparator;
+        FMapInfo.IsBigEndian := Scale > 0.0;
+        if Id[1] = 'F' then
+          FMapInfo.TupleType := ttRGBFP
+        else
+          FMapInfo.TupleType := ttGrayScaleFP;
+        FMapInfo.Depth := Iff(FMapInfo.TupleType = ttRGBFP, 3, 1);
+        FMapInfo.BitCount := Iff(FMapInfo.TupleType = ttRGBFP, 96, 32);
+      end;
+
+      FixInputPos;
+      FMapInfo.Binary := (Id[1] in ['4', '5', '6', '7', 'F', 'f']);
+      // Check if values found in header are valid
+      Result := (FMapInfo.Width > 0) and (FMapInfo.Height > 0) and
+        (FMapInfo.BitCount in [1, 8, 16, 32, 96]) and (FMapInfo.TupleType <> ttInvalid);
+      // Now check if image has proper number of channels (PAM)
+      if Result then
+        case FMapInfo.TupleType of
+          ttBlackAndWhite, ttGrayScale:           Result := FMapInfo.Depth = 1;
+          ttBlackAndWhiteAlpha, ttGrayScaleAlpha: Result := FMapInfo.Depth = 2;
+          ttRGB:      Result := FMapInfo.Depth = 3;
+          ttRGBAlpha: Result := FMapInfo.Depth = 4;
+        end;
+    end;
+  end;
+
+begin
+  Result := False;
+  LineEnd := 0;
+  LinePos := 0;
+  SetLength(Images, 1);
+  with GetIO, Images[0] do
+  begin
+    Format := ifUnknown;
+    // Try to parse file header
+    if not ParseHeader then Exit;
+    // Select appropriate data format based on values read from file header
+    case FMapInfo.TupleType of
+      ttBlackAndWhite:      Format := ifGray8;
+      ttBlackAndWhiteAlpha: Format := ifA8Gray8;
+      ttGrayScale:          Format := IffFormat(FMapInfo.BitCount = 8, ifGray8, ifGray16);
+      ttGrayScaleAlpha:     Format := IffFormat(FMapInfo.BitCount = 8, ifA8Gray8, ifA16Gray16);
+      ttRGB:                Format := IffFormat(FMapInfo.BitCount = 8, ifR8G8B8, ifR16G16B16);
+      ttRGBAlpha:           Format := IffFormat(FMapInfo.BitCount = 8, ifA8R8G8B8, ifA16R16G16B16);
+      ttGrayScaleFP:        Format := ifR32F;
+      ttRGBFP:              Format := ifA32B32G32R32F;
+    end;
+    // Exit if no matching data format was found
+    if Format = ifUnknown then Exit;
+
+    NewImage(FMapInfo.Width, FMapInfo.Height, Format, Images[0]);
+    Info := GetFormatInfo(Format);
+
+    // Now read pixels from file to dest image
+    if not FMapInfo.Binary then
+    begin
+      Dest := Bits;
+      for I := 0 to Width * Height - 1 do
+      begin
+        case Format of
+          ifGray8:
+            begin
+              Dest^ := ReadIntValue;
+              if FMapInfo.BitCount = 1 then
+                // If source is 1bit mono image (where 0=white, 1=black)
+                // we must scale it to 8bits
+                Dest^ := 255 - Dest^ * 255;
+            end;
+          ifGray16: PWord(Dest)^ := ReadIntValue;
+          ifR8G8B8:
+            with PColor24Rec(Dest)^ do
+            begin
+              R := ReadIntValue;
+              G := ReadIntValue;
+              B := ReadIntValue;
+            end;
+          ifR16G16B16:
+            with PColor48Rec(Dest)^ do
+            begin
+              R := ReadIntValue;
+              G := ReadIntValue;
+              B := ReadIntValue;
+            end;
+        end;
+        Inc(Dest, Info.BytesPerPixel);
+      end;
+    end
+    else
+    begin
+      if FMapInfo.BitCount > 1 then
+      begin
+        if not (FMapInfo.TupleType in [ttGrayScaleFP, ttRGBFP]) then
+        begin
+          // Just copy bytes from binary Portable Maps (non 1bit, non FP)
+          Read(Handle, Bits, Size);
+        end
+        else
+        begin
+          Dest := Bits;
+          // FP images' are in BGR order and endian swap maybe needed.
+          // Some programs store scanlines in bottom-up order but
+          // I will stick with Photoshops behaviour here
+          for I := 0 to Width * Height - 1 do
+          begin
+            Read(Handle, @PixelFP, FMapInfo.BitCount shr 3);
+            if FMapInfo.TupleType = ttRGBFP then
+            with PColorFPRec(Dest)^ do
+            begin
+              A := 1.0;
+              R := PixelFP.R;
+              G := PixelFP.G;
+              B := PixelFP.B;
+              if FMapInfo.IsBigEndian then
+                SwapEndianLongWord(PLongWord(Dest), 3);
+            end
+            else
+            begin
+              PSingle(Dest)^ := PixelFP.B;
+              if FMapInfo.IsBigEndian then
+                SwapEndianLongWord(PLongWord(Dest), 1);
+            end;
+            Inc(Dest, Info.BytesPerPixel);
+          end;
+        end;
+
+        if FMapInfo.TupleType in [ttBlackAndWhite, ttBlackAndWhiteAlpha] then
+        begin
+          // Black and white PAM files must be scaled to 8bits. Note that
+          // in PAM files 1=white, 0=black (reverse of PBM)
+          for I := 0 to Width * Height * Iff(FMapInfo.TupleType = ttBlackAndWhiteAlpha, 2, 1) - 1 do
+            PByteArray(Bits)[I] := PByteArray(Bits)[I] * 255;
+        end;
+        if FMapInfo.TupleType in [ttRGB, ttRGBAlpha] then
+        begin
+          // Swap channels of RGB/ARGB images. Binary RGB image files use BGR order.
+          SwapChannels(Images[0], ChannelBlue, ChannelRed);
+        end;
+        if FMapInfo.BitCount = 16 then
+        begin
+          Dest := Bits;
+          for I := 0 to Width * Height * Info.BytesPerPixel div SizeOf(Word) - 1 do
+          begin
+            PWord(Dest)^ := SwapEndianWord(PWord(Dest)^);
+            Inc(Dest, SizeOf(Word));
+          end;
+        end;
+      end
+      else
+      begin
+        // Handle binary PBM files (ttBlackAndWhite 1bit)
+        ScanLineSize := (Width + 7) div 8;
+        // Get total binary data size, read it from file to temp
+        // buffer and convert the data to Gray8
+        MonoSize := ScanLineSize * Height;
+        GetMem(MonoData, MonoSize);
+        try
+          Read(Handle, MonoData, MonoSize);
+          Convert1To8(MonoData, Bits, Width, Height, ScanLineSize);
+          // 1bit mono images must be scaled to 8bit (where 0=white, 1=black)
+          for I := 0 to Width * Height - 1 do
+            PByteArray(Bits)[I] := 255 - PByteArray(Bits)[I] * 255;
+        finally
+          FreeMem(MonoData);
+        end;
+      end;
+      FixInputPos;
+
+      if (FMapInfo.MaxVal <> Pow2Int(FMapInfo.BitCount) - 1) and
+        (FMapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha, ttRGB, ttRGBAlpha]) then
+      begin
+        Dest := Bits;
+        // Scale color values according to MaxVal we got from header
+        // if necessary.
+        for I := 0 to Width * Height * Info.BytesPerPixel div (FMapInfo.BitCount shr 3) - 1 do
+        begin
+          if FMapInfo.BitCount = 8 then
+            Dest^ := Dest^ * 255 div FMapInfo.MaxVal
+          else
+            PWord(Dest)^ := PWord(Dest)^ * 65535 div FMapInfo.MaxVal;
+          Inc(Dest, FMapInfo.BitCount shr 3);
+        end;
+      end;
+
+    end;
+    Result := True;
+  end;
+end;
+
+function TPortableMapFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: Integer): Boolean;
+const
+  LineDelimiter  = #10;
+  PixelDelimiter = #32;
+var
+  ImageToSave: TImageData;
+  MustBeFreed: Boolean;
+  Info: TImageFormatInfo;
+  I, LineLength: LongInt;
+  Src: PByte;
+  Pixel32: TColor32Rec;
+  Pixel64: TColor64Rec;
+  W: Word;
+
+  procedure WriteString(S: string; Delimiter: Char = LineDelimiter);
+  begin
+    SetLength(S, Length(S) + 1);
+    S[Length(S)] := Delimiter;
+    GetIO.Write(Handle, @S[1], Length(S));
+    Inc(LineLength, Length(S));
+  end;
+
+  procedure WriteHeader;
+  var
+    OldSeparator: Char;
+  begin
+    WriteString('P' + FMapInfo.FormatId);
+    if not FMapInfo.HasPAMHeader then
+    begin
+      // Write header of PGM, PPM, and PFM files
+      WriteString(IntToStr(ImageToSave.Width));
+      WriteString(IntToStr(ImageToSave.Height));
+      case FMapInfo.TupleType of
+        ttGrayScale, ttRGB: WriteString(IntToStr(Pow2Int(FMapInfo.BitCount) - 1));
+        ttGrayScaleFP, ttRGBFP:
+          begin
+            OldSeparator := DecimalSeparator;
+            DecimalSeparator := '.';
+            // Negative value indicates that raster data is saved in little endian
+            WriteString(FloatToStr(-1.0));
+            DecimalSeparator := OldSeparator;
+          end;
+      end;
+    end
+    else
+    begin
+      // Write PAM file header
+      WriteString(Format('%s %d', [SPAMWidth, ImageToSave.Width]));
+      WriteString(Format('%s %d', [SPAMHeight, ImageToSave.Height]));
+      WriteString(Format('%s %d', [SPAMDepth, FMapInfo.Depth]));
+      WriteString(Format('%s %d', [SPAMMaxVal, Pow2Int(FMapInfo.BitCount) - 1]));
+      WriteString(Format('%s %s', [SPAMTupleType, TupleTypeNames[FMapInfo.TupleType]]));
+      WriteString(SPAMEndHdr);
+    end;
+  end;
+
+begin
+  Result := False;
+  if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
+  with GetIO, ImageToSave do
+  try
+    Info := GetFormatInfo(Format);
+    // Fill values of MapInfo record that were not filled by
+    // descendants in their SaveData methods
+    FMapInfo.BitCount := (Info.BytesPerPixel div Info.ChannelCount) * 8;
+    FMapInfo.Depth := Info.ChannelCount;
+    if FMapInfo.TupleType = ttInvalid then
+    begin
+      if Info.HasGrayChannel then
+      begin
+        if Info.HasAlphaChannel then
+          FMapInfo.TupleType := ttGrayScaleAlpha
+        else
+          FMapInfo.TupleType := ttGrayScale;
+      end
+      else
+      begin
+        if Info.HasAlphaChannel then
+          FMapInfo.TupleType := ttRGBAlpha
+        else
+          FMapInfo.TupleType := ttRGB;
+      end;
+    end;
+    // Write file header
+    WriteHeader;
+
+    if not FMapInfo.Binary then
+    begin
+      Src := Bits;
+      LineLength := 0;
+      // For each pixel find its text representation and write it to file
+      for I := 0 to Width * Height  - 1 do
+      begin
+        case Format of
+          ifGray8: WriteString(IntToStr(Src^), PixelDelimiter);
+          ifGray16: WriteString(IntToStr(PWord(Src)^), PixelDelimiter);
+          ifR8G8B8:
+            with PColor24Rec(Src)^ do
+              WriteString(SysUtils.Format('%d %d %d', [R, G, B]), PixelDelimiter);
+          ifR16G16B16:
+            with PColor48Rec(Src)^ do
+              WriteString(SysUtils.Format('%d %d %d', [R, G, B]), PixelDelimiter);
+        end;
+        // Lines in text PNM images should have length <70 
+        if LineLength > 65 then
+        begin
+          LineLength := 0;
+          WriteString('', LineDelimiter);
+        end;
+        Inc(Src, Info.BytesPerPixel);
+      end;
+    end
+    else
+    begin
+      // Write binary images
+      if not (FMapInfo.TupleType in [ttGrayScaleFP, ttRGBFP]) then
+      begin
+        // Save integer binary images
+        if  FMapInfo.BitCount = 8 then
+        begin
+          if FMapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha] then
+          begin
+            // 8bit grayscale images can be written in one Write call
+            Write(Handle, Bits, Size);
+          end
+          else
+          begin
+            // 8bit RGB/ARGB images: read and blue must be swapped and
+            // 3 or 4 bytes must be written
+            Src := Bits;
+            for I := 0 to Width * Height - 1 do
+            with PColor32Rec(Src)^ do
+            begin
+              if FMapInfo.TupleType = ttRGBAlpha then
+                Pixel32.A := A;
+              Pixel32.R := B;
+              Pixel32.G := G;
+              Pixel32.B := R;
+              Write(Handle, @Pixel32, Info.BytesPerPixel);
+              Inc(Src, Info.BytesPerPixel);
+            end;
+          end;
+        end
+        else
+        begin
+          // Images with 16bit channels: make sure that channel values are saved in big endian
+          Src := Bits;
+          if FMapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha] then
+          begin
+            // 16bit grayscale image
+            for I := 0 to Width * Height * Info.BytesPerPixel div SizeOf(Word) - 1 do
+            begin
+              W := SwapEndianWord(PWord(Src)^);
+              Write(Handle, @W, SizeOf(Word));
+              Inc(Src, SizeOf(Word));
+            end;
+          end
+          else
+          begin
+            // RGB images with 16bit channels: swap RB and endian too
+            for I := 0 to Width * Height - 1 do
+            with PColor64Rec(Src)^ do
+            begin
+              if FMapInfo.TupleType = ttRGBAlpha then
+                Pixel64.A := SwapEndianWord(A);
+              Pixel64.R := SwapEndianWord(B);
+              Pixel64.G := SwapEndianWord(G);
+              Pixel64.B := SwapEndianWord(R);
+              Write(Handle, @Pixel64, Info.BytesPerPixel);
+              Inc(Src, Info.BytesPerPixel);
+            end;
+          end;
+        end; 
+      end
+      else
+      begin
+        // Floating point images (no need to swap endian here - little
+        // endian is specified in file header)
+        if FMapInfo.TupleType = ttGrayScaleFP then
+        begin
+          // Grayscale images can be written in one Write call
+          Write(Handle, Bits, Size);
+        end
+        else
+        begin
+          // Expected data format of PFM RGB file is B32G32R32F which is not
+          // supported by Imaging. We must write pixels one by one and
+          // write only RGB part of A32B32G32B32 image.
+          Src := Bits;
+          for I := 0 to Width * Height - 1 do
+          begin
+            Write(Handle, Src, SizeOf(Single) * 3);
+            Inc(Src, Info.BytesPerPixel);
+          end;
+        end;
+      end;
+    end;
+    Result := True;
+  finally
+    if MustBeFreed then
+      FreeImage(ImageToSave);
+  end;
+end;
+
+function TPortableMapFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
+var
+  Id: TChar4;
+  ReadCount: LongInt;
+begin
+  Result := False;
+  if Handle <> nil then
+  with GetIO do
+  begin
+    ReadCount := Read(Handle, @Id, SizeOf(Id));
+    Seek(Handle, -ReadCount, smFromCurrent);
+    Result := (Id[0] = 'P') and (Id[1] in [FIdNumbers[0], FIdNumbers[1]]) and
+      (Id[2] in WhiteSpaces);
+  end;
+end;
+
+{ TPBMFileFormat }
+
+constructor TPBMFileFormat.Create;
+begin
+  inherited Create;
+  FName := SPBMFormatName;
+  FCanSave := False;
+  AddMasks(SPBMMasks);
+  FIdNumbers := '14';
+end;
+
+{ TPGMFileFormat }
+
+constructor TPGMFileFormat.Create;
+begin
+  inherited Create;
+  FName := SPGMFormatName;
+  FSupportedFormats := PGMSupportedFormats;
+  AddMasks(SPGMMasks);
+
+  RegisterOption(ImagingPGMSaveBinary, @FSaveBinary);
+  FIdNumbers := '25';
+end;
+
+function TPGMFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: Integer): Boolean;
+begin
+  FillChar(FMapInfo, SizeOf(FMapInfo), 0);
+  FMapInfo.FormatId := Iff(FSaveBinary, FIdNumbers[1], FIdNumbers[0]);
+  FMapInfo.Binary := FSaveBinary;
+  Result := inherited SaveData(Handle, Images, Index);
+end;
+
+procedure TPGMFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
+begin
+  if Info.IsFloatingPoint or
+    ((Info.BytesPerPixel = 4) and (Info.ChannelCount < 4)) or
+    (Info.BytesPerPixel > 4) then
+    ConvertImage(Image, ifGray16)
+  else
+    ConvertImage(Image, ifGray8);
+end;
+
+{ TPPMFileFormat }
+
+constructor TPPMFileFormat.Create;
+begin
+  inherited Create;
+  FName := SPPMFormatName;
+  FSupportedFormats := PPMSupportedFormats;
+  AddMasks(SPPMMasks);
+
+  RegisterOption(ImagingPPMSaveBinary, @FSaveBinary);
+  FIdNumbers := '36';
+end;
+
+function TPPMFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: Integer): Boolean;
+begin
+  FillChar(FMapInfo, SizeOf(FMapInfo), 0);
+  FMapInfo.FormatId := Iff(FSaveBinary, FIdNumbers[1], FIdNumbers[0]);
+  FMapInfo.Binary := FSaveBinary;
+  Result := inherited SaveData(Handle, Images, Index);
+end;
+
+procedure TPPMFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
+begin
+  if Info.IsFloatingPoint or
+    ((Info.BytesPerPixel = 4) and (Info.ChannelCount < 4)) or
+    (Info.BytesPerPixel > 4) then
+    ConvertImage(Image, ifR16G16B16)
+  else
+    ConvertImage(Image, ifR8G8B8);
+end;
+
+{ TPAMFileFormat }
+
+constructor TPAMFileFormat.Create;
+begin
+  inherited Create;
+  FName := SPAMFormatName;
+  FSupportedFormats := PAMSupportedFormats;
+  AddMasks(SPAMMasks);
+  FIdNumbers := '77';
+end;
+
+function TPAMFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: Integer): Boolean;
+begin
+  FillChar(FMapInfo, SizeOf(FMapInfo), 0);
+  FMapInfo.FormatId := FIdNumbers[0];
+  FMapInfo.Binary := True;
+  FMapInfo.HasPAMHeader := True;
+  Result := inherited SaveData(Handle, Images, Index);
+end;
+
+procedure TPAMFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
+var
+  ConvFormat: TImageFormat;
+begin
+  if Info.IsFloatingPoint then
+    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16R16G16B16, ifR16G16B16)
+  else if Info.HasGrayChannel then
+    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16Gray16, ifGray16)
+  else
+  begin
+    if Info.BytesPerPixel <= 4 then
+      ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8R8G8B8, ifR8G8B8)
+    else
+      ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16R16G16B16, ifR16G16B16);
+  end;
+  ConvertImage(Image, ConvFormat);
+end;
+
+{ TPFMFileFormat }
+
+constructor TPFMFileFormat.Create;
+begin
+  inherited Create;
+  FName := SPFMFormatName;
+  AddMasks(SPFMMasks);
+  FIdNumbers := 'Ff';
+  FSupportedFormats := PFMSupportedFormats;
+end;
+
+function TPFMFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: Integer): Boolean;
+begin
+  FillChar(FMapInfo, SizeOf(FMapInfo), 0);
+  if GetFormatInfo(Images[Index].Format).ChannelCount > 1 then
+    FMapInfo.TupleType := ttRGBFP
+  else
+    FMapInfo.TupleType := ttGrayScaleFP;
+  FMapInfo.FormatId := Iff(FMapInfo.TupleType = ttGrayScaleFP, FIdNumbers[1], FIdNumbers[0]);
+  FMapInfo.Binary := True;
+  Result := inherited SaveData(Handle, Images, Index);
+end;
+
+procedure TPFMFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
+begin
+  if Info.ChannelCount > 1 then
+    ConvertImage(Image, ifA32B32G32R32F)
+  else
+    ConvertImage(Image, ifR32F);
+end;
+
+initialization
+  RegisterImageFileFormat(TPBMFileFormat);
+  RegisterImageFileFormat(TPGMFileFormat);
+  RegisterImageFileFormat(TPPMFileFormat);
+  RegisterImageFileFormat(TPAMFileFormat);
+  RegisterImageFileFormat(TPFMFileFormat);
+
+{
+  File Notes:
+
+  -- TODOS ----------------------------------------------------
+    - nothing now
+    - check more images in one stream (return stream pos moved by line buffer reads)
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added scaling of channel values (non-FP and non-mono images) according
+      to MaxVal.
+    - Added buffering to loading of PNM files. More than 10x faster now
+      for text files.
+    - Added saving support to PGM, PPM, PAM, and PFM format.
+    - Added PFM file format.
+    - Initial version created.
+}
+
+end.
