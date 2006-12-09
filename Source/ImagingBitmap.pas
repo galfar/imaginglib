@@ -537,121 +537,99 @@ var
 
   procedure SaveRLE8;
   const
-    BufferSize = 65536;
+    BufferSize = 8 * 1024;
   var
-    Pos: LongInt;
-    B1, B2: Byte;
-    L1, L2: LongInt;
-    Src, Buf: PByte;
-    X, Y: LongInt;
+    X, Y, I, SrcPos: LongInt;
+    DiffCount, SameCount: Byte;
+    Pixels: PByteArray;
+    Buffer: array[0..BufferSize - 1] of Byte;
+    BufferPos: LongInt;
 
-    function AllocByte: PByte; 
+    procedure WriteByte(ByteToWrite: Byte);
     begin
-      if Pos mod BufferSize = 0 then
-        ReallocMem(Buf, Pos + BufferSize - 1);
-      Result := @PByteArray(Buf)[Pos];
-      Inc(Pos);
+      if BufferPos = BufferSize then
+      begin
+        // Flush buffer if necessary
+        GetIO.Write(Handle, @Buffer, BufferPos);
+        BufferPos := 0;
+      end;
+      Buffer[BufferPos] := ByteToWrite;
+      Inc(BufferPos);
     end;
 
   begin
-    Buf := nil;
-    Pos := 0;
-    try
-      for Y := 0 to ImageToSave.Height - 1 do
+    SrcPos := 0;
+    BufferPos := 0;
+    with GetIO, ImageToSave do
+    begin
+      Pixels := Bits;
+      for Y := 0 to Height - 1 do
       begin
         X := 0;
-        Src := @PByteArray(Data)[Y * WidthBytes];
-        while X < ImageToSave.Width do
+        while X < Width do
         begin
-          if (ImageToSave.Width - X > 2) and
-            (Src^ = PByteArray(Src)[1]) then
+          SameCount := 1;
+          DiffCount := 0;
+          // Determine run length
+          while X + SameCount < Width do
           begin
-            B1 := 2;
-            B2 := Src^;
-            Inc(X, 2);
-            Inc(Src, 2);
-            while (X < ImageToSave.Width) and (Src^ = B2) and (B1 < 255) do
+            // If we reach max run length or byte with different value
+            // we end this run
+            if (SameCount = 255) or (Pixels[SrcPos + SameCount] <> Pixels[SrcPos]) then
+              Break;
+            Inc(SameCount);
+          end;
+
+          if SameCount = 1 then
+          begin
+            // If there are not some bytes with the same value we
+            // compute how many different bytes are there
+            while X + DiffCount < Width do
             begin
-              Inc(B1);
-              Inc(X);
-              Inc(Src);
+              // Stop diff byte counting if there two bytes with the same value
+              // or DiffCount is too big
+              if (DiffCount = 255) or (Pixels[SrcPos + DiffCount + 1] =
+                Pixels[SrcPos + DiffCount]) then
+                Break;
+              Inc(DiffCount);
             end;
-            AllocByte^ := B1;
-            AllocByte^ := B2;
+          end;
+
+          // Now store absolute data (direct copy image->file) or
+          // store RLE code only (number of repeats + byte to be repeated)
+          if DiffCount > 2 then
+          begin
+            // Save 'Absolute Data' (0 + number of bytes) but only
+            // if number is >2 because (0+1) and (0+2) are other special commands
+            WriteByte(0);
+            WriteByte(DiffCount);
+            // Write absolute data to buffer
+            for I := 0 to DiffCount - 1 do
+              WriteByte(Pixels[SrcPos + I]);
+            Inc(X, DiffCount);
+            Inc(SrcPos, DiffCount);
+            // Odd number of bytes must be padded
+            if (DiffCount mod 2) = 1 then
+              WriteByte(0);
           end
           else
-            if (ImageToSave.Width - X > 2) and (Src^ <> PByteArray(Src)[1]) and
-              (PByteArray(Src)[1] = PByteArray(Src)[2]) then
-            begin
-              AllocByte^ := 1;
-              AllocByte^ := Src^;
-              Inc(Src);
-              Inc(X);
-            end
-            else
-            begin
-              if (ImageToSave.Width - X < 4) then
-              begin
-                if ImageToSave.Width - X = 2 then
-                begin
-                  AllocByte^ := 1;
-                  AllocByte^ := Src^;
-                  Inc(Src);
-                  AllocByte^ := 1;
-                  AllocByte^ := Src^;
-                  Inc(Src);
-                  Inc(X, 2);
-                end
-                else
-                begin
-                  AllocByte^ := 1;
-                  AllocByte^ := Src^;
-                  Inc(Src);
-                  Inc(X);
-                end;
-              end
-              else
-              begin
-                L1 := Pos;
-                AllocByte;
-                L2 := Pos;
-                AllocByte;
-                B1 := 0;
-                B2 := 3;
-                Inc(X, 3);
-                AllocByte^ := Src^;
-                Inc(Src);
-                AllocByte^ := Src^;
-                Inc(Src);
-                AllocByte^ := Src^;
-                Inc(Src);
-                while (X < ImageToSave.Width) and (B2 < 255) do
-                begin
-                  if (ImageToSave.Width - X > 3) and
-                    (Src^ = PByteArray(Src)[1]) and
-                    (Src^ = PByteArray(Src)[2]) and
-                    (Src^ = PByteArray(Src)[3]) then
-                    Break;
-                  AllocByte^ := Src^;
-                  Inc(Src);
-                  Inc(B2);
-                  Inc(X);
-                end;
-                PByteArray(Buf)[L1] := B1;
-                PByteArray(Buf)[L2] := B2;
-              end;
-            end;
-          if Pos and 1 = 1 then
-            AllocByte;
+          begin
+            // Save number of repeats and byte that should be repeated
+            WriteByte(SameCount);
+            WriteByte(Pixels[SrcPos]);
+            Inc(X, SameCount);
+            Inc(SrcPos, SameCount);
+          end;
         end;
-        AllocByte^ := 0;
-        AllocByte^ := 0;
+        // Save 'End Of Line' command
+        WriteByte(0);
+        WriteByte(0);
       end;
-      AllocByte^ := 0;
-      AllocByte^ := 1;
-      GetIO.Write(Handle, Buf, Pos);
-    finally
-      FreeMem(Buf);
+      // Save 'End Of Bitmap' command
+      WriteByte(0);
+      WriteByte(1);
+      // Flush buffer
+      GetIO.Write(Handle, @Buffer, BufferPos);
     end;
   end;
 
@@ -775,9 +753,11 @@ initialization
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - rewrite SaveRLE8
+    - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Rewritten SaveRLE8 nested procedure. Old code was long and
+      mysterious - new is short and much more readable.
     - MakeCompatible method moved to base class, put ConvertToSupported here.
       GetSupportedFormats removed, it is now set in constructor.
     - Rewritten LoadRLE4 and LoadRLE8 nested procedures.
