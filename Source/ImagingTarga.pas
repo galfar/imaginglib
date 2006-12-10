@@ -552,8 +552,8 @@ var
   ConvFormat: TImageFormat;
 begin
   if Info.HasGrayChannel then
-    // Convert all grayscale images to Gray8
-    ConvFormat := ifGray8
+    // Convert all grayscale images to Gray8 (preserve alpha of AxGrayx formats)
+    ConvFormat := IffFormat(not Info.HasAlphaChannel, ifGray8, ifA8R8G8B8)
   else if Info.IsIndexed then
     // Convert all indexed images to Index8
     ConvFormat := ifIndex8

@@ -62,7 +62,7 @@ const
   SBitmapFormatName = 'Windows Bitmap Image';
   SBitmapMasks =      '*.bmp,*.dib';
   BitmapSupportedFormats: TImageFormats = [ifIndex8, ifA1R5G5B5, ifA4R4G4B4,
-    ifR8G8B8, ifA8R8G8B8, ifX1R5G5B5, ifX4R4G4B4, ifX8R8G8B8];
+    ifR5G6B5, ifR8G8B8, ifA8R8G8B8, ifX1R5G5B5, ifX4R4G4B4, ifX8R8G8B8];
   BitmapDefaultRLE = True;  
 
 implementation
@@ -77,6 +77,9 @@ const
   BI_RLE4 = 2;
   BI_BITFIELDS = 3;
 
+  V3InfoHeaderSize = 40;
+  V4InfoHeaderSize = 108; 
+
 type
   { File Header for Windows/OS2 bitmap file.}
   TBitmapFileHeader = packed record
@@ -87,7 +90,7 @@ type
     Offset: LongWord;   // Offset from start pos to beginning of image bits
   end;
 
-  { Info Header for Windows bitmap file.}
+  { Info Header for Windows bitmap file version 4.}
   TBitmapInfoHeader = packed record
     Size: LongWord;
     Width: LongInt;
@@ -100,6 +103,15 @@ type
     YPelsPerMeter: LongInt;
     ClrUsed: LongInt;
     ClrImportant: LongInt;
+    RedMask: LongWord;
+    GreenMask: LongWord;
+    BlueMask: LongWord;
+    AlphaMask: LongWord;
+    CSType: LongWord;
+    EndPoints: array[0..8] of LongWord;
+    GammaRed: LongWord;
+    GammaGreen: LongWord;
+    GammaBlue: LongWord;
   end;
 
   { Info Header for OS2 bitmaps.}
@@ -109,11 +121,6 @@ type
     Height: Word;
     Planes: Word;
     BitCount: Word;
-  end;
-
-  { Used with BitmapInfo.Compression = BI_BITFIELDS.}
-  TLocalPixelFormat = packed record
-    RBitMask, GBitMask, BBitMask: LongWord;
   end;
 
   { Used in RLE encoding and decoding.} 
@@ -147,10 +154,9 @@ var
   BI: TBitmapInfoHeader;
   BC: TBitmapCoreHeader;
   IsOS2: Boolean;
-  LocalPF: TLocalPixelFormat;
   PalRGB: PPalette24;
   I, FPalSize, AlignedSize, StartPos, AlignedWidthBytes, WidthBytes: LongInt;
-  FmtInfo: TImageFormatInfo;
+  Info: TImageFormatInfo;
   Data: Pointer;
 
   procedure LoadRGB;
@@ -384,6 +390,7 @@ begin
   SetLength(Images, 1);
   with GetIO, Images[0] do
   try
+    FillChar(BI, SizeOf(BI), 0);
     StartPos := Tell(Handle);
     Read(Handle, @BF, SizeOf(BF));
     Read(Handle, @BI.Size, SizeOf(BI.Size));
@@ -408,7 +415,7 @@ begin
     begin
       // Windows type bitmap
       Read(Handle, @PByteArray(@BI)[SizeOf(BI.Size)],
-        SizeOf(TBitmapInfoHeader) - SizeOf(BI.Size));
+        BI.Size - SizeOf(BI.Size));
       // SizeImage can be 0 for BI_RGB images, but it is here because of:
       // I saved 8bit bitmap in Paint Shop Pro 8 as OS2 RLE compressed.
       // It wrote strange 64 Byte Info header with SizeImage set to 0
@@ -416,26 +423,31 @@ begin
       if BI.SizeImage = 0 then
         BI.SizeImage := BF.Size - BF.Offset;
     end;
-    // Bit mask reading
-    if BI.Compression = BI_BITFIELDS then
-      Read(Handle, @LocalPF, SizeOf(LocalPF));
+    // Bit mask reading. Only read it if there is V3 header, V4 header has
+    // masks laoded already (only masks for RGB in V3).
+    if (BI.Compression = BI_BITFIELDS) and (BI.Size = V3InfoHeaderSize) then
+      Read(Handle, @BI.RedMask, SizeOf(BI.RedMask) * 3);
 
     case BI.BitCount of
       1, 4, 8: Format := ifIndex8;
       16:
-        if LocalPF.RBitMask = $0F00 then
-          Format := ifX4R4G4B4
-        else if LocalPF.RBitMask = $F800 then
+        if BI.RedMask = $0F00 then
+          // Set XRGB4 or ARGB4 according to value of alpha mask
+          Format := IffFormat(BI.AlphaMask = 0, ifX4R4G4B4, ifA4R4G4B4)
+        else if BI.RedMask = $F800 then
           Format := ifR5G6B5
         else
+          // R5G5B5 is default 16bit format (with Compression = BI_RGB or masks).
+          // We set it to A1.. and later there is a check if there are any alpha values
+          // and if not it is changed to X1R5G5B5
           Format := ifA1R5G5B5;
       24: Format := ifR8G8B8;
-      32: Format := ifA8R8G8B8;
+      32: Format := ifA8R8G8B8; // As with R5G5B5 there is alpha check later 
     end;
 
     NewImage(BI.Width, Abs(BI.Height), Format, Images[0]);
-    FmtInfo := GetFormatInfo(Format);
-    WidthBytes := Width * FmtInfo.BytesPerPixel;
+    Info := GetFormatInfo(Format);
+    WidthBytes := Width * Info.BytesPerPixel;
     AlignedWidthBytes := (((Width * BI.BitCount) + 31) shr 5) * 4;
     AlignedSize := Height * LongInt(AlignedWidthBytes);
 
@@ -485,19 +497,24 @@ begin
       BI_BITFIELDS: LoadRGB;
     end;
 
-    if Format = ifA1R5G5B5 then
+    if BI.AlphaMask = 0 then
     begin
-      // Check if there is alpha channel present in A1R5GB5 images, if it is not
-      // change format to X1R5G5B5
-      if not Has16BitImageAlpha(Width * Height, Bits) then
-        Format := ifX1R5G5B5;
-    end
-    else if Format = ifA8R8G8B8 then
-    begin
-      // Check if there is alpha channel present in A8R8G8B8 images, if it is not
-      // change format to X8R8G8B8
-      if not Has32BitImageAlpha(Width * Height, Bits) then
-        Format := ifX8R8G8B8;
+      // Alpha mask is not stored in file (V3) or not defined.
+      // Check alpha channels of loaded images if they might contain them.
+      if Format = ifA1R5G5B5 then
+      begin
+        // Check if there is alpha channel present in A1R5GB5 images, if it is not
+        // change format to X1R5G5B5
+        if not Has16BitImageAlpha(Width * Height, Bits) then
+          Format := ifX1R5G5B5;
+      end
+      else if Format = ifA8R8G8B8 then
+      begin
+        // Check if there is alpha channel present in A8R8G8B8 images, if it is not
+        // change format to X8R8G8B8
+        if not Has32BitImageAlpha(Width * Height, Bits) then
+          Format := ifX8R8G8B8;
+      end;
     end;
 
     if BI.BitCount < 8 then
@@ -514,7 +531,7 @@ begin
           end;
       end;
       // Enlarge palette
-      ReallocMem(Palette, FmtInfo.PaletteEntries * SizeOf(TColor32Rec));
+      ReallocMem(Palette, Info.PaletteEntries * SizeOf(TColor32Rec));
     end;
 
     Result := True;
@@ -526,13 +543,11 @@ end;
 function TBitmapFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
-  StartPos, EndPos, WidthBytes, AlignedSize: LongInt;
-  Data: Pointer;
+  StartPos, EndPos, I, Pad, PadSize, WidthBytes: LongInt;
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
-  FmtInfo: TImageFormatInfo;
+  Info: TImageFormatInfo;
   ImageToSave: TImageData;
-  LocalPF: TLocalPixelFormat;
   MustBeFreed: Boolean;
 
   procedure SaveRLE8;
@@ -635,61 +650,91 @@ var
 
 begin
   Result := False;
-  Data := nil;
   if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with GetIO, ImageToSave do
   try
-    FmtInfo := GetFormatInfo(Format);
+    Info := GetFormatInfo(Format);
     StartPos := Tell(Handle);
     FillChar(BF, SizeOf(BF), 0);
     FillChar(BI, SizeOf(BI), 0);
     // Other fields will be filled later - we don't know all values now
     BF.ID := BMMagic;
-    Write(Handle, @BF, SizeOF(BF));
-    BI.Size := SizeOf(BI);
+    Write(Handle, @BF, SizeOf(BF));
+    if Info.HasAlphaChannel then
+      // Save images with alpha in V4 format
+      BI.Size := V4InfoHeaderSize
+    else
+      // Save images without alpha in V3 format - for better compatibility
+      BI.Size := V3InfoHeaderSize;
     BI.Width := Width;
     BI.Height := -Height;
     BI.Planes := 1;
-    BI.BitCount := FmtInfo.BytesPerPixel * 8;
-
+    BI.BitCount := Info.BytesPerPixel * 8;
     // Set compression
-    if (FmtInfo.BytesPerPixel = 1) and FUseRLE then
+    if (Info.BytesPerPixel = 1) and FUseRLE then
       BI.Compression := BI_RLE8
-    else if (Format <> ifA1R5G5B5) and (FmtInfo.BytesPerPixel = 2) then
+    else if Info.HasAlphaChannel or
+      ((BI.BitCount = 16) and (Format <> ifX1R5G5B5)) then
       BI.Compression := BI_BITFIELDS
     else
       BI.Compression := BI_RGB;
-    Write(Handle, @BI, SizeOF(BI));
+    // Write header (first time)
+    Write(Handle, @BI, BI.Size);
 
     // Write mask info
     if BI.Compression = BI_BITFIELDS then
-    with FmtInfo.PixelFormat^ do
     begin
-      LocalPF.RBitMask := RBitMask;
-      LocalPF.GBitMask := GBitMask;
-      LocalPF.BBitMask := BBitMask;
-      Write(Handle, @LocalPF, SizeOf(LocalPF));
+      if BI.BitCount = 16 then
+      with Info.PixelFormat^ do
+      begin
+        BI.RedMask   := RBitMask;
+        BI.GreenMask := GBitMask;
+        BI.BlueMask  := BBitMask;
+        BI.AlphaMask := ABitMask;
+      end
+      else
+      begin
+        // Set masks for A8R8G8B8
+        BI.RedMask   := $00FF0000;
+        BI.GreenMask := $0000FF00;
+        BI.BlueMask  := $000000FF;
+        BI.AlphaMask := $FF000000;
+      end;
+      // If V3 header is used RGB masks must be written to file separately.
+      // V4 header has embedded masks (V4 is default for formats with alpha).
+      if BI.Size = V3InfoHeaderSize then
+        Write(Handle, @BI.RedMask, SizeOf(BI.RedMask) * 3);
     end;
     // Write palette
     if Palette <> nil then
-      Write(Handle, Palette, FmtInfo.PaletteEntries * SizeOf(TColor32Rec));
+      Write(Handle, Palette, Info.PaletteEntries * SizeOf(TColor32Rec));
 
     BF.Offset := Tell(Handle) - StartPos;
 
-    WidthBytes := (((Width * BI.BitCount) + 31) shr 5) * 4;
-    AlignedSize := Height * WidthBytes;
-    if Size <> AlignedSize then
+    if BI.Compression <> BI_RLE8 then
     begin
-      GetMem(Data, AlignedSize);
-      AddPadBytes(Bits, Data, Width, Height, FmtInfo.BytesPerPixel, WidthBytes);
+      // Save uncompressed data, scanlines must be filled with pad bytes
+      // to be multiples of 4
+      Pad := 0;
+      WidthBytes := Width * Info.BytesPerPixel;
+      PadSize := (((Width * BI.BitCount) + 31) shr 5) * 4 - WidthBytes;
+      if PadSize > 0 then
+      begin
+        for I := 0 to Height - 1 do
+        begin
+          Write(Handle, @PByteArray(Bits)[I * WidthBytes], WidthBytes);
+          Write(Handle, @Pad, PadSize);
+        end;
+      end
+      else
+        // No padding needed, write whole image at once
+        Write(Handle, Bits, Size);
     end
     else
-      Data := Bits;
-
-    if BI.Compression = BI_RLE8 then
-      SaveRLE8
-    else
-      Write(Handle, Data, AlignedSize);
+    begin
+      // Save data with RLE8 compression
+      SaveRLE8;
+    end;
 
     EndPos := Tell(Handle);
     Seek(Handle, StartPos, smFromBeginning);
@@ -697,14 +742,11 @@ begin
     BF.Size := EndPos - StartPos;
     BI.SizeImage := BF.Size - BF.Offset;
     Write(Handle, @BF, SizeOf(BF));
-    Write(Handle, @BI, SizeOf(BI));
+    Write(Handle, @BI, BI.Size);
     Seek(Handle, EndPos, smFromBeginning);
 
     Result := True;
   finally
-    // Free aligned temp data
-    if (Data <> nil) and (Data <> Bits) then
-      FreeMemNil(Data);
     if MustBeFreed then
       FreeImage(ImageToSave);
   end;
@@ -715,15 +757,19 @@ procedure TBitmapFileFormat.ConvertToSupported(var Image: TImageData;
 var
   ConvFormat: TImageFormat;
 begin
-  if Info.HasGrayChannel or Info.IsIndexed then
-    // Convert all grayscale and indexed images to Index8
-    ConvFormat := ifIndex8
-  else if Info.HasAlphaChannel or Info.IsFloatingPoint then
-    // Convert images with alpha channel or float to A8R8G8B8
+  if Info.IsFloatingPoint then
+    // Convert FP image to RGB/ARGB according to presence of alpha channel
+    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8R8G8B8, ifR8G8B8)
+  else if Info.HasGrayChannel or Info.IsIndexed then
+    // Convert all grayscale and indexed images to Index8 unless they have alpha
+    // (preserve it)
+    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8R8G8B8, ifIndex8)
+  else if Info.HasAlphaChannel then
+    // Convert images with alpha channel to A8R8G8B8
     ConvFormat := ifA8R8G8B8
   else if Info.UsePixelFormat then
-    // Convert 16bit RGB images to A1R5G5B5
-    ConvFormat := ifA1R5G5B5
+    // Convert 16bit RGB images (no alpha) to X1R5G5B5
+    ConvFormat := ifX1R5G5B5
   else
     // Convert all other formats to R8G8B8
     ConvFormat := ifR8G8B8;
@@ -756,6 +802,13 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Removed temporary data allocation for image with aligned scanlines.
+      They are now directly written to output so memory requirements are
+      much lower now.
+    - Now uses and recognizes BITMAPINFOHEADERV4 when loading/saving.
+      Mainly for formats with alpha channels.
+    - Added ifR5G6B5 to supported formats, changed converting to supported
+      formats little bit.
     - Rewritten SaveRLE8 nested procedure. Old code was long and
       mysterious - new is short and much more readable.
     - MakeCompatible method moved to base class, put ConvertToSupported here.

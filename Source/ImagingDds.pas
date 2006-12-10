@@ -70,9 +70,9 @@ type
 const
   SDDSFormatName = 'DirectDraw Surface';
   SDDSMasks      = '*.dds';
-  DDSSupportedFormats: TImageFormats = [ifR8G8B8, ifA8R8G8B8, ifA1R5G5B5,
-    ifA4R4G4B4, ifX1R5G5B5, ifX4R4G4B4, ifR5G6B5, ifA16B16G16R16, ifR32F,
-    ifA32B32G32R32F, ifR16F, ifA16B16G16R16F, ifR3G3B2, ifGray8, ifA8Gray8,
+  DDSSupportedFormats: TImageFormats = [ifR8G8B8, ifA8R8G8B8, ifX8R8G8B8,
+    ifA1R5G5B5, ifA4R4G4B4, ifX1R5G5B5, ifX4R4G4B4, ifR5G6B5, ifA16B16G16R16,
+    ifR32F, ifA32B32G32R32F, ifR16F, ifA16B16G16R16F, ifR3G3B2, ifGray8, ifA8Gray8,
     ifGray16, ifDXT1, ifDXT3, ifDXT5];
 
 implementation
@@ -740,6 +740,8 @@ initialization
     - fix fix   
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added missing ifX8R8G8B8 to SupportedFormats, MakeCompatible failed
+      when image was converted to this format (inside).
     - MakeCompatible method moved to base class, put ConvertToSupported here.
       GetSupportedFormats removed, it is now set in constructor.
     - Fixed bug that sometimes saved non-standard DDS files and another

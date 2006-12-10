@@ -783,13 +783,24 @@ end;
 
 procedure TPGMFileFormat.ConvertToSupported(var Image: TImageData;
   const Info: TImageFormatInfo);
+var
+  ConvFormat: TImageFormat;
 begin
-  if Info.IsFloatingPoint or
-    ((Info.BytesPerPixel = 4) and (Info.ChannelCount < 4)) or
-    (Info.BytesPerPixel > 4) then
-    ConvertImage(Image, ifGray16)
+  if Info.IsFloatingPoint then
+    // All FP images go to 16bit
+    ConvFormat :=  ifGray16
+  else if Info.HasGrayChannel then
+    // Grayscale will be 8 or 16 bit - depends on input's bitcount
+    ConvFormat := IffFormat(Info.BytesPerPixel div Info.ChannelCount > 1,
+      ifGray16, ifGray8)
+  else if Info.BytesPerPixel > 4 then
+    // Large bitcounts -> 16bit
+    ConvFormat := ifGray16
   else
-    ConvertImage(Image, ifGray8);
+    // Rest of the formats -> 8bit 
+    ConvFormat := ifGray8;
+
+  ConvertImage(Image, ConvFormat);
 end;
 
 { TPPMFileFormat }
@@ -816,13 +827,24 @@ end;
 
 procedure TPPMFileFormat.ConvertToSupported(var Image: TImageData;
   const Info: TImageFormatInfo);
+var
+  ConvFormat: TImageFormat;
 begin
-  if Info.IsFloatingPoint or
-    ((Info.BytesPerPixel = 4) and (Info.ChannelCount < 4)) or
-    (Info.BytesPerPixel > 4) then
-    ConvertImage(Image, ifR16G16B16)
+  if Info.IsFloatingPoint then
+    // All FP images go to 48bit RGB
+    ConvFormat :=  ifR16G16B16
+  else if Info.HasGrayChannel then
+    // Grayscale will be 24 or 48 bit RGB - depends on input's bitcount
+    ConvFormat := IffFormat(Info.BytesPerPixel div Info.ChannelCount > 1,
+      ifR16G16B16, ifR8G8B8)
+  else if Info.BytesPerPixel > 4 then
+    // Large bitcounts -> 48bit RGB
+    ConvFormat := ifR16G16B16
   else
-    ConvertImage(Image, ifR8G8B8);
+    // Rest of the formats -> 24bit RGB
+    ConvFormat := ifR8G8B8;
+
+  ConvertImage(Image, ConvFormat);
 end;
 
 { TPAMFileFormat }
@@ -892,7 +914,7 @@ end;
 procedure TPFMFileFormat.ConvertToSupported(var Image: TImageData;
   const Info: TImageFormatInfo);
 begin
-  if Info.ChannelCount > 1 then
+  if (Info.ChannelCount > 1) or Info.IsIndexed then
     ConvertImage(Image, ifA32B32G32R32F)
   else
     ConvertImage(Image, ifR32F);
@@ -913,6 +935,7 @@ initialization
     - check more images in one stream (return stream pos moved by line buffer reads)
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Changed converting to supported formats little bit.
     - Added scaling of channel values (non-FP and non-mono images) according
       to MaxVal.
     - Added buffering to loading of PNM files. More than 10x faster now

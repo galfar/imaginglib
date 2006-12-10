@@ -481,6 +481,11 @@ function FindImageFileFormatByName(const FileName: string): TImageFileFormat;
 { Returns image format loader/saver based on its class
   or nil if not found or not registered.}
 function FindImageFileFormatByClass(AClass: TImageFileFormatClass): TImageFileFormat;
+{ Returns number of registered image file format loaders/saver.}
+function GetFileFormatCount: LongInt;
+{ Returns image file format loader/saver at given index. Index must be
+  in range [0..GetFileFormatCount - 1] otherwise nil is returned.}
+function GetFileFormatAtIndex(Index: LongInt): TImageFileFormat;
 { Returns filter string for usage with open and save picture dialogs
   which contains all registered image file formats.
   Set OpenFileFilter to True if you want filter for open dialog
@@ -722,12 +727,17 @@ end;
 
 function TestImage(const Image: TImageData): Boolean;
 begin
-  Result := (LongInt(Image.Format) >= LongInt(Low(TImageFormat))) and
-    (LongInt(Image.Format) <= LongInt(High(TImageFormat))) and
-    (ImageFormatInfos[Image.Format] <> nil) and
-    (Assigned(ImageFormatInfos[Image.Format].GetPixelsSize) and
-    (ImageFormatInfos[Image.Format].GetPixelsSize(Image.Format,
-    Image.Width, Image.Height) = Image.Size));
+  try
+    Result := (LongInt(Image.Format) >= LongInt(Low(TImageFormat))) and
+      (LongInt(Image.Format) <= LongInt(High(TImageFormat))) and
+      (ImageFormatInfos[Image.Format] <> nil) and
+      (Assigned(ImageFormatInfos[Image.Format].GetPixelsSize) and
+      (ImageFormatInfos[Image.Format].GetPixelsSize(Image.Format,
+      Image.Width, Image.Height) = Image.Size));
+  except
+    // Possible int overflows or other errors 
+    Result := False;
+  end;
 end;
 
 function FreeImage(var Image: TImageData): Boolean;
@@ -2399,6 +2409,20 @@ begin
     end;
 end;
 
+function GetFileFormatCount: LongInt;
+begin
+  Result := ImageFileFormats.Count;
+end;
+
+function GetFileFormatAtIndex(Index: LongInt): TImageFileFormat;
+begin
+  if (Index >= 0) and (Index < ImageFileFormats.Count) then
+    Result := TImageFileFormat(ImageFileFormats[Index])
+  else
+    Result := nil;
+end;
+
+
 function GetImageFileFormatsFilter(OpenFileFilter: Boolean): string;
 var
   I, J, Count: LongInt;
@@ -2601,6 +2625,8 @@ end;
 
 function TImageFileFormat.PostLoadCheck(var Images: TDynImageDataArray;
   LoadResult: Boolean): Boolean;
+var
+  I: LongInt;
 begin
   if not LoadResult then
   begin
@@ -2609,7 +2635,17 @@ begin
     Result := False;
   end
   else
+  begin
     Result := (Length(Images) > 0) and TestImagesInArray(Images);
+
+    if Result then
+    begin
+      // Convert to overriden format if it is set
+      if LoadOverrideFormat <> ifUnknown then
+        for I := Low(Images) to High(Images) do
+          ConvertImage(Images[I], LoadOverrideFormat);
+    end;
+  end;
 end;
   
 function TImageFileFormat.PrepareSave(Handle: TImagingHandle;
@@ -2712,7 +2748,6 @@ end;
 function TImageFileFormat.LoadFromFile(const FileName: string;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
-  I: LongInt;
   Handle: TImagingHandle;
 begin
   Result := False;
@@ -2734,10 +2769,6 @@ begin
     finally
       IO.Close(Handle);
     end;
-    // Convert to overriden format if set
-    if LoadOverrideFormat <> ifUnknown then
-      for I := 0 to Length(Images) - 1 do
-        ConvertImage(Images[I], LoadOverrideFormat);
   except
     RaiseImaging(SErrorLoadingFile, [FileName]);
   end;
@@ -2746,7 +2777,6 @@ end;
 function TImageFileFormat.LoadFromStream(Stream: TStream;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
-  I: LongInt;
   Handle: TImagingHandle;
   OldPosition: Int64;
 begin
@@ -2770,10 +2800,6 @@ begin
     finally
       IO.Close(Handle);
     end;
-    // Convert to overriden format if set
-    if LoadOverrideFormat <> ifUnknown then
-      for I := 0 to Length(Images) - 1 do
-        ConvertImage(Images[I], LoadOverrideFormat);
   except
     Stream.Position := OldPosition;
     RaiseImaging(SErrorLoadingStream, [@Stream]);
@@ -2783,7 +2809,6 @@ end;
 function TImageFileFormat.LoadFromMemory(Data: Pointer; Size: LongInt; var
   Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
-  I: LongInt;
   Handle: TImagingHandle;
   IORec: TMemoryIORec;
 begin
@@ -2807,10 +2832,6 @@ begin
     finally
       IO.Close(Handle);
     end;
-    // Convert to overriden format if set
-    if LoadOverrideFormat <> ifUnknown then
-      for I := 0 to Length(Images) - 1 do
-        ConvertImage(Images[I], LoadOverrideFormat);
   except
     RaiseImaging(SErrorLoadingMemory, [Data, Size]);
   end;
@@ -3103,15 +3124,15 @@ finalization
     - add some color functions - create, convert, add, merge, ...
     - do not load all frames when only one is required, possible?
       (LoadImageFromFile on MNG/DDS)
-    - put changing format according to ImagingOverrideFormat to PostLoadCheck
-      to avoid duplicity
-    - handle SupportedFormats in TImageFileFormat like in Portable maps
-    - make simpler MakeCompatible (make it public), avoid code duplicity as it is now
-      just override new format selection part - ConvertToCompatible
+
     - create giga test of MakeCompatible - for all file fromats try
-      to send all possible data formats to MakeCompatible and observe the results  
+      to send all possible data formats to MakeCompatible and observe the results
+      and saving/loading too!
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Converting loaded images to ImagingOverrideFormat is now done
+      in PostLoadCheck method to avoid code duplicity.
+    - Added GetFileFormatCount and GetFileFormatAtIndex functions
     - Bug in ConvertImage: if some format was converted to similar format
       only with swapped channels (R16G16B16<>B16G16R16) then channels were
       swapped correctly but new data format (swapped one) was not set.

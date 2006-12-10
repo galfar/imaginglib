@@ -1320,7 +1320,7 @@ begin
           PrevLine, @PByteArray(TotalBuffer)[I * (BytesPerLine + 1) + 1]);
       PrevLine := @PByteArray(Bits)[I * BytesPerLine];
       // Swap red and blue if necessary
-      if (IHDR.ColorType in [2, 6]) and (not FmtInfo.IsRBSwapped) then
+      if (IHDR.ColorType in [2, 6]) and not FmtInfo.IsRBSwapped then
         SwapRGB(@PByteArray(TotalBuffer)[I * (BytesPerLine + 1) + 1],
           IHDR.Width, IHDR.BitDepth, FmtInfo.BytesPerPixel);
       // Images with 16 bit channels must be swapped because of PNG's big endianess
@@ -1754,8 +1754,8 @@ begin
     end
     else
       if Info.IsFloatingPoint then
-        // Convert floating point images to 64 bit ARGB
-        ConvFormat := ifA16B16G16R16
+        // Convert floating point images to 64 bit ARGB (or RGB if no alpha)
+        ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16B16G16R16, ifB16G16R16)
       else if Info.HasAlphaChannel or Info.IsSpecial then
         // Convert all other images with alpha or special images to A8R8G8B8
         ConvFormat := ifA8R8G8B8
@@ -1769,7 +1769,7 @@ begin
     if Info.HasGrayChannel then
       ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8Gray8, ifGray8)
     else
-      ConvFormat := IffFormat(Info.HasAlphaChannel, ifR8G8B8, ifA8R8G8B8)
+      ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8R8G8B8, ifR8G8B8);
   end;
 
   ConvertImage(Image, ConvFormat);
@@ -1810,10 +1810,10 @@ constructor TPNGFileFormat.Create;
 begin
   inherited Create;
   FName := SPNGFormatName;
+  AddMasks(SPNGMasks);
 
   FSignature := PNGSignature;
-
-  AddMasks(SPNGMasks);
+                      
   RegisterOption(ImagingPNGPreFilter, @FPreFilter);
   RegisterOption(ImagingPNGCompressLevel, @FCompressLevel);
 end;
@@ -1872,9 +1872,9 @@ begin
   inherited Create;
   FName := SMNGFormatName;
   FIsMultiImageFormat := True;
-  FSignature := MNGSignature;
-
   AddMasks(SMNGMasks);
+
+  FSignature := MNGSignature;
 
   RegisterOption(ImagingMNGLossyCompression, @FLossyCompression);
   RegisterOption(ImagingMNGLossyAlpha, @FLossyAlpha);
@@ -1988,11 +1988,10 @@ constructor TJNGFileFormat.Create;
 begin
   inherited Create;
   FName := SJNGFormatName;
-  FSignature := JNGSignature;
-
-  FLossyCompression := True;
-  
   AddMasks(SJNGMasks);
+
+  FSignature := JNGSignature;
+  FLossyCompression := True;
 
   RegisterOption(ImagingJNGLossyAlpha, @FLossyAlpha);
   RegisterOption(ImagingJNGAlphaPreFilter, @FPreFilter);
@@ -2069,6 +2068,7 @@ finalization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Small changes in converting to supported formats. 
     - MakeCompatible method moved to base class, put ConvertToSupported here.
       GetSupportedFormats removed, it is now set in constructor.
     - Made public properties for options registered to SetOption/GetOption
