@@ -33,10 +33,14 @@ unit ImagingExtras;
 
 {$I ImagingOptions.inc}
 
-{ $DEFINE LINK_JPEG2000}    // link support for JPEG2000 images
+{$DEFINE LINK_JPEG2000}    // link support for JPEG2000 images
 {$DEFINE LINK_PNM}         // link support for Portable Maps images
 {$DEFINE LINK_PCX}         // link support for PCX images
 {$DEFINE LINK_ELDER}       // link support for Elder Imagery images
+
+{$IFNDEF MSWINDOWS}
+  {$UNDEF LINK_JPEG2000}
+{$ENDIF}
 
 interface
 
@@ -51,6 +55,17 @@ const
     Allowed values are 0 (store as text - very! large files) and 1 (save binary).
     Default value is 1.}
   ImagingPPMSaveBinary = 51;
+
+  { Controls Jpeg 2000 lossy compression quality. It is number in range 1..100.
+    1 means small/ugly file, 100 means large/nice file. Default is 80.}
+  ImagingJpeg2000Quality = 55;
+  { Controls whether Jpeg 2000 image is saved with full file headers or just
+    as code stream. Default value is False (0).}
+  ImagingJpeg2000CodeStreamOnly = 56;
+  { Specifies Jpeg 2000 image compression type. If True (1), saved Jpeg 2000 files
+  will be losslessly compressed. Otherwise lossy compression is used.
+  Default value is False (0).}
+  ImagingJpeg2000LosslessCompression = 57;
 
 implementation
 
