@@ -45,7 +45,7 @@ namespace Imaging
 #endif
 
 #define ImagingMajor 0
-#define ImagingMinor 20
+#define ImagingMinor 22
 #define ImagingPatch 0
 
 #define ImagingJpegQuality           10
@@ -133,7 +133,9 @@ typedef enum TImageFormat
   /* special formats */
   ifDXT1           = 220,
   ifDXT3           = 221,
-  ifDXT5           = 222
+  ifDXT5           = 222,
+  /* dummy */
+  ifForce32        = 0x7FFFFFFF
 } TImageFormat;
 
 typedef unsigned long TColor32;
@@ -303,3 +305,11 @@ typedef int (ImagingAPI * TWriteProc) (TImagingHandle Handle, Pointer Buffer, in
 #pragma pack(pop)
 
 #endif
+
+/*
+  Changes/Bug Fixes:
+
+  -- 0.21 -----------------------------------------------------
+	- Added ifForce32 to TImageFormat to ensure that this enum has size of 4 bytes. 
+
+*/

@@ -47,6 +47,7 @@ TImFreeImage ImFreeImage = NULL;
 TImDetermineFileFormat ImDetermineFileFormat = NULL;
 TImDetermineMemoryFormat ImDetermineMemoryFormat = NULL;
 TImIsFileFormatSupported ImIsFileFormatSupported = NULL;
+TImEnumFileFormats ImEnumFileFormats = NULL;
 /* Image List Functions */
 TImInitImageList ImInitImageList = NULL;
 TImGetImageListSize ImGetImageListSize = NULL;
@@ -127,6 +128,7 @@ Boolean ImLoadLibrary(void)
   ImDetermineFileFormat = (TImDetermineFileFormat)DllGet(LibHandle, "ImDetermineFileFormat");
   ImDetermineMemoryFormat = (TImDetermineMemoryFormat)DllGet(LibHandle, "ImDetermineMemoryFormat");
   ImIsFileFormatSupported = (TImIsFileFormatSupported)DllGet(LibHandle, "ImIsFileFormatSupported");  
+  ImEnumFileFormats = (TImEnumFileFormats)DllGet(LibHandle, "ImEnumFileFormats");
   /* Image List Functions */
   ImInitImageList = (TImInitImageList)DllGet(LibHandle, "ImInitImageList");
   ImGetImageListSize = (TImGetImageListSize)DllGet(LibHandle, "ImGetImageListSize");

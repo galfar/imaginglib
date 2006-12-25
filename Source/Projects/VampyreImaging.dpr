@@ -51,6 +51,7 @@ exports
   ImDetermineFileFormat,
   ImDetermineMemoryFormat,
   ImIsFileFormatSupported,
+  ImEnumFileFormats,
 
   ImInitImageList,
   ImGetImageListSize,

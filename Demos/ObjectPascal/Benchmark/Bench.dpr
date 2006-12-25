@@ -27,7 +27,7 @@ program Bench;
 {$DEFINE LOG_TO_FILE}
 { Define this to write images created in saving test on disk.
   They are saved only to memory when testing.}
-{ $DEFINE SAVE_IMAGES_TO_FILES}
+{$DEFINE SAVE_IMAGES_TO_FILES}
 
 {$APPTYPE CONSOLE}
 
@@ -46,16 +46,18 @@ type
     maCopyRect, maMapImage, maFill, maSplit, maMakePal, maReplace,
     maRotate180, maRotate90, maStretchRect);
 
+  TFileFormatInfo = record
+    Name: string;
+    Ext: string;
+    Masks: string;
+    CanSave: Boolean;
+    IsMulti: Boolean;
+  end;
+
 const
   SDataDir = 'Data';
-  SLoadImageJpg =  'Tigers.jpg';
-  SLoadImageBmp =  'Tigers.bmp';
-  SLoadImagePng =  'Tigers.png';
-  SLoadImageDds =  'Tigers.dds';
-  SLoadImageTga =  'Tigers.tga';
-  SLoadImageMng =  'Drake.mng';
-  SLoadImageJng =  'Tigers.jng';
-  SSaveImage = '_out';
+  SImageName = 'Tigers';
+  SSaveImage = '_BenchOut';
 
 var
   Time: Int64;
@@ -66,22 +68,34 @@ var
 
 procedure WriteTimeDiff(const Msg: string; const OldTime: Int64);
 begin
-  WriteLn(Output, Format('%-60s %16.0n us', [Msg, GetTimeMicroseconds - OldTime * 1.0]));
+  WriteLn(Output, Format('%-58s %16.0n us', [Msg, GetTimeMicroseconds -
+    OldTime * 1.0]));
+end;
+
+function GetImageName(const Ext: string): string;
+begin
+  Result := GetDataDir + PathDelim + SImageName + '.' + Ext;
 end;
 
 procedure LoadImage(const Name: string);
 var
   Mem: TMemoryStream;
 begin
-  Mem := TMemoryStream.Create;
-  WriteLn(Output, 'Loading image: ' + Name);
-  Mem.LoadFromFile(GetDataDir + PathDelim + Name);
-  Time := GetTimeMicroseconds;
-  // we are loading from memory stream so there is no file system
-  // overhead measured
-  Imaging.LoadImageFromStream(Mem, Img);
-  WriteTimeDiff('Image loaded in:', Time);
-  Mem.Free;
+  if FileExists(Name) then
+  begin
+    Mem := TMemoryStream.Create;
+    try
+      WriteLn(Output, 'Loading image: ' + ExtractFileName(Name));
+      Mem.LoadFromFile(Name);
+      Time := GetTimeMicroseconds;
+      // We are loading from memory stream so there is no file system
+      // overhead measured.
+      Imaging.LoadImageFromStream(Mem, Img);
+      WriteTimeDiff('Image loaded in:', Time);
+    finally
+      Mem.Free;
+    end;
+  end;
 end;
 
 procedure SaveImage(const Ext: string);
@@ -90,15 +104,20 @@ var
 begin
   Mem := TMemoryStream.Create;
   WriteLn(Output, 'Saving image to format: ' + Ext);
-  Time := GetTimeMicroseconds;
-  // we are saving to memory stream so there is no file system
-  // overhead measured
-  Imaging.SaveImageToStream(Ext, Mem, Img);
-  WriteTimeDiff('Image saved in:', Time);
-{$IFDEF SAVE_IMAGES_TO_FILES}
-  Mem.SaveToFile(GetAppDir +  PathDelim + sSaveImage + '.' + Ext);
-{$ENDIF}
-  Mem.Free;
+  try
+    Time := GetTimeMicroseconds;
+    // We are saving to memory stream so there is no file system
+    // overhead measured. But if image is in data format which is not
+    // supported by this file format the measured time will include conversion
+    // time.
+    Imaging.SaveImageToStream(Ext, Mem, Img);
+    WriteTimeDiff('Image saved in:', Time);
+  {$IFDEF SAVE_IMAGES_TO_FILES}
+    Mem.SaveToFile(GetAppDir +  PathDelim + sSaveImage + '.' + Ext);
+  {$ENDIF}
+  finally
+    Mem.Free;
+  end;
 end;
 
 var
@@ -106,8 +125,9 @@ var
   Subs: TDynImageDataArray;
   FillColor: TColor32Rec = (Color: $FFFF0000);
   NewColor: TColor32Rec = (Color: $FF00CCFF);
-  XCount, YCount: LongInt;
+  I, XCount, YCount: LongInt;
   Pal: PPalette32;
+  Formats: array of TFileFormatInfo;
 
 procedure ManipulateImage(Man: TManipulation);
 begin
@@ -299,13 +319,13 @@ end;
 
 begin
 {$IFDEF LOG_TO_FILE}
-  // if logging to file is defined new output file is created
-  // and all messages are written into it
+  // If logging to file is defined new output file is created
+  // and all messages are written into it.
   AssignFile(Output, GetAppDir + PathDelim + 'ResultsPas.log');
   Rewrite(Output);
   WriteLn('Benchmarking ...');
 {$ELSE}
-  // else standard System.Output file is used
+  // Otherwise standard System.Output file is used.
 {$ENDIF}
 
   WriteLn(Output, 'Vampyre Imaging Library Benchmark Demo version ',
@@ -315,7 +335,7 @@ begin
 
   if not DirectoryExists(GetDataDir) then
   begin
-    // if required testing data is not found, program halts
+    // If required testing data is not found program halts.
     WriteLn(Output, 'Error!' + sLineBreak + '"Data" directory with ' +
       'required "Tigers.*" images not found.');
     WriteLn;
@@ -324,80 +344,93 @@ begin
     Halt(1);
   end;
 
-  // call this before any manipulation with TImageData record
+  // Call this before any manipulation with TImageData record.
   Imaging.InitImage(Img);
-
   try
-    // test image loading functions for all supported image file formats
-    // note that image loaded in one LoadImage is automaticaly
-    // freed in then next LoadImage call
-    WriteLn(Output, '-------------  Loading Images -------------');
-    LoadImage(SLoadImageJpg);
-    LoadImage(SLoadImageBmp);
-    LoadImage(SLoadImagePng);
-    LoadImage(SLoadImageTga);
-    LoadImage(SLoadImageMng);
-    LoadImage(SLoadImageJng);
-    LoadImage(SLoadImageDds);
+    try
+      I := 0;
+      SetLength(Formats, 1);
+      // Enumerate all supported file formats and store their properties
+      // to dyn array. After each iteration dyn array's size is increased by one
+      // so next call to EnumFileFormats will have free space for results.
+      // After enumerating last array item should be deleted because its empty.
+      while Imaging.EnumFileFormats(I, Formats[I].Name, Formats[I].Ext,
+        Formats[I].Masks, Formats[I].CanSave, Formats[I].IsMulti) do
+      begin
+        SetLength(Formats, I + 1);
+      end;
+      SetLength(Formats, I - 1);
 
-    // test image manipulation functions like conversions, resizing and other
-    WriteLn(Output, sLineBreak + '-----------  Image Manipulation -----------');
-    ManipulateImage(maDecompressDXT);
-    ManipulateImage(maResize3k);
-    ManipulateImage(maConvARGB64);
-    ManipulateImage(maFlip);
-    ManipulateImage(maMirror);
-    ManipulateImage(maSwapChannels);
-    ManipulateImage(maConvARGBF);
-    ManipulateImage(maConvARGB16);
-    ManipulateImage(maConvARGB32);
-    ManipulateImage(maClone);
-    ManipulateImage(maCopyRect);
-    ManipulateImage(maFill);
-    ManipulateImage(maStretchRect);
-    ManipulateImage(maReplace);
-    ManipulateImage(maMipMaps);
-    ManipulateImage(maSplit);
-    ManipulateImage(maResize1k);
-    ManipulateImage(maRotate180);
-    ManipulateImage(maRotate90);
-    ManipulateImage(maReduceColors);
-    ManipulateImage(maMakePal);
-    ManipulateImage(maMapImage);
-    ManipulateImage(maCompressDXT);
+      // Test image loading functions for all supported image file formats
+      // note that image loaded in one LoadImage is automaticaly
+      // freed in then next LoadImage call so no leaks (should) occurr.
+      WriteLn(Output, '-------------  Loading Images -------------');
+      for I := Low(Formats) to High(Formats) do
+        LoadImage(GetImageName(Formats[I].Ext));
 
-    // test image saving functions. Image is converted to R8G8B8 after DDS file
-    // saving, otherwise image would have to be decompressed from DXT1 by
-    // the other image savers every time.
-    WriteLn(Output, sLineBreak + '-------------  Saving Images --------------');
-    SaveImage('dds');
-    ManipulateImage(maConvRGB24);
-    SaveImage('jpg');
-    SaveImage('bmp');
-    SaveImage('png');
-    SaveImage('tga');
-    SaveImage('mng');
-    SaveImage('jng');
-  except
-    on E: Exception do
-    begin
-      WriteLn('Exception Raised!');
-      WriteLn(E.Message);
+      // Test image manipulation functions like conversions, resizing and other.
+      WriteLn(Output, sLineBreak + '-----------  Image Manipulation -----------');
+      ManipulateImage(maResize3k);
+      ManipulateImage(maConvARGB64);
+      ManipulateImage(maFlip);
+      ManipulateImage(maMirror);
+      ManipulateImage(maSwapChannels);
+      ManipulateImage(maConvARGBF);
+      ManipulateImage(maConvARGB16);
+      ManipulateImage(maConvARGB32);
+      ManipulateImage(maClone);
+      ManipulateImage(maCopyRect);
+      ManipulateImage(maFill);
+      ManipulateImage(maStretchRect);
+      ManipulateImage(maReplace);
+      ManipulateImage(maMipMaps);
+      ManipulateImage(maSplit);
+      ManipulateImage(maResize1k);
+      ManipulateImage(maRotate180);
+      ManipulateImage(maRotate90);
+      ManipulateImage(maReduceColors);
+      ManipulateImage(maMakePal);
+      ManipulateImage(maMapImage);
+      ManipulateImage(maCompressDXT);
+      ManipulateImage(maDecompressDXT);
+      ManipulateImage(maConvRGB24);
+
+      // Test image saving functions. Image is now in R8G8B8 format. Note that
+      // some supported file formats cannot save images in R8G8B8 so their
+      // time includes conversions.
+      WriteLn(Output, sLineBreak + '-------------  Saving Images --------------');
+      for I := Low(Formats) to High(Formats) do
+      begin
+        if Formats[I].CanSave then
+          SaveImage(Formats[I].Ext);
+      end;
+
+    except
+      on E: Exception do
+      begin
+        WriteLn('Exception Raised!');
+        WriteLn(E.Message);
+      end;
     end;
+  finally
+    // Image must be freed in the end.
+    Imaging.FreeImage(Img);
+  {$IFDEF LOG_TO_FILE}
+    CloseFile(Output);
+    WriteLn('Results written to "ResultsPas.log" file.');
+  {$ENDIF}
   end;
 
-  // image must be freed in the end
-  Imaging.FreeImage(Img);
-{$IFDEF LOG_TO_FILE}
-  CloseFile(Output);
-  WriteLn('Results written to "ResultsPas.log" file.');
-{$ENDIF}
   WriteLn;
   WriteLn('Press RETURN key to exit');
   ReadLn;
 
 {
   File Notes:
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Now uses file format enumeration so it tries to load/save images in
+      all supported formats. Plus some minor aesthetic changes.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added thousand separators to output times

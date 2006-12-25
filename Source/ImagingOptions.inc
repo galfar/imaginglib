@@ -1,6 +1,11 @@
 { $Id$ }
 
-{ Imaging options }
+{
+  User Options
+  Following defines and options can be changed by user.
+}
+
+{ Source options. }
 
 {$DEFINE USE_INLINE}          // use function inlining for some functions
                               // works in Free Pascal and Delphi 9+
@@ -9,11 +14,38 @@
 {$DEFINE DEBUG}               // if defined, debug info and range/IO/overflow
                               // checking and stack frames will be turned on
 
-// define component set used in ImagignComponents.pas unit
-{$DEFINE COMPONENT_SET_VCL}   // use Borland's VCL
-{ $DEFINE COMPONENT_SET_CLX}   // use Borland's CLX (set automatically when using Kylix, must be se manually when using Delphi 6/7)
-{ $DEFINE COMPONENT_SET_LCL}   // use Lazarus' LCL (set automatically when using FPC)
+{ File format support linking options. Undefine formats which you don't want
+  to be registred automatically. }
 
+{$DEFINE LINK_JPEG}        // link support for Jpeg images
+{$DEFINE LINK_PNG}         // link support for PNG images
+{$DEFINE LINK_TARGA}       // link support for Targa images
+{$DEFINE LINK_BITMAP}      // link support for Windows Bitmap images
+{$DEFINE LINK_DDS}         // link support for DDS images
+{$DEFINE LINK_MNG}         // link support for MNG images
+{$DEFINE LINK_JNG}         // link support for JNG images
+
+{$DEFINE LINK_EXTRAS}      // link support for file formats defined in
+                           // Extras package. Exactly which formats will be
+                           // registered depends on settings in
+                           // ImagingExtras.pas unit.
+
+{ Component set used in ImagignComponents.pas unit. You usually don't need
+  to be concerned with this - proper component library is selected automatically
+  according to your compiler (only exception is using CLX in Delphi 6/7). }
+
+{$DEFINE COMPONENT_SET_VCL}   // use Borland's VCL
+{ $DEFINE COMPONENT_SET_CLX}   // use Borland's CLX (set automatically when using Kylix,
+                              // must be se manually when compiling with Delphi 6/7)
+{ $DEFINE COMPONENT_SET_LCL}   // use Lazarus' LCL (set automatically when
+                              // compiling with FPC)
+
+{
+  Auto Options
+  Following options and defines are set automatically and some
+  are required for Imaging to compile successfully. Do not change
+  anything here if you don't know what you are doing.
+}
 
 { Compiler options }
 
@@ -175,25 +207,6 @@
 {$IFDEF HAS_INLINE}        
   {$INLINE ON}             // turns inlining on for compilers that support it
 {$ENDIF}
-
-
-{ Extensions linking options }
-
-{$DEFINE LINK_JPEG}        // link support for Jpeg images
-{$DEFINE LINK_PNG}         // link support for PNG images
-{$DEFINE LINK_TARGA}       // link support for Targa images
-{$DEFINE LINK_BITMAP}      // link support for Windows Bitmap images
-{$DEFINE LINK_DDS}         // link support for DDS images
-{$DEFINE LINK_MNG}         // link support for MNG images
-{$DEFINE LINK_JNG}         // link support for JNG images
-
-{$DEFINE LINK_OPENGL}      // link support for OpenGL
-{$DEFINE LINK_SDL}         // link support for SDL
-{$DEFINE LINK_D3D9}        // link support for D3D9
-
-//{$DEFINE LINK_DRAWING}     // link drawing function
-//{$DEFINE LINK_EFFECTS}     // link effect functions
-
 
 { Extension dependencies check }
 

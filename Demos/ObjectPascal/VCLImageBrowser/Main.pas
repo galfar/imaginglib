@@ -41,8 +41,6 @@ uses
   ImagingComponents,
   ImagingCanvases,
   ImagingFormats, 
-  { Uncomment this to get support for file formats declared in Extras package }
-  //ImagingExtras,
   ImagingUtility;
 
 type

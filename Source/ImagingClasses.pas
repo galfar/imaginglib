@@ -180,6 +180,7 @@ type
     procedure SetActiveImage(Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetImageCount: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetImageCount(Value: LongInt);
+    function GetAllImagesValid: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetImage(Index: LongInt): TImageData; {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetImage(Index: LongInt; Value: TImageData); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetPointer; override;
@@ -245,6 +246,8 @@ type
     property ActiveImage: LongInt read FActiveImage write SetActiveImage;
     { Number of images of this multi image.}
     property ImageCount: LongInt read GetImageCount write SetImageCount;
+    { This value is True if all images of this TMultiImage are valid.}
+    property AllImagesValid: Boolean read GetAllImagesValid;
     { This gives complete access to underlying TDynImageDataArray.
       It can be used in functions that take TDynImageDataArray
       as parameter.}
@@ -618,6 +621,11 @@ begin
   SetPointer;
 end;
 
+function TMultiImage.GetAllImagesValid: Boolean;
+begin
+  Result := TestImagesInArray(FDataArray);
+end;
+
 function TMultiImage.GetImage(Index: LongInt): TImageData;
 begin
   Result := DataArray[Index];
@@ -840,6 +848,7 @@ end;
       to point to when active image = -1)
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added AllImagesValid property to TMultiImage.
     - Fixed memory leak in TMultiImage.CreateFromParams.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------

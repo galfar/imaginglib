@@ -32,5 +32,8 @@ delintree $ROOTDIR/Source/ZLib
 delintree $ROOTDIR/Source/Extensions
 delintree $ROOTDIR/Source/Projects
 delindir $ROOTDIR/Source
+delindir $ROOTDIR/Extras/Extensions
+delintree $ROOTDIR/Extras/Demos
+delintree $ROOTDIR/Extras/Tools
 
 echo "Clean finished"

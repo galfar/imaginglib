@@ -416,7 +416,7 @@ type
   TTellProc = function(Handle: TImagingHandle): LongInt; cdecl;
   TReadProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
   TWriteProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
-
+       
 implementation
 
 {
@@ -465,6 +465,4 @@ implementation
 
 }
 
-end.
-
-
+end. 

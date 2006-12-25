@@ -68,6 +68,7 @@ typedef Boolean (ImagingAPI * TImFreeImage)(PImageData Image);
 typedef Boolean (ImagingAPI * TImDetermineFileFormat)(const char * FileName, char * Ext);
 typedef Boolean (ImagingAPI * TImDetermineMemoryFormat)(const void * Data, int Size, char * Ext);
 typedef Boolean (ImagingAPI * TImIsFileFormatSupported)(const char * FileName);
+typedef Boolean (ImagingAPI * TImEnumFileFormats)(int * Index, char * Name, char * DefaultExt, char * Masks, Boolean * CanSave, Boolean * IsMultiImageFormat);
 
 extern TImGetVersion ImGetVersion;
 extern TImInitImage ImInitImage;
@@ -77,6 +78,7 @@ extern TImFreeImage ImFreeImage;
 extern TImDetermineFileFormat ImDetermineFileFormat;
 extern TImDetermineMemoryFormat ImDetermineMemoryFormat;
 extern TImIsFileFormatSupported ImIsFileFormatSupported;
+extern TImEnumFileFormats ImEnumFileFormats;
 
 /* Image List Functions */
 
@@ -229,6 +231,9 @@ extern TImResetFileIO ImResetFileIO;
 
 /*
   Changes/Bug Fixes:
+
+  -- 0.21 -----------------------------------------------------
+    - Updated to current DLL version.
 
   -- 0.15 -----------------------------------------------------
     - changed some parameter declarations in headers of some functions 

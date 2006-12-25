@@ -61,7 +61,7 @@ type
     Assign also to/from TImageData structres and TBaseImage
     classes. Each descendant class can load all file formats
     supported by Imaging but save only one format (TImagingBitmap
-    for *.bmp, TImagingJpeg for *.jpg).                           }
+    for *.bmp, TImagingJpeg for *.jpg). }
   TImagingGraphic = class(TBitmap)
   protected
     FDefaultFileExt: string;
@@ -1184,6 +1184,7 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+    - add new image file formats (automate this somehow)
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added DisplayImage procedures (thanks to Paul Michell, modified)

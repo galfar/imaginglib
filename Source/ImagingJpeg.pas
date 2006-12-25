@@ -501,16 +501,16 @@ var
 begin
   Result := False;
   if Handle <> nil then
-    with GetIO do
-    begin
-      FillChar(ID, SizeOf(ID), 0);
-      ReadCount := Read(Handle, @ID, SizeOf(ID));
-      Seek(Handle, -ReadCount, smFromCurrent);
-      Result := (ReadCount = SizeOf(ID)) and
-        CompareMem(@ID, @JpegMagic, SizeOf(JpegMagic)) and
-        (CompareMem(@ID[6], @JFIFSignature, SizeOf(JFIFSignature)) or
-        CompareMem(@ID[6], @EXIFSignature, SizeOf(EXIFSignature)));
-    end;
+  with GetIO do
+  begin
+    FillChar(ID, SizeOf(ID), 0);
+    ReadCount := Read(Handle, @ID, SizeOf(ID));
+    Seek(Handle, -ReadCount, smFromCurrent);
+    Result := (ReadCount = SizeOf(ID)) and
+      CompareMem(@ID, @JpegMagic, SizeOf(JpegMagic)) and
+      (CompareMem(@ID[6], @JFIFSignature, SizeOf(JFIFSignature)) or
+      CompareMem(@ID[6], @EXIFSignature, SizeOf(EXIFSignature)));
+  end;
 end;
 
 procedure TJpegFileFormat.SetJpegIO(const JpegIO: TIOFunctions);

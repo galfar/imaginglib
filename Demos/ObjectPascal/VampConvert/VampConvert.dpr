@@ -46,8 +46,12 @@ end;
 
 procedure PrintUsage;
 var
-  I: TImageFormat;
+  I: LongInt;
+  FmtIter: TImageFormat;
   Info: TImageFormatInfo;
+  Name, Ext, Masks: string;
+  CanSave, IsMulti: Boolean;
+  FileFormats: TStringList;
 begin
   WriteLn('Usage:');
   WriteLn('VampConvert [-op=arg] [..] -infile=file.ext [..] [-outfile=file.ext] [-op=arg]');
@@ -75,13 +79,35 @@ begin
   WriteLn('                 create all possible levels');
   WriteLn('    -rotate: rotates input images counterclockwise');
   WriteLn('       argument: angle in degrees, multiple of 90');
-  WriteLn('  Supported file formats: PNG, JPG, TGA, DDS, JNG, MNG, BMP');
-  Write  ('  Supported data formats: ');
 
-  for I := ifIndex8 to High(TImageFormat) do
+  // Enumerate all supported file formats and store default ext and
+  // their capability to save files to string list.
+  FileFormats := TStringList.Create;
+  I := 0;
+  while EnumFileFormats(I, Name, Ext, Masks, CanSave, IsMulti) do
+    FileFormats.AddObject(Ext, TObject(CanSave));
+  // Print all file formats that support loading files (just write all)
+  WriteLn;
+  WriteLn('  Supported file formats (INPUT): ');
+  for I := 0 to FileFormats.Count - 1 do
+    Write(FileFormats[I], ' ');
+  // Print all file formats that support saving files
+  WriteLn;
+  WriteLn('  Supported file formats (OUTPUT): ');
+  for I := 0 to FileFormats.Count - 1 do
   begin
-    if Imaging.GetImageFormatInfo(I, Info) then
-      Write(Info.Name, Iff(I <> High(TImageFormat), ', ', ''));
+    if Boolean(FileFormats.Objects[I]) then
+      Write(FileFormats[I], ' ');
+  end;
+  FileFormats.Free;
+
+  WriteLn;
+  // Iterate over all image data formats and write their names
+  Write  ('  Supported data formats: ');
+  for FmtIter := ifIndex8 to High(TImageFormat) do
+  begin
+    if Imaging.GetImageFormatInfo(FmtIter, Info) then
+      Write(Info.Name, ' ');
   end;
 end;
 
@@ -329,7 +355,6 @@ begin
         // Warn about unknown operations passed to program
         PrintWarning('Unrecognized operation: ' + OpName, []);
       end;
-
     end;
 
     // Finally save the result
@@ -364,7 +389,10 @@ begin
   -- TODOS ----------------------------------------------------
     - more operations
     - allow changing ImagingOptions too
-    - make list of supported file formats dynamic as the data fmt list is
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - List of supported file formats printed by PrintUsage is now
+      dynamic and shows input and output formats separately
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - demo created

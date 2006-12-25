@@ -37,8 +37,6 @@ uses
   ImagingClasses,
   ImagingComponents,
   ImagingCanvases,
-  { Uncomment this to get support for file formats declared in Extras package }
-  //ImagingExtras,
   ImagingUtility;
 
 type

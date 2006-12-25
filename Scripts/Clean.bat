@@ -15,6 +15,9 @@ call :DELINTREE %ROOTDIR%\Source\ZLib
 call :DELINTREE %ROOTDIR%\Source\Extensions
 call :DELINTREE %ROOTDIR%\Source\Projects
 call :DELINDIR %ROOTDIR%\Source
+call :DELINDIR %ROOTDIR%\Extras\Extensions
+call :DELINTREE %ROOTDIR%\Extras\Demos
+call :DELINTREE %ROOTDIR%\Extras\Tools
 
 goto :END
 

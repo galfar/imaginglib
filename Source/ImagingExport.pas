@@ -58,6 +58,9 @@ function ImDetermineFileFormat(FileName, Ext: PChar): Boolean; cdecl;
 function ImDetermineMemoryFormat(Data: Pointer; Size: LongInt; Ext: PChar): Boolean; cdecl;
 { Look at IsFileFormatSupported for details.}
 function ImIsFileFormatSupported(FileName: PChar): Boolean; cdecl;
+{ Look at EnumFileFormats for details.}
+function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PChar;
+  var CanSave, IsMultiImageFormat: Boolean): Boolean; cdecl;
 
 { Inits image list.}
 function ImInitImageList(Size: LongInt; var ImageList: TImageDataList): Boolean; cdecl;
@@ -288,6 +291,22 @@ function ImIsFileFormatSupported(FileName: PChar): Boolean;
 begin
   try
     Result := Imaging.IsFileFormatSupported(FileName);
+  except
+    Result := False;
+  end;
+end;
+
+function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PChar;
+  var CanSave, IsMultiImageFormat: Boolean): Boolean; cdecl;
+var
+  StrName, StrDefaultExt, StrMasks: string;
+begin
+  try
+    Result := Imaging.EnumFileFormats(Index, StrName, StrDefaultExt, StrMasks, CanSave,
+      IsMultiImageFormat);
+    StrCopy(Name, PChar(StrName));
+    StrCopy(DefaultExt, PChar(StrDefaultExt));
+    StrCopy(Masks, PChar(StrMasks));
   except
     Result := False;
   end;

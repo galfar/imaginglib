@@ -199,7 +199,7 @@ procedure SwapEndianLongWord(P: PLongWord; Count: LongInt); overload;
 { Calculates CRC32 for the given data.}
 procedure CalcCrc32(var Crc: LongWord; Data: Pointer; Size: LongInt);
 { Fills given memory with given Byte value. Size is size of buffer in bytes.}
-procedure FillMemory(Data: Pointer; Size: LongInt; Value: Byte);
+procedure FillMemoryByte(Data: Pointer; Size: LongInt; Value: Byte);
 { Fills given memory with given Word value. Size is size of buffer in bytes.}
 procedure FillMemoryWord(Data: Pointer; Size: LongInt; Value: Word);
 { Fills given memory with given LongWord value. Size is size of buffer in bytes.}
@@ -516,7 +516,7 @@ begin
   else if (Base = 0.0) and (Exponent > 0.0) then
     Result := 0.0
   else
-    Result := Exp(Exponent * Ln(Base))
+    Result := Exp(Exponent * Ln(Base));
 end;
 
 function Log2Int(X: LongInt): LongInt;
@@ -842,7 +842,7 @@ begin
   end
 end;
 
-procedure FillMemory(Data: Pointer; Size: LongInt; Value: Byte);
+procedure FillMemoryByte(Data: Pointer; Size: LongInt; Value: Byte);
 {$IFDEF USE_ASM}
 asm
   PUSH   EDI
@@ -1168,6 +1168,7 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Renamed FillMemory to FillMemoryByte to avoid name collision in C++ Builder.
     - Added Iff function for Char type.
     - Added IsLittleEndian function.
     - Added array types for TWordRec, TLongWordRec, and TInt64Rec.

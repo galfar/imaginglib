@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 188
-  Top = 146
+  Left = 212
+  Top = 164
   Caption = 'Vampyre Imaging Library Demo - VCL Image Browser'
   ClientHeight = 600
   ClientWidth = 800

@@ -88,7 +88,14 @@ function DetermineMemoryFormat(Data: Pointer; Size: LongInt): string;
   the given file name's extension (not contents of the file itself).
   The file need not exist.}
 function IsFileFormatSupported(const FileName: string): Boolean;
-            
+{ Enumerates all registered image file formats. Descriptive name,
+  default extension, masks (like '*.jpg,*.jfif') and some capabilities
+  of each format are returned. To enumerate all formats start with Index at 0 and
+  call EnumFileFormats with given Index in loop until it returns False (Index is
+  automatically increased by 1 in function's body on successful call).}
+function EnumFileFormats(var Index: LongInt; var Name, DefaultExt, Masks: string;
+  var CanSaveImages, IsMultiImageFormat: Boolean): Boolean;
+
 { Loading Functions }
 
 { Loads single image from given file.}
@@ -528,6 +535,9 @@ uses
 {$IFDEF LINK_TARGA}
   ImagingTarga,
 {$ENDIF}
+{$IFDEF LINK_EXTRAS}
+  ImagingExtras,
+{$ENDIF}
   ImagingFormats, ImagingUtility, ImagingIO;
 
 resourcestring
@@ -872,6 +882,32 @@ end;
 function IsFileFormatSupported(const FileName: string): Boolean;
 begin
   Result := FindImageFileFormatByName(FileName) <> nil;
+end;
+
+function EnumFileFormats(var Index: LongInt; var Name, DefaultExt, Masks: string;
+  var CanSaveImages, IsMultiImageFormat: Boolean): Boolean;
+var
+  FileFmt: TImageFileFormat;
+begin
+  FileFmt := GetFileFormatAtIndex(Index);
+  Result := FileFmt <> nil;
+  if Result then
+  begin
+    Name := FileFmt.Name;
+    DefaultExt := FileFmt.Extensions[0];
+    Masks := FileFmt.Masks.CommaText;
+    CanSaveImages := FileFmt.CanSave;
+    IsMultiImageFormat := FileFmt.IsMultiImageFormat;
+    Inc(Index);
+  end
+  else
+  begin
+    Name := '';
+    DefaultExt := '';
+    Masks := '';
+    CanSaveImages := False;
+    IsMultiImageFormat := False;
+  end;
 end;
 
 { Loading Functions }
@@ -1348,7 +1384,7 @@ begin
     Data := Bits;
 
     // First swap channels of most common formats
-    if (Info.Format = ifA8R8G8B8) or ((Info.Format = ifR8G8B8) and
+    if (Info.Format = ifR8G8B8) or ((Info.Format = ifA8R8G8B8) and
        (SrcChannel <> ChannelAlpha) and (DstChannel <> ChannelAlpha)) then
       for I := 0 to NumPixels - 1 do
         with PColor24Rec(Data)^ do
@@ -1881,7 +1917,7 @@ begin
       for I := 0 to Height - 1 do
       begin
         case Bpp of
-          1: FillMemory(LinePointer, RectWidthBytes, PByte(FillColor)^);
+          1: FillMemoryByte(LinePointer, RectWidthBytes, PByte(FillColor)^);
           2: FillMemoryWord(LinePointer, RectWidthBytes, PWord(FillColor)^);
           4: FillMemoryLongWord(LinePointer, RectWidthBytes, PLongWord(FillColor)^);
         else
@@ -3130,6 +3166,12 @@ finalization
       and saving/loading too!
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Unit ImagingExtras which registers file formats in Extras package
+      is now automatically added to uses clause if LINK_EXTRAS symbol is
+      defined in ImagingOptions.inc file.
+    - Added EnumFileFormats function to low level interface.
+    - Fixed bug in SwapChannels which could cause AV when swapping alpha
+      channel of A8R8G8B8 images.
     - Converting loaded images to ImagingOverrideFormat is now done
       in PostLoadCheck method to avoid code duplicity.
     - Added GetFileFormatCount and GetFileFormatAtIndex functions
