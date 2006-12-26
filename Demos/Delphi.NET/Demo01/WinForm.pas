@@ -236,4 +236,11 @@ begin
   end;
 end;
 
+{
+  File Notes:
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - OpenDialog has now proper filters.
+ }
+
 end.

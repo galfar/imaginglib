@@ -128,12 +128,9 @@ const
   DDSCAPS2_NEGATIVEZ   = $00008000;
   DDSCAPS2_VOLUME      = $00200000;
 
-  { Minimal set of flags required to be in TDDSurfaceDesc2.Flags.}
-  DDS_REQUIRED_FLAGS = DDSD_CAPS or DDSD_PIXELFORMAT or DDSD_WIDTH or
-    DDSD_HEIGHT;
-
   { Flags for TDDSurfaceDesc2.Flags used when saving DDS file.}
-  DDS_SAVE_FLAGS = DDS_REQUIRED_FLAGS or DDSD_LINEARSIZE;
+  DDS_SAVE_FLAGS = DDSD_CAPS or DDSD_PIXELFORMAT or DDSD_WIDTH or
+    DDSD_HEIGHT or DDSD_LINEARSIZE;
 
 type
   { Stores the pixel format information.}
@@ -724,7 +721,6 @@ begin
       ReadCount := Read(Handle, @Hdr, SizeOf(Hdr));
       Seek(Handle, -ReadCount, smFromCurrent);
       Result := (Hdr.Magic = DDSMagic) and (ReadCount = SizeOf(Hdr)) and
-        ((DDS_REQUIRED_FLAGS and Hdr.Desc.Flags) = DDS_REQUIRED_FLAGS) and
         ((Hdr.Desc.Caps.Caps1 and DDSCAPS_TEXTURE) = DDSCAPS_TEXTURE);
     end;
 end;
@@ -740,9 +736,12 @@ initialization
       saved and with proper dims and format
     - always store more images if they are on input, not only when
       SaveMipMapCount is set (problem in VampConvert)
-    - fix fix   
+    - fix fix fix
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Made some changes to not be so strict when loading DDS files.
+      Many programs seem to save them in non-standard format
+      (by MS DDS File Reference).
     - Added missing ifX8R8G8B8 to SupportedFormats, MakeCompatible failed
       when image was converted to this format (inside).
     - MakeCompatible method moved to base class, put ConvertToSupported here.
