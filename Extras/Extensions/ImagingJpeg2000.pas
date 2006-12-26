@@ -352,6 +352,10 @@ var
   compparams: popj_image_cmptparm_array;
 begin
   Result := False;
+  image := nil;
+  compparams := nil;
+  cinfo := nil;
+  cio := nil;
   // Check if option values are valid
   if not (FQuality in [1..100]) then
     FQuality := Jpeg2000DefaultQuality;

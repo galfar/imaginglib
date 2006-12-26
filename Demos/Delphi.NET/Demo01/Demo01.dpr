@@ -11,7 +11,8 @@ uses
   System.Reflection,
   System.Runtime.CompilerServices,
   System.Windows.Forms,
-  WinForm in 'WinForm.pas' {WinForm.TWinForm: System.Windows.Forms.Form};
+  WinForm in 'WinForm.pas' {WinForm.TWinForm: System.Windows.Forms.Form},
+  ImagingNET in '..\..\..\Source\Wrappers\Delphi.NET\ImagingNET.pas';
 
 {$R *.res}
 

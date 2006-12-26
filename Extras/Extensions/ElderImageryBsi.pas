@@ -230,7 +230,7 @@ var
   procedure Reconstruct;
   var
     Index, I, J, K: LongInt;
-    RowOffsets: PLongWordArray;
+    RowOffsets: PLongIntArray;
     Idx: Byte;
     W: Word;
   begin
@@ -247,7 +247,7 @@ var
         // Load animated image:
         // At the beggining of the chunk data there is BHDR.Height * BHDR.Frames
         // 32bit offsets. Each BHDR.Height offsets point to rows of the current frame
-        RowOffsets := PLongWordArray(ChunkData);
+        RowOffsets := PLongIntArray(ChunkData);
 
         for I := 0 to BHDR.Frames - 1 do
         begin
@@ -289,7 +289,7 @@ var
       begin
         // Load animated BattleSpire image, uses offset list just like Redguard
         // animated textures (but high word must be zeroed first to get valid offset)
-        RowOffsets := PLongWordArray(ChunkData);
+        RowOffsets := PLongIntArray(ChunkData);
 
         for I := 0 to BHDR.Frames - 1 do
         begin

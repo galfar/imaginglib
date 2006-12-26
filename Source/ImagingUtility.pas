@@ -172,7 +172,13 @@ function Iff(Condition, TruePart, FalsePart: Boolean): Boolean; overload; {$IFDE
 function Iff(Condition: Boolean; const TruePart, FalsePart: string): string; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { If Condition is True then TruePart is retured, otherwise
   FalsePart is returned.}
-function Iff(Condition: Boolean; const TruePart, FalsePart: Char): Char; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+function Iff(Condition: Boolean; TruePart, FalsePart: Char): Char; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ If Condition is True then TruePart is retured, otherwise
+  FalsePart is returned.}
+function Iff(Condition: Boolean; TruePart, FalsePart: Pointer): Pointer; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ If Condition is True then TruePart is retured, otherwise
+  FalsePart is returned.}
+function Iff(Condition: Boolean; const TruePart, FalsePart: Int64): Int64; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { If Condition is True then TruePart is retured, otherwise
   FalsePart is returned.}
 function IffFloat(Condition: Boolean; TruePart, FalsePart: Single): Single; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -616,7 +622,23 @@ begin
     Result := FalsePart;
 end;
 
-function Iff(Condition: Boolean; const TruePart, FalsePart: Char): Char;
+function Iff(Condition: Boolean; TruePart, FalsePart: Char): Char;
+begin
+  if Condition then
+    Result := TruePart
+  else
+    Result := FalsePart;
+end;
+
+function Iff(Condition: Boolean; TruePart, FalsePart: Pointer): Pointer;
+begin
+  if Condition then
+    Result := TruePart
+  else
+    Result := FalsePart;
+end;
+
+function Iff(Condition: Boolean; const TruePart, FalsePart: Int64): Int64;
 begin
   if Condition then
     Result := TruePart
@@ -1169,7 +1191,7 @@ initialization
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Renamed FillMemory to FillMemoryByte to avoid name collision in C++ Builder.
-    - Added Iff function for Char type.
+    - Added Iff function for Char, Pointer, and Int64 types.
     - Added IsLittleEndian function.
     - Added array types for TWordRec, TLongWordRec, and TInt64Rec.
     - Added MatchFileNameMask function.

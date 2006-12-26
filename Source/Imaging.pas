@@ -895,7 +895,7 @@ begin
   begin
     Name := FileFmt.Name;
     DefaultExt := FileFmt.Extensions[0];
-    Masks := FileFmt.Masks.CommaText;
+    Masks := FileFmt.Masks.DelimitedText; 
     CanSaveImages := FileFmt.CanSave;
     IsMultiImageFormat := FileFmt.IsMultiImageFormat;
     Inc(Index);
@@ -2737,6 +2737,7 @@ var
 begin
   FExtensions.Clear;
   FMasks.CommaText := AMasks;
+  FMasks.Delimiter := ';';
 
   for I := 0 to FMasks.Count - 1 do
   begin

@@ -59,7 +59,7 @@ type
     function GetScanLine(Index: LongInt): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetPixelPointer(X, Y: Integer): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetFormatInfo: TImageFormatInfo; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetValid: Boolean; virtual;
+    function GetValid: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetBoundsRect: TRect;
     procedure SetFormat(Value: TImageFormat); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetHeight(Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -176,7 +176,6 @@ type
   protected
     FDataArray: TDynImageDataArray;
     FActiveImage: LongInt;
-    function GetValid: Boolean; override;
     procedure SetActiveImage(Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetImageCount: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetImageCount(Value: LongInt);
@@ -285,51 +284,59 @@ end;
 
 function TBaseImage.GetWidth: LongInt;
 begin
-  Result := FPData.Width;
+  Result := Iff(Valid, FPData.Width, 0);
 end;
 
 function TBaseImage.GetHeight: LongInt;
 begin
-  Result := FPData.Height;
+  Result := Iff(Valid, FPData.Height, 0);
 end;
 
 function TBaseImage.GetFormat: TImageFormat;
 begin
-  Result := FPData.Format;
+  Result := IffFormat(Valid, FPData.Format, ifUnknown);
 end;
 
 function TBaseImage.GetScanLine(Index: LongInt): Pointer;
 var
   Info: TImageFormatInfo;
 begin
-  Info := GetFormatInfo;
-  if not Info.IsSpecial then
-    Result := ImagingFormats.GetScanLine(FPData.Bits, Info, FPData.Width, Index)
+  if Valid then
+  begin
+    Info := GetFormatInfo;
+    if not Info.IsSpecial then
+      Result := ImagingFormats.GetScanLine(FPData.Bits, Info, FPData.Width, Index)
+    else
+      Result := FPData.Bits;
+  end
   else
-    Result := FPData.Bits;
+    Result := nil;
 end;
 
 function TBaseImage.GetPixelPointer(X, Y: LongInt): Pointer;
 var
   Info: TImageFormatInfo;
 begin
-  Info := GetFormatInfo;
-  Result := @PByteArray(FPData.Bits)[(Y * FPData.Width + X) * Info.BytesPerPixel]
+  if Valid then
+  begin
+    Info := GetFormatInfo;
+    Result := @PByteArray(FPData.Bits)[(Y * FPData.Width + X) * Info.BytesPerPixel]
+  end;
 end;
 
 function TBaseImage.GetSize: LongInt;
 begin
-  Result := FPData.Size;
+  Result := Iff(Valid, FPData.Size, 0);
 end;
 
 function TBaseImage.GetBits: Pointer;
 begin
-  Result := FPData.Bits;
+  Result := Iff(Valid, FPData.Bits, nil);
 end;
 
 function TBaseImage.GetPalette: PPalette32;
 begin
-  Result := FPData.Palette;
+  Result := Iff(Valid, FPData.Palette, nil);
 end;
 
 function TBaseImage.GetPaletteEntries: LongInt;
@@ -339,12 +346,15 @@ end;
 
 function TBaseImage.GetFormatInfo: TImageFormatInfo;
 begin
-  Imaging.GetImageFormatInfo(FPData.Format, Result);
+  if Valid then
+    Imaging.GetImageFormatInfo(FPData.Format, Result)
+  else
+    FillChar(Result, SizeOf(Result), 0);
 end;
 
 function TBaseImage.GetValid: Boolean;
 begin
-  Result := Imaging.TestImage(FPData^);
+  Result := Assigned(FPData) and Imaging.TestImage(FPData^);
 end;
 
 function TBaseImage.GetBoundsRect: TRect;
@@ -354,110 +364,106 @@ end;
 
 procedure TBaseImage.SetWidth(Value: LongInt);
 begin
-  if GetValid and (FPData.Width <> Value) then
-  begin
-    Resize(Value, FPData.Height, rfNearest);
-    DoDataSizeChanged;
-  end;
+  Resize(Value, GetHeight, rfNearest);
 end;
 
 procedure TBaseImage.SetHeight(Value: LongInt);
 begin
-  if GetValid and (FPData.Height <> Value) then
-  begin
-    Resize(FPData.Width, Value, rfNearest);
-    DoDataSizeChanged;
-  end;
+  Resize(GetWidth, Value, rfNearest);
 end;
 
 procedure TBaseImage.SetFormat(Value: TImageFormat);
 begin
-  if GetValid and (FPData.Format <> Value) and IsImageFormatValid(Value) then
-  begin
-    if Imaging.ConvertImage(FPData^, Value) then
-      DoDataSizeChanged;
-  end;
+  if Valid and Imaging.ConvertImage(FPData^, Value) then
+    DoDataSizeChanged;
 end;
 
 procedure TBaseImage.DoDataSizeChanged;
 begin
-  if Assigned(FOnDataSizeChanged) Then
+  if Assigned(FOnDataSizeChanged) then
     FOnDataSizeChanged(Self);
   DoPixelsChanged;
 end;
 
 procedure TBaseImage.DoPixelsChanged;
 begin
-  if Assigned(FOnPixelsChanged) Then
+  if Assigned(FOnPixelsChanged) then
     FOnPixelsChanged(Self);
 end;
 
 procedure TBaseImage.RecreateImageData(AWidth, AHeight: LongInt; AFormat: TImageFormat);
 begin
-  Imaging.NewImage(AWidth, AHeight, AFormat, FPData^);
-  DoDataSizeChanged;
+  if Valid and Imaging.NewImage(AWidth, AHeight, AFormat, FPData^) then
+    DoDataSizeChanged;
 end;
 
 procedure TBaseImage.Resize(NewWidth, NewHeight: LongInt; Filter: TResizeFilter);
 begin
-  Imaging.ResizeImage(FPData^, NewWidth, NewHeight, Filter);
-  DoDataSizeChanged;
+  if Valid and Imaging.ResizeImage(FPData^, NewWidth, NewHeight, Filter) then
+    DoDataSizeChanged;
 end;
 
 procedure TBaseImage.Flip;
 begin
-  Imaging.FlipImage(FPData^);
-  DoPixelsChanged;
+  if Valid and Imaging.FlipImage(FPData^) then
+    DoPixelsChanged;
 end;
 
 procedure TBaseImage.Mirror;
 begin
-  Imaging.MirrorImage(FPData^);
-  DoPixelsChanged;
+  if Valid and Imaging.MirrorImage(FPData^) then
+    DoPixelsChanged;
 end;
 
 procedure TBaseImage.Rotate(Angle: LongInt);
 begin
-  Imaging.RotateImage(FPData^, Angle);
-  DoPixelsChanged;
+  if Valid and Imaging.RotateImage(FPData^, Angle) then
+    DoPixelsChanged;
 end;
 
 procedure TBaseImage.CopyTo(SrcX, SrcY, Width, Height: LongInt;
   DstImage: TBaseImage; DstX, DstY: LongInt);
 begin
-  Imaging.CopyRect(FPData^, SrcX, SrcY, Width, Height, DstImage.FPData^,
-    DstX, DstY);
-  DstImage.DoPixelsChanged;
+  if Valid and Assigned(DstImage) and DstImage.Valid then
+  begin
+    Imaging.CopyRect(FPData^, SrcX, SrcY, Width, Height, DstImage.FPData^, DstX, DstY);
+    DstImage.DoPixelsChanged;
+  end;
 end;
 
 procedure TBaseImage.StretchTo(SrcX, SrcY, SrcWidth, SrcHeight: LongInt;
   DstImage: TBaseImage; DstX, DstY, DstWidth, DstHeight: LongInt; Filter: TResizeFilter);
 begin
-  Imaging.StretchRect(FPData^, SrcX, SrcY, SrcWidth, SrcHeight, DstImage.FPData^,
-    DstX, DstY, DstWidth, DstHeight, Filter);
-  DstImage.DoPixelsChanged;
+  if Valid and Assigned(DstImage) and DstImage.Valid then
+  begin
+    Imaging.StretchRect(FPData^, SrcX, SrcY, SrcWidth, SrcHeight,
+      DstImage.FPData^, DstX, DstY, DstWidth, DstHeight, Filter);
+    DstImage.DoPixelsChanged;
+  end;
 end;
 
 procedure TBaseImage.LoadFromFile(const FileName: string);
 begin
-  if Imaging.LoadImageFromFile(FileName, FPData^) then
+  if Valid and Imaging.LoadImageFromFile(FileName, FPData^) then
     DoDataSizeChanged;
 end;
 
 procedure TBaseImage.LoadFromStream(Stream: TStream);
 begin
-  if Imaging.LoadImageFromStream(Stream, FPData^) then
+  if Valid and Imaging.LoadImageFromStream(Stream, FPData^) then
     DoDataSizeChanged;
 end;
 
 procedure TBaseImage.SaveToFile(const FileName: string);
 begin
-  Imaging.SaveImageToFile(FileName, FPData^);
+  if Valid then
+    Imaging.SaveImageToFile(FileName, FPData^);
 end;
 
 procedure TBaseImage.SaveToStream(const Ext: string; Stream: TStream);
 begin
-  Imaging.SaveImageToStream(Ext, Stream, FPData^);
+  if Valid then
+    Imaging.SaveImageToStream(Ext, Stream, FPData^);
 end;
 
 
@@ -513,14 +519,16 @@ end;
 procedure TSingleImage.Assign(Source: TPersistent);
 begin
   if Source = nil then
-    Create
-  else
-  if Source is TSingleImage then
-    CreateFromData(TSingleImage(Source).FImageData)
-  else
-  if Source is TMultiImage then
   begin
-    if TMultiImage(Source).FPData <> nil then
+    Create;
+  end
+  else if Source is TSingleImage then
+  begin
+    CreateFromData(TSingleImage(Source).FImageData);
+  end
+  else if Source is TMultiImage then
+  begin
+    if TMultiImage(Source).Valid then
       CreateFromData(TMultiImage(Source).FPData^)
     else
       Assign(nil);
@@ -583,11 +591,6 @@ begin
   inherited Destroy;
 end;
 
-function TMultiImage.GetValid: Boolean;
-begin
-  Result := (FActiveImage >= 0) and inherited GetValid;
-end;
-
 procedure TMultiImage.SetActiveImage(Value: LongInt);
 begin
   FActiveImage := Value;
@@ -623,17 +626,19 @@ end;
 
 function TMultiImage.GetAllImagesValid: Boolean;
 begin
-  Result := TestImagesInArray(FDataArray);
+  Result := (GetImageCount > 0) and TestImagesInArray(FDataArray);
 end;
 
 function TMultiImage.GetImage(Index: LongInt): TImageData;
 begin
-  Result := DataArray[Index];
+  if (Index >= 0) and (Index < GetImageCount) then
+    Result := FDataArray[Index];
 end;
 
 procedure TMultiImage.SetImage(Index: LongInt; Value: TImageData);
 begin
-  Imaging.CloneImage(Value, DataArray[Index]);
+  if (Index >= 0) and (Index < GetImageCount) then
+    Imaging.CloneImage(Value, FDataArray[Index]);
 end;
 
 procedure TMultiImage.SetPointer;
@@ -727,7 +732,8 @@ end;
 
 procedure TMultiImage.AddImage(Image: TBaseImage);
 begin
-  DoInsertImages(GetImageCount, GetArrayFromImageData(Image.FPData^));
+  if Assigned(Image) and Image.Valid then
+    DoInsertImages(GetImageCount, GetArrayFromImageData(Image.FPData^));
 end;
 
 procedure TMultiImage.AddImages(const Images: TDynImageDataArray);
@@ -753,7 +759,8 @@ end;
 
 procedure TMultiImage.InsertImage(Index: LongInt; Image: TBaseImage);
 begin
-  DoInsertImages(Index, GetArrayFromImageData(Image.FPData^));
+  if Assigned(Image) and Image.Valid then
+    DoInsertImages(Index, GetArrayFromImageData(Image.FPData^));
 end;
 
 procedure TMultiImage.InsertImages(Index: LongInt;
@@ -848,6 +855,8 @@ end;
       to point to when active image = -1)
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added many FPData validity checks to many methods. There were AVs
+      when calling most methods on empty TMultiImage.
     - Added AllImagesValid property to TMultiImage.
     - Fixed memory leak in TMultiImage.CreateFromParams.
 

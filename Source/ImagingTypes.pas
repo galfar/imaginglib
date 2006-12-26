@@ -321,7 +321,7 @@ type
 
   { Pixel format information used in conversions to/from 16 and 8 bit ARGB
     image formats.}
-  TPixelFormatInfo = record
+  TPixelFormatInfo = packed record
     ABitCount, RBitCount, GBitCount, BBitCount: Byte;
     ABitMask, RBitMask, GBitMask, BBitMask: LongWord;
     AShift, RShift, GShift, BShift: Byte;
@@ -355,7 +355,7 @@ type
     Palette: PPalette32; const Color: TColorFPRec);
 
   { Additional information for each TImageFormat value.}
-  TImageFormatInfo = record
+  TImageFormatInfo = packed record
     Format: TImageFormat;             // Format described by this record
     Name: array[0..15] of Char;       // Symbolic name of format
     BytesPerPixel: LongInt;           // Number of bytes per pixel (note: it is

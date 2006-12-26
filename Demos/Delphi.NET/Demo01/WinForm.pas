@@ -201,6 +201,8 @@ procedure TWinForm.Button_Click(sender: System.Object; e: System.EventArgs);
 var
   Stride: LongInt;
 begin
+  OpenFile.Filter := Imaging.GetImageFileFormatsFilter(True);
+
   if (OpenFile.ShowDialog = System.Windows.Forms.DialogResult.OK) then
   begin
     // Free old image

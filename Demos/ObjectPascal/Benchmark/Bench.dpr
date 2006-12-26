@@ -359,7 +359,7 @@ begin
       begin
         SetLength(Formats, I + 1);
       end;
-      SetLength(Formats, I - 1);
+      SetLength(Formats, I);
 
       // Test image loading functions for all supported image file formats
       // note that image loaded in one LoadImage is automaticaly

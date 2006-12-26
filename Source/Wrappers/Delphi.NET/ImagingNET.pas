@@ -28,7 +28,9 @@
 
 { This is import wrapper for Delphi.NET. You need VampyreImaging.dll
   located somewhere Windows can find it. You can use functions directly
-  imported from DLL or much more dotNET like Imaging class members.}
+  imported from DLL or much more dotNET-like Imaging class members.
+
+  }
 unit ImagingNET;
 
 {$MINENUMSIZE 4}
@@ -36,12 +38,11 @@ unit ImagingNET;
 interface
 
 uses
-  System.Runtime.InteropServices,
-  System.Security;
+  System.Runtime.InteropServices, System.Security, System.Text, SysUtils;
 
 const
   ImagingVersionMajor = 0;
-  ImagingVersionMinor = 20;
+  ImagingVersionMinor = 22;
   ImagingVersionPatch = 0;
 
   ImagingJpegQuality           = 10;
@@ -275,6 +276,9 @@ function ImDetermineMemoryFormat(Data: array of Byte; Size: LongInt;
   [out, MarshalAs(UnmanagedType.LPArray)] Ext: array of Char): Boolean; external;
 [SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
 function ImIsFileFormatSupported(const FileName: string): Boolean; external;
+[SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
+function ImEnumFileFormats(var Index: LongInt;
+{[out, MarshalAs(UnmanagedType.LPArray)] }Name, DefaultExt, Masks: StringBuilder; var CanSave, IsMultiImageFormat: Boolean): Boolean; external;
 
 { Image List Functions }
 
@@ -421,11 +425,23 @@ function ImGetImageFormatInfo(Format: TImageFormat; var Info: TImageFormatInfo):
 function ImGetPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; external;
 
 type
+  { Record with information about one of imag file formats supported by Imaging.}
+  TFileFormatInfo = record
+    Name: string;
+    DefaultExt: string;
+    Masks: string;
+    CanSave: Boolean;
+    IsMultiImageFormat: Boolean;
+  end;
+
   { Class which encapsulates all Imaging functions without Im prefix and
     with dotNET friendly parameter types. There are also some dotNET only
     members.}
   Imaging = class(TObject)
-  private
+  public
+    class var FileFormats: array of TFileFormatInfo;
+    class procedure BuildFileFormatList;
+    class function EnumFileFormats(var Index: LongInt; var Name, DefaultExt, Masks: string; var CanSave, IsMultiImageFormat: Boolean): Boolean; static;
     class function ListToArray(List: TImageDataList; var Arr: TDynImageDataArray): Boolean; static;
     class function ArrayToList(const Arr: TDynImageDataArray; var List: TImageDataList): Boolean; static;
   public
@@ -440,6 +456,9 @@ type
     class function DetermineFileFormat(const FileName: string): string; static;
     class function DetermineMemoryFormat(const Data: array of Byte): string; static;
     class function IsFileFormatSupported(const FileName: string): Boolean; static;
+    class function GetFileFormatCount: LongInt; static;
+    class function GetFileFormatInfo(Index: LongInt): TFileFormatInfo; static;
+    class function GetImageFileFormatsFilter(OpenFileFilter: Boolean): string; static;
     { Loading Functions }
     class function LoadImageFromFile(const FileName: string; var Image: TImageData): Boolean; static;
     class function LoadImageFromMemory(const Data: array of Byte; var Image: TImageData): Boolean; static;
@@ -591,37 +610,42 @@ const
 class function Imaging.DetermineFileFormat(const FileName: string): string;
 var
   Arr: array of Char;
-  I: LongInt;
 begin
   SetLength(Arr, ExtLen);
   if ImDetermineFileFormat(FileName, Arr) then
-  begin
-    SetLength(Result, ExtLen);
-    for I := 1 to ExtLen do
-      Result[I] := Arr[I - 1];
-    SetLength(Result, Result.IndexOf(#0));
-  end
+    Result := System.&String.Create(Arr).Trim([#0])
   else
     Result := '';
-  SetLength(Arr, 0);
 end;
 
 class function Imaging.DetermineMemoryFormat(const Data: array of Byte): string;
 var
   Arr: array of Char;
-  I: LongInt;
 begin
-  SetLength(Arr, 16);
+  SetLength(Arr, ExtLen);
   if ImDetermineMemoryFormat(Data, Length(Data), Arr) then
-  begin
-    SetLength(Result, ExtLen);
-    for I := 1 to ExtLen do
-      Result[I] := Arr[I - 1];
-    SetLength(Result, Result.IndexOf(#0));
-  end
+    Result := System.&String.Create(Arr).Trim([#0])
   else
     Result := '';
-  SetLength(Arr, 0);
+end;
+
+class function Imaging.EnumFileFormats(var Index: Integer; var Name, DefaultExt,
+  Masks: string; var CanSave, IsMultiImageFormat: Boolean): Boolean;
+var
+  AName, AExt, AMasks: StringBuilder;
+begin
+  AName := StringBuilder.Create(128);
+  AExt := StringBuilder.Create(ExtLen);
+  AMasks := StringBuilder.Create(256);
+
+  Result := ImEnumFileFormats(Index, AName, AExt, AMasks, CanSave, IsMultiImageFormat);
+  // TODO: Result always is True, even if DLL function explicitly returns False. WTF?
+  // So this check is added to ensure enumerating will end some time.
+  Result := Result and (AName.Length > 0);
+
+  Name := AName.ToString;
+  DefaultExt := AExt.ToString;
+  Masks := AMasks.ToString;
 end;
 
 class function Imaging.LoadImageFromFile(const FileName: string; var Image: TImageData): Boolean;
@@ -694,6 +718,20 @@ begin
     Result := ImSaveMultiImageToMemory(Ext, Data, Size, List);
     ImFreeImageList(List);
   end;
+end;
+
+class procedure Imaging.BuildFileFormatList;
+var
+  I: LongInt;
+begin
+  I := 0;
+  SetLength(FileFormats, 1);
+  while Imaging.EnumFileFormats(I, FileFormats[I].Name, FileFormats[I].DefaultExt,
+    FileFormats[I].Masks, FileFormats[I].CanSave, FileFormats[I].IsMultiImageFormat) do
+  begin
+    SetLength(FileFormats, I + 1);
+  end;
+  SetLength(FileFormats, I);
 end;
 
 class function Imaging.CloneImage(const Image: TImageData; var Clone: TImageData): Boolean;
@@ -936,6 +974,46 @@ end;
 class function Imaging.GetPixelBytes(Format: TImageFormat): LongInt;
 begin
   Result := ImGetPixelBytes(Format);
+end;
+
+class function Imaging.GetFileFormatCount: LongInt;
+begin
+  Result := Length(FileFormats);
+end;
+
+class function Imaging.GetFileFormatInfo(Index: LongInt): TFileFormatInfo;
+begin
+  if (Index >= Low(FileFormats)) and (Index <= High(FileFormats)) then
+    Result := FileFormats[Index];
+end;
+
+class function Imaging.GetImageFileFormatsFilter(
+  OpenFileFilter: Boolean): string;
+const
+  SAllFilter = 'All Images';
+var
+  I, Count: LongInt;
+  Descriptions: string;
+  Filters, CurFilter: string;
+begin
+  Descriptions := '';
+  Filters := '';
+  Count := 0;
+  for I := 0 to Length(FileFormats) - 1 do
+  begin
+    if not OpenFileFilter and not FileFormats[I].CanSave then
+      Continue;
+    CurFilter := FileFormats[I].Masks;
+    FmtStr(Descriptions, '%s%s (%s)|%2:s', [Descriptions, FileFormats[I].Name, CurFilter]);
+    FmtStr(Filters, '%s;%s', [Filters, CurFilter]);
+    if I < Length(FileFormats) - 1 then
+        Descriptions := Descriptions + '|';
+    Inc(Count);
+  end;
+
+  if (Count > 1) and OpenFileFilter then
+    FmtStr(Descriptions, '%s (%s)|%1:s|%s', [SAllFilter, Filters, Descriptions]);
+  Result := Descriptions;
 end;
 
 class function Imaging.GetImageFormatInfo(Format: TImageFormat; var Info: TImageFormatInfo): Boolean;
@@ -1342,6 +1420,8 @@ begin
   Result := not TColorFPRec.Equals(Left, Right);
 end;
 
+initialization
+  Imaging.BuildFileFormatList;
 
 {
   Changes/Bug Fixes:
@@ -1349,6 +1429,11 @@ end;
   -- TODOS ----------------------------------------------------
     - add typecast operators to color records rather than SetColor methods 
     - add create System.Drawing.Bitmap from TImageData function
+
+  -- 0.21 -----------------------------------------------------
+    - Added GetImageFileFormatFilter method to Imaging class.
+    - Updated to DLL new version, some changes in Imaging class methods
+      that return strings.
 
   -- 0.19 -----------------------------------------------------
     - updated to DLL new version

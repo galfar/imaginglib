@@ -53,7 +53,7 @@ enum TManipulation {maResize3k, maResize1k, maFlip, maMirror, maSwapChannels,
 struct TFileFormatInfo
 {
 	char Name[64];
-	char Ext[8];
+	char Ext[16];
 	char Masks[128];
 	Boolean CanSave;
 	Boolean IsMulti;
@@ -118,7 +118,7 @@ int main(int argc, char ** argv)
   // After enumerating last array item should be deleted because its empty.
   while (ImEnumFileFormats(&I, Formats[I].Name, Formats[I].Ext, Formats[I].Masks, &Formats[I].CanSave, &Formats[I].IsMulti))
     Formats.resize(I + 1);
-  Formats.resize(I - 1);
+  Formats.resize(I);
 
   // Test image loading functions for all supported image file formats
   // note that image loaded in one LoadImage is automaticaly

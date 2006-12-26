@@ -297,7 +297,7 @@ begin
 end;
 
 function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PChar;
-  var CanSave, IsMultiImageFormat: Boolean): Boolean; cdecl;
+  var CanSave, IsMultiImageFormat: Boolean): Boolean;
 var
   StrName, StrDefaultExt, StrMasks: string;
 begin

@@ -422,9 +422,12 @@ begin
     if SrcFormat = ifUnknown then
       Exit;
 
-    // file contains mipmaps for each subimage
+    // File contains mipmaps for each subimage.
+    { Some DDS writers ignore setting proper Caps and Flags so
+      this check is not usable:
     if ((Desc.Caps.Caps1 and DDSCAPS_MIPMAP) = DDSCAPS_MIPMAP) and
-      ((Desc.Flags and DDSD_MIPMAPCOUNT) = DDSD_MIPMAPCOUNT) then
+      ((Desc.Flags and DDSD_MIPMAPCOUNT) = DDSD_MIPMAPCOUNT) then}
+    if Desc.MipMaps > 1 then
     begin
       HasMipMaps := True;
       FLoadedMipMapCount := Desc.MipMaps;
