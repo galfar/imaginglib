@@ -70,12 +70,21 @@ function ImageFormatToGL(Format: TImageFormat; var GLFormat: GLenum;
   wrapping, and other parameters are used. Created textures
   are left bound by glBindTexture when function is exited.}
 
-{ Creates GL texture from image in file in format supported by Imaging.}
-function LoadGLTextureFromFile(const FileName: string): GLuint;
-{ Creates GL texture from image in stream in format supported by Imaging.}
-function LoadGLTextureFromStream(Stream: TStream): GLuint;
-{ Creates GL texture from image in memory in format supported by Imaging.}
-function LoadGLTextureFromMemory(Data: Pointer; Size: LongInt): GLuint;
+{ Creates GL texture from image in file in format supported by Imaging.
+  You can use CreatedWidth and Height parameters to query dimensions of created textures
+  (it could differ from dimensions of source image).}
+function LoadGLTextureFromFile(const FileName: string; CreatedWidth: PLongInt = nil;
+  CreatedHeight: PLongInt = nil): GLuint;
+{ Creates GL texture from image in stream in format supported by Imaging.
+  You can use CreatedWidth and Height parameters to query dimensions of created textures
+  (it could differ from dimensions of source image).}
+function LoadGLTextureFromStream(Stream: TStream; CreatedWidth: PLongInt = nil;
+  CreatedHeight: PLongInt = nil): GLuint;
+{ Creates GL texture from image in memory in format supported by Imaging.
+  You can use CreatedWidth and Height parameters to query dimensions of created textures
+  (it could differ from dimensions of source image).}
+function LoadGLTextureFromMemory(Data: Pointer; Size: LongInt;
+  CreatedWidth: PLongInt = nil; CreatedHeight: PLongInt = nil): GLuint;
 
 { Converts TImageData structure to OpenGL texture.
   Input images is used as main mipmap level and additional requested
@@ -83,7 +92,8 @@ function LoadGLTextureFromMemory(Data: Pointer; Size: LongInt): GLuint;
   look at CreateGLTextureFromMultiImage function.}
 function CreateGLTextureFromImage(const Image: TImageData;
   Width: LongInt = 0; Height: LongInt = 0; MipMaps: Boolean = True;
-  OverrideFormat: TImageFormat = ifUnknown): GLuint;
+  OverrideFormat: TImageFormat = ifUnknown; CreatedWidth: PLongInt = nil;
+  CreatedHeight: PLongInt = nil): GLuint;
 { Converts images in TDymImageDataArray to one OpenGL texture.
   First image in array is used as main mipmap level and additional images
   are used as subsequent levels. If there is not enough images
@@ -96,10 +106,14 @@ function CreateGLTextureFromImage(const Image: TImageData;
   for luminance images. DXTC (S3TC) compressed and floating point textures
   are created if supported by hardware. Width and Height of 0 mean
   use width and height of main image. MipMaps set to True mean build
-  all possible levels, False means use only level 0. }
+  all possible levels, False means use only level 0.
+  You can use CreatedWidth and CreatedHeight parameters to query dimensions of
+  created texture's largest mipmap level (it could differ from dimensions
+  of source image).}
 function CreateGLTextureFromMultiImage(const Images: TDynImageDataArray;
   Width: LongInt = 0; Height: LongInt = 0; MipMaps: Boolean = True;
-  OverrideFormat: TImageFormat = ifUnknown): GLuint;
+  OverrideFormat: TImageFormat = ifUnknown; CreatedWidth: PLongInt = nil;
+  CreatedHeight: PLongInt = nil): GLuint;
 
 { Saves GL texture to file in one of formats supported by Imaging.
   Saves all present mipmap levels.}
@@ -401,42 +415,42 @@ begin
   Result := GLInternal <> 0;
 end;
 
-function LoadGLTextureFromFile(const FileName: string): GLuint;
+function LoadGLTextureFromFile(const FileName: string; CreatedWidth, CreatedHeight: PLongInt): GLuint;
 var
   Images: TDynImageDataArray;
 begin
   if LoadMultiImageFromFile(FileName, Images) and (Length(Images) > 0) then
   begin
     Result := CreateGLTextureFromMultiImage(Images, Images[0].Width,
-      Images[0].Height, True);
+      Images[0].Height, True, ifUnknown, CreatedWidth, CreatedHeight);
   end
   else
     Result := 0;
   FreeImagesInArray(Images);
 end;
 
-function LoadGLTextureFromStream(Stream: TStream): GLuint;
+function LoadGLTextureFromStream(Stream: TStream; CreatedWidth, CreatedHeight: PLongInt): GLuint;
 var
   Images: TDynImageDataArray;
 begin
   if LoadMultiImageFromStream(Stream, Images) and (Length(Images) > 0) then
   begin
     Result := CreateGLTextureFromMultiImage(Images, Images[0].Width,
-      Images[0].Height, True);
+      Images[0].Height, True, ifUnknown, CreatedWidth, CreatedHeight);
   end
   else
     Result := 0;
   FreeImagesInArray(Images);
 end;
 
-function LoadGLTextureFromMemory(Data: Pointer; Size: LongInt): GLuint;
+function LoadGLTextureFromMemory(Data: Pointer; Size: LongInt; CreatedWidth, CreatedHeight: PLongInt): GLuint;
 var
   Images: TDynImageDataArray;
 begin
   if LoadMultiImageFromMemory(Data, Size, Images)  and (Length(Images) > 0) then
   begin
     Result := CreateGLTextureFromMultiImage(Images, Images[0].Width,
-      Images[0].Height, True);
+      Images[0].Height, True, ifUnknown, CreatedWidth, CreatedHeight);
   end
   else
     Result := 0;
@@ -444,7 +458,8 @@ begin
 end;
 
 function CreateGLTextureFromImage(const Image: TImageData;
-  Width, Height: LongInt; MipMaps: Boolean; OverrideFormat: TImageFormat): GLuint;
+  Width, Height: LongInt; MipMaps: Boolean; OverrideFormat: TImageFormat;
+  CreatedWidth, CreatedHeight: PLongInt): GLuint;
 var
   Arr: TDynImageDataArray;
 begin
@@ -452,11 +467,12 @@ begin
   SetLength(Arr, 1);
   Arr[0] := Image;
   Result := CreateGLTextureFromMultiImage(Arr, Width, Height, MipMaps,
-    OverrideFormat);
+    OverrideFormat, CreatedWidth, CreatedHeight);
 end;
 
 function CreateGLTextureFromMultiImage(const Images: TDynImageDataArray;
-  Width, Height: LongInt; MipMaps: Boolean; OverrideFormat: TImageFormat): GLuint;
+  Width, Height: LongInt; MipMaps: Boolean; OverrideFormat: TImageFormat;
+  CreatedWidth, CreatedHeight: PLongInt): GLuint;
 var
   I, MipLevels, PossibleLevels, ExistingLevels, CurrentWidth, CurrentHeight: LongInt;
   Caps: TGLTextureCaps;
@@ -528,6 +544,10 @@ begin
 
     CurrentWidth := Width;
     CurrentHeight := Height;
+    // If user is interested in width and height of created texture lets
+    // give him that
+    if CreatedWidth <> nil then CreatedWidth^ := CurrentWidth;
+    if CreatedHeight <> nil then CreatedHeight^ := CurrentHeight;
 
     // Store old pixel unpacking settings
     glGetIntegerv(GL_UNPACK_ALIGNMENT, @UnpackAlignment);
@@ -591,6 +611,11 @@ begin
 
       if ConvTo in [ifDXT1, ifDXT3, ifDXT5] then
       begin
+        // Note: GL DXTC texture snaller than 4x4 must have width and height
+        // as expected for non-DXTC texture (like 1x1 -  we cannot
+        // use LevelsArray[I].Width and LevelsArray[I].Height - they are
+        // at least 4 for DXTC images). But Bits and Size passed to
+        // glCompressedTexImage2D must contain regular 4x4 DXTC block.
         glCompressedTexImage2D(GL_TEXTURE_2D, I, GLInternal, CurrentWidth,
           CurrentHeight, 0, LevelsArray[I].Size, LevelsArray[I].Bits)
       end
@@ -762,6 +787,10 @@ initialization
     - use internal format of texture in CreateMultiImageFromGLTexture
       not only A8R8G8B8
     - support for cube and 3D maps
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added CreatedWidth and CreatedHeight parameters to most
+      LoadGLTextureFromXXX/CreateGLTextureFromXXX functions.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - fixed bug in CreateGLTextureFromMultiImage which caused assert failure

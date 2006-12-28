@@ -69,15 +69,24 @@ function D3DFormatToImageFormat(Format: TD3DFormat): TImageFormat;
   All mipmap levels are created, Pool is D3DPOOL_MANAGED,
   Usage is 0, Format and size are taken from image.}
 
-{ Creates D3D texture from image in file in format supported by Imaging.}
+{ Creates D3D texture from image in file in format supported by Imaging.
+  You can use CreatedWidth and Height parameters to query dimensions of created textures
+  (it could differ from dimensions of source image).}
 function LoadD3DTextureFromFile(const FileName: string; Device: IDirect3DDevice9;
-  var Texture: IDirect3DTexture9): Boolean;
-{ Creates D3D texture from image in stream in format supported by Imaging.}
+  var Texture: IDirect3DTexture9; CreatedWidth: PLongInt = nil;
+  CreatedHeight: PLongInt = nil): Boolean;
+{ Creates D3D texture from image in stream in format supported by Imaging.
+  You can use CreatedWidth and Height parameters to query dimensions of created textures
+  (it could differ from dimensions of source image).}
 function LoadD3DTextureFromStream(Stream: TStream; Device: IDirect3DDevice9;
-  var Texture: IDirect3DTexture9): Boolean;
-{ Creates D3D texture from image in memory in format supported by Imaging.}
+  var Texture: IDirect3DTexture9; CreatedWidth: PLongInt = nil;
+  CreatedHeight: PLongInt = nil): Boolean;
+{ Creates D3D texture from image in memory in format supported by Imaging.
+  You can use CreatedWidth and Height parameters to query dimensions of created textures
+  (it could differ from dimensions of source image).}
 function LoadD3DTextureFromMemory(Data: Pointer; Size: LongInt;
-  Device: IDirect3DDevice9; var Texture: IDirect3DTexture9): Boolean;
+  Device: IDirect3DDevice9; var Texture: IDirect3DTexture9;
+  CreatedWidth: PLongInt = nil; CreatedHeight: PLongInt = nil): Boolean;
 
 { Converts TImageData structure to IDirect3DTexture9 texture.
   Input images is used as main mipmap level and additional requested
@@ -86,7 +95,8 @@ function LoadD3DTextureFromMemory(Data: Pointer; Size: LongInt;
 function CreateD3DTextureFromImage(const Image: TImageData;
   Device: IDirect3DDevice9; var Texture: IDirect3DTexture9; Width: LongInt = 0;
   Height: LongInt = 0; MipLevels: LongInt = 0; Usage: LongWord = 0;
-  Format: TD3DFormat = D3DFMT_UNKNOWN; Pool: TD3DPool = D3DPOOL_MANAGED): Boolean;
+  Format: TD3DFormat = D3DFMT_UNKNOWN; Pool: TD3DPool = D3DPOOL_MANAGED;
+  CreatedWidth: PLongInt = nil; CreatedHeight: PLongInt = nil): Boolean;
 { Converts images in TDymImageDataArray to one IDirect3DTexture9 texture.
   First image in array is used as main mipmap level and additional images
   are used as subsequent levels. If MipLevels is larger than number of images
@@ -97,11 +107,15 @@ function CreateD3DTextureFromImage(const Image: TImageData;
   A8R8G8B8 format is used instead.
   Width and Height of 0 mean use width and height of main image.
   MipLevels set to 0 mean build all possible levels. For details on
-  Usage and Pool parameters look at DirectX SDK docs.}
+  Usage and Pool parameters look at DirectX SDK docs.
+  You can use CreatedWidth and CreatedHeight parameters to query dimensions of
+  created texture's largest mipmap level (it could differ from dimensions
+  of source image).}
 function CreateD3DTextureFromMultiImage(const Images: TDynImageDataArray;
   Device: IDirect3DDevice9; var Texture: IDirect3DTexture9; Width: LongInt = 0;
   Height: LongInt = 0; MipLevels: LongInt = 0; Usage: LongWord = 0;
-  Format: TD3DFormat = D3DFMT_UNKNOWN; Pool: TD3DPool = D3DPOOL_MANAGED): Boolean;
+  Format: TD3DFormat = D3DFMT_UNKNOWN; Pool: TD3DPool = D3DPOOL_MANAGED;
+  CreatedWidth: PLongInt = nil; CreatedHeight: PLongInt = nil): Boolean;
 
 { Saves D3D texture to file in one of formats supported by Imaging.
   Saves all present mipmap levels.}
@@ -284,14 +298,15 @@ begin
 end;
 
 function LoadD3DTextureFromFile(const FileName: string; Device: IDirect3DDevice9;
-  var Texture: IDirect3DTexture9): Boolean;
+  var Texture: IDirect3DTexture9; CreatedWidth, CreatedHeight: PLongInt): Boolean;
 var
   Images: TDynImageDataArray;
 begin
   if LoadMultiImageFromFile(FileName, Images) and (Length(Images) > 0) then
   begin
     Result := CreateD3DTextureFromMultiImage(Images, Device, Texture,
-      Images[0].Width, Images[0].Height, 0, DefaultUsage, D3DFMT_UNKNOWN, DefaultPool);
+      Images[0].Width, Images[0].Height, 0, DefaultUsage, D3DFMT_UNKNOWN,
+      DefaultPool, CreatedWidth, CreatedHeight);
   end
   else
     Result := False;
@@ -299,14 +314,15 @@ begin
 end;
 
 function LoadD3DTextureFromStream(Stream: TStream; Device: IDirect3DDevice9;
-  var Texture: IDirect3DTexture9): Boolean;
+  var Texture: IDirect3DTexture9; CreatedWidth, CreatedHeight: PLongInt): Boolean;
 var
   Images: TDynImageDataArray;
 begin
   if LoadMultiImageFromStream(Stream, Images) and (Length(Images) > 0) then
   begin
     Result := CreateD3DTextureFromMultiImage(Images, Device, Texture,
-      Images[0].Width, Images[0].Height, 0, DefaultUsage, D3DFMT_UNKNOWN, DefaultPool);
+      Images[0].Width, Images[0].Height, 0, DefaultUsage, D3DFMT_UNKNOWN,
+      DefaultPool, CreatedWidth, CreatedHeight);
   end
   else
     Result := False;
@@ -314,14 +330,16 @@ begin
 end;
 
 function LoadD3DTextureFromMemory(Data: Pointer; Size: LongInt;
-  Device: IDirect3DDevice9; var Texture: IDirect3DTexture9): Boolean;
+  Device: IDirect3DDevice9; var Texture: IDirect3DTexture9;
+  CreatedWidth, CreatedHeight: PLongInt): Boolean;
 var
   Images: TDynImageDataArray;
 begin
   if LoadMultiImageFromMemory(Data, Size, Images) and (Length(Images) > 0) then
   begin
     Result := CreateD3DTextureFromMultiImage(Images, Device, Texture, Images[0].Width,
-      Images[0].Height, 0, DefaultUsage, D3DFMT_UNKNOWN, DefaultPool);
+      Images[0].Height, 0, DefaultUsage, D3DFMT_UNKNOWN, DefaultPool,
+      CreatedWidth, CreatedHeight);
   end
   else
     Result := False;
@@ -331,7 +349,7 @@ end;
 function CreateD3DTextureFromImage(const Image: TImageData;
   Device: IDirect3DDevice9; var Texture: IDirect3DTexture9; Width,
   Height, MipLevels: LongInt; Usage: LongWord; Format: TD3DFormat;
-  Pool: TD3DPool): Boolean;
+  Pool: TD3DPool; CreatedWidth, CreatedHeight: PLongInt): Boolean;
 var
   Arr: TDynImageDataArray;
 begin
@@ -339,7 +357,7 @@ begin
   SetLength(Arr, 1);
   Arr[0] := Image;
   Result := CreateD3DTextureFromMultiImage(Arr, Device, Texture, Width, Height,
-    MipLevels, Usage, Format, Pool);
+    MipLevels, Usage, Format, Pool, CreatedWidth, CreatedHeight);
 end;
 
 procedure FillLockedRectWithImage(var Rect: TD3DLockedRect; const Image: TImageData);
@@ -363,7 +381,7 @@ end;
 function CreateD3DTextureFromMultiImage(const Images: TDynImageDataArray;
   Device: IDirect3DDevice9; var Texture: IDirect3DTexture9; Width,
   Height, MipLevels: LongInt; Usage: LongWord; Format: TD3DFormat;
-  Pool: TD3DPool): Boolean;
+  Pool: TD3DPool; CreatedWidth, CreatedHeight: PLongInt): Boolean;
 var
   I, PossibleLevels, ExistingLevels, CurrentWidth, CurrentHeight: LongInt;
   Caps: TD3DTextureCaps;
@@ -493,7 +511,12 @@ begin
         end;
       Result := True;
     end;
-    
+
+    // If user is interested in width and height of created texture lets
+    // give him that
+    if CreatedWidth <> nil then CreatedWidth^ := LevelsArray[0].Width;
+    if CreatedHeight <> nil then CreatedHeight^ := LevelsArray[0].Height;
+
   finally
     // Free local image copies
     for I := 0 to Length(LevelsArray) - 1 do
@@ -735,6 +758,10 @@ end;
 
   -- TODOS ----------------------------------------------------
     - support for cube and volume maps
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added CreatedWidth and CreatedHeight parameters to most
+      LoadD3DTextureFromXXX/CreateD3DTextureFromXXX functions.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - fixed bug in CreateGLTextureFromMultiImage which caused assert failure
