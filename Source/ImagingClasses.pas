@@ -393,7 +393,7 @@ end;
 
 procedure TBaseImage.RecreateImageData(AWidth, AHeight: LongInt; AFormat: TImageFormat);
 begin
-  if Valid and Imaging.NewImage(AWidth, AHeight, AFormat, FPData^) then
+  if Assigned(FPData) and Imaging.NewImage(AWidth, AHeight, AFormat, FPData^) then
     DoDataSizeChanged;
 end;
 
@@ -444,13 +444,13 @@ end;
 
 procedure TBaseImage.LoadFromFile(const FileName: string);
 begin
-  if Valid and Imaging.LoadImageFromFile(FileName, FPData^) then
+  if Assigned(FPData) and Imaging.LoadImageFromFile(FileName, FPData^) then
     DoDataSizeChanged;
 end;
 
 procedure TBaseImage.LoadFromStream(Stream: TStream);
 begin
-  if Valid and Imaging.LoadImageFromStream(Stream, FPData^) then
+  if Assigned(FPData) and Imaging.LoadImageFromStream(Stream, FPData^) then
     DoDataSizeChanged;
 end;
 

@@ -25,7 +25,7 @@
 
 unit MainUnit;
 
-{$mode objfpc}{$H+}
+{$I ImagingOptions.inc}
 
 interface
 
@@ -87,7 +87,16 @@ type
     MenuItem42: TMenuItem;
     MenuItem43: TMenuItem;
     MenuItem44: TMenuItem;
+    MenuItem45: TMenuItem;
     MenuItem46: TMenuItem;
+    MenuItem47: TMenuItem;
+    MenuItem48: TMenuItem;
+    MenuItem49: TMenuItem;
+    MenuItem50: TMenuItem;
+    MenuItem51: TMenuItem;
+    MenuItem52: TMenuItem;
+    MenuItem53: TMenuItem;
+    MenuItem54: TMenuItem;
     MenuItemActSubImage: TMenuItem;
     MenuItem34: TMenuItem;
     MenuItem35: TMenuItem;
@@ -134,8 +143,15 @@ type
     procedure MenuItem42Click(Sender: TObject);
     procedure MenuItem43Click(Sender: TObject);
     procedure MenuItem44Click(Sender: TObject);
+    procedure MenuItem45Click(Sender: TObject);
     procedure MenuItem46Click(Sender: TObject);
+    procedure MenuItem47Click(Sender: TObject);
+    procedure MenuItem48Click(Sender: TObject);
     procedure MenuItem4Click(Sender: TObject);
+    procedure MenuItem50Click(Sender: TObject);
+    procedure MenuItem51Click(Sender: TObject);
+    procedure MenuItem53Click(Sender: TObject);
+    procedure MenuItem54Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
     procedure MenuItem7Click(Sender: TObject);
     procedure FormatChangeClick(Sender: TObject);
@@ -148,6 +164,7 @@ type
     procedure SelectSubimage(Index: LongInt);
     procedure UpdateView;
     function CheckCanvasFormat: Boolean;
+    procedure ApplyConvolution(Kernel: Pointer; Size: LongInt; NeedsBlur: Boolean);
   public
 
   end; 
@@ -285,34 +302,34 @@ begin
     MessageDlg('Image is in format that is not supported by TImagingCanvas.', mtError, [mbOK], 0);
 end;
 
-procedure TMainForm.MenuItem37Click(Sender: TObject);
+procedure TMainForm.ApplyConvolution(Kernel: Pointer; Size: LongInt; NeedsBlur: Boolean);
 begin
   if CheckCanvasFormat then
   begin
     FImageCanvas.CreateForImage(FImage);
-    FImageCanvas.ApplyConvolution3x3(FilterGaussian3x3);
+    if NeedsBlur then
+      FImageCanvas.ApplyConvolution3x3(FilterGaussian3x3);
+    if Size = 3 then
+      FImageCanvas.ApplyConvolution3x3(TConvolutionFilter3x3(Kernel^))
+    else
+      FImageCanvas.ApplyConvolution5x5(TConvolutionFilter5x5(Kernel^));
     UpdateView;
   end;
+end;
+
+procedure TMainForm.MenuItem37Click(Sender: TObject);
+begin
+  ApplyConvolution(@FilterGaussian3x3, 3, False);
 end;
 
 procedure TMainForm.MenuItem38Click(Sender: TObject);
 begin
-  if CheckCanvasFormat then
-  begin
-    FImageCanvas.CreateForImage(FImage);
-    FImageCanvas.ApplyConvolution5x5(FilterGaussian5x5);
-    UpdateView;
-  end;
+  ApplyConvolution(@FilterGaussian5x5, 5, False);
 end;
 
 procedure TMainForm.MenuItem39Click(Sender: TObject);
 begin
-  if CheckCanvasFormat then
-  begin
-    FImageCanvas.CreateForImage(FImage);
-    FImageCanvas.ApplyConvolution3x3(FilterSharpen3x3);
-    UpdateView;
-  end;
+  ApplyConvolution(@FilterSharpen3x3, 3, False);
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
@@ -342,7 +359,7 @@ begin
       Item := TMenuItem.Create(MainMenu);
       Item.Caption := Info.Name;
       Item.Tag := Ord(Fmt);
-      Item.OnClick := @FormatChangeClick;
+      Item.OnClick := FormatChangeClick;
       FormatItem.Add(Item);
     end;
   end;
@@ -412,45 +429,22 @@ end;
 
 procedure TMainForm.MenuItem40Click(Sender: TObject);
 begin
-  if CheckCanvasFormat then
-  begin
-    FImageCanvas.CreateForImage(FImage);
-    FImageCanvas.ApplyConvolution5x5(FilterSharpen5x5);
-    UpdateView;
-  end;
+  ApplyConvolution(@FilterSharpen5x5, 5, False);
 end;
 
 procedure TMainForm.MenuItem41Click(Sender: TObject);
 begin
-  if CheckCanvasFormat then
-  begin
-    FImageCanvas.CreateForImage(FImage);
-    FImageCanvas.ApplyConvolution5x5(FilterGaussian5x5);
-    FImageCanvas.ApplyConvolution5x5(FilterLaplace5x5);
-    UpdateView;
-  end;
+  ApplyConvolution(@FilterLaplace5x5, 5, True);
 end;
 
 procedure TMainForm.MenuItem42Click(Sender: TObject);
 begin
-  if CheckCanvasFormat then
-  begin
-    FImageCanvas.CreateForImage(FImage);
-    FImageCanvas.ApplyConvolution3x3(FilterGaussian3x3);
-    FImageCanvas.ApplyConvolution3x3(FilterSobelHorz3x3);
-    UpdateView;
-  end;
+  ApplyConvolution(@FilterSobelHorz3x3, 3, True);
 end;
 
 procedure TMainForm.MenuItem43Click(Sender: TObject);
 begin
-  if CheckCanvasFormat then
-  begin
-    FImageCanvas.CreateForImage(FImage);
-    FImageCanvas.ApplyConvolution3x3(FilterGaussian3x3);
-    FImageCanvas.ApplyConvolution3x3(FilterSobelVert3x3);
-    UpdateView;
-  end;
+  ApplyConvolution(@FilterSobelVert3x3, 3, True);
 end;
 
 procedure TMainForm.MenuItem44Click(Sender: TObject);
@@ -458,26 +452,50 @@ begin
   OpenFile(FFileName);
 end;
 
-procedure TMainForm.MenuItem46Click(Sender: TObject);
-const
-  FilterEmboss3x3: TConvolutionFilter3x3 = (
-    Kernel: ((2,  0,  0),
-             (0, -1,  0),
-             (0,  0, -1));
-    Divisor: 1);
-
+procedure TMainForm.MenuItem45Click(Sender: TObject);
 begin
-  FImage.Format := ifGray8;
-  FImageCanvas.CreateForImage(FImage);
-  FImageCanvas.ApplyConvolution3x3(FilterGaussian3x3);
-  FImageCanvas.ApplyConvolution(@FilterEmboss3x3.Kernel, 3, FilterEmboss3x3.Divisor, 0.5);
-  UpdateView;
+  ApplyConvolution(@FilterGlow5x5, 5, False);
+end;
+
+procedure TMainForm.MenuItem46Click(Sender: TObject);
+begin
+  ApplyConvolution(@FilterEmboss3x3, 3, True);
+end;
+
+procedure TMainForm.MenuItem47Click(Sender: TObject);
+begin
+  ApplyConvolution(@FilterNegative3x3, 3, False);
+end;
+
+procedure TMainForm.MenuItem48Click(Sender: TObject);
+begin
+  ApplyConvolution(@FilterEdgeEnhance3x3, 3, False);
 end;
 
 procedure TMainForm.MenuItem4Click(Sender: TObject);
 begin
   FImage.Mirror;
   UpdateView;
+end;
+
+procedure TMainForm.MenuItem50Click(Sender: TObject);
+begin
+  ApplyConvolution(@FilterPrewittHorz3x3, 3, True);
+end;
+
+procedure TMainForm.MenuItem51Click(Sender: TObject);
+begin
+  ApplyConvolution(@FilterKirshHorz3x3, 3, True);
+end;
+
+procedure TMainForm.MenuItem53Click(Sender: TObject);
+begin
+  ApplyConvolution(@FilterPrewittVert3x3, 3, True);
+end;
+
+procedure TMainForm.MenuItem54Click(Sender: TObject);
+begin
+  ApplyConvolution(@FilterKirshVert3x3, 3, True);
 end;
 
 procedure TMainForm.MenuItem5Click(Sender: TObject);
@@ -524,6 +542,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - add more canvas stuff when it will be avaiable
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added new filters to Effects menu.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - you can now open image in Imager from shell by passing

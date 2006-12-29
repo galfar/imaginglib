@@ -30,7 +30,7 @@
   located somewhere Windows can find it. You can use functions directly
   imported from DLL or much more dotNET-like Imaging class members.
 
-  }
+  Note that this wrapper was not tested extensively so there may be various bugs.}
 unit ImagingNET;
 
 {$MINENUMSIZE 4}
@@ -269,11 +269,9 @@ function ImTestImage(const Image: TImageData): Boolean; external;
 [SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
 function ImFreeImage(var Image: TImageData): Boolean; external;
 [SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-function ImDetermineFileFormat(const FileName: string;
-  [out, MarshalAs(UnmanagedType.LPArray)] Ext: array of Char): Boolean; external;
+function ImDetermineFileFormat(const FileName: string; Ext: StringBuilder): Boolean; external;
 [SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-function ImDetermineMemoryFormat(Data: array of Byte; Size: LongInt;
-  [out, MarshalAs(UnmanagedType.LPArray)] Ext: array of Char): Boolean; external;
+function ImDetermineMemoryFormat(Data: array of Byte; Size: LongInt; Ext: StringBuilder): Boolean; external;
 [SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
 function ImIsFileFormatSupported(const FileName: string): Boolean; external;
 [SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
@@ -609,22 +607,22 @@ const
 
 class function Imaging.DetermineFileFormat(const FileName: string): string;
 var
-  Arr: array of Char;
+  Builder: StringBuilder;
 begin
-  SetLength(Arr, ExtLen);
-  if ImDetermineFileFormat(FileName, Arr) then
-    Result := System.&String.Create(Arr).Trim([#0])
+  Builder := StringBuilder.Create(ExtLen);
+  if ImDetermineFileFormat(FileName, Builder) then
+    Result := Builder.ToString
   else
     Result := '';
 end;
 
 class function Imaging.DetermineMemoryFormat(const Data: array of Byte): string;
 var
-  Arr: array of Char;
+  Builder: StringBuilder;
 begin
-  SetLength(Arr, ExtLen);
-  if ImDetermineMemoryFormat(Data, Length(Data), Arr) then
-    Result := System.&String.Create(Arr).Trim([#0])
+  Builder := StringBuilder.Create(ExtLen);
+  if ImDetermineMemoryFormat(Data, Length(Data), Builder) then
+    Result := Builder.ToString
   else
     Result := '';
 end;
@@ -1431,6 +1429,8 @@ initialization
     - add create System.Drawing.Bitmap from TImageData function
 
   -- 0.21 -----------------------------------------------------
+    - Changed out PChar parameter types of imported functions to StringBuilders
+      for easier conversions to System.String in Imaging class methods. 
     - Added GetImageFileFormatFilter method to Imaging class.
     - Updated to DLL new version, some changes in Imaging class methods
       that return strings.

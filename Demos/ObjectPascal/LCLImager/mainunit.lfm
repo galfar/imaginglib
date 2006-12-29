@@ -288,15 +288,49 @@ object MainForm: TMainForm
       end
       object MenuItem42: TMenuItem
         Caption = 'Edge Detect Horizontal'
-        OnClick = MenuItem42Click
+        object MenuItem49: TMenuItem
+          Caption = 'Sobel'
+          OnClick = MenuItem42Click
+        end
+        object MenuItem50: TMenuItem
+          Caption = 'Prewitt'
+          OnClick = MenuItem50Click
+        end
+        object MenuItem51: TMenuItem
+          Caption = 'Kirsh'
+          OnClick = MenuItem51Click
+        end
       end
       object MenuItem43: TMenuItem
         Caption = 'Edge Detect Vertical'
-        OnClick = MenuItem43Click
+        object MenuItem52: TMenuItem
+          Caption = 'Sobel'
+          OnClick = MenuItem43Click
+        end
+        object MenuItem53: TMenuItem
+          Caption = 'Prewitt'
+          OnClick = MenuItem53Click
+        end
+        object MenuItem54: TMenuItem
+          Caption = 'Kirsh'
+          OnClick = MenuItem54Click
+        end
+      end
+      object MenuItem48: TMenuItem
+        Caption = 'Edge Enhance'
+        OnClick = MenuItem48Click
       end
       object MenuItem46: TMenuItem
         Caption = 'Emboss'
         OnClick = MenuItem46Click
+      end
+      object MenuItem45: TMenuItem
+        Caption = 'Glow'
+        OnClick = MenuItem45Click
+      end
+      object MenuItem47: TMenuItem
+        Caption = 'Negative'
+        OnClick = MenuItem47Click
       end
     end
     object MenuItem9: TMenuItem
