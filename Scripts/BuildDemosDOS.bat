@@ -3,7 +3,7 @@ echo Building Demos using Free Pascal
 
 set ROOTDIR=..
 set DEMOPATH=%ROOTDIR%\Demos\ObjectPascal
-set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZLib -Fu%DEMOPATH%\Common
+set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZLib -Fu%ROOTDIR%\Extras\Extensions -Fu%DEMOPATH%\Common
 set INCLUDE=-Fi%ROOTDIR%\Source 
 set OUTPUT=-FE%ROOTDIR%\Demos\Bin
 set OPTIONS=-Sgi2dh -OG2p3 -Xs 

@@ -4,7 +4,7 @@ echo Building Demos using Delphi
 set ROOTDIR=..
 set DEMOPATH=%ROOTDIR%\Demos\ObjectPascal
 set OUTPUT=-E%ROOTDIR%\Demos\Bin
-set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\JpegLib -U%ROOTDIR%\Source\ZLib -U%DEMOPATH%\Common
+set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\JpegLib -U%ROOTDIR%\Source\ZLib -U%ROOTDIR%\Extras\Extensions -U%DEMOPATH%\Common
 set INCLUDE=-I%ROOTDIR%\Source 
 set OPTIONS=
 
