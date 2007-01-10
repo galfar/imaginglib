@@ -506,7 +506,7 @@ begin
   if SaveD.Execute then
   begin
     FFileName := ChangeFileExt(SaveD.FileName, '.' + GetFilterIndexExtension(SaveD.FilterIndex, False));
-    FImage.SaveToFile(FFileName);
+    FImage.SaveMultiToFile(FFileName);
   end;
 end;
 
@@ -544,6 +544,8 @@ initialization
     - add more canvas stuff when it will be avaiable
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Save As... now saves all images levels instead of just current one.
+    - Added XP controls manifest to resource file.
     - Added new filters to Effects menu.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------

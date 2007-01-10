@@ -34,13 +34,13 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ComCtrls, ShellCtrls, ExtCtrls, StdCtrls, Buttons,
+  Dialogs, ComCtrls, ShellCtrls, ExtCtrls, StdCtrls, Buttons, ExtDlgs,
   ImagingTypes,
   Imaging,
   ImagingClasses,
   ImagingComponents,
   ImagingCanvases,
-  ImagingFormats, 
+  ImagingFormats,
   ImagingUtility;
 
 type
@@ -67,6 +67,8 @@ type
     BtnNext: TSpeedButton;
     BtnFirst: TSpeedButton;
     BtnLast: TSpeedButton;
+    SaveDialog: TSavePictureDialog;
+    BtnSave: TButton;
     procedure PaintBoxPaint(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -76,8 +78,9 @@ type
     procedure TreeKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure BtnFirstClick(Sender: TObject);
     procedure BtnLastClick(Sender: TObject);
+    procedure BtnSaveClick(Sender: TObject);
   private
-    FImg: TMultiImage; // Class that hold multiple images (load from MNG or DDS files for instance)
+    FImage: TMultiImage; // Class that hold multiple images (load from MNG or DDS files for instance)
     FFileName: string;
     FLastTime: LongInt;
     FOriginalFormats: array of TImageFormat;
@@ -113,15 +116,15 @@ begin
     try
       // Load all subimages in file
       T := ImagingUtility.GetTimeMicroseconds;
-      FImg.LoadMultiFromFile(FFileName);
+      FImage.LoadMultiFromFile(FFileName);
       FLastTime := (ImagingUtility.GetTimeMicroseconds - T) div 1000;
       StatusBar.SimpleText := Format('Last image loaded in: %.0n ms', [FLastTime * 1.0]);
       // Store original data formats for later use
-      SetLength(FOriginalFormats, FImg.ImageCount);
-      for I := 0 to FImg.ImageCount - 1 do
-        FOriginalFormats[I] := FImg.Images[I].Format;
+      SetLength(FOriginalFormats, FImage.ImageCount);
+      for I := 0 to FImage.ImageCount - 1 do
+        FOriginalFormats[I] := FImage.Images[I].Format;
       // Convert images to 32bit ARGB format for easier drawing later
-      FImg.ConvertImages(ifA8R8G8B8);
+      FImage.ConvertImages(ifA8R8G8B8);
       SetSupported;
       PaintBox.Repaint;
     except
@@ -138,14 +141,15 @@ end;
 procedure TMainForm.SetSupported;
 begin
   // Update image info and enable previous/next buttons
-  LabDim.Caption := Format('%dx%d pixels', [FImg.Width, FImg.Height]);
+  LabDim.Caption := Format('%dx%d pixels', [FImage.Width, FImage.Height]);
   LabFileFormat.Caption := Imaging.FindImageFileFormatByName(FFileName).Name;
-  LabDataFormat.Caption := Imaging.GetFormatName(FOriginalFormats[FImg.ActiveImage]);
-  LabActImage.Caption := Format('%d/%d', [FImg.ActiveImage + 1, FImg.ImageCount]);
+  LabDataFormat.Caption := Imaging.GetFormatName(FOriginalFormats[FImage.ActiveImage]);
+  LabActImage.Caption := Format('%d/%d', [FImage.ActiveImage + 1, FImage.ImageCount]);
   BtnPrev.Enabled := True;
   BtnNext.Enabled := True;
   BtnFirst.Enabled := True;
   BtnLast.Enabled := True;
+  BtnSave.Enabled := True;
 end;
 
 procedure TMainForm.SetUnsupported;
@@ -163,15 +167,16 @@ begin
   BtnNext.Enabled := False;
   BtnFirst.Enabled := False;
   BtnLast.Enabled := False;
+  BtnSave.Enabled := False;
 
-  if Assigned(FImg) then
+  if Assigned(FImage) then
   begin
-    FImg.CreateFromParams(CheckersDensity, CheckersDensity, ifA8R8G8B8, 1);
+    FImage.CreateFromParams(CheckersDensity, CheckersDensity, ifA8R8G8B8, 1);
 
     // Create canvas for image and draw checker board
-    ImgCanvas := ImagingCanvases.FindBestCanvasForImage(FImg).CreateForImage(FImg);
+    ImgCanvas := ImagingCanvases.FindBestCanvasForImage(FImage).CreateForImage(FImage);
 
-    Step := FImg.Width div CheckersDensity;
+    Step := FImage.Width div CheckersDensity;
     for Y := 0 to CheckersDensity - 1 do
       for X := 0 to CheckersDensity - 1 do
       begin
@@ -182,35 +187,49 @@ begin
 
     ImgCanvas.Free;
   end;
-
+  // Paint current image
   PaintBox.Repaint;
 end;
 
 procedure TMainForm.BtnPrevClick(Sender: TObject);
 begin
+  FImage.ActiveImage := FImage.ActiveImage - 1;
   SetSupported;
-  FImg.ActiveImage := FImg.ActiveImage - 1;
   PaintBox.Repaint;
+end;
+
+procedure TMainForm.BtnSaveClick(Sender: TObject);
+var
+  CopyPath: string;
+begin
+  SaveDialog.Filter := GetImageFileFormatsFilter(False);
+  SaveDialog.FileName := ChangeFileExt(ExtractFileName(FFileName), '');
+  SaveDialog.FilterIndex := GetFileNameFilterIndex(FFileName, False);
+  if SaveDialog.Execute then
+  begin
+    CopyPath := ChangeFileExt(SaveDialog.FileName, '.' + GetFilterIndexExtension(SaveDialog.FilterIndex, False));
+    FImage.SaveMultiToFile(CopyPath);
+  end;
 end;
 
 procedure TMainForm.BtnFirstClick(Sender: TObject);
 begin
+  FImage.ActiveImage := 0;
   SetSupported;
-  FImg.ActiveImage := 0;
   PaintBox.Repaint;
 end;
 
 procedure TMainForm.BtnLastClick(Sender: TObject);
 begin
+  FImage.ActiveImage := FImage.ImageCount - 1;
   SetSupported;
-  FImg.ActiveImage := FImg.ImageCount - 1;
   PaintBox.Repaint;
 end;
 
 procedure TMainForm.BtnNextClick(Sender: TObject);
 begin
+  FImage.ActiveImage := FImage.ActiveImage + 1;
   SetSupported;
-  FImg.ActiveImage := FImg.ActiveImage + 1;
   PaintBox.Repaint;
 end;
 
@@ -230,7 +249,7 @@ end;
 procedure TMainForm.TreeKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
-  if FImg.ImageCount > 1 then
+  if FImage.ImageCount > 1 then
   begin
     if Key = VK_SPACE then
       BtnNextClick(Self);
@@ -239,13 +258,13 @@ end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
-  FImg.Free;
+  FImage.Free;
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   Caption := Caption + ' version ' + Imaging.GetVersionStr;
-  FImg := TMultiImage.Create;
+  FImage := TMultiImage.Create;
   SetUnsupported;
 end;
 
@@ -254,15 +273,15 @@ var
   R: TRect;
 begin
   FillDefault;
-  if (FImg.Width > 0) and (FImg.Height > 0) and (FImg.Format = ifA8R8G8B8) then
+  if (FImage.Width > 0) and (FImage.Height > 0) and (FImage.Format = ifA8R8G8B8) then
   begin
     // Scale image to fit the paint box
-    R := ImagingUtility.ScaleRectToRect(FImg.BoundsRect, PaintBox.ClientRect);
+    R := ImagingUtility.ScaleRectToRect(FImage.BoundsRect, PaintBox.ClientRect);
     // Draw image to canvas (without conversion) using OS drawing functions.
     // Note that DisplayImage only supports images in ifA8R8G8B8 format so
     // if you have image in different format you must convert it or
     // create standard TBitmap by calling ImagingComponents.ConvertImageToBitmap
-    ImagingComponents.DisplayImage(PaintBox.Canvas, R, FImg);
+    ImagingComponents.DisplayImage(PaintBox.Canvas, R, FImage);
   end;
 end;
 
@@ -276,9 +295,13 @@ end;
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - add save image in desired format
+    - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added Save Image Copy button and related stuff. 
+    - Added XP controls manifest to resource file.
+    - Wrong active image index was shown sometimes after several
+      clicks on Prev/Next buttons.
     - Added First/Last subimage buttons.
     - Original data format of subimages at index >1 is displayed right now
       (was always A8R8G8B8)

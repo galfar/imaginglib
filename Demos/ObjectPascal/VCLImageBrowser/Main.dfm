@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 212
-  Top = 164
+  Left = 207
+  Top = 137
   Caption = 'Vampyre Imaging Library Demo - VCL Image Browser'
   ClientHeight = 600
   ClientWidth = 800
@@ -362,6 +362,15 @@ object MainForm: TMainForm
         ShowHint = True
         OnClick = BtnLastClick
       end
+      object BtnSave: TButton
+        Left = 464
+        Top = 3
+        Width = 129
+        Height = 25
+        Caption = 'Save Image Copy'
+        TabOrder = 0
+        OnClick = BtnSaveClick
+      end
     end
     object ViewPanel: TPanel
       Left = 0
@@ -391,5 +400,10 @@ object MainForm: TMainForm
         Panels = <>
       end
     end
+  end
+  object SaveDialog: TSavePictureDialog
+    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
+    Left = 56
+    Top = 400
   end
 end

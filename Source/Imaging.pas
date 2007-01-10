@@ -541,6 +541,7 @@ uses
   ImagingFormats, ImagingUtility, ImagingIO;
 
 resourcestring
+  SImagingTitle = 'Vampyre Imaging Library';
   SExceptMsg = 'Exception Message';
   SAllFilter = 'All Images';
   SUnknownFormat = 'Unknown and unsupported format';

@@ -71,7 +71,7 @@ type
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     { Controls Jpeg 2000 lossy compression quality. It is number in range 1..100.
       1 means small/ugly file, 100 means large/nice file. Accessible trough
-      ImagingJpeg2000Quality option.}
+      ImagingJpeg2000Quality option. Default value is 80.}
     property Quality: LongInt read FQuality write FQuality;
     { Controls whether Jpeg 2000 image is saved with full file headers or just
       as code stream. Default value is False. Accessible trough
@@ -89,7 +89,7 @@ const
   SJpeg2000Masks      = '*.jp2,*.j2k,*.j2c,*.jpx,*.jpc';
   Jpeg2000SupportedFormats: TImageFormats = [ifGray8, ifGray16, ifGray32,
     ifA8Gray8, ifA16Gray16, ifR8G8B8, ifR16G16B16, ifA8R8G8B8, ifA16R16G16B16];
-  Jpeg2000DefaultQuality = 75;
+  Jpeg2000DefaultQuality = 80;
   Jpeg2000DefaultCodeStreamOnly = False;
   Jpeg2000DefaultLosslessCompression = False;
 

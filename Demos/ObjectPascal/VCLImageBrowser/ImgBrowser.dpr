@@ -2,7 +2,7 @@ program ImgBrowser;
 
 uses
   Forms,
-  Main in 'Main.pas';
+  Main;
 
 {$R *.res}
 
