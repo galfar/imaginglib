@@ -102,6 +102,7 @@ var
 implementation
 
 {$R *.dfm}
+{$R XPManifest.res}
 
 procedure TMainForm.LoadFile;
 var
@@ -298,8 +299,9 @@ end;
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - Added Save Image Copy button and related stuff. 
-    - Added XP controls manifest to resource file.
+    - Added Save Image Copy button and related stuff.
+    - Added XP controls manifest resource file (no TXPManifest since its not
+      in older Delphis).
     - Wrong active image index was shown sometimes after several
       clicks on Prev/Next buttons.
     - Added First/Last subimage buttons.
