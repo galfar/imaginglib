@@ -4,71 +4,43 @@
   <title>File Format Extensions</title>
   <chapter>
     <title>File Format Extensions</title>
-    <par>These extensions allow Imaging to load and save images from/to
-    files in various formats.</par>
+    <par>
+      These extensions allow Imaging to load and save images from/to
+      files in various formats.
+      File formats included in Imaging core (that is in
+      <keyword>Source</keyword> directory) must satisfy these requirements:
+      both loading and saving support, native crossplatform
+      Object Pascal implementation, support as many data formats as possible,
+      be stream safe (you have multiple images in one stream and you load them
+      one by one without exactly knowing where they start - after loading one
+      stream position must be precisely at the beginning of another - some
+      file formats (e.g. PCX) need to know exact file size during loading so
+      they are inherently unsafe).
+      File format loaders/savers that do not meet these requirements are
+      located in Extras package (<keyword>Extras\Extensions</keyword> directory).
+    </par>
+    
+    <par>
+      Some complex file formats make compiled binaries significantly larger.
+      Most notably JPEG (around 100 KiB), JPEG2000 (around 150 KiB), and PNG
+      (around 50 KiB). Some formats use others internally - MNG and JNG use
+      PNG and JPEG. If you know you won't be needing some of those formats
+      and you don't want large binaries you can disable them at compile stage.
+      This is done by defining/undefining <keyword>LINK_*</keyword>
+      symbols in <keyword>ImagingOptions.inc</keyword> include file
+      located in <keyword>Source</keyword> directory.
+      All core file formats have corresponding symbols here and all
+      are defined/enabled by default in this include file.
+      There is also <keyword>LINK_EXTRAS</keyword> symbol that controls
+      automatic linking with file formats declared in Extras package
+      (individual file formats can be turned on/off in <keyword>ImagingExtras</keyword>
+      unit located in <keyword>Extras\Extensions</keyword> directory).
+    </par>
     
     <linklist>
       <title>More on supported file formats</title>
       <lslink url="../FileFormats/FileFormats.xml">Supported File Formats</lslink>
     </linklist>
-    
-    <table>
-      <title>Currently available file format extensions</title>
-      <row>
-        <th>Extension</th>
-        <th>$DEFINE symbol</th>
-        <th>exe/dll increase (D2k5)</th>
-        <th>exe/dll increase (FPC 2.0)</th>
-        <th>Description</th>
-      </row>
-      <row>
-        <td>JPEG File Format</td>
-        <td><keyword>LINK_JPEG</keyword></td>
-        <td>83 KiB</td>
-        <td>139 KiB</td>
-        <td>Loading and saving JPEG files</td>
-      </row>
-      <row>
-        <td>PNG File Format</td>
-        <td><keyword>LINK_PNG</keyword></td>
-        <td>38 KiB</td>
-        <td>59 KiB</td>
-        <td>Loading and saving PNG files</td>
-      </row>
-      <row>
-        <td>DDS File Format</td>
-        <td><keyword>LINK_DDS</keyword></td>
-        <td>6 KiB</td>
-        <td>9 KiB</td>
-        <td>Loading and saving DDS files</td>
-      </row>
-      <row>
-        <td>BMP File Format</td>
-        <td><keyword>LINK_BITMAP</keyword></td>
-        <td>6 KiB</td>
-        <td>9 KiB</td>
-        <td>Loading and saving BMP files</td>
-      </row>
-      <row>
-        <td>TGA File Format</td>
-        <td><keyword>LINK_TARGA</keyword></td>
-        <td>6 KiB</td>
-        <td>9 KiB</td>
-        <td>Loading and saving TGA files</td>
-      </row>
-      <row>
-        <td>MNG File Format</td>
-        <td><keyword>LINK_MNG</keyword></td>
-        <td colspan="2">uses PNG and JNG internally</td>
-        <td>Loading and saving MNG files</td>
-      </row>
-      <row>
-        <td>JNG File Format</td>
-        <td><keyword>LINK_JNG</keyword></td>
-        <td colspan="2">uses PNG and JPEG internally</td>
-        <td>Loading and saving JNG files</td>
-      </row>
-    </table>
-    
+
   </chapter>
 </doc>

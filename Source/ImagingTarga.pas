@@ -583,8 +583,7 @@ begin
     Result := (ReadCount >= SizeOf(Hdr)) and
       (Hdr.ImageType in [0, 1, 2, 3, 9, 10, 11]) and
       (Hdr.PixelSize in [1, 8, 15, 16, 24, 32]) and
-      (Hdr.ColorEntrySize in [0, 16, 24, 32]) and
-      (Hdr.ColorMapLength <= 256);
+      (Hdr.ColorEntrySize in [0, 16, 24, 32]);
   end;
 end;
 

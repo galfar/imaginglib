@@ -67,8 +67,8 @@ type
     BtnNext: TSpeedButton;
     BtnFirst: TSpeedButton;
     BtnLast: TSpeedButton;
-    SaveDialog: TSavePictureDialog;
     BtnSave: TButton;
+    SaveDialog: TSavePictureDialog;
     procedure PaintBoxPaint(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -80,7 +80,7 @@ type
     procedure BtnLastClick(Sender: TObject);
     procedure BtnSaveClick(Sender: TObject);
   private
-    FImage: TMultiImage; // Class that hold multiple images (load from MNG or DDS files for instance)
+    FImage: ImagingClasses.TMultiImage; // Class that hold multiple images (load from MNG or DDS files for instance)
     FFileName: string;
     FLastTime: LongInt;
     FOriginalFormats: array of TImageFormat;
@@ -155,7 +155,7 @@ end;
 
 procedure TMainForm.SetUnsupported;
 var
-  ImgCanvas: TImagingCanvas;
+  ImgCanvas: ImagingCanvases.TImagingCanvas;
   X, Y, Step: LongInt;
 begin
   // Set info texts to 'unsupported' and create default image to show
@@ -203,12 +203,13 @@ procedure TMainForm.BtnSaveClick(Sender: TObject);
 var
   CopyPath: string;
 begin
-  SaveDialog.Filter := GetImageFileFormatsFilter(False);
+  SaveDialog.Filter := Imaging.GetImageFileFormatsFilter(False);
   SaveDialog.FileName := ChangeFileExt(ExtractFileName(FFileName), '');
-  SaveDialog.FilterIndex := GetFileNameFilterIndex(FFileName, False);
+  SaveDialog.FilterIndex := Imaging.GetFileNameFilterIndex(FFileName, False);
   if SaveDialog.Execute then
   begin
-    CopyPath := ChangeFileExt(SaveDialog.FileName, '.' + GetFilterIndexExtension(SaveDialog.FilterIndex, False));
+    CopyPath := ChangeFileExt(SaveDialog.FileName, '.' +
+      Imaging.GetFilterIndexExtension(SaveDialog.FilterIndex, False));
     FImage.SaveMultiToFile(CopyPath);
   end;
 end;

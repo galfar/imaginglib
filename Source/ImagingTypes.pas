@@ -37,7 +37,7 @@ const
   { Current Major version of Imaging.}
   ImagingVersionMajor = 0;
   { Current Minor version of Imaging.}
-  ImagingVersionMinor = 21;
+  ImagingVersionMinor = 22;
   { Current patch of Imaging.}
   ImagingVersionPatch = 0;
 
@@ -127,6 +127,15 @@ const
   { Specifies whether JNG images are saved in progressive format.
     For details look at ImagingJpegProgressive.}
   ImagingJNGProgressive        = 44;
+  { Specifies whether PGM files are stored in text or in binary format.
+    Allowed values are 0 (store as text - very! large files) and 1 (save binary).
+    Default value is 1.}
+  ImagingPGMSaveBinary = 50;
+  { Specifies whether PPM files are stored in text or in binary format.
+    Allowed values are 0 (store as text - very! large files) and 1 (save binary).
+    Default value is 1.}
+  ImagingPPMSaveBinary = 51;
+
 
   { This option is used when reducing number of colors used in
     image (mainly when converting from ARGB image to indexed
@@ -431,6 +440,7 @@ implementation
       ChannelSize, ChannelCount, ...)
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added option constants for PGM and PPM file formats.
     - Added TPalette32Size256 and TPalette24Size256 types.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------

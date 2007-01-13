@@ -43,6 +43,10 @@
         <td><keyword>(Imaging Root)\Demos\ObjectPascal\Common</keyword></td>
         <td>Some common routines used by ObjectPascal demos</td>
       </row>
+      <row>
+        <td><keyword>(Imaging Root)\Extras\Extensions</keyword></td>
+        <td>Extras extensions source code (mainly new file formats)</td>
+      </row>
     </table>
 
     <lcap>Compiler Setup</lcap>

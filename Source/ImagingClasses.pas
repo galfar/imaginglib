@@ -314,14 +314,9 @@ begin
 end;
 
 function TBaseImage.GetPixelPointer(X, Y: LongInt): Pointer;
-var
-  Info: TImageFormatInfo;
 begin
-  if Valid then
-  begin
-    Info := GetFormatInfo;
-    Result := @PByteArray(FPData.Bits)[(Y * FPData.Width + X) * Info.BytesPerPixel]
-  end;
+  Result := Iff(Valid, @PByteArray(FPData.Bits)[(Y * FPData.Width + X) *
+    GetFormatInfo.BytesPerPixel], nil);
 end;
 
 function TBaseImage.GetSize: LongInt;

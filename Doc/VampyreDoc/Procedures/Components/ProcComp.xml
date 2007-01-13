@@ -79,6 +79,18 @@ begin
   // ifA8R8G8B8 data format
   <ref>DisplayImage</ref>(Form.Canvas, Form.BoundsRect, Image, Image.BoundsRect);
 end;
+
+// You have TBitmap and you want to save it as PNG or other file format
+// supported by Imaging
+procedure SaveBitmapAsPNG(Bitmap: TBitmap; const FileName: string);
+var
+  PNG: TImagingPNG;
+begin
+  PNG := TImagingPNG.Create;
+  PNG.Assign(Bitmap);
+  PNG.SaveToFile(FileName);
+  PNG.Free;
+end;
     </code>
     
   </chapter>

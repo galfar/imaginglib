@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 207
-  Top = 137
+  Left = 255
+  Top = 123
   Caption = 'Vampyre Imaging Library Demo - VCL Image Browser'
   ClientHeight = 600
   ClientWidth = 800
@@ -69,6 +69,9 @@ object MainForm: TMainForm
       BevelOuter = bvNone
       Color = clWhite
       TabOrder = 0
+      DesignSize = (
+        597
+        97)
       object LabDataFormat: TLabel
         Left = 136
         Top = 56
@@ -367,6 +370,7 @@ object MainForm: TMainForm
         Top = 3
         Width = 129
         Height = 25
+        Anchors = [akTop, akRight]
         Caption = 'Save Image Copy'
         TabOrder = 0
         OnClick = BtnSaveClick
@@ -402,8 +406,7 @@ object MainForm: TMainForm
     end
   end
   object SaveDialog: TSavePictureDialog
-    Options = [ofOverwritePrompt, ofHideReadOnly, ofEnableSizing]
-    Left = 56
-    Top = 400
+    Left = 104
+    Top = 320
   end
 end

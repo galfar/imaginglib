@@ -4,11 +4,13 @@
   <title>Demos</title>
   <chapter>
     <title>Demos</title>
-    <par>Here you can find some information on programs that
-    demostrate usage and capabilities of Imaging library.
-    They are divided by languages they are written in.
-    There is short information about what each demo demostrates,
-    supported compilers and platforms etc.</par>
+    <par>
+      Here you can find some information on programs that
+      demostrate usage and capabilities of Imaging library.
+      They are divided by languages they are written in.
+      There is short information about what each demo demostrates,
+      supported compilers and platforms etc.
+    </par>
 
     <linklist>
       <title>In This Section</title>
@@ -17,5 +19,9 @@
       <lslink url="Cpp.xml">C/C++ Demos</lslink>
     </linklist>
 
+    <par>
+      You can also find some additional unofficial demos in Extras package.
+      Those are not covered here but they should should contain desciptions
+      and comments.
   </chapter>
 </doc>

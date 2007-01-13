@@ -28,9 +28,9 @@
       first set paths to required headers in these scripts for them to
       work.
     </note>
-    
+
     <note>
-      Some demos from last Imaging version were removed. DXTTool has been
+      Some demos from older Imaging releases were removed. DXTTool has been
       replaced by VampConvert. HighLevel was there to show how to use
       high level interface (class based) which is now used by
       nearly all demos so HighLevel is no longer necessary.
@@ -80,7 +80,8 @@
       </row>
     </table>
 
-    <par>Benchmark first loads images (one for each supported file format)
+    <par>Benchmark first loads images (one for each supported and registered
+    file format)
     and then calls various image manipulation functions on them.
     Finally, images are saved and log file (with time consumption of
     each action) is written. You can change behaviour of program by
@@ -149,10 +150,12 @@
     <par>
       In the left part of the window is shell tree view component. Here you can
       select files located in your computer. If the selected file is in one of the
-      supported formats (JPG, BMP, TGA, DDS, PNG, MNG, JNG) it is displayed in the viewer
+      supported formats it is displayed in the viewer
       area and some information about the file is displayed in the info area.
       If image file contains subimages you can view them too. Select active subimage
-      by clicking on buttons with arrows (Previous/Next).
+      by clicking on buttons with arrows (Previous/Next or First/Last). There is also Save Image Copy
+      button that allows you to save copy (that is used for display, in A8R8G8B8)
+      of currently selected image to file.
     </par>
     <par>
       When supported file is selected in shell tree view it is loaded to
@@ -207,7 +210,8 @@
 
     <par>
       Demo uses <ref>TMultiImage</ref> class to store images
-      (loaded from one file - MNG, DDS)
+      (loaded from one file so its usually only one for most formats with
+      exceptions like MNG and DDS)
       which can be modified by user. After each modification image
       is assigned to <ref>TImagingBitmap</ref> class which provides visualization
       on the app form (using standard <icode>TImage</icode> component).
@@ -274,7 +278,7 @@
      (as printed by demo if invalid input is given):
     </par>
     <code>
-Vampyre Image Converter (library version 0.20.0)
+Vampyre Image Converter (library version 0.22.0)
 by Marek Mauder
 
 Error: Input file not specified
@@ -305,11 +309,15 @@ VampConvert [-op=arg] [..] -infile=file.ext [..] [-outfile=file.ext] [-op=arg]
                  create all possible levels
     -rotate: rotates input images counterclockwise
        argument: angle in degrees, multiple of 90
-  Supported file formats: PNG, JPG, TGA, DDS, JNG, MNG, BMP
-  Supported data formats: Index8, Gray8, A8Gray8, Gray16, Gray32, Gray64, A16Gra
-y16, X5R1G1B1, R3G3B2, R5G6B5, A1R5G5B5, A4R4G4B4, X1R5G5B5, X4R4G4B4, R8G8B8, A
-8R8G8B8, X8R8G8B8, R16G16B16, A16R16G16B16, B16G16R16, A16B16G16R16, R32F, A32R3
-2G32B32F, A32B32G32R32F, R16F, A16R16G16B16F, A16B16G16R16F, DXT1, DXT3, DXT5
+
+  Supported file formats (INPUT):
+bmp jpg png mng jng dds tga jp2 pbm pgm ppm pam pfm pcx bsi cif img dagtexture
+  Supported file formats (OUTPUT):
+bmp jpg png mng jng dds tga jp2 pgm ppm pam pfm cif img
+  Supported data formats: Index8 Gray8 A8Gray8 Gray16 Gray32 Gray64 A16Gray16 X5
+R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
+8 R16G16B16 A16R16G16B16 B16G16R16 A16B16G16R16 R32F A32R32G32B32F A32B32G32R32F
+ R16F A16R16G16B16F A16B16G16R16F DXT1 DXT3 DXT5
     </code>
 
     <note>

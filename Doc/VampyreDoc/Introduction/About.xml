@@ -14,15 +14,19 @@
       (<b>Delphi</b>, <b>Kylix</b> and <b>Free Pascal</b> compilers
       are supported) and there are interfaces to the library
       (compiled into dll/so) for other languages like <b>C/C++</b> and
-      <b>Delphi.NET</b>. Currently supported platforms are <b>Windows</b>,
-      x86/AMD64 <b>Linux</b>, <b>FreeBSD</b>, <b>DOS</b> (and <b>.NET</b> using unmanaged DLL).
+      <b>Delphi.NET</b>. Currently supported operating systems are <b>Windows</b>,
+      <b>Linux</b>, <b>FreeBSD</b> (and some other Unixes), <b>DOS</b> (and <b>.NET</b> using unmanaged DLL).
+      Supported CPU architectures are <b>x86</b> and <b>AMD64</b>.
     </par>
     <par>
-      Currently supported image file formats (loading and saving)
-      are: <b>PNG</b>, <b>JPEG</b>, <b>DDS</b>, <b>TGA</b>, <b>MNG</b>, <b>JNG</b>, and <b>BMP</b>.
+      Currently supported image file formats
+      are: (loading and saving) <b>PNG</b>, <b>JPEG</b>, <b>DDS</b>, <b>TGA</b>, <b>MNG</b>, <b>JNG</b>, <b>BMP</b>,
+        <b>JPEG2000</b>, <b>PGM</b>, <b>PPM</b>, <b>PAM</b>, <b>PFM</b>
+      (loading only) <b>PCX</b>, and <b>PBM</b>.
       Many internal image data formats are supported:
-      8/16/24/32/48/64 bit <b>RGB and ARGB</b> formats, indexed formats,
-      grayscale formats, <b>floating point</b> formats, and compressed formats like <b>DXTC</b>.
+      8/16/24/32/48/64 bit <b>RGB</b> and <b>ARGB</b> formats, indexed formats,
+      grayscale formats, half/single precision <b>floating point</b> formats,
+      and compressed formats  <b>DXT1</b>, <b>DXT3</b>, and <b>DXT5</b>.
     </par>
   </chapter>
 </doc>

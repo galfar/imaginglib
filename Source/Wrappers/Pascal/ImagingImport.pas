@@ -53,6 +53,7 @@ function ImFreeImage(var Image: TImageData): Boolean; cdecl; external LibraryNam
 function ImDetermineFileFormat(FileName, Ext: PChar): Boolean; cdecl; external LibraryName;
 function ImDetermineMemoryFormat(Data: Pointer; Size: LongInt; Ext: PChar): Boolean; cdecl; external LibraryName;
 function ImIsFileFormatSupported(FileName: PChar): Boolean; cdecl; external LibraryName;
+function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PChar; var CanSave, IsMultiImageFormat: Boolean): Boolean; cdecl; external LibraryName;
 
 function ImInitImageList(Size: LongInt; var ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
 function ImGetImageListSize(ImageList: TImageDataList): LongInt; cdecl; external LibraryName;

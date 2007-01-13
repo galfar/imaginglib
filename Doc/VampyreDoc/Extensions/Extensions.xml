@@ -13,14 +13,6 @@
       Extensions can be divided into two categories. One that is used
       automaticaly by Imaging core like image file format extensions.
       Imaging will register all these extensions on startup.
-      These extensions create larger executables and libraries
-      which you may consider a bad thing especially
-      if you does not use any functions provided by these extensions.
-      Because of that extensions can be turned on or off during compilation.
-      This is done by defining/undefining <keyword>LINK_*</keyword>
-      symbols in <keyword>ImagingOptions.inc</keyword> include file
-      located in <keyword>Source</keyword> directory.
-      All these extensions are turned on by default in include file.
     </par>
     <par>
       Second category extensions provide user interface to some

@@ -56,34 +56,26 @@ uses
   ImagingTypes, Imaging, ImagingClasses;
 
 type
-  { Base graphic class which uses Imaging to load and save
-    images. It has standard TBitmap class as ancestor and it can
+  { Graphic class which uses Imaging to load images.
+    It has standard TBitmap class as ancestor and it can
     Assign also to/from TImageData structres and TBaseImage
-    classes. Each descendant class can load all file formats
-    supported by Imaging but save only one format (TImagingBitmap
-    for *.bmp, TImagingJpeg for *.jpg). }
+    classes. For saving is uses inherited TBitmap methods.
+    This class is automatically registered to TPicture for all
+    file extensions supported by Imaging (useful only for loading).
+    If you just want to load images in various formats you can use this
+    class or simply use  TPicture.LoadFromXXX which will create this class
+    automatically. For TGraphic class that saves with Imaging look
+    at TImagingGraphicForSave class.}
   TImagingGraphic = class(TBitmap)
   protected
-    FDefaultFileExt: string;
-    FSavingFormat: TImageFormat;
     procedure ReadDataFromStream(Stream: TStream); virtual;
-    procedure WriteDataToStream(Stream: TStream); virtual;
     procedure AssignTo(Dest: TPersistent); override;
   public
-    constructor Create; override;
-    destructor Destroy; override;
     { Loads new image from the stream. It can load all image
       file formats supported by Imaging (and enabled of course)
       even though it is called by descendant class capable of
       saving only one file format.}
     procedure LoadFromStream(Stream: TStream); override;
-    { Saves the current image to the stream. It is saved in the
-      file format according to the DefaultFileExt property.
-      So each descendant class can save some other file format.}
-    procedure SaveToStream(Stream: TStream); override;
-    { Returns TImageFileFormat descendant for this graphic class.}
-    class function GetFileFormat: TImageFileFormat; virtual; abstract;
-
     { Copies the image contained in Source to this graphic object.
       Supports also TBaseImage descendants from ImagingClasses unit. }
     procedure Assign(Source: TPersistent); override;
@@ -95,24 +87,47 @@ type
     procedure AssignFromImageData(const ImageData: TImageData);
     { Copies the current image to TImageData structure.}
     procedure AssignToImageData(var ImageData: TImageData);
-{$IFDEF COMPONENT_SET_LCL}
+  end;
+
+  TImagingGraphicClass = class of TImagingGraphic;
+
+  { Base class for file format specific TGraphic classes that use
+    Imaging for saving. Each descendant class can load all file formats
+    supported by Imaging but save only one format (TImagingBitmap
+    for *.bmp, TImagingJpeg for *.jpg). Format specific classes also
+    allow easy access to Imaging options that affect saving of files
+    (they are properties here).}
+  TImagingGraphicForSave = class(TImagingGraphic)
+  protected
+    FDefaultFileExt: string;
+    FSavingFormat: TImageFormat;
+    procedure WriteDataToStream(Stream: TStream); virtual;
+  public
+    constructor Create; override;
+    { Saves the current image to the stream. It is saved in the
+      file format according to the DefaultFileExt property.
+      So each descendant class can save some other file format.}
+    procedure SaveToStream(Stream: TStream); override;
+    { Returns TImageFileFormat descendant for this graphic class.}
+    class function GetFileFormat: TImageFileFormat; virtual; abstract;
+  {$IFDEF COMPONENT_SET_LCL}
     { Returns file extensions of this graphic class.}
     class function GetFileExtensions: string; override;
     { Returns default MIME type of this graphic class.}
     function GetDefaultMimeType: string; override;
-{$ENDIF}
+  {$ENDIF}
     { Default (the most common) file extension of this graphic class.}
     property DefaultFileExt: string read FDefaultFileExt;
   end;
 
-  TImagingGraphicClass = class of TImagingGraphic;
+  TImagingGraphicForSaveClass = class of TImagingGraphicForSave;
 
 {$IFDEF LINK_BITMAP}
   { TImagingGraphic descendant for loading/saving Windows bitmaps.
     VCL/CLX/LCL all have native support for bitmaps so you might
     want to disable this class (although you can save bitmaps with
     RLE compression with this class).}
-  TImagingBitmap = class(TImagingGraphic)
+  TImagingBitmap = class(TImagingGraphicForSave)
   protected
     FUseRLE: Boolean;
   public
@@ -126,7 +141,7 @@ type
 
 {$IFDEF LINK_JPEG}
   { TImagingGraphic descendant for loading/saving JPEG images.}
-  TImagingJpeg = class(TImagingGraphic)
+  TImagingJpeg = class(TImagingGraphicForSave)
   protected
     FQuality: LongInt;
     FProgressive: Boolean;
@@ -134,9 +149,9 @@ type
     constructor Create; override;
     procedure SaveToStream(Stream: TStream); override;
     class function GetFileFormat: TImageFileFormat; override;
-{$IFDEF COMPONENT_SET_LCL}
+  {$IFDEF COMPONENT_SET_LCL}
     function GetDefaultMimeType: string; override;
-{$ENDIF}
+  {$ENDIF}
     { See ImagingJpegQuality option for details.}
     property Quality: LongInt read FQuality write FQuality;
     { See ImagingJpegProgressive option for details.}
@@ -146,7 +161,7 @@ type
 
 {$IFDEF LINK_PNG}
   { TImagingGraphic descendant for loading/saving PNG images.}
-  TImagingPNG = class(TImagingGraphic)
+  TImagingPNG = class(TImagingGraphicForSave)
   protected
     FPreFilter: LongInt;
     FCompressLevel: LongInt;
@@ -163,7 +178,7 @@ type
 
 {$IFDEF LINK_TARGA}
   { TImagingGraphic descendant for loading/saving Targa images.}
-  TImagingTarga = class(TImagingGraphic)
+  TImagingTarga = class(TImagingGraphicForSave)
   protected
     FUseRLE: Boolean;
   public
@@ -180,7 +195,7 @@ type
   TDDSCompresion = (dcNone, dcDXT1, dcDXT3, dcDXT5);
 
   { TImagingGraphic descendant for loading/saving DDS images.}
-  TImagingDDS = class(TImagingGraphic)
+  TImagingDDS = class(TImagingGraphicForSave)
   protected
     FCompression: TDDSCompresion;
   public
@@ -195,7 +210,7 @@ type
 
 {$IFDEF LINK_MNG}
   { TImagingGraphic descendant for loading/saving MNG images.}
-  TImagingMNG = class(TImagingGraphic)
+  TImagingMNG = class(TImagingGraphicForSave)
   protected
     FLossyCompression: Boolean;
     FLossyAlpha: Boolean;
@@ -207,9 +222,9 @@ type
     constructor Create; override;
     procedure SaveToStream(Stream: TStream); override;
     class function GetFileFormat: TImageFileFormat; override;
-{$IFDEF COMPONENT_SET_LCL}
+  {$IFDEF COMPONENT_SET_LCL}
     function GetDefaultMimeType: string; override;
-{$ENDIF}
+  {$ENDIF}
     { See ImagingMNGLossyCompression option for details.}
     property LossyCompression: Boolean read FLossyCompression write FLossyCompression;
     { See ImagingMNGLossyAlpha option for details.}
@@ -227,7 +242,7 @@ type
 
 {$IFDEF LINK_JNG}
   { TImagingGraphic descendant for loading/saving JNG images.}
-  TImagingJNG = class(TImagingGraphic)
+  TImagingJNG = class(TImagingGraphicForSave)
   protected
     FLossyAlpha: Boolean;
     FAlphaPreFilter: LongInt;
@@ -327,26 +342,45 @@ uses
 {$IFEND}
   ImagingUtility;
 
+type
+  TImagingGraphicAllInOne = class(TImagingGraphic)
+
+  end;
+
 resourcestring
   SBadFormatDataToBitmap = 'Cannot find compatible bitmap format for image %s';
   SBadFormatBitmapToData = 'Cannot find compatible data format for bitmap %p';
   SBadFormatDisplay = 'Unsupported image format passed';
+  SImagingGraphicName = 'Imaging Graphic AllInOne';
 
 { Registers types to VCL/CLX/LCL.}
 procedure RegisterTypes;
+var
+  I: LongInt;
 
-  procedure RegisterFileFormat(AClass: TImagingGraphicClass);
+  procedure RegisterFileFormatAllInOne(Format: TImageFileFormat);
   var
-    Inst: TImageFileFormat;
     I: LongInt;
   begin
-    Inst := AClass.GetFileFormat;
-    if Inst <> nil then
-      for I := 0 to Inst.Extensions.Count - 1 do
-        TPicture.RegisterFileFormat(Inst.Extensions[I], Inst.Name, AClass);
+    for I := 0 to Format.Extensions.Count - 1 do
+      TPicture.RegisterFileFormat(Format.Extensions[I], SImagingGraphicName,
+        TImagingGraphicAllInOne);
+  end;
+
+  procedure RegisterFileFormat(AClass: TImagingGraphicForSaveClass);
+  var
+    I: LongInt;
+  begin
+    for I := 0 to AClass.GetFileFormat.Extensions.Count - 1 do
+      TPicture.RegisterFileFormat(AClass.GetFileFormat.Extensions[I],
+        AClass.GetFileFormat.Name, AClass);
   end;
 
 begin
+  for I := 0 to Imaging.GetFileFormatCount - 1 do
+    RegisterFileFormatAllInOne(Imaging.GetFileFormatAtIndex(I));
+  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingGraphic);{$ENDIF}
+
 {$IFDEF LINK_TARGA}
   RegisterFileFormat(TImagingTarga);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingTarga);{$ENDIF}
@@ -378,7 +412,8 @@ begin
 {$IFDEF LINK_BITMAP}
   RegisterFileFormat(TImagingBitmap);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingBitmap);{$ENDIF}
-{$ENDIF}
+{$ENDIF}   
+
 end;
 
 { Unregisters types from VCL/CLX/LCL.}
@@ -404,6 +439,8 @@ begin
   TPicture.UnregisterGraphicClass(TImagingDDS);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingDDS);{$ENDIF}
 {$ENDIF}
+  TPicture.UnregisterGraphicClass(TImagingGraphic);
+  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingGraphic);{$ENDIF}
 end;
 
 function DataFormatToPixelFormat(Format: TImageFormat): TPixelFormat;
@@ -459,7 +496,7 @@ begin
   GetImageFormatInfo(Data.Format, Info);
   if PF = pfCustom then
   begin
-    // convert from formats not supported by Graphics unit
+    // Convert from formats not supported by Graphics unit
     Imaging.InitImage(WorkData);
     Imaging.CloneImage(Data, WorkData);
     if Info.IsFloatingPoint or Info.HasAlphaChannel or Info.IsSpecial then
@@ -497,7 +534,7 @@ begin
 
   if (PF = pf8bit) and (WorkData.Palette <> nil) then
   begin
-    // copy palette, this must be done before copying bits
+    // Copy palette, this must be done before copying bits
     FillChar(LogPalette, SizeOf(LogPalette), 0);
     LogPalette.palVersion := $300;
     LogPalette.palNumEntries := Info.PaletteEntries;
@@ -510,7 +547,7 @@ begin
     end;
     Bitmap.Palette := CreatePalette(PLogPalette(@LogPalette)^);
   end;
-  // copy scanlines
+  // Copy scanlines
   for I := 0 to WorkData.Height - 1 do
     Move(PByteArray(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
 {$ENDIF}
@@ -521,7 +558,7 @@ begin
 
   if (PF = pf8bit) and (WorkData.Palette <> nil) then
   begin
-    // copy palette
+    // Copy palette
     ColorTable := Bitmap.ColorTable;
     for I := 0 to Info.PaletteEntries - 1 do
     with ColorTable[I] do
@@ -531,12 +568,12 @@ begin
       B := WorkData.Palette[I].B;
     end;
   end;
-  // copy scanlines
+  // Copy scanlines
   for I := 0 to WorkData.Height - 1 do
     Move(PByteArray(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
-  // create 32bit raw image from image data
+  // Create 32bit raw image from image data
   FillChar(RawImage, SizeOf(RawImage), 0);
   with RawImage.Description do
   begin
@@ -561,7 +598,7 @@ begin
   RawImage.Data := WorkData.Bits;
   RawImage.DataSize := WorkData.Size;
 
-  // create bitmap from raw image
+  // Create bitmap from raw image
   if CreateBitmapFromRawImage(RawImage, ImgHandle, ImgMaskHandle, False) then
   begin
     Bitmap.Handle := ImgHandle;
@@ -615,7 +652,7 @@ begin
   Format := PixelFormatToDataFormat(Bitmap.PixelFormat);
   if Format = ifUnknown then
   begin
-    // convert from formats not supported by Imaging (1/4 bit)
+    // Convert from formats not supported by Imaging (1/4 bit)
     if Bitmap.PixelFormat < pf8bit then
        Bitmap.PixelFormat := pf8bit
     else
@@ -635,7 +672,7 @@ begin
   if (Format = ifIndex8) and (GetObject(Bitmap.Palette, SizeOf(Colors),
     @Colors) <> 0) then
   begin
-    // copy palette
+    // Copy palette
     GetPaletteEntries(Bitmap.Palette, 0, Colors, LogPalette.palPalEntry);
     if Colors > Info.PaletteEntries  then
       Colors := Info.PaletteEntries;
@@ -648,14 +685,14 @@ begin
       Data.Palette[I].B := palPalEntry[I].peBlue;
     end;
   end;
-  // copy scanlines
+  // Copy scanlines
   for I := 0 to Data.Height - 1 do
     Move(Bitmap.ScanLine[I]^, PByteArray(Data.Bits)[I * LineBytes], LineBytes);
 {$ENDIF}
 {$IFDEF COMPONENT_SET_CLX}
   if Format = ifIndex8 then
   begin
-    // copy palette
+    // Copy palette
     ColorTable := Bitmap.ColorTable;
     for I := 0 to Info.PaletteEntries - 1 do
     with ColorTable[I] do
@@ -666,17 +703,17 @@ begin
       Data.Palette[I].B := B;
     end;
   end;
-  // copy scanlines
+  // Copy scanlines
   for I := 0 to Data.Height - 1 do
     Move(Bitmap.ScanLine[I]^, PByteArray(Data.Bits)[I * LineBytes], LineBytes);
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
-  // get raw image from bitmap (mask handle must be 0 or expect violations)
+  // Get raw image from bitmap (mask handle must be 0 or expect violations)
   if GetRawImageFromBitmap(Bitmap.Handle, 0, Classes.Rect(0, 0, Data.Width, Data.Height), RawImage) then
   begin
     LineLazBytes := GetBytesPerLine(Data.Width, RawImage.Description.BitsPerPixel,
       RawImage.Description.LineEnd);
-    // copy scanlines
+    // Copy scanlines
     for I := 0 to Data.Height - 1 do
       Move(PByteArray(RawImage.Data)[I * LineLazBytes],
         PByteArray(Data.Bits)[I * LineBytes], LineBytes);
@@ -848,26 +885,9 @@ end;
 
 { TImagingGraphic class implementation }
 
-constructor TImagingGraphic.Create;
-begin
-  inherited Create;
-  FDefaultFileExt := GetFileFormat.Extensions[0];
-  FSavingFormat := ifUnknown;
-end;
-
-procedure TImagingGraphic.SaveToStream(Stream: TStream);
-begin
-  WriteDataToStream(Stream);
-end;
-
 procedure TImagingGraphic.LoadFromStream(Stream: TStream);
 begin
   ReadDataFromStream(Stream);
-end;
-
-destructor TImagingGraphic.Destroy;
-begin
-  inherited Destroy;
 end;
 
 procedure TImagingGraphic.ReadDataFromStream(Stream: TStream);
@@ -878,21 +898,6 @@ begin
   if Imaging.LoadImageFromStream(Stream, Data) then
   try
     AssignFromImageData(Data);
-  finally
-    Imaging.FreeImage(Data);
-  end;
-end;
-
-procedure TImagingGraphic.WriteDataToStream(Stream: TStream);
-var
-  Data: TImageData;
-begin
-  Imaging.InitImage(Data);
-  try
-    AssignToImageData(Data);
-    if FSavingFormat <> ifUnknown then
-      Imaging.ConvertImage(Data, FSavingFormat);
-    Imaging.SaveImageToStream(FDefaultFileExt, Stream, Data);
   finally
     Imaging.FreeImage(Data);
   end;
@@ -948,13 +953,44 @@ begin
   ConvertBitmapToData(Self, ImageData);
 end;
 
+
+{ TImagingGraphicForSave class implementation }
+
+constructor TImagingGraphicForSave.Create;
+begin
+  inherited Create;
+  FDefaultFileExt := GetFileFormat.Extensions[0];
+  FSavingFormat := ifUnknown;
+end;
+
+procedure TImagingGraphicForSave.WriteDataToStream(Stream: TStream);
+var
+  Data: TImageData;
+begin
+  Imaging.InitImage(Data);
+  if FDefaultFileExt <> '' then
+  try
+    AssignToImageData(Data);
+    if FSavingFormat <> ifUnknown then
+      Imaging.ConvertImage(Data, FSavingFormat);
+    Imaging.SaveImageToStream(FDefaultFileExt, Stream, Data);
+  finally
+    Imaging.FreeImage(Data);
+  end;
+end;
+
+procedure TImagingGraphicForSave.SaveToStream(Stream: TStream);
+begin
+  WriteDataToStream(Stream);
+end;
+
 {$IFDEF COMPONENT_SET_LCL}
-class function TImagingGraphic.GetFileExtensions: string;
+class function TImagingGraphicForSave.GetFileExtensions: string;
 begin
   Result := StringReplace(GetFileFormat.Extensions.CommaText, ',', ';', [rfReplaceAll]);
 end;
 
-function TImagingGraphic.GetDefaultMimeType: string;
+function TImagingGraphicForSave.GetDefaultMimeType: string;
 begin
   Result := 'image/' + FDefaultFileExt;
 end;
@@ -1184,7 +1220,12 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
-    - add new image file formats (automate this somehow)
+
+  -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Slightly changed class hierarchy. TImagingGraphic is now only for loading
+      and base class for savers is new TImagingGraphicForSave. Also
+      TImagingGraphic is now registered with all supported file formats
+      by TPicture's format support.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - added DisplayImage procedures (thanks to Paul Michell, modified)

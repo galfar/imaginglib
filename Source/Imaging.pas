@@ -535,6 +535,9 @@ uses
 {$IFDEF LINK_TARGA}
   ImagingTarga,
 {$ENDIF}
+{$IFDEF LINK_PNM}
+  ImagingPortableMaps,
+{$ENDIF}
 {$IFDEF LINK_EXTRAS}
   ImagingExtras,
 {$ENDIF}

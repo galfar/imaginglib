@@ -6,13 +6,13 @@
     <title>Features</title>
     <blist>
     <li>
-      Native Object Pascal multiplatform library with no dependencies on any dynamically
+      Native Object Pascal crossplatform library with no dependencies on any dynamically
       linked libraries or other platform specific binaries.
       Supported platforms are:
       <blist>
         <li> MS Windows</li>
-        <li> x86 and AMD64 Linux</li>
-        <li> FreeBSD</li>
+        <li> x86/AMD64 Linux</li>
+        <li> x86/AMD64 FreeBSD</li>
         <li> DOS</li>
         <li>.NET (using unmanaged DLL)</li>
       </blist>
@@ -20,13 +20,14 @@
     <li>
       Loading and saving of these image file formats:
       <blist>
-        <li> PNG</li>
-        <li> JPEG</li>
+        <li> PNG, MNG, JNG</li>
+        <li> JPEG, JPEG2000</li>
         <li> DDS</li>
         <li> TGA</li>
-        <li> MNG</li>
-        <li> JNG</li>
         <li> BMP</li>
+        <li> PBM, PGM, PPM, PAM, PFM</li>
+        <li> PCX</li>
+        <li> and more</li>
       </blist>
     </li>
     <li>
@@ -35,7 +36,7 @@
         <li> 8, 16, 24, 32, 48 and 64 bit RGB and ARGB formats</li>
         <li> indexed formats</li>
         <li> grayscale formats</li>
-        <li> floating point formats (IEEE754 and half)</li>
+        <li> floating point formats (IEEE754 and half precision)</li>
         <li> compressed formats like DXT1/3/5</li>
        </blist>
     </li>
@@ -54,12 +55,12 @@
       VCL, CLX and LCL graphic classes and functions.
     </li>
     <li>
-      Drawing, effects, and filters (only basic support now).
+      Drawing, effects, and filters.
     </li>
     <li>
       Support for mipmaps, multiimages, direct access to image data,
       user-specified file formats, overriding default read and write functions,
-      and much more.
+      and more.
     </li>
   </blist>
 

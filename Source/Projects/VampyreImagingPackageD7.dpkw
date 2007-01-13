@@ -43,6 +43,7 @@ contains
   ImagingIO in '..\ImagingIO.pas',
   ImagingFormats in '..\ImagingFormats.pas',
   ImagingDds in '..\ImagingDds.pas',
+  ImagingExtras in '..\..\Extras\Extensions\ImagingExtras.pas', 
   dzlib in '..\ZLib\dzlib.pas',
   impaszlib in '..\ZLib\impaszlib.pas',
   imadler in '..\ZLib\imadler.pas',

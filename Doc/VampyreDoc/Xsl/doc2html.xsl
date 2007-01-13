@@ -357,7 +357,7 @@
   <br /><br />
   <div class="footer">
     <xsl:text>
-      Vampyre Imaging Library (Documentation for version 0.20.0)
+      Vampyre Imaging Library (Documentation for version 0.22.0)
     </xsl:text>
     <br />
     <a href="http://imaginglib.sourceforge.net" target="_blank">

@@ -34,27 +34,17 @@ unit ImagingExtras;
 {$I ImagingOptions.inc}
 
 {$DEFINE LINK_JPEG2000}    // link support for JPEG2000 images
-{$DEFINE LINK_PNM}         // link support for Portable Maps images
 {$DEFINE LINK_PCX}         // link support for PCX images
 {$DEFINE LINK_ELDER}       // link support for Elder Imagery images
 
-{$IFNDEF MSWINDOWS}
-  {$UNDEF LINK_JPEG2000}
-{$ENDIF}
+{ $IFNDEF MSWINDOWS}
+//  {$UNDEF LINK_JPEG2000}
+{ $ENDIF}
 
 interface
 
 const
   { Those are new options for GetOption/SetOption interface. }
-
-  { Specifies whether PGM files are stored in text or in binary format.
-    Allowed values are 0 (store as text - very! large files) and 1 (save binary).
-    Default value is 1.}
-  ImagingPGMSaveBinary = 50;
-  { Specifies whether PPM files are stored in text or in binary format.
-    Allowed values are 0 (store as text - very! large files) and 1 (save binary).
-    Default value is 1.}
-  ImagingPPMSaveBinary = 51;
 
   { Controls Jpeg 2000 lossy compression quality. It is number in range 1..100.
     1 means small/ugly file, 100 means large/nice file. Default is 80.}
@@ -72,9 +62,6 @@ implementation
 uses
 {$IFDEF LINK_JPEG2000}
   ImagingJpeg2000,
-{$ENDIF}
-{$IFDEF LINK_PNM}
-  ImagingPortableMaps,
 {$ENDIF}
 {$IFDEF LINK_PCX}
   ImagingPcx,

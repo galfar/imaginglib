@@ -24,6 +24,7 @@
 {$DEFINE LINK_DDS}         // link support for DDS images
 {$DEFINE LINK_MNG}         // link support for MNG images
 {$DEFINE LINK_JNG}         // link support for JNG images
+{$DEFINE LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
 
 {$DEFINE LINK_EXTRAS}      // link support for file formats defined in
                            // Extras package. Exactly which formats will be

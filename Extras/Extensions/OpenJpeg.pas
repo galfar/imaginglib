@@ -28,6 +28,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
 }
 
+{
+  Translated to Object Pascal by Marek Mauder for Vampyre Imaging Library
+  http://imaginglib.sourceforge.net
+}
+
 unit OpenJpeg;
 
 {$I ImagingOptions.inc}
@@ -569,7 +574,7 @@ end;
 
 function memset(S: Pointer; C, N: Integer): Pointer; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
 begin
-  FillMemory(S, N, C);
+  FillMemoryByte(S, N, C);
   Result := S;
 end;
 

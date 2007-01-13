@@ -5,20 +5,24 @@
   <chapter>
     <title>Supported Compilers and Platforms</title>
     <par>
-    Main development language is <b>ObjectPascal</b> and two
-    main supported compilers are <b>Borland Delphi</b> and <b>Free Pascal</b>.
-    However, Imaging should also compile with other compilers too,
-    like the ones which use Delphi's <keyword>dcc</keyword> compiler
-    (<b>Kylix</b> and <b>C++ Builder</b>).</par>
-
-    <par>Supported platforms are now <b>Windows</b>, <b>Linux</b>, <b>FreeBSD</b>,
-    and <b>DOS</b> (and <b>.NET</b> using unmanaged DLL).
-    Imaging was tested on 32bit <b>x86</b>
-    and 64bit <b>AMD64</b> (Linux only) CPU architectures.
+      Main development language is <b>ObjectPascal</b> and two
+      main supported compilers are <b>Borland Delphi</b> and <b>Free Pascal</b>.
+      <b>Kylix</b> works too but <b>C++ Builder</b> crashes on internal error.
+      Other Pascal compilers like GPC or TMT were not tested.
+      Supported platforms are now <b>Windows</b>, <b>Linux</b>, <b>FreeBSD</b>
+      (some other Unix systems most probably too),
+      and <b>DOS</b> (and <b>.NET</b> using unmanaged DLL).
+      Imaging was tested on 32bit <b>x86</b>
+      and 64bit <b>AMD64</b> (Linux only - no Win64 Pascal compiler now)
+      CPU architectures.
+      It could work on some big endian machines too (except some file format loaders
+      that assume little endian) but I can't test it on any.
     </par>
 
-    <par>Following table contains information about which compilers have
-    been tested and whether Imaging was successfully compiled by them.</par>
+    <par>
+      Following table contains information about which compilers have
+      been tested and whether Imaging was successfully compiled by them.
+    </par>
 
     <table>
       <title>ObjectPascal Compilers</title>
@@ -41,20 +45,21 @@
       </row>
       <row>
         <td><keyword>C++ Builder 6/2006 (Win32)</keyword></td>
-        <td>Tested but crashed during compilation</td>
+        <td>Tested but crashed during compilation (internal compiler error)</td>
       </row>
     </table>
 
     <mcap>Wrapper Compilers</mcap>  
   
     <par>
-    If you want use Imaging as external dll/so library you are not restricted
-    only to <b>ObjectPascal</b> but you can use any other programming language
-    which has wrapper to dll/so written. Wrappers for other languages can be
-    found in <keyword>Source/Wrappers</keyword> directory.
-    Following tables contain information about which compilers have
-    been tested and whether program using wrapper was successfully
-    compiled by them (for <b>ObjectPascal</b> wrapper look at previous table).</par>
+      If you want use Imaging as external dll/so library you are not restricted
+      only to <b>ObjectPascal</b> but you can use any other programming language
+      which has wrapper to dll/so written. Wrappers for other languages can be
+      found in <keyword>Source/Wrappers</keyword> directory.
+      Following tables contain information about which compilers have
+      been tested and whether program using wrapper was successfully
+      compiled by them (for <b>ObjectPascal</b> wrapper look at previous table).
+    </par>
 
     <table>
       <title>Delphi.NET Compilers (DLL/SO Wrapper)</title>

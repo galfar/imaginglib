@@ -31,6 +31,7 @@
       <row><td><ref>DetermineStreamFormat</ref></td></row>
       <row><td><ref>DetermineMemoryFormat</ref></td></row>
       <row><td><ref>IsFileFormatSupported</ref></td></row>
+      <row><td><ref>EnumFileFormats</ref></td></row>
 
 
       <!-- Loading Functions  -->

@@ -687,7 +687,7 @@ end;
 procedure TImagingCanvas.Line(X1, Y1, X2, Y2: LongInt);
 var
   Steep: Boolean;
-  Error, XStep, YStep, DeltaX, DeltaY, X, Y, I, Bpp, W1, W2, Code1, Code2: LongInt;
+  Error, YStep, DeltaX, DeltaY, X, Y, I, Bpp, W1, W2, Code1, Code2: LongInt;
 begin
   if FPenMode = pmClear then Exit;
 
@@ -818,8 +818,6 @@ end;
 
 procedure TImagingCanvas.Ellipse(const Rect: TRect);
 var
- DstRect: TRect;
- CX, CY, XRadius, YRadius: LongInt;
  RadX, RadY, DeltaX, DeltaY, R, RX, RY: LongInt;
  X1, X2, Y1, Y2, Bpp, OldY: LongInt;
  Fill, Pen: TColorFPRec;

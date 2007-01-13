@@ -71,6 +71,10 @@
                 <item url="FileFormats/Png.xml" name="PNG" />
                 <item url="FileFormats/Mng.xml" name="MNG" />
                 <item url="FileFormats/Jng.xml" name="JNG" />
+                <item url="FileFormats/Pnm.xml" name="Portable Maps" />
+                <item url="FileFormats/Jpeg2000.xml" name="Jpeg2000" />
+                <item url="FileFormats/Pcx.xml" name="PCX" />
+                <item url="FileFormats/ElderImagery.xml" name="ElderImagery" />
               </itemlist>
             </item>
             
