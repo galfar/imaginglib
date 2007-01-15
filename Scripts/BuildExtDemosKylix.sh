@@ -10,7 +10,7 @@ ROOTDIR=".."
 DEMOPATH="$ROOTDIR/Demos/ObjectPascal"
 OUTPUT="-E$ROOTDIR/Demos/Bin"
 UNITS="-U$ROOTDIR/Source -U$ROOTDIR/Source/JpegLib -U$ROOTDIR/Source/ZLib -U$DEMOPATH/Common
-  -U$ROOTDIR/Source/Extensions -U$SDLDIR -U$OPENGLDIR"
+  -U$ROOTDIR/Source/Extensions -U$ROOTDIR/Extras/Extensions -U$SDLDIR -U$OPENGLDIR"
 INCLUDE="-I$ROOTDIR/Source -I$SDLDIR -I$OPENGLDIR" 
 OPTIONS=""
 

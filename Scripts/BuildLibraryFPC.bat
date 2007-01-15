@@ -4,7 +4,7 @@ echo Building VampyreImaging.dll using Free Pascal
 set ROOTDIR=..
 set LIBFILE=%ROOTDIR%\Source\Projects\VampyreImaging.dpr
 set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZLib
-set UNITS=%UNITS% -Fu%ROOTDIR%\Source\Extensions
+set UNITS=%UNITS% -Fu%ROOTDIR%\Source\Extensions -Fu%ROOTDIR%\Extras\Extensions
 set INCLUDE=-Fi%ROOTDIR%\Source 
 set OUTPUT=-oVampyreImaging.dll -FE%ROOTDIR%\Bin
 set OPTIONS=-Sgi2dh -OG2p3 -Xs 

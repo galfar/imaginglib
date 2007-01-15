@@ -5,7 +5,8 @@ echo "Building libVampyreImaging.so using Kylix"
 ROOTDIR=".."
 LIBFILE="$ROOTDIR/Source/Projects/VampyreImaging.dpr"
 OUTPUT="-E$ROOTDIR/Bin"
-UNITS="-U$ROOTDIR/Source -U$ROOTDIR/Source/JpegLib -U$ROOTDIR/Source/ZLib"
+UNITS="-U$ROOTDIR/Source -U$ROOTDIR/Source/JpegLib -U$ROOTDIR/Source/ZLib
+  -U$ROOTDIR/Extras/Extensions"
 INCLUDE="-I$ROOTDIR/Source" 
 OPTIONS=""
 

@@ -8,7 +8,8 @@ OPENGLDIR=""
 
 ROOTDIR=".."
 DEMOPATH="$ROOTDIR/Demos/ObjectPascal" 
-UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib -Fu$DEMOPATH/Common -Fu$ROOTDIR/Source/Extensions -Fu$SDLDIR -Fu$OPENGLDIR"  
+UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib
+  -Fu$DEMOPATH/Common -Fu$ROOTDIR/Source/Extensions -Fu$ROOTDIR/Extras/Extensions -Fu$SDLDIR -Fu$OPENGLDIR"
 INCLUDE="-Fi$ROOTDIR/Source -Fi$SDLDir -Fi$OPENGLDIR" 
 OUTPUT="-FE$ROOTDIR/Demos/Bin"
 OPTIONS="-Sgi2dh -OG2 -Xs"

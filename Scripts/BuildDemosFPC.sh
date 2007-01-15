@@ -4,7 +4,8 @@ echo "Building Demos using Free Pascal"
 
 ROOTDIR=".."
 DEMOPATH="$ROOTDIR/Demos/ObjectPascal" 
-UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib -Fu$DEMOPATH/Common"  
+UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib
+  -Fu$ROOTDIR/Extras/Extensions -Fu$DEMOPATH/Common"
 INCLUDE="-Fi$ROOTDIR/Source" 
 OUTPUT="-FE$ROOTDIR/Demos/Bin"
 OPTIONS="-Sgi2dh -OG2 -Xs"

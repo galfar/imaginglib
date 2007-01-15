@@ -5,7 +5,7 @@ set ROOTDIR=..
 set LIBFILE=%ROOTDIR%\Source\Projects\VampyreImaging.dpr
 set OUTPUT=-E%ROOTDIR%\Bin
 set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\JpegLib -U%ROOTDIR%\Source\ZLib 
-set UNITS=%UNITS% -U%ROOTDIR%\Source\Extensions
+set UNITS=%UNITS% -U%ROOTDIR%\Source\Extensions -U%ROOTDIR%\Extras\Extensions
 set INCLUDE=-I%ROOTDIR%\Source 
 set OPTIONS=
 

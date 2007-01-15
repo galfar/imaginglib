@@ -5,7 +5,8 @@ echo "Building Demos using Kylix"
 ROOTDIR=".."
 DEMOPATH="$ROOTDIR/Demos/ObjectPascal"
 OUTPUT="-E$ROOTDIR/Demos/Bin"
-UNITS="-U$ROOTDIR/Source -U$ROOTDIR/Source/JpegLib -U$ROOTDIR/Source/ZLib -U$DEMOPATH/Common"
+UNITS="-U$ROOTDIR/Source -U$ROOTDIR/Source/JpegLib -U$ROOTDIR/Source/ZLib -U$DEMOPATH/Common
+  -U$ROOTDIR/Extras/Extensions"
 INCLUDE="-I$ROOTDIR/Source" 
 OPTIONS=""
 
