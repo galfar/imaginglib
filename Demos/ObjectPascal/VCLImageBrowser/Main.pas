@@ -102,7 +102,10 @@ var
 implementation
 
 {$R *.dfm}
-{$R XPManifest.res}
+{$IF CompilerVersion >= 15.0}
+uses
+  XPMan;
+{$IFEND}
 
 procedure TMainForm.LoadFile;
 var
@@ -288,7 +291,7 @@ begin
 end;
 
 procedure TMainForm.FillDefault;
-begin
+begin    
   PaintBox.Canvas.Brush.Color := FillColor;
   PaintBox.Canvas.FillRect(PaintBox.ClientRect);
 end;
