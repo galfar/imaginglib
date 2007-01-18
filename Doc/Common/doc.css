@@ -410,7 +410,8 @@ a
 
 .toctitle
 {
-  margin-top: 10pt;
+  margin: 5pt;
+  font-size: 120%;
   display: block;
   text-align: center; 
   font-weight: bold;
@@ -419,33 +420,33 @@ a
 .toc a
 {  
   color: blue;
-  text-decoration: underline;
 }
 
 .toc a:hover
 {  
-  color: #B22222;
-  text-decoration: underline;
+  color: #FFFFFF;
+  background-color: #C23333;
 }
 
 .toc ul
 {
-  list-style-type: none;
+  display: block;
   list-style-image: none;
+  list-style-type: none;
+  list-style-position: outside;
   margin-top: 1pt;
   margin-bottom: 2pt;
   margin-left: 0pt;
+  border-left: solid 1px #F0F0F0;
 }
 
 .toc li
-{  
-  list-style-type: none;
-  list-style-image: none;
+{
+  list-style-image: url(path.png);
   margin-top: 0pt;
   margin-bottom: 1pt;
-  margin-left: 9pt;
+  margin-left: 16pt;
 }
-
 
 
 

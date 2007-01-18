@@ -81,6 +81,8 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+    procedure CheckOptionsValidity; override;
+  published  
     { Controls Jpeg save compression quality. It is number in range 1..100.
       1 means small/ugly file, 100 means large/nice file. Accessible trough
       ImagingJpegQuality option.}
@@ -353,6 +355,13 @@ begin
   RegisterOption(ImagingJpegProgressive, @FProgressive);
 end;
 
+procedure TJpegFileFormat.CheckOptionsValidity;
+begin
+  // Check if option values are valid
+  if not (FQuality in [1..100]) then
+    FQuality := JpegDefaultQuality;
+end;
+
 function TJpegFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
@@ -419,9 +428,6 @@ var
 {$ENDIF}
 begin
   Result := False;
-  // Check if option values are valid
-  if not (FQuality in [1..100]) then
-    FQuality := JpegDefaultQuality;
   // Copy IO functions to global var used in JpegLib callbacks
   SetJpegIO(GetIO);
   // Makes image to save compatible with Jpeg saving capabilities

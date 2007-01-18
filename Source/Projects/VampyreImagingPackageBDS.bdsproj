@@ -153,7 +153,7 @@
 			<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
 			<VersionInfo Name="AutoIncBuild">False</VersionInfo>
 			<VersionInfo Name="MajorVer">0</VersionInfo>
-			<VersionInfo Name="MinorVer">20</VersionInfo>
+			<VersionInfo Name="MinorVer">22</VersionInfo>
 			<VersionInfo Name="Release">0</VersionInfo>
 			<VersionInfo Name="Build">0</VersionInfo>
 			<VersionInfo Name="Debug">False</VersionInfo>
@@ -165,7 +165,7 @@
 			<VersionInfo Name="CodePage">1250</VersionInfo>
 		</VersionInfo>
 		<VersionInfoKeys>
-			<VersionInfoKeys Name="FileVersion">0.20.0.0</VersionInfoKeys>
+			<VersionInfoKeys Name="FileVersion">0.22.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys>
 			<VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys>

@@ -69,6 +69,8 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+    procedure CheckOptionsValidity; override;
+  published  
     { Controls Jpeg 2000 lossy compression quality. It is number in range 1..100.
       1 means small/ugly file, 100 means large/nice file. Accessible trough
       ImagingJpeg2000Quality option. Default value is 80.}
@@ -118,6 +120,13 @@ begin
   RegisterOption(ImagingJpeg2000LosslessCompression, @FLosslessCompression);
 end;
 
+procedure TJpeg2000FileFormat.CheckOptionsValidity;
+begin
+  // Check if option values are valid
+  if not (FQuality in [1..100]) then
+    FQuality := Jpeg2000DefaultQuality;
+end;
+
 function TJpeg2000FileFormat.GetFileType(Handle: TImagingHandle): TJpeg2000FileType;
 var
   ReadCount: LongInt;
@@ -154,6 +163,7 @@ var
   parameters: opj_dparameters_t;
   cio: popj_cio_t;
   image: popj_image_t;
+  StartPos: Int64;
 begin
   Result := False;
   image := nil;
@@ -169,7 +179,10 @@ begin
     Exit;
   end;
   // Currently OpenJPEG can load images only from memory so we have to
-  // preload whole input to mem buffer
+  // preload whole input to mem buffer. Not good but no other way now.
+  // At least we set stream pos to end of JP2 data after loading (we will now
+  // the exact size by then).
+  StartPos := GetIO.Tell(Handle);
   BufferSize := ImagingIO.GetInputSize(GetIO, Handle);
   GetMem(Buffer, BufferSize);
 
@@ -327,6 +340,8 @@ begin
         end;
       end;
     end;
+    // Set the input position just after end of image
+    Seek(Handle, StartPos + LongWord(cio.bp) - LongWord(cio.start), smFromBeginning);
 
     Result := True;
   finally
@@ -356,9 +371,6 @@ begin
   compparams := nil;
   cinfo := nil;
   cio := nil;
-  // Check if option values are valid
-  if not (FQuality in [1..100]) then
-    FQuality := Jpeg2000DefaultQuality;
   // Makes image to save compatible with Jpeg 2000 saving capabilities
   if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with GetIO, ImageToSave do
@@ -432,7 +444,8 @@ begin
     // Open OpenJPEG output
     cio := opj_cio_open(opj_common_ptr(cinfo), nil, 0);
     // Try to encode the image
-    if not opj_encode(cinfo, cio, image, nil) then Exit;
+    if not opj_encode(cinfo, cio, image, nil) then
+      Exit;
     // Finally write buffer with encoded image to output
     Write(Handle, cio.buffer, cio_tell(cio));
 
@@ -483,6 +496,7 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added Seek after loading to set input pos to the end of image.
     - Saving added losy/lossless, quality option added.
     - Initial loading-only version created.
 

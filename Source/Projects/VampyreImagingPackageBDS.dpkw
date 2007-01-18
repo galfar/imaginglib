@@ -103,6 +103,7 @@ contains
   imjpeglib in '..\JpegLib\imjpeglib.pas',
   imjquant1 in '..\JpegLib\imjquant1.pas',
   imjquant2 in '..\JpegLib\imjquant2.pas',
-  imjutils in '..\JpegLib\imjutils.pas';
+  imjutils in '..\JpegLib\imjutils.pas',
+  ImagingPortableMaps in '..\ImagingPortableMaps.pas';
 
 end.

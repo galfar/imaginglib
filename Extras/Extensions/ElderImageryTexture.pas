@@ -43,7 +43,9 @@ type
     This format is very complicated (more images with subimages,
     non-standard RLE, many unknowns) so module supports only loading.
     These texture files cannot be recognized by filename extension because
-    their filenames are in form texture.### where # is number.}
+    their filenames are in form texture.### where # is number. Use filename
+    masks instead. Also note that after loading the input position is not set
+    at the exact end of the data so it's not "stream-safe".}
   TTextureFileFormat = class(TElderFileFormat)
   private
     FLastTextureName: string;

@@ -73,6 +73,7 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+  published  
     { If set to True images will be saved in binary format. If it is False
       they will be saved in text format (which could result in 5-10x bigger file).
       Default is value True. Note that PAM files are always saved in binary.}
@@ -164,7 +165,7 @@ const
 implementation
 
 const
-  { TAB, CR, LF, and Space are used as seperators in Portable map headers.}
+  { TAB, CR, LF, and Space are used as seperators in Portable map headers and data.}
   WhiteSpaces = [#9, #10, #13, #32];
   SPAMWidth = 'WIDTH';
   SPAMHeight = 'HEIGHT';
@@ -226,6 +227,7 @@ var
   function ReadString: string;
   var
     S: AnsiString;
+    C: Char;
   begin
     // First skip all whitespace chars
     SetLength(S, 1);
@@ -253,6 +255,16 @@ var
     until (S[Length(S)] in WhiteSpaces) or (LineEnd = 0);
     // Get rid of last char - whitespace or null
     SetLength(S, Length(S) - 1);
+    // Move position to the beginning of next string (skip white space - needed
+    // to make the loader stop at the right input position)
+    repeat
+      CheckBuffer;
+      C := LineBuffer[LinePos];
+      Inc(LinePos);
+    until not (C in WhiteSpaces) or (LineEnd = 0);
+    // Dec pos, current is the beggining of the the string
+    Dec(LinePos);
+
     Result := S;
   end;
 
@@ -504,25 +516,26 @@ begin
           FreeMem(MonoData);
         end;
       end;
-      FixInputPos;
-
-      if (FMapInfo.MaxVal <> Pow2Int(FMapInfo.BitCount) - 1) and
-        (FMapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha, ttRGB, ttRGBAlpha]) then
-      begin
-        Dest := Bits;
-        // Scale color values according to MaxVal we got from header
-        // if necessary.
-        for I := 0 to Width * Height * Info.BytesPerPixel div (FMapInfo.BitCount shr 3) - 1 do
-        begin
-          if FMapInfo.BitCount = 8 then
-            Dest^ := Dest^ * 255 div FMapInfo.MaxVal
-          else
-            PWord(Dest)^ := PWord(Dest)^ * 65535 div FMapInfo.MaxVal;
-          Inc(Dest, FMapInfo.BitCount shr 3);
-        end;
-      end;
-
     end;
+
+    FixInputPos;
+
+    if (FMapInfo.MaxVal <> Pow2Int(FMapInfo.BitCount) - 1) and
+      (FMapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha, ttRGB, ttRGBAlpha]) then
+    begin
+      Dest := Bits;
+      // Scale color values according to MaxVal we got from header
+      // if necessary.
+      for I := 0 to Width * Height * Info.BytesPerPixel div (FMapInfo.BitCount shr 3) - 1 do
+      begin
+        if FMapInfo.BitCount = 8 then
+          Dest^ := Dest^ * 255 div FMapInfo.MaxVal
+        else
+          PWord(Dest)^ := PWord(Dest)^ * 65535 div FMapInfo.MaxVal;
+        Inc(Dest, FMapInfo.BitCount shr 3);
+      end;
+    end;
+
     Result := True;
   end;
 end;
@@ -900,9 +913,12 @@ end;
 
 function TPFMFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer): Boolean;
+var
+  Info: TImageFormatInfo;
 begin
   FillChar(FMapInfo, SizeOf(FMapInfo), 0);
-  if GetFormatInfo(Images[Index].Format).ChannelCount > 1 then
+  Info := GetFormatInfo(Images[Index].Format);
+  if (Info.ChannelCount > 1) or Info.IsIndexed then
     FMapInfo.TupleType := ttRGBFP
   else
     FMapInfo.TupleType := ttGrayScaleFP;
@@ -932,9 +948,10 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
-    - check more images in one stream (return stream pos moved by line buffer reads)
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Made modifications to ASCII PNM loading to be more "stream-safe". 
+    - Fixed bug: indexed images saved as grayscale in PFM.
     - Changed converting to supported formats little bit.
     - Added scaling of channel values (non-FP and non-mono images) according
       to MaxVal.

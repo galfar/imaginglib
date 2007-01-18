@@ -32,7 +32,7 @@
         </xsl:choose>
       </title>
     </head> 
-    <frameset cols="190,*" rows="1" border="0" toolbar="no">
+    <frameset cols="250,*" rows="1" border="0" toolbar="no">
       <frame frameborder="0" name="toc" scrolling="auto" noresize="noresize">
         <xsl:attribute name="src">
           <xsl:value-of select="toc"/>

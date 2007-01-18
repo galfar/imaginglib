@@ -36,11 +36,6 @@ interface
 uses
   Types, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility;
 
-const
-  DefaultWidth  = 256;
-  DefaultHeight = 256;
-  DefaultImages = 1;
-
 type
   { Base abstract high level class wrapper to low level Imaging structures and
     functions.}
@@ -57,13 +52,13 @@ type
     function GetPalette: PPalette32; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetPaletteEntries: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetScanLine(Index: LongInt): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetPixelPointer(X, Y: Integer): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetPixelPointer(X, Y: LongInt): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetFormatInfo: TImageFormatInfo; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetValid: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetBoundsRect: TRect;
-    procedure SetFormat(Value: TImageFormat); {$IFDEF USE_INLINE}inline;{$ENDIF}
-    procedure SetHeight(Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
-    procedure SetWidth(Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
+    procedure SetFormat(const Value: TImageFormat); {$IFDEF USE_INLINE}inline;{$ENDIF}
+    procedure SetHeight(const Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
+    procedure SetWidth(const Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetPointer; virtual; abstract;
     procedure DoDataSizeChanged; virtual;
     procedure DoPixelsChanged; virtual;
@@ -100,14 +95,14 @@ type
     procedure StretchTo(SrcX, SrcY, SrcWidth, SrcHeight: LongInt; DstImage: TBaseImage; DstX, DstY, DstWidth, DstHeight: LongInt; Filter: TResizeFilter);
 
     { Loads current image data from file.}
-    procedure LoadFromFile(const FileName: string);
-    { Loads current image data from stream.
-      Ext identifies desired image file format (jpg, png, dds, ...).}
-    procedure LoadFromStream(Stream: TStream);
+    procedure LoadFromFile(const FileName: string); virtual;
+    { Loads current image data from stream.}
+    procedure LoadFromStream(Stream: TStream); virtual;
 
     { Saves current image data to file.}
     procedure SaveToFile(const FileName: string);
-    { Saves current image data to stream.}
+    { Saves current image data to stream. Ext identifies desired image file
+      format (jpg, png, dds, ...)}
     procedure SaveToStream(const Ext: string; Stream: TStream);
 
     { Width of current image in pixels.}
@@ -230,6 +225,13 @@ type
     { Resizes all images.}
     procedure ResizeImages(NewWidth, NewHeight: LongInt; Filter: TResizeFilter);
 
+    { Overloaded loading method that will add new image to multiimage if
+      image array is empty bero loading. }
+    procedure LoadFromFile(const FileName: string); override;
+    { Overloaded loading method that will add new image to multiimage if
+      image array is empty bero loading. }
+    procedure LoadFromStream(Stream: TStream); override;
+
     { Loads whole multi image from file.}
     procedure LoadMultiFromFile(const FileName: string);
     { Loads whole multi image from stream.}
@@ -258,6 +260,11 @@ type
 
 implementation
 
+const
+  DefaultWidth  = 16;
+  DefaultHeight = 16;
+  DefaultImages = 1;
+
 function GetArrayFromImageData(const ImageData: TImageData): TDynImageDataArray;
 begin
   SetLength(Result, 1);
@@ -284,17 +291,26 @@ end;
 
 function TBaseImage.GetWidth: LongInt;
 begin
-  Result := Iff(Valid, FPData.Width, 0);
+  if Valid then
+    Result := FPData.Width
+  else
+    Result := 0;
 end;
 
 function TBaseImage.GetHeight: LongInt;
 begin
-  Result := Iff(Valid, FPData.Height, 0);
+  if Valid then
+    Result := FPData.Height
+  else
+    Result := 0;
 end;
 
 function TBaseImage.GetFormat: TImageFormat;
 begin
-  Result := IffFormat(Valid, FPData.Format, ifUnknown);
+  if Valid then
+    Result := FPData.Format
+  else
+    Result := ifUnknown;
 end;
 
 function TBaseImage.GetScanLine(Index: LongInt): Pointer;
@@ -315,23 +331,34 @@ end;
 
 function TBaseImage.GetPixelPointer(X, Y: LongInt): Pointer;
 begin
-  Result := Iff(Valid, @PByteArray(FPData.Bits)[(Y * FPData.Width + X) *
-    GetFormatInfo.BytesPerPixel], nil);
+  if Valid then
+    Result := @PByteArray(FPData.Bits)[(Y * FPData.Width + X) * GetFormatInfo.BytesPerPixel]
+  else
+    Result := nil;
 end;
 
 function TBaseImage.GetSize: LongInt;
 begin
-  Result := Iff(Valid, FPData.Size, 0);
+  if Valid then
+    Result := FPData.Size
+  else
+    Result := 0;
 end;
 
 function TBaseImage.GetBits: Pointer;
 begin
-  Result := Iff(Valid, FPData.Bits, nil);
+  if Valid then
+    Result := FPData.Bits
+  else
+    Result := nil;
 end;
 
 function TBaseImage.GetPalette: PPalette32;
 begin
-  Result := Iff(Valid, FPData.Palette, nil);
+  if Valid then
+    Result := FPData.Palette
+  else
+    Result := nil;
 end;
 
 function TBaseImage.GetPaletteEntries: LongInt;
@@ -357,17 +384,17 @@ begin
   Result := Rect(0, 0, GetWidth, GetHeight);
 end;
 
-procedure TBaseImage.SetWidth(Value: LongInt);
+procedure TBaseImage.SetWidth(const Value: LongInt);
 begin
   Resize(Value, GetHeight, rfNearest);
 end;
 
-procedure TBaseImage.SetHeight(Value: LongInt);
+procedure TBaseImage.SetHeight(const Value: LongInt);
 begin
   Resize(GetWidth, Value, rfNearest);
 end;
 
-procedure TBaseImage.SetFormat(Value: TImageFormat);
+procedure TBaseImage.SetFormat(const Value: TImageFormat);
 begin
   if Valid and Imaging.ConvertImage(FPData^, Value) then
     DoDataSizeChanged;
@@ -654,6 +681,10 @@ function TMultiImage.PrepareInsert(Index, Count: LongInt): Boolean;
 var
   I: LongInt;
 begin
+  // Inserting to empty image will add image at index 0
+  if GetImageCount = 0 then
+    Index := 0;
+
   if (Index >= 0) and (Index <= GetImageCount) and (Count > 0) then
   begin
     SetLength(FDataArray, GetImageCount + Count);
@@ -810,13 +841,27 @@ begin
     Imaging.ConvertImage(FDataArray[I], Format);
 end;
 
-procedure TMultiImage.ResizeImages(NewWidth, NewHeight: Integer;
+procedure TMultiImage.ResizeImages(NewWidth, NewHeight: LongInt;
   Filter: TResizeFilter);
 var
   I: LongInt;
 begin
   for I := 0 to GetImageCount do
     Imaging.ResizeImage(FDataArray[I], NewWidth, NewHeight, Filter);
+end;
+
+procedure TMultiImage.LoadFromFile(const FileName: string);
+begin
+  if GetImageCount = 0 then
+    ImageCount := 1;
+  inherited LoadFromFile(FileName);
+end;
+
+procedure TMultiImage.LoadFromStream(Stream: TStream);
+begin
+  if GetImageCount = 0 then
+    ImageCount := 1;
+  inherited LoadFromStream(Stream);
 end;
 
 procedure TMultiImage.LoadMultiFromFile(const FileName: string);
@@ -843,13 +888,18 @@ end;
 
 {
   File Notes:
-  
+
   -- TODOS ----------------------------------------------------
-    - add SetPalette,
-    - test TMultiImage with array of length 0 (maybe add dummy TImageData
-      to point to when active image = -1)
+    - nothing now
+    - add SetPalette, create some pal wrapper first
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Inserting images to empty MultiImage will act as Add method.
+    - MultiImages with empty arrays will now create one image when
+      LoadFromFile or LoadFromStream is called.
+    - Fixed bug that caused AVs when getting props like Width, Height, asn Size
+      and when inlining was off. There was call to Iff but with inlining disabled
+      params like FPData.Size were evaluated and when FPData was nil => AV.
     - Added many FPData validity checks to many methods. There were AVs
       when calling most methods on empty TMultiImage.
     - Added AllImagesValid property to TMultiImage.

@@ -90,6 +90,7 @@
   {$IFDEF FPC}
     {$S+}
   {$ENDIF}
+  {$UNDEF USE_INLINE}
 {$ELSE}
   {$DEBUGINFO OFF}
   {$LOCALSYMBOLS OFF}

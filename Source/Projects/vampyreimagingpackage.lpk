@@ -34,7 +34,7 @@
     <Description Value="Vampyre Imaging Library Package for Lazarus
 "/>
     <License Value="MPL/LGLP"/>
-    <Version Minor="20"/>
+    <Version Minor="22"/>
     <Files Count="15">
       <Item1>
         <Filename Value="..\Imaging.pas"/>

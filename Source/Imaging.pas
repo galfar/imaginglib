@@ -337,6 +337,7 @@ type
     descend from this class. If you want to add support for new image file
     format the best way is probably to look at TImageFileFormat descendants'
     implementations that are already part of Imaging.}
+  {$TYPEINFO ON}
   TImageFileFormat = class(TObject)
   private
     FExtensions: TStringList;
@@ -442,6 +443,10 @@ type
       filenames like this 'umajoXXXumajo.j0j' if one of themasks is
       'umajo*umajo.j?j'.}
     function TestFileName(const FileName: string): Boolean;
+    { Descendants use this method to check if their options (registered with
+      constant Ids for SetOption/GetOption interface or accessible as properties
+      of descendants) have valid values and make necessary changes.}
+    procedure CheckOptionsValidity; virtual;
 
     { Description of this format.}
     property Name: string read FName;
@@ -462,6 +467,7 @@ type
       can be saved only in one those formats.}
     property SupportedFormats: TImageFormats read GetSupportedFormats;
   end;
+  {$TYPEINFO OFF}
 
   { Class reference for TImageFileFormat class}
   TImageFileFormatClass = class of TImageFileFormat;
@@ -567,12 +573,12 @@ resourcestring
   SStreamNotValid = 'Stream %p does not contain valid image in "%s" format.';
   SMemoryNotValid = 'Memory %p (%d Bytes) does not contain valid image ' +
     'in "%s" format.';
-  SErrorLoadingFile = 'Error while loading images from file "%s".';
-  SErrorLoadingStream = 'Error while loading images from stream %p.';
-  SErrorLoadingMemory = 'Error while loading images from memory %p (%d Bytes).';
-  SErrorSavingFile = 'Error while saving images to file "%s".';
-  SErrorSavingStream = 'Error while saving images to stream %p.';
-  SErrorSavingMemory = 'Error while saving images to memory %p (%d Bytes).';
+  SErrorLoadingFile = 'Error while loading images from file "%s" (file format: %s).';
+  SErrorLoadingStream = 'Error while loading images from stream %p (file format: %s).';
+  SErrorLoadingMemory = 'Error while loading images from memory %p (%d Bytes) (file format: %s).';
+  SErrorSavingFile = 'Error while saving images to file "%s" (file format: %s).';
+  SErrorSavingStream = 'Error while saving images to stream %p (file format: %s).';
+  SErrorSavingMemory = 'Error while saving images to memory %p (%d Bytes) (file format: %s).';
   SErrorFindColor = 'Error while finding color in palette @%p with %d entries.';
   SErrorGrayscalePalette = 'Error while filling grayscale palette @%p with %d entries.';
   SErrorCustomPalette = 'Error while filling custom palette @%p with %d entries.';
@@ -2693,6 +2699,7 @@ function TImageFileFormat.PrepareSave(Handle: TImagingHandle;
 var
   Len, I: LongInt;
 begin
+  CheckOptionsValidity;
   Result := False;
   if FCanSave then
   begin
@@ -2811,7 +2818,7 @@ begin
       IO.Close(Handle);
     end;
   except
-    RaiseImaging(SErrorLoadingFile, [FileName]);
+    RaiseImaging(SErrorLoadingFile, [FileName, FExtensions[0]]);
   end;
 end;
 
@@ -2843,7 +2850,7 @@ begin
     end;
   except
     Stream.Position := OldPosition;
-    RaiseImaging(SErrorLoadingStream, [@Stream]);
+    RaiseImaging(SErrorLoadingStream, [@Stream, FExtensions[0]]);
   end;
 end;
 
@@ -2874,7 +2881,7 @@ begin
       IO.Close(Handle);
     end;
   except
-    RaiseImaging(SErrorLoadingMemory, [Data, Size]);
+    RaiseImaging(SErrorLoadingMemory, [Data, Size, FExtensions[0]]);
   end;
 end;
 
@@ -2926,7 +2933,7 @@ begin
       end;
     end;
   except
-    RaiseImaging(SErrorSavingFile, [FileName]);
+    RaiseImaging(SErrorSavingFile, [FileName, FExtensions[0]]);
   end;
 end;
 
@@ -2972,7 +2979,7 @@ begin
     end;
   except
     Stream.Position := OldPosition;
-    RaiseImaging(SErrorSavingStream, [@Stream]);
+    RaiseImaging(SErrorSavingStream, [@Stream, FExtensions[0]]);
   end;
 end;
 
@@ -3013,12 +3020,12 @@ begin
             Break;
         end;
       end;
-      Size := IORec.Written;
+      Size := IORec.Position;
     finally
       IO.Close(Handle);
     end;
   except
-    RaiseImaging(SErrorSavingMemory, [Data, Size]);
+    RaiseImaging(SErrorSavingMemory, [Data, Size, FExtensions[0]]);
   end;
 end;
 
@@ -3080,6 +3087,10 @@ begin
       Exit;
     end;
   Result := False;
+end;
+
+procedure TImageFileFormat.CheckOptionsValidity;
+begin
 end;
 
 { TOptionStack  class implementation }
@@ -3158,19 +3169,20 @@ finalization
       and PNG loading (endian)
     - remove cloning of SrcImage in CopyRect for
       incompatible formats - use CopyPixel rather? test speeds
-    - return additional info about loaded image like this
-        TicksPerSecond := PMNGDetails(GetOption(ImagingMNGFileDetails)).TicksPerSecond;
-    - add some file format enumeration functions (to low level)
     - add loading of multi images from file sequence
-    - add some color functions - create, convert, add, merge, ...
     - do not load all frames when only one is required, possible?
       (LoadImageFromFile on MNG/DDS)
+    - allow loaders to store additional infos - file structure (DDS volumes,
+      dagger textures), other info (PNG/MNG)
+      - return additional info about loaded image like this
+        TicksPerSecond := PMNGDetails(GetOption(ImagingMNGFileDetails)).TicksPerSecond;
 
     - create giga test of MakeCompatible - for all file fromats try
       to send all possible data formats to MakeCompatible and observe the results
       and saving/loading too!
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Added CheckOptionsValidity to TImageFileFormat and its decendants.
     - Unit ImagingExtras which registers file formats in Extras package
       is now automatically added to uses clause if LINK_EXTRAS symbol is
       defined in ImagingOptions.inc file.

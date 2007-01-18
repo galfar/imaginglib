@@ -304,7 +304,7 @@ end;
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Added Save Image Copy button and related stuff.
-    - Added XP controls manifest resource file (no TXPManifest since its not
+    - Added XP controls manifest (no TXPManifest since its not
       in older Delphis).
     - Wrong active image index was shown sometimes after several
       clicks on Prev/Next buttons.

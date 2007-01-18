@@ -52,6 +52,7 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+  published  
     { Controls that RLE compression is used during saving. Accessible trough
       ImagingTargaRLE option.}
     property UseRLE: LongBool read FUseRLE write FUseRLE;

@@ -100,36 +100,38 @@ var
   PalID, B: Byte;
   PalPCX: TPalette24Size256;
   FileDataFormat: TImageFormat;
-  I, J, DataPos, RleSize, InputSize, UncompSize, BytesPerLine, ByteNum, BitNum: LongInt;
-  RleData, UncompData, RowPointer, PixelIdx: PByte;
+  I, J, UncompSize, BytesPerLine, ByteNum, BitNum: LongInt;
+  UncompData, RowPointer, PixelIdx: PByte;
   Pixel24: PColor24Rec;
   Pixel32: PColor32Rec;
   AlphaPlane, RedPlane, GreenPlane, BluePlane,
   Plane1, Plane2, Plane3, Plane4: PByteArray;
 
-  procedure RleDecode(Source, Target: PByte; PackedSize, UnpackedSize: LongInt);
+  procedure RleDecode(Target: PByte; UnpackedSize: LongInt);
   var
     Count: LongInt;
+    Source: Byte;
   begin
     while UnpackedSize > 0 do
+    with GetIO do
     begin
-      if (Source^ and $C0) = $C0 then
+      GetIO.Read(Handle, @Source, SizeOf(Source));
+      if (Source and $C0) = $C0 then
       begin
         // RLE data
-        Count := Source^ and $3F;
-        Inc(Source);
+        Count := Source and $3F;
         if UnpackedSize < Count then
           Count := UnpackedSize;
-        FillChar(Target^, Count, Source^);
-        Inc(Source);
+        Read(Handle, @Source, SizeOf(Source));
+        FillChar(Target^, Count, Source);
+        //Inc(Source);
         Inc(Target, Count);
         Dec(UnpackedSize, Count);
       end
       else
       begin
         // Uncompressed data
-        Target^ := Source^;
-        Inc(Source);
+        Target^ := Source;
         Inc(Target);
         Dec(UnpackedSize);
       end;
@@ -143,7 +145,6 @@ begin
   begin
     // Read PCX header and store input position (start of image data)
     Read(Handle, @Hdr, SizeOf(Hdr));
-    DataPos := Tell(Handle);
     FileDataFormat := ifUnknown;
 
     // Determine image's data format and find its Imaging equivalent
@@ -179,26 +180,7 @@ begin
 
     NewImage(Width, Height, Format, Images[0]);
 
-    if FileDataFormat = ifIndex8 then
-    begin
-      // 8bit palette is appended at the end of the file
-      // with $0C identifier
-      Seek(Handle, -769, smFromEnd);
-      Read(Handle, @PalID, SizeOf(PalID));
-      if PalID = $0C then
-      begin
-        Read(Handle, @PalPCX, SizeOf(PalPCX));
-        for I := Low(PalPCX) to High(PalPCX) do
-        begin
-          Palette[I].A := $FF;
-          Palette[I].R := PalPCX[I].B;
-          Palette[I].G := PalPCX[I].G;
-          Palette[I].B := PalPCX[I].R;
-        end;
-      end;
-      Seek(Handle, DataPos, smFromBeginning);
-    end
-    else if FileDataFormat <> ifR8G8B8 then
+    if not (FileDataFormat in [ifIndex8, ifR8G8B8]) then
     begin
       // other formats use palette embedded to file header
       for I := Low(Hdr.Palette16) to High(Hdr.Palette16) do
@@ -211,8 +193,6 @@ begin
     end;
 
     // Now we determine various data sizes
-    InputSize := GetInputSize(GetIO, Handle);
-    RleSize := InputSize - Tell(Handle) - Iff(FileDataFormat = ifIndex8, 769, 0);
     BytesPerLine := Hdr.BytesPerLine * Hdr.Planes;
     UncompSize := BytesPerLine * Height;
 
@@ -221,17 +201,13 @@ begin
       if Hdr.Encoding = 1 then
       begin
         // Image data is compressed -> read and decompress
-        GetMem(RleData, RleSize);
-        try
-          Read(Handle, RleData, RleSize);
-          RleDecode(RleData, UncompData, RleSize, UncompSize);
-        finally
-          FreeMem(RleData);
-        end;
+        RleDecode(UncompData, UncompSize);
       end
       else
+      begin
         // Just read uncompressed data
         Read(Handle, UncompData, UncompSize);
+      end;
 
       if FileDataFormat in [ifR8G8B8, ifA8R8G8B8] then
       begin
@@ -334,10 +310,31 @@ begin
           Convert4To8(UncompData, Bits, Width, Height, Hdr.BytesPerLine);
         end
       end;
+
+      if FileDataFormat = ifIndex8 then
+      begin
+        // 8bit palette is appended at the end of the file
+        // with $0C identifier
+        //Seek(Handle, -769, smFromEnd);
+        Read(Handle, @PalID, SizeOf(PalID));
+        if PalID = $0C then
+        begin
+          Read(Handle, @PalPCX, SizeOf(PalPCX));
+          for I := Low(PalPCX) to High(PalPCX) do
+          begin
+            Palette[I].A := $FF;
+            Palette[I].R := PalPCX[I].B;
+            Palette[I].G := PalPCX[I].G;
+            Palette[I].B := PalPCX[I].R;
+          end;
+        end
+        else
+          Seek(Handle, -SizeOf(PalID), smFromCurrent);
+      end;
+
     finally
       FreeMem(UncompData);
     end;
-
     Result := True;
   end;
 end;
@@ -373,6 +370,8 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Made loader stream-safe - stream position is exactly at the ned of the
+      image after loading and file size doesn't need to be know during the process.
     - Initial TPCXFileFormat class implemented.
 
 }

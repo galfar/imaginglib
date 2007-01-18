@@ -49,13 +49,13 @@ type
     FQuality: LongInt;
     FProgressive: LongBool;
     function GetSupportedFormats: TImageFormats; override;
-    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: LongInt): Boolean; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+    procedure CheckOptionsValidity; override;
+  published  
     { Sets precompression filter used when saving images with lossless compression.
       Allowed values are: 0 (none), 1 (sub), 2 (up), 3 (average), 4 (paeth),
       5 (use 0 for indexed/gray images and 4 for RGB/ARGB images),
@@ -1721,6 +1721,17 @@ begin
   FProgressive := NGDefaultProgressive;
 end;
 
+procedure TNetworkGraphicsFileFormat.CheckOptionsValidity;
+begin
+  // Just check if save options has valid values
+  if not (FPreFilter in [0..6]) then
+    FPreFilter := NGDefaultPreFilter;
+  if not (FCompressLevel in [0..9]) then
+    FCompressLevel := NGDefaultCompressLevel;
+  if not (FQuality in [1..100]) then
+    FQuality := NGDefaultQuality;
+end;
+
 function TNetworkGraphicsFileFormat.GetSupportedFormats: TImageFormats;
 begin
   if FLossyCompression then
@@ -1773,19 +1784,6 @@ begin
   end;
 
   ConvertImage(Image, ConvFormat);
-end;
-
-function TNetworkGraphicsFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: LongInt): Boolean;
-begin
-  // Just check if save options has valid values
-  if not (FPreFilter in [0..6]) then
-    FPreFilter := NGDefaultPreFilter;
-  if not (FCompressLevel in [0..9]) then
-    FCompressLevel := NGDefaultCompressLevel;
-  if not (FQuality in [1..100]) then
-    FQuality := NGDefaultQuality;
-  Result := True;
 end;
 
 function TNetworkGraphicsFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
@@ -1846,9 +1844,9 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
 begin
-  Result := inherited SaveData(Handle, Images, Index);
   // Make image PNG compatible, store it in saver, and save it to file
-  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
+  Result := MakeCompatible(Images[Index], ImageToSave, MustBeFreed);
+  if Result then
   with NGFileSaver do
   try
     FileType := ngPNG;
@@ -1931,10 +1929,7 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
 begin
-  Result := inherited SaveData(Handle, Images, Index);
-  if not Result then Exit;
   Result := False;
-
   LargestWidth := 0;
   LargestHeight := 0;
 
@@ -2028,9 +2023,9 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
 begin
-  Result := inherited SaveData(Handle, Images, Index);
   // Make image JNG compatible, store it in saver, and save it to file
-  if Result and MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
+  Result := MakeCompatible(Images[Index], ImageToSave, MustBeFreed);
+  if Result then
   with NGFileSaver do
   try
     FileType := ngJNG;

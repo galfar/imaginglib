@@ -43,7 +43,8 @@ type
     and maybe other old Bethesda games. Files can be RLE compressed
     and may contain palette although most images use external palettes.
     Some files have no header at all so exact file size must be known
-    prior to loading.}
+    prior to loading (otherwise no-header files wont be recognized or whole
+    image could be identified as CIF as they use the same header).}
   TIMGFileFormat = class(TElderFileFormat)
   protected
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;

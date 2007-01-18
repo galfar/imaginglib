@@ -42,7 +42,6 @@ type
     Data: ImagingUtility.PByteArray;
     Position: LongInt;
     Size: LongInt;
-    Written: LongInt;
   end;
   PMemoryIORec = ^TMemoryIORec;
 
@@ -52,8 +51,8 @@ var
   StreamIO: TIOFunctions;
   MemoryIO: TIOFunctions;
 
-{ Helper function that returns size of input represented by Handle (and opened
-  and operated on by members of IOFunctions)}
+{ Helper function that returns size of input (from current position to the end)
+  represented by Handle (and opened and operated on by members of IOFunctions).}
 function GetInputSize(IOFunctions: TIOFunctions; Handle: TImagingHandle): LongInt;
 { Helper function that initializes TMemoryIORec with given params.}
 function PrepareMemIO(Data: Pointer; Size: LongInt): TMemoryIORec;
@@ -434,14 +433,13 @@ begin
     Result := Rec.Size - Rec.Position;
   Move(Buffer^, Rec.Data[Rec.Position], Result);
   Rec.Position := Rec.Position + Result;
-  Rec.Written := Rec.Written + Result;
 end;
 
 { Helper IO functions }
 
 function GetInputSize(IOFunctions: TIOFunctions; Handle: TImagingHandle): LongInt;
 var
-  OldPos: LongInt;
+  OldPos: Int64;
 begin
   OldPos := IOFunctions.Tell(Handle);
   IOFunctions.Seek(Handle, 0, smFromEnd);
@@ -454,7 +452,6 @@ begin
   Result.Data := Data;
   Result.Position := 0;
   Result.Size := Size;
-  Result.Written := 0;
 end;
 
 initialization
@@ -494,6 +491,8 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Removed TMemoryIORec.Written, use Position to get proper memory
+      position (Written didn't take Seeks into account).
     - Added TBufferedReadFile and TBufferedWriteFile classes for
       buffered file reading/writting. File IO functions now use these
       classes resulting in performance increase mainly in file formats
