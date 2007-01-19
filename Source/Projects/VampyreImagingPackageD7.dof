@@ -80,7 +80,7 @@ UnsafeType=0
 UnsafeCode=0
 UnsafeCast=0
 [Linker]
-MapFile=3
+MapFile=0
 OutputObjs=0
 ConsoleApp=1
 DebugInfo=0
@@ -94,7 +94,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=..\..\Bin
 PackageDCPOutputDir=
-SearchPath=..\Source;..\Source\JpegLib;..\Source\ZLib;
+SearchPath=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls
 Conditionals=
 DebugSourceDirs=
@@ -113,7 +113,7 @@ RootDir=C:\Program Files\Borland\Delphi7\Bin\
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
-MinorVer=20
+MinorVer=22
 Release=0
 Build=0
 Debug=0
@@ -126,7 +126,7 @@ CodePage=1250
 [Version Info Keys]
 CompanyName=http://imaginglib.sourceforge.net
 FileDescription=Image loading, saving and manipulation library
-FileVersion=0.20.0.0
+FileVersion=0.22.0.0
 InternalName=
 LegalCopyright=
 LegalTrademarks=
@@ -134,16 +134,14 @@ OriginalFilename=
 ProductName=Vampyre Imaging Library
 ProductVersion=1.0.0.0
 [Excluded Packages]
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\JclDebugIdeD70.bpl=JCL Debug IDE extension for Delphi 7
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\ProjectAnalyzerD70.bpl=JCL Project Analyzer for Delphi 7
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\IdeOpenDlgFavoriteD70.bpl=JCL Open and Save IDE dialogs with favorite folders for Delphi 7
-C:\Program Files\Borland\Delphi7\Projects\Bpl\JvMMD7D.bpl=JVCL Multimedia and Image Components
+D:\Project\Libs\Imaging\Bin\VampyreImagingPackageD7.bpl=Vampyre Imaging Library Package
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=1
-Item0=..\Source;..\Source\JpegLib;..\Source\ZLib;
+Count=2
+Item0=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions
+Item1=..\Source;..\Source\JpegLib;..\Source\ZLib;
 [HistoryLists\hlOutputDirectorry]
 Count=1
 Item0=..\..\Bin

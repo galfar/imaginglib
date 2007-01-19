@@ -743,6 +743,7 @@ begin
     Assert(ImageData.Format in [ifA8R8G8B8, ifX8R8G8B8], SBadFormatDisplay);
     OldMode := Windows.SetStretchBltMode(DC, COLORONCOLOR);
 
+    FillChar(BitmapInfo, SizeOf(BitmapInfo), 0);
     with BitmapInfo.bmiHeader do
     begin
       biSize := SizeOf(TBitmapInfoHeader);

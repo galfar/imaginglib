@@ -44,6 +44,7 @@ contains
   ImagingIO in '../ImagingIO.pas',
   ImagingFormats in '../ImagingFormats.pas',
   ImagingDds in '../ImagingDds.pas',
+  ImagingPortableMaps in '../ImagingPortableMaps.pas',
   ImagingExtras in '../../Extras\Extensions\ImagingExtras.pas',
   dzlib in '../ZLib/dzlib.pas',
   impaszlib in '../ZLib/impaszlib.pas',
@@ -57,7 +58,6 @@ contains
   imzdeflate in '../ZLib/imzdeflate.pas',
   imzinflate in '../ZLib/imzinflate.pas',
   imzutil in '../ZLib/imzutil.pas',
-
   imjcapimin in '../JpegLib/imjcapimin.pas',
   imjcapistd in '../JpegLib/imjcapistd.pas',
   imjccoefct in '../JpegLib/imjccoefct.pas',

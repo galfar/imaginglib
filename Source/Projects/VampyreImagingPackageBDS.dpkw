@@ -43,6 +43,7 @@ contains
   ImagingIO in '..\ImagingIO.pas',
   ImagingFormats in '..\ImagingFormats.pas',
   ImagingDds in '..\ImagingDds.pas',
+  ImagingPortableMaps in '..\ImagingPortableMaps.pas',
   ImagingExtras in '..\..\Extras\Extensions\ImagingExtras.pas',
   dzlib in '..\ZLib\dzlib.pas',
   impaszlib in '..\ZLib\impaszlib.pas',
@@ -103,7 +104,6 @@ contains
   imjpeglib in '..\JpegLib\imjpeglib.pas',
   imjquant1 in '..\JpegLib\imjquant1.pas',
   imjquant2 in '..\JpegLib\imjquant2.pas',
-  imjutils in '..\JpegLib\imjutils.pas',
-  ImagingPortableMaps in '..\ImagingPortableMaps.pas';
+  imjutils in '..\JpegLib\imjutils.pas';
 
 end.

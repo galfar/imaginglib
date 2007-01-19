@@ -33,9 +33,10 @@
     </CompilerOptions>
     <Description Value="Vampyre Imaging Library Package for Lazarus
 "/>
-    <License Value="MPL/LGLP"/>
+    <License Value="MPL/LGLP
+"/>
     <Version Minor="22"/>
-    <Files Count="15">
+    <Files Count="16">
       <Item1>
         <Filename Value="..\Imaging.pas"/>
         <UnitName Value="Imaging"/>
@@ -96,6 +97,10 @@
         <Filename Value="..\ImagingUtility.pas"/>
         <UnitName Value="ImagingUtility"/>
       </Item15>
+      <Item16>
+        <Filename Value="..\ImagingPortableMaps.pas"/>
+        <UnitName Value="ImagingPortableMaps"/>
+      </Item16>
     </Files>
     <Type Value="RunAndDesignTime"/>
     <RequiredPkgs Count="1">

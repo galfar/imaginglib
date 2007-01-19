@@ -291,7 +291,7 @@ begin
 end;
 
 procedure TMainForm.FillDefault;
-begin    
+begin
   PaintBox.Canvas.Brush.Color := FillColor;
   PaintBox.Canvas.FillRect(PaintBox.ClientRect);
 end;

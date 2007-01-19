@@ -34,8 +34,8 @@ unit ImagingJpeg2000;
 interface
 
 uses
-  SysUtils, ImagingTypes, Imaging, ImagingIO, ImagingUtility, ImagingExtras,
-  OpenJpeg;
+  SysUtils, ImagingTypes, Imaging, ImagingColors, ImagingIO, ImagingUtility,
+  ImagingExtras, OpenJpeg;
 
 type
   { Type Jpeg 2000 file (needed for OpenJPEG codec settings).}
@@ -309,19 +309,17 @@ begin
     if (Info.ChannelCount = 3) and (image.color_space = CLRSPC_SYCC) then
     begin
       // Convert image from YCbCr colorspace to RGB if needed.
-      // Not exactly sure which channel is Y.
+      // Not exactly sure which channel is Y (OpenJpeg's fault - no "cdef" detection).
       Pix := Bits;
       if Info.BytesPerPixel = 3 then
       begin
         for X := 0 to Width * Height - 1 do
         with PColor24Rec(Pix)^ do
         begin
-          CR := R;
+          CY := R;
           CB := G;
-          CY := B;
-          R := ClampToByte(Round(CY + 1.40200 * (CR - $80)));
-          G := ClampToByte(Round(CY - 0.34414 * (CB - $80) - 0.71414 * (CR - $80)));
-          B := ClampToByte(Round(CY + 1.77200 * (CB - $80)));
+          CR := B;
+          YCbCrToRGB(CY, CB, CR, R, G, B);
           Inc(Pix, Info.BytesPerPixel);
         end;
       end
@@ -330,12 +328,10 @@ begin
         for X := 0 to Width * Height - 1 do
         with PColor48Rec(Pix)^ do
         begin
-          CR := R;
+          CY := R;
           CB := G;
-          CY := B;
-          R := ClampToWord(Round(CY + 1.40200 * (CR - $8000)));
-          G := ClampToWord(Round(CY - 0.34414 * (CB - $8000) - 0.71414 * (CR - $8000)));
-          B := ClampToWord(Round(CY + 1.77200 * (CB - $8000)));
+          CR := B;
+          YCbCrToRGB16(CY, CB, CR, R, G, B);
           Inc(Pix, Info.BytesPerPixel);
         end;
       end;
