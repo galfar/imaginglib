@@ -9,9 +9,11 @@
     color reduction and other are available.
     You can find list of all low level image manipulation and drawing/pixel
     functions in <link url="../../Usage/LowLevel.xml">Low Level Interface</link> section.
-    You can look at usage of many of these functions in the <b>Benchmark</b>
-    demo available for <link url="../Demos/Pascal.xml#benchmark">ObjectPascal</link>
-    and <link url="../Demos/Cpp.xml#benchmark">C++</link>.</par>
+    You can look at usage of many of these functions in the
+    <link url="../../Demos/Pascal.xml#vampconvert">VampConvert</link>
+    and
+    <link url="../../Demos/Pascal.xml#benchmark">Benchmark</link> Object Pascal demos
+    and <link url="../../Demos/Cpp.xml#benchmark">C++ Benchmark</link> demo.</par>
 
     <par>In the following code listing you can see typical usage of Imaging's
     manipulation functions.</par>

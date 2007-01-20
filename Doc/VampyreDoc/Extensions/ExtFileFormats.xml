@@ -26,14 +26,14 @@
       (around 50 KiB). Some formats use others internally - MNG and JNG use
       PNG and JPEG. If you know you won't be needing some of those formats
       and you don't want large binaries you can disable them at compile stage.
-      This is done by defining/undefining <keyword>LINK_*</keyword>
-      symbols in <keyword>ImagingOptions.inc</keyword> include file
+      This is done by defining/undefining <icode>LINK_*</icode>
+      symbols in <icode>ImagingOptions.inc</icode> include file
       located in <keyword>Source</keyword> directory.
       All core file formats have corresponding symbols here and all
       are defined/enabled by default in this include file.
-      There is also <keyword>LINK_EXTRAS</keyword> symbol that controls
+      There is also <icode>LINK_EXTRAS</icode> symbol that controls
       automatic linking with file formats declared in Extras package
-      (individual file formats can be turned on/off in <keyword>ImagingExtras</keyword>
+      (individual file formats can be turned on/off in <ref>ImagingExtras</ref>
       unit located in <keyword>Extras\Extensions</keyword> directory).
     </par>
     

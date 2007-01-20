@@ -56,6 +56,8 @@ type
     FSaveVolume: LongBool;
     FSaveMipMapCount: LongInt;
     FSaveDepth: LongInt;
+    procedure ComputeSubDimensions(Idx, Width, Height, MipMaps, Depth: LongInt;
+      IsCubeMap, IsVolume: Boolean; var CurWidth, CurHeight: LongInt);
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
@@ -65,6 +67,16 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+    procedure CheckOptionsValidity; override;
+  published
+    property LoadedCubeMap: LongBool read FLoadedCubeMap write FLoadedCubeMap;
+    property LoadedVolume: LongBool read FLoadedVolume write FLoadedVolume;
+    property LoadedMipMapCount: LongInt read FLoadedMipMapCount write FLoadedMipMapCount;
+    property LoadedDepth: LongInt read FLoadedDepth write FLoadedDepth;
+    property SaveCubeMap: LongBool read FSaveCubeMap write FSaveCubeMap;
+    property SaveVolume: LongBool read FSaveVolume write FSaveVolume;
+    property SaveMipMapCount: LongInt read FSaveMipMapCount write FSaveMipMapCount;
+    property SaveDepth: LongInt read FSaveDepth write FSaveDepth;
   end;
 
 const
@@ -175,15 +187,6 @@ type
     Desc: TDDSurfaceDesc2; // Surface description
   end;
 
-function GetVolumeLevelCount(Depth, MipMaps: LongInt): LongInt;
-var
-    I: LongInt;
-begin
-    Result := Depth;
-    for I := 1 to MipMaps - 1 do
-      Inc(Result, ClampInt(Depth shr I, 1, Depth));
-end;
-
 
 { TDDSFileFormat class implementation }
 
@@ -212,6 +215,74 @@ begin
   RegisterOption(ImagingDDSSaveDepth, @FSaveDepth);
 end;
 
+procedure TDDSFileFormat.CheckOptionsValidity;
+begin
+  if FSaveCubeMap then
+    FSaveVolume := False;
+  if FSaveVolume then
+    FSaveCubeMap := False;
+  if FSaveDepth < 1 then
+    FSaveDepth := 1;
+  if FSaveMipMapCount < 1 then
+    FSaveMipMapCount := 1;
+end;
+
+procedure TDDSFileFormat.ComputeSubDimensions(Idx, Width, Height, MipMaps, Depth: LongInt;
+  IsCubeMap, IsVolume: Boolean; var CurWidth, CurHeight: LongInt);
+var
+  I, Last, Shift: LongInt;
+begin
+  CurWidth := Width;
+  CurHeight := Height;
+  if MipMaps > 1 then
+  begin
+    if not IsVolume then
+    begin
+      if IsCubeMap then
+      begin
+        // Cube maps are stored like this
+        // Face 0 mimap 0
+        // Face 0 mipmap 1
+        // ...
+        // Face 1 mipmap 0
+        // Face 1 mipmap 1
+        // ...
+
+        // Modify index so later in for loop we iterate less times
+        Idx := Idx - ((Idx div MipMaps) * MipMaps);
+      end;
+      for I := 0 to Idx - 1 do
+      begin
+        CurWidth := ClampInt(CurWidth shr 1, 1, CurWidth);
+        CurHeight := ClampInt(CurHeight shr 1, 1, CurHeight);
+      end;
+    end
+    else
+    begin
+      // Volume textures are stored in DDS files like this:
+      // Slice 0 mipmap 0
+      // Slice 1 mipmap 0
+      // Slice 2 mipmap 0
+      // Slice 3 mipmap 0
+      // Slice 0 mipmap 1
+      // Slice 1 mipmap 1
+      // Slice 0 mipmap 2
+      // Slice 0 mipmap 3 ...
+      Shift := 0;
+      Last := Depth;
+      while Idx > Last - 1 do
+      begin
+        CurWidth := ClampInt(CurWidth shr 1, 1, CurWidth);
+        CurHeight := ClampInt(CurHeight shr 1, 1, CurHeight);
+        if (CurWidth = 1) and (CurHeight = 1) then
+          Break;
+        Inc(Shift);
+        Inc(Last, ClampInt(Depth shr Shift, 1, Depth));
+      end;
+    end;
+  end;
+end;
+
 function TDDSFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
@@ -219,7 +290,7 @@ var
   SrcFormat: TImageFormat;
   FmtInfo: TImageFormatInfo;
   NeedsSwapChannels, HasMipMaps: Boolean;
-  CurWidth, CurHeight, ImageCount, LoadSize, I, PitchOrLinear: LongInt;
+  CurrentWidth, CurrentHeight, ImageCount, LoadSize, I, PitchOrLinear: LongInt;
   Data: PByte;
   UseAsPitch: Boolean;
   UseAsLinear: Boolean;
@@ -231,75 +302,31 @@ var
       (DDPF.BlueMask = PF.BBitMask);
   end;
 
-  procedure ComputeSubDimensions(Idx: LongInt; var CurWidth,
-    CurHeight: LongInt);
-  var
-    I, Last, Shift: LongInt;
-  begin
-    CurWidth := Hdr.Desc.Width;
-    CurHeight := Hdr.Desc.Height;
-    if HasMipMaps then
-    begin
-      if not FLoadedVolume then
-      begin
-        // Cube maps are stored like this
-        // Face 0 mimap 0
-        // Face 0 mipmap 1
-        // ...
-        // Face 1 mipmap 0
-        // Face 1 mipmap 1
-        // ...
-        if FLoadedCubeMap then
-          Idx := Idx - ((Idx div Hdr.Desc.MipMaps) * Hdr.Desc.MipMaps);
-        for I := 0 to Idx - 1 do
-        begin
-          CurWidth := ClampInt(CurWidth shr 1, 1, CurWidth);
-          CurHeight := ClampInt(CurHeight shr 1, 1, CurHeight);
-        end;
-      end
-      else
-      begin
-        // Volume textures are stored in DDS files like this:
-        // Slice 0 mipmap 0
-        // Slice 1 mipmap 0
-        // Slice 2 mipmap 0
-        // Slice 3 mipmap 0
-        // Slice 0 mipmap 1
-        // Slice 1 mipmap 1
-        // Slice 0 mipmap 2
-        // Slice 0 mipmap 3 ...
-        Shift := 0;
-        Last := Hdr.Desc.Depth;
-        while Idx > Last - 1 do
-        begin
-          CurWidth := ClampInt(CurWidth shr 1, 1, CurWidth);
-          CurHeight := ClampInt(CurHeight shr 1, 1, CurHeight);
-          if (CurWidth = 1) and (CurHeight = 1) then
-            Break;
-          Inc(Shift);
-          Inc(Last, ClampInt(Hdr.Desc.Depth shr Shift, 1, Hdr.Desc.Depth));
-        end;
-      end;
-    end;
-  end;
-
 begin
   Result := False;
   Data := nil;
+  ImageCount := 1;
+  HasMipMaps := False;
+  FLoadedMipMapCount := 1;
+  FLoadedDepth := 1;
+  FLoadedVolume := False;
+  FLoadedCubeMap := False;
+
   with GetIO, Hdr, Hdr.Desc.PixelFormat do
   begin
     Read(Handle, @Hdr, SizeOF(Hdr));
     {
-    // set position to the end of the header (for possible future versions
-    // with larger header)
+    // Set position to the end of the header (for possible future versions
+    // ith larger header)
     Seek(Handle, Hdr.Desc.Size + SizeOf(Hdr.Magic) - SizeOf(Hdr),
       smFromCurrent);
     }
     SrcFormat := ifUnknown;
     NeedsSwapChannels := False;
-    // get image data format
+    // Get image data format
     if (Flags and DDPF_FOURCC) = DDPF_FOURCC then
-      // handle FourCC and large ARGB formats
+    begin
+      // Handle FourCC and large ARGB formats
       case FourCC of
         D3DFMT_A16B16G16R16: SrcFormat := ifA16B16G16R16;
         D3DFMT_R32F: SrcFormat := ifR32F;
@@ -309,115 +336,109 @@ begin
         FOURCC_DXT1: SrcFormat := ifDXT1;
         FOURCC_DXT3: SrcFormat := ifDXT3;
         FOURCC_DXT5: SrcFormat := ifDXT5;
-      end
-    else
-      if (Flags and DDPF_RGB) = DDPF_RGB then
+      end;
+    end
+    else if (Flags and DDPF_RGB) = DDPF_RGB then
+    begin
+      // Handle RGB formats
+      if (Flags and DDPF_ALPHAPIXELS) = DDPF_ALPHAPIXELS then
       begin
-        // handle RGB formats
-        if (Flags and DDPF_ALPHAPIXELS) = DDPF_ALPHAPIXELS then
-          // handle RGB with alpha formats
-          case BitCount of
-            16:
-              begin
-                if MasksEqual(Desc.PixelFormat,
-                  GetFormatInfo(ifA4R4G4B4).PixelFormat) then
-                  SrcFormat := ifA4R4G4B4;
-                if MasksEqual(Desc.PixelFormat,
-                  GetFormatInfo(ifA1R5G5B5).PixelFormat) then
-                  SrcFormat := ifA1R5G5B5;
-              end;
-            32:
-              begin
-                SrcFormat := ifA8R8G8B8;
-                if BlueMask = $00FF0000 then
-                  NeedsSwapChannels := True;
-              end;
-          end
-        else
-          // handle RGB without alpha formats
-          case BitCount of
-            8:
+        // Handle RGB with alpha formats
+        case BitCount of
+          16:
+            begin
               if MasksEqual(Desc.PixelFormat,
-                GetFormatInfo(ifR3G3B2).PixelFormat) then
-                SrcFormat := ifR3G3B2;
-            16:
-              begin
-                if MasksEqual(Desc.PixelFormat,
-                  GetFormatInfo(ifX4R4G4B4).PixelFormat) then
-                  SrcFormat := ifX4R4G4B4;
-                if MasksEqual(Desc.PixelFormat,
-                  GetFormatInfo(ifX1R5G5B5).PixelFormat) then
-                  SrcFormat := ifX1R5G5B5;
-                if MasksEqual(Desc.PixelFormat,
-                  GetFormatInfo(ifR5G6B5).PixelFormat) then
-                  SrcFormat := ifR5G6B5;
-              end;
-            24: SrcFormat := ifR8G8B8;
-            32:
-              begin
-                SrcFormat := ifX8R8G8B8;
-                if BlueMask = $00FF0000 then
-                  NeedsSwapChannels := True;
-              end;
-          end;
+                GetFormatInfo(ifA4R4G4B4).PixelFormat) then
+                SrcFormat := ifA4R4G4B4;
+              if MasksEqual(Desc.PixelFormat,
+                GetFormatInfo(ifA1R5G5B5).PixelFormat) then
+                SrcFormat := ifA1R5G5B5;
+            end;
+          32:
+            begin
+              SrcFormat := ifA8R8G8B8;
+              if BlueMask = $00FF0000 then
+                NeedsSwapChannels := True;
+            end;
+        end;
       end
       else
-        if (Flags and DDPF_LUMINANCE) = DDPF_LUMINANCE then
-        begin
-          // handle luminance formats
-          if (Flags and DDPF_ALPHAPIXELS) = DDPF_ALPHAPIXELS then
-          begin
-            // handle luminance with alpha formats
-            if BitCount = 16 then
-              SrcFormat := ifA8Gray8;
-          end
-          else
-            // handle luminance without alpha formats
-            case BitCount of
-              8: SrcFormat := ifGray8;
-              16: SrcFormat := ifGray16;
-            end;
-        end
-        else
-          if (Flags and DDPF_BUMPLUMINANCE) = DDPF_BUMPLUMINANCE then
-          begin
-            // handle mixed bump-luminance formats like D3DFMT_X8L8V8U8
-            case BitCount of
-              32:
-                if BlueMask = $00FF0000 then
-                begin
-                  SrcFormat := ifX8R8G8B8; // D3DFMT_X8L8V8U8
-                  NeedsSwapChannels := True;
-                end;
-            end;
-          end
-          else
-            if (Flags and DDPF_BUMPDUDV) = DDPF_BUMPDUDV then
+      begin
+        // Handle RGB without alpha formats
+        case BitCount of
+          8:
+            if MasksEqual(Desc.PixelFormat,
+              GetFormatInfo(ifR3G3B2).PixelFormat) then
+              SrcFormat := ifR3G3B2;
+          16:
             begin
-              // handle bumpmap formats like D3DFMT_Q8W8V8U8
-              case BitCount of
-                16: SrcFormat := ifA8Gray8; // D3DFMT_V8U8
-                32:
-                  if AlphaMask = $FF000000 then
-                  begin
-                    SrcFormat := ifA8R8G8B8; // D3DFMT_Q8W8V8U8
-                    NeedsSwapChannels := True;
-                  end;
-                64: SrcFormat := ifA16B16G16R16; // D3DFMT_Q16W16V16U16
-              end;
+              if MasksEqual(Desc.PixelFormat,
+                GetFormatInfo(ifX4R4G4B4).PixelFormat) then
+                SrcFormat := ifX4R4G4B4;
+              if MasksEqual(Desc.PixelFormat,
+                GetFormatInfo(ifX1R5G5B5).PixelFormat) then
+                SrcFormat := ifX1R5G5B5;
+              if MasksEqual(Desc.PixelFormat,
+                GetFormatInfo(ifR5G6B5).PixelFormat) then
+                SrcFormat := ifR5G6B5;
             end;
+          24: SrcFormat := ifR8G8B8;
+          32:
+            begin
+              SrcFormat := ifX8R8G8B8;
+              if BlueMask = $00FF0000 then
+                NeedsSwapChannels := True;
+            end;
+        end;
+      end;
+    end
+    else if (Flags and DDPF_LUMINANCE) = DDPF_LUMINANCE then
+    begin
+      // Handle luminance formats
+      if (Flags and DDPF_ALPHAPIXELS) = DDPF_ALPHAPIXELS then
+      begin
+        // Handle luminance with alpha formats
+        if BitCount = 16 then
+          SrcFormat := ifA8Gray8;
+      end
+      else
+      begin
+        // Handle luminance without alpha formats
+        case BitCount of
+          8: SrcFormat := ifGray8;
+          16: SrcFormat := ifGray16;
+        end;
+      end;
+    end
+    else if (Flags and DDPF_BUMPLUMINANCE) = DDPF_BUMPLUMINANCE then
+    begin
+      // Handle mixed bump-luminance formats like D3DFMT_X8L8V8U8
+      case BitCount of
+        32:
+          if BlueMask = $00FF0000 then
+          begin
+            SrcFormat := ifX8R8G8B8; // D3DFMT_X8L8V8U8
+            NeedsSwapChannels := True;
+          end;
+      end;
+    end
+    else if (Flags and DDPF_BUMPDUDV) = DDPF_BUMPDUDV then
+    begin
+      // Handle bumpmap formats like D3DFMT_Q8W8V8U8
+      case BitCount of
+        16: SrcFormat := ifA8Gray8; // D3DFMT_V8U8
+        32:
+          if AlphaMask = $FF000000 then
+          begin
+            SrcFormat := ifA8R8G8B8; // D3DFMT_Q8W8V8U8
+            NeedsSwapChannels := True;
+          end;
+        64: SrcFormat := ifA16B16G16R16; // D3DFMT_Q16W16V16U16
+      end;
+    end;
 
-    // determine number of subimages in file and type of texture stored
-    ImageCount := 1;
-    HasMipMaps := False;
-    FLoadedMipMapCount := 1;
-    FLoadedDepth := 1;
-    FLoadedVolume := False;
-    FLoadedCubeMap := False;
-
-    // if DDS format is not supported we will exit
-    if SrcFormat = ifUnknown then
-      Exit;
+    // If DDS format is not supported we will exit
+    if SrcFormat = ifUnknown then Exit;
 
     // File contains mipmaps for each subimage.
     { Some DDS writers ignore setting proper Caps and Flags so
@@ -431,7 +452,7 @@ begin
       ImageCount := Desc.MipMaps;
     end;
 
-    // file stores volume texture
+    // File stores volume texture
     if ((Desc.Caps.Caps2 and DDSCAPS2_VOLUME) = DDSCAPS2_VOLUME) and
       ((Desc.Flags and DDSD_DEPTH) = DDSD_DEPTH) then
     begin
@@ -440,7 +461,7 @@ begin
       ImageCount := GetVolumeLevelCount(Desc.Depth, ImageCount);
     end;
 
-    // file stores cube texture
+    // File stores cube texture
     if (Desc.Caps.Caps2 and DDSCAPS2_CUBEMAP) = DDSCAPS2_CUBEMAP then
     begin
       FLoadedCubeMap := True;
@@ -455,31 +476,29 @@ begin
       ImageCount := ImageCount * I;
     end;
 
-    // allocate and load all images in file
+    // Allocate and load all images in file
     FmtInfo := GetFormatInfo(SrcFormat);
-    {  whole image muse be read from input stream to support more images in one stream
-    if OnlyFirstLevel then
-      ImageCount := 1;
-    }
     SetLength(Images, ImageCount);
 
     for I := 0 to ImageCount - 1 do
     begin
-      // compute dimensions of surrent subimage based on texture type and
+      // Compute dimensions of surrent subimage based on texture type and
       // number of mipmaps
-      ComputeSubDimensions(I, CurWidth, CurHeight);
-      NewImage(CurWidth, CurHeight, SrcFormat, Images[I]);
+      ComputeSubDimensions(I, Desc.Width, Desc.Height, Desc.MipMaps, Desc.Depth,
+        FloadedCubeMap, FLoadedVolume, CurrentWidth, CurrentHeight);
+      NewImage(CurrentWidth, CurrentHeight, SrcFormat, Images[I]);
 
-      // compute the pitch or get if from file if present
+      // Compute the pitch or get if from file if present
       UseAsPitch := (Desc.Flags and DDSD_PITCH) = DDSD_PITCH;
       UseAsLinear := (Desc.Flags and DDSD_LINEARSIZE) = DDSD_LINEARSIZE;
+
       if (I = 0) and (UseAsPitch or UseAsLinear) then
         PitchOrLinear := Desc.PitchOrLinearSize
       else
-        PitchOrLinear := FmtInfo.GetPixelsSize(SrcFormat, CurWidth, CurHeight);
+        PitchOrLinear := FmtInfo.GetPixelsSize(SrcFormat, CurrentWidth, CurrentHeight);
 
       if UseAsPitch then
-        LoadSize := CurHeight * PitchOrLinear
+        LoadSize := CurrentHeight * PitchOrLinear
       else
         LoadSize := PitchOrLinear;
 
@@ -494,7 +513,7 @@ begin
         // and then remove padding
         GetMem(Data, LoadSize);
         Read(Handle, Data, LoadSize);
-        RemovePadBytes(Data, Images[I].Bits, CurWidth, CurHeight,
+        RemovePadBytes(Data, Images[I].Bits, CurrentWidth, CurrentHeight,
           FmtInfo.BytesPerPixel, PitchOrLinear);
       finally
         FreeMem(Data);
@@ -502,9 +521,8 @@ begin
 
       if NeedsSwapChannels then
         SwapChannels(Images[I], ChannelRed, ChannelBlue);
-
-      Result := True;
     end;
+    Result := True;
   end;
 end;
 
@@ -517,30 +535,44 @@ var
   J: LongWord;
   FmtInfo: TImageFormatInfo;
   MustBeFreed: Boolean;
+  Is2DTexture, IsCubeMap, IsVolume: Boolean;
+  MipMapCount, CurrentWidth, CurrentHeight: LongInt;
+  NeedsResize: Boolean;
+  NeedsConvert: Boolean;
 begin
   Result := False;
   MainIdx := FFirstIdx;
-  Len := Length(Images);
+  Len := FLastIdx - MainIdx + 1;
+  // Some DDS saving rules:
+  //   2D textures: Len is used as mipmap count (FSaveMipMapCount not used!).
+  //   Cube maps:   FSaveDepth * FSaveMipMapCount images are used, if Len is
+  //                smaller than this file is saved as regular 2D texture.
+  //   Volume maps: GetVolumeLevelCount(FSaveDepth, FSaveMipMapCount) images are
+  //                used, if Len is smaller than this file is
+  //                saved as regular 2D texture.
 
-  // check if we have enough images on Input to save cube map
-  if FSaveCubeMap then
+  IsCubeMap := FSaveCubeMap;
+  IsVolume := FSaveVolume;
+  MipMapCount := FSaveMipMapCount;
+
+  if IsCubeMap then
   begin
-    FSaveVolume := False;
-    if Len - MainIdx < FSaveDepth *  FSaveMipMapCount then
-      FSaveCubeMap := False;
+    // Check if we have enough images on Input to save cube map
+    if Len < FSaveDepth * FSaveMipMapCount then
+      IsCubeMap := False;
+  end
+  else if IsVolume then
+  begin
+    // Check if we have enough images on Input to save volume texture
+    if Len < GetVolumeLevelCount(FSaveDepth, FSaveMipMapCount) then
+      IsVolume := False;
   end;
-  // check if we have enough images on Input to save volume texture
-  if FSaveVolume then
+
+  Is2DTexture := not IsCubeMap and not IsVolume;
+  if Is2DTexture then
   begin
-    FSaveCubeMap := False;
-    if Len - MainIdx < GetVolumeLevelCount(FSaveDepth, FSaveMipMapCount) then
-      FSaveVolume := False;
-  end;
-  // check if we have enough images on Input to save mip maps
-  if (FSaveMipMapCount > 1)  then
-  begin
-    if Len - MainIdx < FSaveMipMapCount then
-      FSaveMipMapCount := 1;
+    // Get number of mipmaps used with 2D texture
+    MipMapCount := Min(Len, GetNumMipMapLevels(Images[MainIdx].Width, Images[MainIdx].Height));
   end;
 
   // we create compatible main image and fill headers
@@ -557,16 +589,20 @@ begin
     Desc.Caps.Caps1 := DDSCAPS_TEXTURE;
     Desc.PixelFormat.Size := SizeOf(Desc.PixelFormat);
     Desc.PitchOrLinearSize := MainImage.Size;
-    ImageCount := FSaveMipMapCount;
+    ImageCount := MipMapCount;
 
-    if FSaveMipMapCount > 1 then
+    if MipMapCount > 1 then
     begin
+      // Set proper flags if we have some mipmaps to be saved
       Desc.Flags := Desc.Flags or DDSD_MIPMAPCOUNT;
       Desc.Caps.Caps1 := Desc.Caps.Caps1 or DDSCAPS_MIPMAP;
-      Desc.MipMaps := FSaveMipMapCount;
+      Desc.MipMaps := MipMapCount;
     end;
-    if FSaveCubeMap then
+
+    if IsCubeMap then
     begin
+      // Set proper cube map flags - number of stored faces is taken
+      // from FSaveDepth
       Desc.Caps.Caps1 := Desc.Caps.Caps1 or DDSCAPS_COMPLEX;
       Desc.Caps.Caps2 := Desc.Caps.Caps2 or DDSCAPS2_CUBEMAP;
       J := DDSCAPS2_POSITIVEX;
@@ -576,86 +612,105 @@ begin
         J := J shl 1;
       end;
       ImageCount := FSaveDepth * FSaveMipMapCount;
-    end;
-    if FSaveVolume then
+    end
+    else if IsVolume then
     begin
+      // Set proper flags for volume texture
       Desc.Flags := Desc.Flags or DDSD_DEPTH;
       Desc.Caps.Caps1 := Desc.Caps.Caps1 or DDSCAPS_COMPLEX;
       Desc.Caps.Caps2 := Desc.Caps.Caps2 or DDSCAPS2_VOLUME;
       Desc.Depth := FSaveDepth;
       ImageCount := GetVolumeLevelCount(FSaveDepth, FSaveMipMapCount);
     end;
-    // now we set DDS pixel format for main image
+
+    // Now we set DDS pixel format for main image
     if FmtInfo.IsSpecial or FmtInfo.IsFloatingPoint or
       (FmtInfo.BytesPerPixel > 4) then
     begin
       Desc.PixelFormat.Flags := DDPF_FOURCC;
       case Format of
-        ifA16B16G16R16: Desc.PixelFormat.FourCC := D3DFMT_A16B16G16R16;
-        ifR32F: Desc.PixelFormat.FourCC := D3DFMT_R32F;
+        ifA16B16G16R16:  Desc.PixelFormat.FourCC := D3DFMT_A16B16G16R16;
+        ifR32F:          Desc.PixelFormat.FourCC := D3DFMT_R32F;
         ifA32B32G32R32F: Desc.PixelFormat.FourCC := D3DFMT_A32B32G32R32F;
-        ifR16F: Desc.PixelFormat.FourCC := D3DFMT_R16F;
+        ifR16F:          Desc.PixelFormat.FourCC := D3DFMT_R16F;
         ifA16B16G16R16F: Desc.PixelFormat.FourCC := D3DFMT_A16B16G16R16F;
-        ifDXT1: Desc.PixelFormat.FourCC := FOURCC_DXT1;
-        ifDXT3: Desc.PixelFormat.FourCC := FOURCC_DXT3;
-        ifDXT5: Desc.PixelFormat.FourCC := FOURCC_DXT5;
+        ifDXT1:          Desc.PixelFormat.FourCC := FOURCC_DXT1;
+        ifDXT3:          Desc.PixelFormat.FourCC := FOURCC_DXT3;
+        ifDXT5:          Desc.PixelFormat.FourCC := FOURCC_DXT5;
+      end;
+    end
+    else if FmtInfo.HasGrayChannel then
+    begin
+      Desc.PixelFormat.Flags := DDPF_LUMINANCE;
+      Desc.PixelFormat.BitCount := FmtInfo.BytesPerPixel * 8;
+      case Format of
+        ifGray8:  Desc.PixelFormat.RedMask := 255;
+        ifGray16: Desc.PixelFormat.RedMask := 65535;
+        ifA8Gray8:
+          begin
+            Desc.PixelFormat.Flags := Desc.PixelFormat.Flags or DDPF_ALPHAPIXELS;
+            Desc.PixelFormat.RedMask := 255;
+            Desc.PixelFormat.AlphaMask := 65280;
+          end;
       end;
     end
     else
-      if FmtInfo.HasGrayChannel then
+    begin
+      Desc.PixelFormat.Flags := DDPF_RGB;
+      Desc.PixelFormat.BitCount := FmtInfo.BytesPerPixel * 8;
+      if FmtInfo.HasAlphaChannel then
       begin
-        Desc.PixelFormat.Flags := DDPF_LUMINANCE;
-        Desc.PixelFormat.BitCount := FmtInfo.BytesPerPixel * 8;
-        case Format of
-          ifGray8: Desc.PixelFormat.RedMask := 255;
-          ifGray16: Desc.PixelFormat.RedMask := 65535;
-          ifA8Gray8:
-            begin
-              Desc.PixelFormat.Flags := Desc.PixelFormat.Flags or
-                DDPF_ALPHAPIXELS;
-              Desc.PixelFormat.RedMask := 255;
-              Desc.PixelFormat.AlphaMask := 65280;
-            end;
-        end;
+        Desc.PixelFormat.Flags := Desc.PixelFormat.Flags or DDPF_ALPHAPIXELS;
+        Desc.PixelFormat.AlphaMask := $FF000000;
+      end;
+      if FmtInfo.BytesPerPixel > 2 then
+      begin
+        Desc.PixelFormat.RedMask :=   $00FF0000;
+        Desc.PixelFormat.GreenMask := $0000FF00;
+        Desc.PixelFormat.BlueMask :=  $000000FF;
       end
       else
-        begin
-          Desc.PixelFormat.Flags := DDPF_RGB;
-          Desc.PixelFormat.BitCount := FmtInfo.BytesPerPixel * 8;
-          if FmtInfo.HasAlphaChannel then
-          begin
-            Desc.PixelFormat.Flags := Desc.PixelFormat.Flags or
-                DDPF_ALPHAPIXELS;
-            Desc.PixelFormat.AlphaMask := $FF000000;
-          end;
-          if FmtInfo.BytesPerPixel > 2 then
-          begin
-            Desc.PixelFormat.RedMask := $00FF0000;
-            Desc.PixelFormat.GreenMask := $0000FF00;
-            Desc.PixelFormat.BlueMask := $000000FF;
-          end
-          else
-          begin
-            Desc.PixelFormat.AlphaMask := FmtInfo.PixelFormat.ABitMask;
-            Desc.PixelFormat.RedMask := FmtInfo.PixelFormat.RBitMask;
-            Desc.PixelFormat.GreenMask := FmtInfo.PixelFormat.GBitMask;
-            Desc.PixelFormat.BlueMask := FmtInfo.PixelFormat.BBitMask;
-          end;
-        end;
-    // header and main image are written to output
+      begin
+        Desc.PixelFormat.AlphaMask := FmtInfo.PixelFormat.ABitMask;
+        Desc.PixelFormat.RedMask := FmtInfo.PixelFormat.RBitMask;
+        Desc.PixelFormat.GreenMask := FmtInfo.PixelFormat.GBitMask;
+        Desc.PixelFormat.BlueMask := FmtInfo.PixelFormat.BBitMask;
+      end;
+    end;
+
+    // Header and main image are written to output
     Write(Handle, @Hdr, SizeOf(Hdr));
     Write(Handle, MainImage.Bits, MainImage.Size);
-    // write the rest of the images (and convert them to
-    // the same format as main image if necessary)
+
+    // Write the rest of the images and convert them to
+    // the same format as main image if necessary and ensure proper mipmap
+    // simensions too.
     for I := MainIdx + 1 to MainIdx + ImageCount - 1 do
     begin
-      if Images[I].Format <> Format then
+      // Get proper dimensions for this level
+      ComputeSubDimensions(I, Desc.Width, Desc.Height, Desc.MipMaps, Desc.Depth,
+        IsCubeMap, IsVolume, CurrentWidth, CurrentHeight);
+
+      // Check if input image for this level has the right size and format
+      NeedsResize := not ((Images[I].Width = CurrentWidth) and (Images[I].Height = CurrentHeight));
+      NeedsConvert := not (Images[I].Format = Format);
+
+      if NeedsResize or NeedsConvert then
       begin
+        // Input image must be resized or converted to different format
+        // to become valid mipmap level
+        InitImage(ImageToSave);
         CloneImage(Images[I], ImageToSave);
-        ConvertImage(ImageToSave, Format);
+        if NeedsConvert then
+          ConvertImage(ImageToSave, Format);
+        if NeedsResize then
+          ResizeImage(ImageToSave, CurrentWidth, CurrentHeight, rfBilinear);
       end
       else
+        // Input image can be used without any changes
         ImageToSave := Images[I];
+
+      // Write level data and release temp image if necessary
       Write(Handle, ImageToSave.Bits, ImageToSave.Size);
       if Images[I].Bits <> ImageToSave.Bits then
         FreeImage(ImageToSave);
@@ -732,13 +787,13 @@ initialization
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - when saving multi image to DDS make sure all levels are
-      saved and with proper dims and format
-    - always store more images if they are on input, not only when
-      SaveMipMapCount is set (problem in VampConvert)
-    - fix fix fix
+    - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Changed saving behaviour a bit: mipmaps are inlcuded automatically for
+      2D textures if input image array has more than 1 image (no need to
+      set SaveMipMapCount manually).
+    - Mipmap levels are now saved with proper dimensions when saving DDS files.
     - Made some changes to not be so strict when loading DDS files.
       Many programs seem to save them in non-standard format
       (by MS DDS File Reference).

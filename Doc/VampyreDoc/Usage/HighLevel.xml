@@ -6,7 +6,7 @@
     <title>High Level Interface</title>
     <par>Imaging's high level interface is set of classes build on top
     of low level interface
-    implemented in <icode>ImagingClasses</icode> unit.
+    implemented in <ref>ImagingClasses</ref> unit.
     It is <b>ObjectPascal</b> only therefore it is not accessible
     from other programming languages (although creating high level interface
     for other languages using low level interface imported from dll/so should not

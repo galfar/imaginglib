@@ -41,8 +41,7 @@ type
     format which can store 1bit, 2bit, 4bit, 8bit, and 24bit (and 32bit but is
     probably non-standard) images. Only loading is supported (you can still come
     accross some PCX files) but saving is not (I don't wont this venerable format
-    to spread). Loader needs to know the size of the whole file (due to
-    poor format design) so don't try to put several PCX images to one stream. }
+    to spread).}
   TPCXFileFormat = class(TImageFileFormat)
   protected
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;

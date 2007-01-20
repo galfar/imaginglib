@@ -28,7 +28,9 @@
 
 { This is helper unit that registers all image file formats in Extras package
   to Imaging core loading and saving functions. Just put this unit in your uses
-  clause instead of adding every unit that provides new file format support.}
+  clause instead of adding every unit that provides new file format support.
+  Also new constants for SetOption/GetOption functions for new file formats
+  are located here.}
 unit ImagingExtras;
 
 {$I ImagingOptions.inc}
@@ -46,13 +48,13 @@ interface
 const
   { Those are new options for GetOption/SetOption interface. }
 
-  { Controls Jpeg 2000 lossy compression quality. It is number in range 1..100.
+  { Controls JPEG 2000 lossy compression quality. It is number in range 1..100.
     1 means small/ugly file, 100 means large/nice file. Default is 80.}
   ImagingJpeg2000Quality = 55;
-  { Controls whether Jpeg 2000 image is saved with full file headers or just
+  { Controls whether JPEG 2000 image is saved with full file headers or just
     as code stream. Default value is False (0).}
   ImagingJpeg2000CodeStreamOnly = 56;
-  { Specifies Jpeg 2000 image compression type. If True (1), saved Jpeg 2000 files
+  { Specifies JPEG 2000 image compression type. If True (1), saved JPEG 2000 files
   will be losslessly compressed. Otherwise lossy compression is used.
   Default value is False (0).}
   ImagingJpeg2000LosslessCompression = 57;

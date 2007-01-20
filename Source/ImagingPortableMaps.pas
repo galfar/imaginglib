@@ -76,7 +76,7 @@ type
   published  
     { If set to True images will be saved in binary format. If it is False
       they will be saved in text format (which could result in 5-10x bigger file).
-      Default is value True. Note that PAM files are always saved in binary.}
+      Default is value True. Note that PAM and PFM files are always saved in binary.}
     property SaveBinary: LongBool read FSaveBinary write FSaveBinary;
   end;
 

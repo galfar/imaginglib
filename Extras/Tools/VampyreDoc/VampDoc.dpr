@@ -69,7 +69,7 @@ var
   Producer: TDocProducer = nil;
   ProducerFormat: string = 'xhtml';//}'htmlhelp';
   OutputDir: string = 'doc';//}'..\Doc\_Final';
-  InputFile: string = 'invalid.vdocproj';//}'..\Doc\VampyreDoc\Imaging.vdocproj';
+  InputFile: string = '..\Doc\VampyreDoc\Imaging.vdocproj';
 
 procedure ErrorProject(Exc: Exception);
 begin

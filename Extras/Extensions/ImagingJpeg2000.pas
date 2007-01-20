@@ -43,7 +43,7 @@ type
 
   { Class for loading/saving Jpeg 2000 images. It uses OpenJPEG library
     compiled to object files and linked to Object Pascal program. Jpeg 2000
-    supports wide variety of data formats. You can gave arbitrary number
+    supports wide variety of data formats. You can have arbitrary number
     of components/channels, each with different bitdepth and optional
     "signedness". Jpeg 2000 images can be lossy or lossless compressed.
 
@@ -71,15 +71,15 @@ type
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     procedure CheckOptionsValidity; override;
   published  
-    { Controls Jpeg 2000 lossy compression quality. It is number in range 1..100.
+    { Controls JPEG 2000 lossy compression quality. It is number in range 1..100.
       1 means small/ugly file, 100 means large/nice file. Accessible trough
       ImagingJpeg2000Quality option. Default value is 80.}
     property Quality: LongInt read FQuality write FQuality;
-    { Controls whether Jpeg 2000 image is saved with full file headers or just
+    { Controls whether JPEG 2000 image is saved with full file headers or just
       as code stream. Default value is False. Accessible trough
       ImagingJpeg2000CodeStreamOnly option.}
     property CodeStreamOnly: LongBool read FCodeStreamOnly write FCodeStreamOnly;
-    { Specifies Jpeg 2000 image compression type. If True, saved Jpeg 2000 files
+    { Specifies JPEG 2000 image compression type. If True, saved JPEG 2000 files
       will be losslessly compressed. Otherwise lossy compression is used.
       Default value is False. Accessible trough
       ImagingJpeg2000LosslessCompression option.}

@@ -594,19 +594,7 @@ begin
       begin
         // This mipmap level is not present in the input image array
         // so we create a new level
-        if ConvTo in [ifDXT1, ifDXT3, ifDXT5] then
-        begin
-          // DXTC format image needs to be decompressed, smaller mip level
-          // filled and then compressed
-          InitImage(SpecialMipLevel);
-          CloneImage(LevelsArray[I - 1], SpecialMipLevel);
-          ConvertImage(SpecialMipLevel, ifDefault);
-          FillMipMapLevel(SpecialMipLevel, CurrentWidth, CurrentHeight, LevelsArray[I]);
-          ConvertImage(LevelsArray[I], ConvTo);
-          FreeImage(SpecialMipLevel);
-        end
-        else
-          FillMipMapLevel(LevelsArray[I - 1], CurrentWidth, CurrentHeight, LevelsArray[I]);
+        FillMipMapLevel(LevelsArray[I - 1], CurrentWidth, CurrentHeight, LevelsArray[I]);
       end;
 
       if ConvTo in [ifDXT1, ifDXT3, ifDXT5] then

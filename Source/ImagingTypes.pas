@@ -130,11 +130,11 @@ const
   { Specifies whether PGM files are stored in text or in binary format.
     Allowed values are 0 (store as text - very! large files) and 1 (save binary).
     Default value is 1.}
-  ImagingPGMSaveBinary = 50;
+  ImagingPGMSaveBinary         = 50;
   { Specifies whether PPM files are stored in text or in binary format.
     Allowed values are 0 (store as text - very! large files) and 1 (save binary).
     Default value is 1.}
-  ImagingPPMSaveBinary = 51;
+  ImagingPPMSaveBinary         = 51;
 
 
   { This option is used when reducing number of colors used in

@@ -90,15 +90,16 @@
     </table>
 
     <note>
-    1) Many image viewers and image editing programs do not support
-    these 16 bit formats and treat them as X1R5G5B5 format.<br/>
-    2) I don't know any software which support alpha channels in BMP files
-    other than Imaging and D3DX texture loader.
+      1) Many image viewers and image editing programs do not support
+      these 16 bit formats and treat them as X1R5G5B5 format.<br/>
+      2) Alpha channels in BMP files are often ignored by some (many) viewers/editors.
     </note>
 
-    <par>When working with Bitmap files you can find useful some options
-    which can be set by <ref>SetOption</ref> function and their current values
-    can be get by <ref>GetOption</ref> function.</par>
+    <par>
+      When working with Bitmap files you can find useful some options
+      which can be set by <ref>SetOption</ref> function and their current values
+      can be get by <ref>GetOption</ref> function.
+    </par>
     <table>
       <title>Options Related to Bitmap Files</title>
       <row>

@@ -1789,20 +1789,45 @@ procedure FillMipMapLevel(const BiggerLevel: TImageData; Width, Height: LongInt;
 var
   Filter: TSamplingFilter;
   Info: TImageFormatInfo;
+  CompatibleCopy: TImageData;
 begin
   Assert(TestImage(BiggerLevel));
   Filter := TSamplingFilter(GetOption(ImagingMipMapFilter));
-  NewImage(Width, Height, BiggerLevel.Format, SmallerLevel);
+
+  // If we have special format image we must create copy to allow pixel access
   GetImageFormatInfo(BiggerLevel.Format, Info);
-  if Filter = sfNearest then
+  if Info.IsSpecial then
   begin
-    StretchNearest(BiggerLevel, 0, 0, BiggerLevel.Width, BiggerLevel.Height,
+    InitImage(CompatibleCopy);
+    CloneImage(BiggerLevel, CompatibleCopy);
+    ConvertImage(CompatibleCopy, ifDefault);
+  end
+  else
+    CompatibleCopy := BiggerLevel;
+
+  // Create new smaller image
+  NewImage(Width, Height, CompatibleCopy.Format, SmallerLevel);
+  GetImageFormatInfo(CompatibleCopy.Format, Info);
+  // If input is indexed we must copy its palette
+  if Info.IsIndexed then
+    CopyPalette(CompatibleCopy.Palette, SmallerLevel.Palette, 0, 0, Info.PaletteEntries);
+
+  if (Filter = sfNearest) or Info.IsIndexed then
+  begin
+    StretchNearest(CompatibleCopy, 0, 0, CompatibleCopy.Width, CompatibleCopy.Height,
       SmallerLevel, 0, 0, Width, Height);
   end
   else
   begin
-    StretchResample(BiggerLevel, 0, 0, BiggerLevel.Width, BiggerLevel.Height,
+    StretchResample(CompatibleCopy, 0, 0, CompatibleCopy.Width, CompatibleCopy.Height,
       SmallerLevel, 0, 0, Width, Height, Filter);
+  end;
+
+  // Free copy and convert result to special format if necessary
+  if CompatibleCopy.Format <> BiggerLevel.Format then
+  begin
+    ConvertImage(SmallerLevel, BiggerLevel.Format);
+    FreeImage(CompatibleCopy);
   end;
 end;
 
@@ -3762,9 +3787,10 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now
-    - rewrite StretchRect for 8bit channels to use integer math
+    - rewrite StretchRect for 8bit channels to use integer math?
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - FillMipMapLevel now works well with indexed and special formats too.
     - Moved Convert1To8 and Convert4To8 functions from ImagingBitmaps here
      and created new Convert2To8 function. They are now used by more than one
      file format loader. 

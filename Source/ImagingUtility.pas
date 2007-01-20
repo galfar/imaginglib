@@ -213,6 +213,9 @@ procedure FillMemoryLongWord(Data: Pointer; Size: LongInt; Value: LongWord);
 
 { Returns how many mipmap levels can be created for image of given size.}
 function GetNumMipMapLevels(Width, Height: LongInt): LongInt;
+{ Returns total number of levels of volume texture with given depth and
+  mipmap count (this is not depth * mipmaps!).}
+function GetVolumeLevelCount(Depth, MipMaps: LongInt): LongInt;
 { Returns rectangle (X, Y, X + Width, Y + Height).}
 function BoundsToRect(X, Y, Width, Height: LongInt): TRect; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns rectangle (R.Left, R.Top, R.Left + R.Right, R.Top + R.Bottom).}
@@ -1001,6 +1004,15 @@ begin
   end;
 end;
 
+function GetVolumeLevelCount(Depth, MipMaps: LongInt): LongInt;
+var
+    I: LongInt;
+begin
+    Result := Depth;
+    for I := 1 to MipMaps - 1 do
+      Inc(Result, ClampInt(Depth shr I, 1, Depth));
+end;
+
 function BoundsToRect(X, Y, Width, Height: LongInt): TRect;
 begin
   Result.Left := X;
@@ -1190,6 +1202,7 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Moved GetVolumeLevelCount from ImagingDds here.
     - Renamed FillMemory to FillMemoryByte to avoid name collision in C++ Builder.
     - Added Iff function for Char, Pointer, and Int64 types.
     - Added IsLittleEndian function.

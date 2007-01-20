@@ -3176,12 +3176,13 @@ finalization
       dagger textures), other info (PNG/MNG)
       - return additional info about loaded image like this
         TicksPerSecond := PMNGDetails(GetOption(ImagingMNGFileDetails)).TicksPerSecond;
-
     - create giga test of MakeCompatible - for all file fromats try
       to send all possible data formats to MakeCompatible and observe the results
       and saving/loading too!
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - GenerateMipMaps threw failed assertion when input was indexed or special,
+      fixed. 
     - Added CheckOptionsValidity to TImageFileFormat and its decendants.
     - Unit ImagingExtras which registers file formats in Extras package
       is now automatically added to uses clause if LINK_EXTRAS symbol is
