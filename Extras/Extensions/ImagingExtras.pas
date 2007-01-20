@@ -39,9 +39,9 @@ unit ImagingExtras;
 {$DEFINE LINK_PCX}         // link support for PCX images
 {$DEFINE LINK_ELDER}       // link support for Elder Imagery images
 
-{ $IFNDEF MSWINDOWS}
-//  {$UNDEF LINK_JPEG2000}
-{ $ENDIF}
+{$IFNDEF MSWINDOWS}
+  {$UNDEF LINK_JPEG2000}
+{$ENDIF}
 
 interface
 
