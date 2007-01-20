@@ -4,10 +4,12 @@
   <title>Install and Compile</title>
   <chapter>
     <title>Install and Compile</title>
-    <par>Simply extract contents of distributed archive somewhere
-    on your hard disk and Imaging is installed.
-    However, you need to setup your compilers to be able to compile
-    Imaging.</par>
+    <par>
+      Simply extract contents of distributed archive somewhere
+      on your hard disk and Imaging is installed.
+      However, you need to setup your compilers to be able to compile
+      Imaging.
+    </par>
   
     <table>
       <title>Source directories needed to be known by compilers</title>
@@ -41,7 +43,7 @@
       </row>
       <row>
         <td><keyword>(Imaging Root)\Demos\ObjectPascal\Common</keyword></td>
-        <td>Some common routines used by ObjectPascal demos</td>
+        <td>Some common routines used by Object Pascal demos</td>
       </row>
       <row>
         <td><keyword>(Imaging Root)\Extras\Extensions</keyword></td>
@@ -54,8 +56,10 @@
     <mcap>Compiling Library</mcap>
     
     <scap>Delphi/Kylix Setup</scap>
-    <par>You need to add directories listed in the above
-    table to library path.</par>
+    <par>
+      You need to add directories listed in the above
+      table to library path.
+    </par>
     <olist>
       <li>Choose <mitem>Tools<inimg url="../../Common/path.png" />Options<inimg
       url="../../Common/path.png" />Environment Options<inimg
@@ -69,30 +73,34 @@
     </olist>
 
     <scap>Free Pascal Setup</scap>
-    <par>You can write settings to <keyword>fpc.cfg</keyword> configuration
-    file or use them directly as command line parameters
-    (you can also use IDE distributed with Free Pascal but I do not use it
-    so I do not know).</par>
+    <par>
+      You can write settings to <keyword>fpc.cfg</keyword> configuration
+      file or use them directly as command line parameters
+    </par>
     <olist>
-      <li>Use <keyword>-FuUnitPath</keyword> parameter for all
-       directories listed in the above table and <keyword>-FiIncludePath</keyword>
-       only for <keyword>(Imaging_Root)\Source</keyword> directory.
-       Example: <keyword>fpc -FuD:\Imaging\Source -FuD:\Imaging\Source\JpegLib ... -FiD:\Imaging\Source</keyword>
+      <li>
+        Use <keyword>-FuUnitPath</keyword> parameter for all
+        directories listed in the above table and <keyword>-FiIncludePath</keyword>
+        only for <keyword>(Imaging_Root)\Source</keyword> directory.
+        Example: <keyword>fpc -FuD:\Imaging\Source -FuD:\Imaging\Source\JpegLib ... -FiD:\Imaging\Source</keyword>
       </li>
-      <li>You should also set compiler mode and other compilation specific options.
-      I use <keyword>-Sgi2dh</keyword> and it works.
-      <keyword>g</keyword> means allow <icode>goto</icode>,
-      <keyword>i</keyword> means allow function inlining,
-      <keyword>2</keyword> allows some Delphi 2 extensions,
-      <keyword>d</keyword> turns on Delphi compatibility mode
-      and <keyword>h</keyword> turns on ansi strings.
+      <li>
+        You should also set compiler mode and other compilation specific options.
+        I use <keyword>-Sgi2dh</keyword> and it works.
+        <keyword>g</keyword> means allow <icode>goto</icode>,
+        <keyword>i</keyword> means allow function inlining,
+        <keyword>2</keyword> allows some Delphi 2 extensions,
+        <keyword>d</keyword> turns on Delphi compatibility mode
+        and <keyword>h</keyword> turns on ANSI strings.
       </li>
     </olist>
     
     <mcap>Using Wrappers For Other Languages</mcap>
     <scap>Delphi.NET Setup</scap>
-    <par>You need to add directory in which Delphi.NET wrapper is located
-    to library path.</par>
+    <par>
+      You need to add directory in which Delphi.NET wrapper is located
+      to library path.
+    </par>
     <olist>
     <li>Choose <mitem>Tools<inimg url="../../Common/path.png" />Options<inimg
       url="../../Common/path.png" />Environment Options<inimg
@@ -103,21 +111,23 @@
     </olist>
     
     <scap>C/C++ Compiler Setup</scap>
-    <par>Settings depend entirely on the compiler used.
-    You need to add directory in which C/C++ wrapper headers are located
-    to its include path and then compile <icode>ImagingImport.c</icode>
-    file located in wrapper directory and link it with your object files.
-    You can find working MS VC++ 8.0 project in <keyword>Demos\Cpp\Bench</keyword>
-    directory.
+    <par>
+      Settings depend entirely on the compiler used.
+      You need to add directory in which C/C++ wrapper headers are located
+      to its include path and then compile <icode>ImagingImport.c</icode>
+      file located in wrapper directory and link it with your object files.
+      You can find working MS VC++ 8.0 project in <keyword>Demos\Cpp\Bench</keyword>
+      directory.
     </par>
 
     <lcap>Build Scripts</lcap>
-    <par>You can also compile Imaging library and demos without
-    setting your compilers. All you need is to make sure that you have
-    paths to compilers' executables in your system's search path
-    (<keyword>PATH</keyword> environment variable).
-    Then you can run one of these scripts located in <keyword>Scripts</keyword>
-    directory:
+    <par>
+      You can also compile Imaging library and demos without
+      setting your compilers. All you need is to make sure that you have
+      paths to compilers' executables in your system's search path
+      (<keyword>PATH</keyword> environment variable).
+      Then you can run one of these scripts located in <keyword>Scripts</keyword>
+      directory:
     </par>
 
     <table>
@@ -193,15 +203,15 @@
     
     <anchor name="extnote">
       <note>
-      You must first set search directories in which
-      third party units required by some demos (like <keyword>JEDI-SDL</keyword>,
-      <keyword>Direct3D</keyword>, ...) are located. Just open the script and
-      you will see couple of empty variables (like <icode>set SDLDIR=</icode> in
-      *.bat or <icode>SDLDIR=""</icode> in *.sh srcipt). Set the variables
-      to paths to required libraries and run the script. If you don't have
-      some of these libraries installed and variables are left empty
-      demos which require them will be simply skipped when the script is
-      executed.
+        You must first set search directories in which
+        third party units required by some demos (like <keyword>JEDI-SDL</keyword>,
+        <keyword>Direct3D</keyword>, ...) are located. Just open the script and
+        you will see couple of empty variables (like <icode>set SDLDIR=</icode> in
+        *.bat or <icode>SDLDIR=""</icode> in *.sh script). Set the variables
+        to paths to required libraries and run the script. If you don't have
+        some of these libraries installed and variables are left empty
+        demos which require them will be simply skipped when the script is
+        executed.
       </note>
     </anchor>
 

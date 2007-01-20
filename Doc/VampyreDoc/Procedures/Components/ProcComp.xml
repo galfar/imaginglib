@@ -21,8 +21,8 @@
 
 uses
   ImagingTypes, Imaging, ImagingClasses,
-  // Add unit with VLC/CLX/LCL support, new file formats are automatically
-  // registred to TPicture (so they will appear in TOpenPictureDialog for example)
+  // Add unit with VCL/CLX/LCL support, new file formats are automatically
+  // registered to TPicture (so they will appear in TOpenPictureDialog for example)
   <ref>ImagingComponents</ref>;
   
 ...

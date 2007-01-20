@@ -143,6 +143,8 @@ type
     constructor Create; override;
   end;
 
+implementation
+
 const
   PortableMapDefaultBinary = True;
 
@@ -161,8 +163,6 @@ const
   SPFMFormatName = 'Portable Float Map';
   SPFMMasks =      '*.pfm';
   PFMSupportedFormats = [ifR32F, ifA32B32G32R32F];
-
-implementation
 
 const
   { TAB, CR, LF, and Space are used as seperators in Portable map headers and data.}

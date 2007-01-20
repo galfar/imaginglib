@@ -5,12 +5,12 @@
   <chapter>
     <title>About</title>
     <par>
-      <b>Imaging</b> is native <b>ObjectPascal</b> image loading, saving and
+      <b>Imaging</b> is native <b>Object Pascal</b> image loading, saving and
       manipulation library. It is available for several platforms
       and does not require any third party dynamic libraries or other compiled binaries.
     </par>
     <par>
-      Main development language is <b>ObjectPascal</b>
+      Main development language is <b>Object Pascal</b>
       (<b>Delphi</b>, <b>Kylix</b> and <b>Free Pascal</b> compilers
       are supported) and there are interfaces to the library
       (compiled into dll/so) for other languages like <b>C/C++</b> and

@@ -7,11 +7,91 @@
       <title>Vampyre Imaging Library History</title>
     </anchor>
     <par>
-    You can find a listing of Imaging versions on this page.
-    There is the release date of each version together with 
-    a short note and a list of the most important changes that were made.
-    You can find the change tags explained here 
-    <link url="#legend">Changes Legend</link>.</par>
+      You can find a listing of Imaging versions on this page.
+      There is the release date of each version together with
+      a short note and a list of the most important changes that were made.
+      You can find the change tags explained here
+      <link url="#legend">Changes Legend</link>.
+    </par>
+    
+    <!-- VERSION 00.22.0 -->
+    <section>
+      <mediumcap>Version 0.22.0 - 26.01.2007</mediumcap>
+      <notes>
+        For complete list of changes see <keyword>File Notes</keyword>
+        section at the end of each source file.
+      </notes>
+      <bulletlist>
+        <li>
+          <keyword>[D]</keyword>
+          Documentation updated to version <b>0.22</b>.
+        </li>
+        <li>
+          <keyword>[E]</keyword>
+          Some demos were extended, updated, and some bugs were fixed.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New unit <ref>ImagingColors</ref> added.
+          Some color space conversion functions are there now.
+        </li>
+        <li>
+          <keyword>[*/F]</keyword>
+          <b>High level</b> interface in <ref>ImagingClasses</ref> unit
+          was extended and many bugs were fixed there.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>Canvas</b> class was extended. FrameRect, Rectangle, Ellipse, and Line methods
+          were added, and you can now specify PenColor, PenMode, and FillMode.
+          New convolution kernels were added too.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>JPEG 2000</b> image file format
+          loading and saving added to <keyword>Extras</keyword>.
+          Not yet native Object Pascal.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>PCX (ZSoft Paintbrush)</b> image file format
+          loading added to <keyword>Extras</keyword>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>PBM, PGM, PPM, PAM, PFM (Portable Maps)</b> image file formats
+          loading and saving added.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>Elder Imagery</b> extension added to <keyword>Extras</keyword>
+          for loading and saving images from older Bethesda games (Daggerfall mainly).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Added new <keyword>Extras</keyword> package (located in
+          <keyword>(ImagingRoot)\Extras</keyword> folder)
+          with additional extensions, demos, and tools for Imaging.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Functions added to the low level interface:
+          <ref>EnumFileFormats</ref>.
+        </li>
+        <li>
+          <keyword>[+/*]</keyword>
+          Many changes to image file format loader/saver classes
+          for easier creation of new formats (old formats were updated
+          and some (Bitmap, DDS) have various parts rewritten).
+          Some new stuff added (file name masks).
+          Also file format enumeration functions were added.
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          Many bugs in library fixed.
+        </li>
+      </bulletlist>
+    </section>
     
     <!-- VERSION 0.20.0 -->
     <section>
@@ -137,12 +217,6 @@
           New unit <icode>ImagingNetworkGraphics</icode> added for
           future handling of all Network Graphics image formats.
         </li>
-<!--        <li>
-          <keyword>[+]</keyword>
-          New unit <icode>ImagingColors</icode> added with functions for
-          manipulating and converting color values..
-        </li>
--->
       </bulletlist>
     </section>
     
@@ -158,7 +232,7 @@
         </li>
         <li>
           <keyword>[E]</keyword>
-          New demos created: <b>D3D Demo</b>, <b>OpenGL Demo</b> (ObjectPascal).
+          New demos created: <b>D3D Demo</b>, <b>OpenGL Demo</b> (Object Pascal).
         </li>
         <li>
           <keyword>[+]</keyword>
@@ -167,7 +241,7 @@
         </li>
         <li>
           <keyword>[E]</keyword>
-          New demos created: <b>SDL Demo</b>, <b>LCL Demo</b> (ObjectPascal).
+          New demos created: <b>SDL Demo</b>, <b>LCL Demo</b> (Object Pascal).
         </li>
         <li>
           <keyword>[+]</keyword>
@@ -229,7 +303,7 @@
         </li>
         <li>
           <keyword>[E]</keyword>
-          New demos created: <b>High Level</b> (ObjectPascal),
+          New demos created: <b>High Level</b> (Object Pascal),
           <b>dotNET Demo01</b> (Delphi.NET).
         </li>
         <li>
@@ -239,7 +313,7 @@
         <li>
           <keyword>[*]</keyword>
           Large changes in <b>Delphi.NET</b> wrapper. Function names and
-          parameter types are now almost same as in <b>ObjectPascal</b>
+          parameter types are now almost same as in <b>Object Pascal</b>
           without using dll. Some <b>.NET</b> only things added too.
         </li>
         <li>
@@ -351,8 +425,8 @@
         </li>
         <li>
           <keyword>[E]</keyword>
-          Demos created: <b>DXT Tool</b> (ObjectPascal), <b>Test</b> (C/C++),
-          <b>VCL Image Browser</b> (ObjectPascal).
+          Demos created: <b>DXT Tool</b> (Object Pascal), <b>Test</b> (C/C++),
+          <b>VCL Image Browser</b> (Object Pascal).
         </li>
         <li>
           <keyword>[U]</keyword>
@@ -388,7 +462,7 @@
         </li>
         <li>
           <keyword>[E]</keyword>
-          Demos created: <b>Benchmark</b> (ObjectPascal/C++).
+          Demos created: <b>Benchmark</b> (Object Pascal/C++).
         </li>
       </bulletlist>
     </section>
@@ -434,7 +508,7 @@
         </li>
         <li>
           <keyword>[+]</keyword>
-          Added import unit and header for ObjectPascal and C/C++ to
+          Added import unit and header for Object Pascal and C/C++ to
           enable using Imaging library compiled into dynamic link library (<b>dll/so</b>).
         </li>
         <li>

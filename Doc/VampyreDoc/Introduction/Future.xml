@@ -9,13 +9,15 @@
       In the long term I'm planning to redesign and rewrite major parts of library in
       future to make it more compact and easier to use and extend.
       First version of this new design should be 0.30
-      (probably in late 2007) but few more versions based on
+      (probably in late 2007 or 2008) but few more versions based on
       old design should be released before that.
     </par>
     
     <par>Here is a list of some of the features I want to include in future
     Imaging releases:</par>
     <bulletlist>
+      <li>native GIF support and TIFF support (native subset of TIFF or
+        non-native libtiff in Extras?)</li>
       <li>register your own data formats</li>
       <li>native Pascal JPEG2000 support</li>
       <li>more texture related functions</li>

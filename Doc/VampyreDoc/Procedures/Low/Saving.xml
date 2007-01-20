@@ -20,7 +20,7 @@
       <row>
         <cell><ref>SaveImageToStream</ref></cell>
         <cell>Save single image to stream
-        (<icode>TStream</icode> descendants, <b>ObjectPascal only</b>)</cell>
+        (<icode>TStream</icode> descendants, <b>Object Pascal only</b>)</cell>
       </row>
       <row>
         <cell><ref>SaveImageToMemory</ref></cell>
@@ -33,7 +33,7 @@
       <row>
         <cell><ref>SaveMultiImageToStream</ref></cell>
         <cell>Save multiple images to stream
-        (<icode>TStream</icode> descendants, <b>ObjectPascal only</b>)</cell>
+        (<icode>TStream</icode> descendants, <b>Object Pascal only</b>)</cell>
       </row>
       <row>
         <cell><ref>SaveMultiImageToMemory</ref></cell>
@@ -56,7 +56,7 @@ begin
   <ref>InitImage</ref>(Img);
   // create 8 bit grayscale image
   <ref>NewImage</ref>(1024, 1024, ifGray8, Img);
-  // draw diagonal line by direct writting to image's memory
+  // draw diagonal line by direct writing to image's memory
   for I := 0 to Img.Width - 1 do
     PByteArray(@PByteArray(Img.Bits)[I * Img.Width])[I] := 128;
   // save image to file
@@ -75,7 +75,7 @@ var
   I: LongInt;
 begin
   // load DDS multiimage from stream to Images array
-  <ref>LoadMultiImageFromStream</ref>('dds', InStream, Images);
+  <ref>LoadMultiImageFromStream</ref>(InStream, Images);
   // convert all loaded images to DXT5 format
   for I := 0 to Length(Images) - 1 do
     <ref>ConvertImage</ref>(Images[I], ifDXT5);

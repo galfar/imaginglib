@@ -6,8 +6,8 @@
     <title>Features</title>
     <blist>
     <li>
-      Native Object Pascal crossplatform library with no dependencies on any dynamically
-      linked libraries or other platform specific binaries.
+      Native <b>Object Pascal</b> crossplatform library with no dependencies
+      on any dynamically linked libraries or other platform specific binaries.
       Supported platforms are:
       <blist>
         <li> <b>MS Windows</b></li>

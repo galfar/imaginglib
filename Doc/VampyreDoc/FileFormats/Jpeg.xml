@@ -4,16 +4,18 @@
   <title>JPEG File Format</title>
   <chapter>
     <title>JPEG File Format</title>
-    <par>JPEG (Joint Photographic Experts Group) format
-    is good choice for storing images with large number of colors
-    and without sharp edges. It uses lossy compression which can greatly
-    reduce size of image file. Imaging uses Independent JPEG Group's <b>jpeglib</b>
-    library to load and save JPEG files. It was translated to Pascal by
-    Jacques Nomssi Nzali. As stated in jpeglib's documentation this library
-    can read and write <b>JFIF</b> format which is most widely used JPEG
-    format. But there are also some proprietary and other JPEG formats
-    which can not be read/written by jpeglib thus Imaging can not
-    read/write them also.</par>
+    <par>
+      JPEG (Joint Photographic Experts Group) format
+      is good choice for storing images with large number of colors
+      and without sharp edges. It uses lossy compression which can greatly
+      reduce size of image file. Imaging uses Independent JPEG Group's <b>jpeglib</b>
+      library to load and save JPEG files. It was translated to Pascal by
+      Jacques Nomssi Nzali. As stated in jpeglib's documentation this library
+      can read and write <b>JFIF</b> format which is most widely used JPEG
+      format. But there are also some proprietary and other JPEG formats
+      which can not be read/written by jpeglib thus Imaging can not
+      read/write them also.
+    </par>
 
     <table>
       <title>JPEG File Format Support</title>
@@ -41,7 +43,10 @@
       When working with JPEG files you can find useful some options
       which can be set by <ref>SetOption</ref> function and their current values
       can be get by <ref>GetOption</ref> function.
+      Or you can set them by modifying properties of <ref>TJpegFileFormat</ref>
+      class.
     </par>
+    
     <table>
       <title>Options Related to JPEG Files</title>
       <row>

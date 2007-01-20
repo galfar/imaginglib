@@ -4,10 +4,12 @@
   <title>Loading Images</title>
   <chapter>
     <title>Loading Images</title>
-    <par>Images can be loaded from the files on disk, from the streams or
-    from a memory referenced by a pointer.
-    The following table lists functions for loading images. These are low level
-    functions operating on <ref>TImageData</ref> structure.</par>
+    <par>
+      Images can be loaded from the files on disk, from the streams or
+      from a memory referenced by a pointer.
+      The following table lists functions for loading images. These are low level
+      functions operating on <ref>TImageData</ref> structure.
+    </par>
 
     <table>
       <row>
@@ -21,7 +23,7 @@
       <row>
         <cell><ref>LoadImageFromStream</ref></cell>
         <cell>Load single image from stream
-        (<icode>TStream</icode> descendants, <b>ObjectPascal only</b>)</cell>
+        (<icode>TStream</icode> descendants, <b>Object Pascal only</b>)</cell>
       </row>
       <row>
         <cell><ref>LoadImageFromMemory</ref></cell>
@@ -34,19 +36,20 @@
       <row>
         <cell><ref>LoadMultiImageFromStream</ref></cell>
         <cell>Load multiple images from stream
-        (<icode>TStream</icode> descendants, <b>ObjectPascal only</b>)</cell>
+        (<icode>TStream</icode> descendants, <b>Object Pascal only</b>)</cell>
       </row>
       <row>
         <cell><ref>LoadMultiImageFromMemory</ref></cell>
         <cell>Load multiple images from memory</cell>
       </row>
     </table>
-    
-    <par>Functions that load images from streams and memory expect image file format 
-    identifier as one of the parameters (as usual file extension like 'jpg', 'png' etc.).
-    If you are not sure what format image you want to load is in you can use 
-    functions in the following table to determine it (and eventually use output of 
-    these functions as format specifier for mentioned loading functions).</par>
+
+    <par>
+      If you want to make sure that image in file is really in format
+      suggested by its extension or if you have some unknown images
+      in stream or memory, you can use these functions to get
+      their file format:
+    </par>
     
     <table>
       <row>
@@ -60,19 +63,18 @@
       <row>
         <cell><ref>DetermineStreamFormat</ref></cell>
         <cell>Determines format of image located in stream 
-        (<icode>TStream</icode> descendants, <b>ObjectPascal only</b>)</cell>
+        (<icode>TStream</icode> descendants, <b>Object Pascal only</b>)</cell>
       </row>
       <row>
         <cell><ref>DetermineMemoryFormat</ref></cell>
         <cell>Determines format of image located in memory</cell>
       </row>
     </table>  
-        
-    <par>You can learn how to use these functions from the
-    following code fragments.</par>
 
-    <par>This example loads image from file and prints its width, height and
-    size of memory it occupies.</par>
+    <par>
+      This example loads image from file and prints its width, height and
+      size of memory it occupies.
+    </par>
     <code>
 uses
   SysUtils, Classes, ImagingTypes, Imaging;
@@ -90,10 +92,12 @@ begin
   <ref>FreeImage</ref>(Img);
 end.
     </code>
-  
 
-    <par>This example shows how to load multiple images stored in one file
-    (DDS texture in this case) located in the memory.</par>
+    <par>
+      This example shows how to load multiple images stored in one file
+      (DDS texture in this case) located in the memory.
+    </par>
+    
     <code>
 var
   Data: Pointer;
@@ -117,10 +121,13 @@ begin
 end;
     </code>
     
-    <par>This example shows how to load image from stream without knowing 
-    what fromat it is in.</par>
+    <par>
+      This example shows how to load image from stream without knowing
+      what format it is in.
+    </par>
+
     <code>
-procedure LoadImage(var Img: <ref>TImageData</ref>; Stream: TStream);
+function LoadImage(var Img: <ref>TImageData</ref>; Stream: TStream): Boolean;
 var
   Ext: string;
 begin
@@ -129,14 +136,16 @@ begin
   // determine image's format
   Ext := <ref>DetermineStreamFormat</ref>(Stream);
   // if image is in unsupported format or is invalid we output error
-  // message and exit
   if Ext = '' then
   begin
     WriteLn('Image in stream in unsupported formatus!');
-    Exit;
+    Result := False;
+  end
+  else
+  begin
+    // load image if its type is known
+    Result := <ref>LoadImageFromStream</ref>(Stream, Img);
   end;
-  // load image if its type is known 
-  <ref>LoadImageFromStream</ref>(Stream, Img);
 end;    
     </code>
     

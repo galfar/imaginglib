@@ -5,22 +5,22 @@
   <chapter>
     <title>DirectDraw Surface File Format</title>
     <par>
-    The Microsoft DirectDraw Surface (.dds)
-    file format is used to store textures and
-    cubic environment maps, both with and
-    without mipmap levels. This format can
-     store uncompressed and compressed formats, and is the preferred file format
-     for storing DXTn compressed data.
-     This format was introduced with DirectX 7.0.
-     In DirectX 8.0, support for volume textures was added.
-     Many new games use DDS files to store their textures.
-     More information on DDS files can be found in DirectX SDK documentation.
+      The Microsoft DirectDraw Surface (.dds)
+      file format is used to store textures and
+      cubic environment maps, both with and
+      without mipmap levels. This format can
+      store uncompressed and compressed formats, and is the preferred file format
+      for storing DXTn compressed data.
+      This format was introduced with DirectX 7.0.
+      In DirectX 8.0, support for volume textures was added.
+      Many new games use DDS files to store their textures.
+      More information on DDS files can be found in DirectX SDK documentation.
     </par>
     <par>
-    Imaging supports loading and saving of all three types of DDS files -
-    standard textures, cube maps and volume textures. Each of these types can
-    be with or without mipmaps and compressed with DXTC.
-    Pixel formats of DDS files supported by Imaging can be found in the table below.
+      Imaging supports loading and saving of all three types of DDS files -
+      standard textures, cube maps and volume textures. Each of these types can
+      be with or without mipmaps and compressed with DXTC.
+      Pixel formats of DDS files supported by Imaging can be found in the table below.
     </par>
 
     <table>
@@ -154,19 +154,23 @@
     </table>
 
 
-    <par>When working with DDS files you can find useful some options
-    which can be set by <ref>SetOption</ref> function and their current values
-    can be get by <ref>GetOption</ref> function.
-    Options are divided into two groups - loading options and saving options.
-    Loading options have prefix <icode>ImagingDDSLoaded</icode> and
-    they store some properties of the last loaded DDS file.
-    You can use saving options with prefix <icode>ImagingDDSSave</icode>
-    to tell Imaging how to save the next DDS file (save settings persist
-    until they are changed by <ref>SetOption</ref> call) - ordinary texture
-    or volume texture with mipmaps or other?
-    You can learn how to use these options and how to load and save DDS files
-    in <link url="../Procedures/DdsFiles.xml">Loading and Saving DDS Files</link>
-    section.</par>
+    <par>
+      When working with DDS files you can find useful some options
+      which can be set by <ref>SetOption</ref> function and their current values
+      can be get by <ref>GetOption</ref> function.
+      Or you can set them by modifying properties of <ref>TDDSFileFormat</ref>
+      class.
+      Options are divided into two groups - loading options and saving options.
+      Loading options have prefix <icode>ImagingDDSLoaded</icode> and
+      they store some properties of the last loaded DDS file.
+      You can use saving options with prefix <icode>ImagingDDSSave</icode>
+      to tell Imaging how to save the next DDS file (save settings persist
+      until they are changed by <ref>SetOption</ref> call) - ordinary texture
+      or volume texture with mipmaps or other?
+      You can learn how to use these options and how to load and save DDS files
+      in <link url="../Procedures/DdsFiles.xml">Loading and Saving DDS Files</link>
+      section.
+    </par>
 
     <table>
       <title>Options Related to DDS Files</title>

@@ -5,13 +5,15 @@
   <chapter>
     <title>Truevision Targa File Format</title>
     <par>
-    Truevision defined the TGA file format in 1984 for use with its
-    first videographics products. It was the first truecolor
-    file format widely available. They are still widely used for
-    images with alpha channels.
-    It can store indexed, grayscale, RGB and ARGB images.
-    Targas can be uncompressed or compressed with RLE (run length encoding)
-    algorithm.</par>
+      Truevision defined the TGA file format in 1984 for use with its
+      first videographics products. It was the first truecolor
+      file format widely available. They are still widely used for
+      images with alpha channels.
+      It can store indexed, grayscale, RGB and ARGB images.
+      Targas can be uncompressed or compressed with RLE (run length encoding)
+      algorithm.
+    </par>
+
     <table>
       <title>Targa File Format Support</title>
       <row>
@@ -63,13 +65,18 @@
     </table>
 
     <note>
-    If anyone has some information about two last formats (TGA image type
-    codes 32 and 33) please tell me.
+      If anyone has some information about two last formats (TGA image type
+      codes 32 and 33) please tell me.
     </note>
 
-    <par>When working with Targa files you can find useful some options
-    which can be set by <ref>SetOption</ref> function and their current values
-    can be get by <ref>GetOption</ref> function.</par>
+    <par>
+      When working with Targa files you can find useful some options
+      which can be set by <ref>SetOption</ref> function and their current values
+      can be get by <ref>GetOption</ref> function.
+      Or you can set them by modifying properties of <ref>TTargaFileFormat</ref>
+      class.
+    </par>
+
     <table>
       <title>Options Related to Targa Files</title>
       <row>

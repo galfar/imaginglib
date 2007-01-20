@@ -42,10 +42,14 @@ type
     TImageFormat. It supports plain textures, cube textures and
     volume textures, all of these can have mipmaps. It can also
     load some formats which have no exact TImageFormat, but can be easily
-    converted to one.
+    converted to one (bump map formats).
     You can get some information about last loaded DDS file by calling
-    GetOption with ImagingDDSXXX options and you can set some
-    saving options by calling SetOption.}
+    GetOption with ImagingDDSLoadedXXX options and you can set some
+    saving options by calling SetOption with ImagingDDSSaveXXX or you can
+    simply use properties of this class.
+    Note that when saving cube maps and volumes input image array must contain
+    at least number of images to build cube/volume based on current
+    Depth and MipMapCount settings.}
   TDDSFileFormat = class(TImageFileFormat)
   protected
     FLoadedCubeMap: LongBool;
@@ -69,15 +73,28 @@ type
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     procedure CheckOptionsValidity; override;
   published
+    { True if last loaded DDS file was cube map.}
     property LoadedCubeMap: LongBool read FLoadedCubeMap write FLoadedCubeMap;
+    { True if last loaded DDS file was volume texture.}
     property LoadedVolume: LongBool read FLoadedVolume write FLoadedVolume;
+    { Number of mipmap levels of last loaded DDS image.}
     property LoadedMipMapCount: LongInt read FLoadedMipMapCount write FLoadedMipMapCount;
+    { Depth (slices of volume texture or faces of cube map) of last loaded DDS image.}
     property LoadedDepth: LongInt read FLoadedDepth write FLoadedDepth;
+    { True if next DDS file to be saved should be stored as cube map.}
     property SaveCubeMap: LongBool read FSaveCubeMap write FSaveCubeMap;
+    { True if next DDS file to be saved should be stored as volume texture.}
     property SaveVolume: LongBool read FSaveVolume write FSaveVolume;
+    { Sets the number of mipmaps which should be stored in the next saved DDS file.
+      Only applies to cube maps and volumes, ordinary 2D textures save all
+      levels present in input.}
     property SaveMipMapCount: LongInt read FSaveMipMapCount write FSaveMipMapCount;
+    { Sets the depth (slices of volume texture or faces of cube map)
+      of the next saved DDS file.}
     property SaveDepth: LongInt read FSaveDepth write FSaveDepth;
   end;
+
+implementation
 
 const
   SDDSFormatName = 'DirectDraw Surface';
@@ -86,8 +103,6 @@ const
     ifA1R5G5B5, ifA4R4G4B4, ifX1R5G5B5, ifX4R4G4B4, ifR5G6B5, ifA16B16G16R16,
     ifR32F, ifA32B32G32R32F, ifR16F, ifA16B16G16R16F, ifR3G3B2, ifGray8, ifA8Gray8,
     ifGray16, ifDXT1, ifDXT3, ifDXT5];
-
-implementation
 
 const
   { Four character codes.}

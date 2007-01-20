@@ -86,6 +86,8 @@ type
     property LosslessCompression: LongBool read FLosslessCompression write FLosslessCompression;
   end;
 
+implementation
+
 const
   SJpeg2000FormatName = 'JPEG 2000 Image';
   SJpeg2000Masks      = '*.jp2,*.j2k,*.j2c,*.jpx,*.jpc';
@@ -94,8 +96,6 @@ const
   Jpeg2000DefaultQuality = 80;
   Jpeg2000DefaultCodeStreamOnly = False;
   Jpeg2000DefaultLosslessCompression = False;
-
-implementation
 
 const
   JP2Signature: TChar8 = #0#0#0#$0C#$6A#$50#$20#$20;

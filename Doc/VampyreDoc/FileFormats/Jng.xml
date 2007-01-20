@@ -5,7 +5,8 @@
   <chapter>
     <title>JPEG Network Graphics File Format</title>
 
-    <par>JNG is a lossy single-image member of the Network Graphics format family.
+    <par>
+      JNG is a lossy single-image member of the Network Graphics format family.
       It encapsulates a JPEG datastream in PNG-style chunks,
       along with an optional alpha channel.
       While JNG is primarily intended as a subformat of
@@ -60,6 +61,8 @@
       When working with JNG files you can find useful some options
       which can be set by <ref>SetOption</ref> function and their current values
       can be get by <ref>GetOption</ref> function.
+      Or you can set them by modifying properties of <ref>TJNGFileFormat</ref>
+      class.
     </par>
     
     <table>

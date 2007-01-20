@@ -8,7 +8,7 @@
       This extension provides functions for loading/saving
       <keyword>SDL</keyword> surfaces using Imaging and for converting
       images to <keyword>SDL</keyword> surfaces and vice versa.
-      You need <keyword>SDL</keyword> headers for <keyword>ObjectPascal</keyword>
+      You need <keyword>SDL</keyword> headers for <keyword>Object Pascal</keyword>
       (<keyword>JEDI-SDL</keyword>) to compile this extension.
       It is implemented in <ref>ImagingSDL</ref> unit located
       in <keyword>(ImagingRoot)\Source\Extensions</keyword> directory.
@@ -23,7 +23,7 @@
       Here is the table with <keyword>SDL</keyword> functions
       currently available.
       There is also Imaging <keyword>SDL</keyword> demo you can look at
-      for inspiration <link url="../Demos/Pascal.xml#sdldemo">ObjectPascal SDL Demo</link>.
+      for inspiration <link url="../Demos/Pascal.xml#sdldemo">Object Pascal SDL Demo</link>.
     </par>
 
     <table>

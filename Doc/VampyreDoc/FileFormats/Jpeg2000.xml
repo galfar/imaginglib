@@ -5,20 +5,24 @@
   <chapter>
     <title>JPEG 2000 Format</title>
     <par>
-      JPEG 2000 is a wavelet-based image compression standard.
-      It was created by the Joint Photographic Experts Group committee
+      <b>JPEG 2000</b> is a wavelet-based image compression standard.
+      It was created by the <b>Joint Photographic Experts Group</b> committee
       as a replacement for their own DCT based JPEG standard.
       JPEG 2000 can operate at higher compression
       ratios without generating 'blocky and blurry'
       artifacts of the older JPEG standard.
       Nowadays JPEG 2000 is not as widely supported as its predecessor.
-      Common file name extensions are .jp2, .j2c, and .j2k (for code stream only).
+      Common file name extensions are <b>.jp2</b>, <b>.j2c</b>, and <b>.j2k</b> (for code stream only).
     </par>
     <par>
-      As of version 0.22 Imaging uses OpenJPEG library
+      As of version 0.22 Imaging uses <b>OpenJPEG</b> library
       compiled to object files and linked to Object Pascal program.
-      Therefore, JPEG 2000 support is not a part of core library now
-      and is located in Extras package.
+      Therefore, JPEG 2000 support is not a part of core library
+      (not native Pascal) now
+      and is located in <keyword>Extras</keyword> package.
+      
+      
+      
       JPEG 2000
       supports wide variety of data formats. You can have arbitrary number
       of components/channels, each with different bitdepth and optional
@@ -93,6 +97,8 @@
       When working with JPEG 2000 files you can find useful some options
       which can be set by <ref>SetOption</ref> function and their current values
       can be get by <ref>GetOption</ref> function.
+      Or you can set them by modifying properties of <ref>TJpeg2000FileFormat</ref>
+      class.
     </par>
     <table>
       <title>Options Related to JPEG 2000 Files</title>

@@ -9,11 +9,11 @@
       <keyword>OpenGL</keyword> textures
       using Imaging and for converting images to textures and vice versa.
       You need <keyword>OpenGL</keyword> headers for
-      <keyword>ObjectPascal</keyword> to be able to compile this extension.
+      <keyword>Object Pascal</keyword> to be able to compile this extension.
       Headers from <keyword>JEDI-SDL</keyword> (<icode>gl.pas</icode>)
       and <keyword>Delphi GL</keyword> (<icode>dglOpenGL.pas</icode>) were
       tested and they work.
-      It is implemented in <ref>ImagingOpenGL</ref> unit located
+      Extension is implemented in <ref>ImagingOpenGL</ref> unit located
       in <keyword>(ImagingRoot)\Source\Extensions</keyword> directory.
       To use it simply add this unit to <icode>uses</icode> list of your program.
       Currently only 2D textures are supported, DXTC (S3TC) compressed and
@@ -24,7 +24,7 @@
       Here is the table with <keyword>OpenGL</keyword> functions
       currently available.
       There is also Imaging <keyword>OpenGL</keyword> demo you can look at
-      for inspiration <link url="../Demos/Pascal.xml#opengldemo">ObjectPascal OpenGL Demo</link>.
+      for inspiration <link url="../Demos/Pascal.xml#opengldemo">Object Pascal OpenGL Demo</link>.
     </par>
 
     <table>

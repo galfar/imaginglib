@@ -10,7 +10,7 @@
       using Imaging and for converting images to textures and vice versa.
       Currently supported <keyword>Direct3D</keyword> version is 9.0.
       You need <keyword>Direct3D</keyword> headers for
-      <keyword>ObjectPascal</keyword> to be able to compile this extension.
+      <keyword>Object Pascal</keyword> to be able to compile this extension.
       They can be found at <link url="http://www.clootie.ru">http://www.clootie.ru</link>.
       Extension does not require D3DX library so if you use it
       only for loading or saving textures you can replace it by Imaging
@@ -24,7 +24,7 @@
       Here is the table with <keyword>Direct3D</keyword> functions
       currently available.
       There is also Imaging <keyword>Direct3D</keyword> demo you can look at
-      for inspiration <link url="../Demos/Pascal.xml#d3ddemo">ObjectPascal Direct3D Demo</link>.
+      for inspiration <link url="../Demos/Pascal.xml#d3ddemo">Object Pascal Direct3D Demo</link>.
     </par>
 
     <table>

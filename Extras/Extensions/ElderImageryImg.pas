@@ -55,6 +55,8 @@ type
     constructor Create; override;
   end;
 
+implementation
+
 const
   SIMGFormatName = 'Daggerfall Image';
   SIMGMasks      = '*.img';
@@ -80,8 +82,6 @@ const
     (Size:  64768; Width: 320; Height: 200),   // These contain palette
     (Size:  68800; Width: 320; Height: 215),
     (Size: 112128; Width: 512; Height: 219));
-
-implementation
 
 resourcestring
   SInvalidImageSize = 'Size of image in IMG format cannot exceed 65535 bytes. %s';

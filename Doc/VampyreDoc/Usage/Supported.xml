@@ -5,7 +5,7 @@
   <chapter>
     <title>Supported Compilers and Platforms</title>
     <par>
-      Main development language is <b>ObjectPascal</b> and two
+      Main development language is <b>Object Pascal</b> and two
       main supported compilers are <b>Borland Delphi</b> and <b>Free Pascal</b>.
       <b>Kylix</b> works too but <b>C++ Builder</b> crashes on internal error.
       Other Pascal compilers like GPC or TMT were not tested.
@@ -13,7 +13,7 @@
       (some other Unix systems most probably too),
       and <b>DOS</b> (and <b>.NET</b> using unmanaged DLL).
       Imaging was tested on 32bit <b>x86</b>
-      and 64bit <b>AMD64</b> (Linux only - no Win64 Pascal compiler now)
+      and 64bit <b>AMD64</b> (Linux only - no Win64 Pascal compiler yet)
       CPU architectures.
       It could work on some big endian machines too (except some file format loaders
       that assume little endian) but I can't test it on any.
@@ -25,7 +25,7 @@
     </par>
 
     <table>
-      <title>ObjectPascal Compilers</title>
+      <title>Object Pascal Compilers</title>
       <row>
         <th>Compiler Name and Version</th>
         <th>Info</th>
@@ -53,12 +53,12 @@
   
     <par>
       If you want use Imaging as external dll/so library you are not restricted
-      only to <b>ObjectPascal</b> but you can use any other programming language
+      only to <b>Object Pascal</b> but you can use any other programming language
       which has wrapper to dll/so written. Wrappers for other languages can be
       found in <keyword>Source/Wrappers</keyword> directory.
       Following tables contain information about which compilers have
       been tested and whether program using wrapper was successfully
-      compiled by them (for <b>ObjectPascal</b> wrapper look at previous table).
+      compiled by them (for <b>Object Pascal</b> wrapper look at previous table).
     </par>
 
     <table>

@@ -155,6 +155,14 @@ type
   end;
 {$ENDIF}
 
+
+implementation
+
+{$IFDEF LINK_JNG}
+uses
+  ImagingJpeg, ImagingIO;
+{$ENDIF}
+
 const
   NGDefaultPreFilter = 5;
   NGDefaultCompressLevel = 5;
@@ -173,13 +181,6 @@ const
   SMNGMasks      = '*.mng';
   SJNGFormatName = 'JPEG Network Graphics';
   SJNGMasks      = '*.jng';
-
-implementation
-
-{$IFDEF LINK_JNG}
-uses
-  ImagingJpeg, ImagingIO;
-{$ENDIF}
 
 resourcestring
   SErrorLoadingChunk = 'Error when reading %s chunk data. File may be corrupted.';

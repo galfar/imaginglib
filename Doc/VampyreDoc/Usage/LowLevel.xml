@@ -4,18 +4,28 @@
   <title>Low Level Interface</title>
   <chapter>
     <title>Low Level Interface</title>
-    <par>Imaging's low level interface is set of functions operating
-    on <ref>TImageData</ref> structure and <ref>TDynImageDataArray</ref>.
-    These functions are implemented in <ref>Imaging</ref> unit
-    and you can find how to use them in
-    <link url="../Procedures/Procedures.xml">How To ... </link> section.
-    You can also look at <link url="../Demos/Demos.xml">Demos</link> section.
-    Low level interface is accessible from programming languages other
-    than <b>ObjectPascal</b>. Information on this can be found in
-    <link url="../Procedures/Low/UsingDll.xml">Using dll/so Access</link> section.
+    <par>
+      Imaging's low level interface is set of functions operating
+      on <ref>TImageData</ref> structure and <ref>TDynImageDataArray</ref>.
+      These functions are implemented in <ref>Imaging</ref> unit
+      and you can find how to use them in
+      <link url="../Procedures/Procedures.xml">How To ... </link> section.
+      You can also look at <link url="../Demos/Demos.xml">Demos</link> section.
+      Low level interface is accessible from programming languages other
+      than <b>Object Pascal</b>. Information on this can be found in
+      <link url="../Procedures/Low/UsingDll.xml">Using dll/so Access</link> section.
     </par>
+    
+    <note>
+      There are more functions in Imaging that are not part of low level interface
+      but can be freely used with it. Ulike those, low level interface functions are
+      provided for other programming languages too.
+      Look at <ref>Imaging</ref>, <ref>ImagingFormats</ref>, and other units
+      for more functions.
+    </note>
 
-    <par>Here is the table with all low level interface functions currently available.
+    <par>
+      Here is the table with all low level interface functions currently available.
     </par>
 
     <table>
@@ -115,10 +125,11 @@
 
     </table>
 
-    <par>You can find other functions in <link url="../Reference.xml">Reference</link>
-    but they are not available for other languages thus they are not
-    part of the low level interface. Some of them are even dangerous to use
-    if you do not know what you are doing. 
+    <par>
+      You can find other functions in <link url="../Reference.xml">Reference</link>
+      but they are not available for other languages thus they are not
+      part of the low level interface. Some of them are even dangerous to use
+      if you do not know what you are doing.
     </par>
      
   </chapter>

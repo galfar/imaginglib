@@ -4,14 +4,15 @@
   <title>Windows Bitmap File Format</title>
   <chapter>
     <title>Windows Bitmap File Format</title>
-    <par>Windows bitmap files are stored in a device-independent bitmap (DIB)
-    format
-    that allows Windows to display the bitmap on any type of display device. The
-    term "device independent" means that the bitmap specifies pixel color in a
-    form independent of the method used by a display to represent color.
-    Bitmaps can store 1, 4 and 8 bit indexed images and 16, 24
-    and 32 RGB images. 4 and 8 bit images can also be compressed with RLE.
-    Imaging can also read OS/2 bitmaps but can not save them.
+    <par>
+      Windows bitmap files are stored in a device-independent bitmap (DIB)
+      format
+      that allows Windows to display the bitmap on any type of display device. The
+      term "device independent" means that the bitmap specifies pixel color in a
+      form independent of the method used by a display to represent color.
+      Bitmaps can store 1, 4 and 8 bit indexed images and 16, 24
+      and 32 RGB images. 4 and 8 bit images can also be compressed with RLE.
+      Imaging can also read OS/2 bitmaps but can not save them.
     </par>
 
     <table>
@@ -99,6 +100,8 @@
       When working with Bitmap files you can find useful some options
       which can be set by <ref>SetOption</ref> function and their current values
       can be get by <ref>GetOption</ref> function.
+      Or you can set them by modifying properties of <ref>TBitmapFileFormat</ref>
+      class.
     </par>
     <table>
       <title>Options Related to Bitmap Files</title>

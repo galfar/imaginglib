@@ -55,18 +55,7 @@ type
     constructor Create; override;
   end;
 
-  { Header for CIF group files.}
-  TCIFGroup = packed record
-    Width: Word;
-    Height: Word;
-    XOff: Word;
-    YOff: Word;
-    Unk: Word;
-    ImageSize: Word;               // Size of Image data (but not always)
-    Offsets: array[0..31] of Word; // Offsets from beginning of header to
-                                   // image datas. Last offset points to next
-                                   // group header
-  end;
+implementation
 
 const
   SCIFFormatName = 'Daggerfall MultiImage';
@@ -82,10 +71,22 @@ const
     (Size:  249856; Width: 64; Height: 64),   // FACES.CIF
     (Size: 2060295; Width: 64; Height: 64));  // TFAC00I0.RCI
 
-implementation
-
 resourcestring
   SInvalidImageSize = 'Size of image in IMG/CIF format cannot exceed 65535 bytes. %s';
+
+type
+  { Header for CIF group files.}
+  TCIFGroup = packed record
+    Width: Word;
+    Height: Word;
+    XOff: Word;
+    YOff: Word;
+    Unk: Word;
+    ImageSize: Word;               // Size of Image data (but not always)
+    Offsets: array[0..31] of Word; // Offsets from beginning of header to
+                                   // image datas. Last offset points to next
+                                   // group header
+  end;
 
 { TCIFFileFormat class implementation }
 

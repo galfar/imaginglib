@@ -58,14 +58,14 @@ type
     property UseRLE: LongBool read FUseRLE write FUseRLE;
   end;
 
+implementation
+
 const
   STargaFormatName = 'Truevision Targa Image';
   STargaMasks      = '*.tga';
   TargaSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA1R5G5B5,
     ifR8G8B8, ifA8R8G8B8];
   TargaDefaultRLE = False;  
-
-implementation
 
 const
   STargaSignature = 'TRUEVISION-XFILE';

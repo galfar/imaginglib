@@ -59,14 +59,14 @@ type
     property UseRLE: LongBool read FUseRLE write FUseRLE;
   end;
 
+implementation
+
 const
   SBitmapFormatName = 'Windows Bitmap Image';
   SBitmapMasks =      '*.bmp,*.dib';
   BitmapSupportedFormats: TImageFormats = [ifIndex8, ifA1R5G5B5, ifA4R4G4B4,
     ifR5G6B5, ifR8G8B8, ifA8R8G8B8, ifX1R5G5B5, ifX4R4G4B4, ifX8R8G8B8];
   BitmapDefaultRLE = True;  
-
-implementation
 
 const
   { Bitmap file identifier 'BM'.}

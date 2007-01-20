@@ -17,6 +17,9 @@
       <li><b>PasZLib</b> by Jacques Nomssi Nzali
       (Pascal translation of <b>ZLib</b> by
       Jean-loup Gailly and Mark Adler).</li>
+      <li><b>OpenJPEG</b> for JPEG 2000 support by
+      Communications and remote sensing Laboratory,
+      Universite catholique de Louvain, Belgium </li>
     </blist>
   </chapter>
 </doc>

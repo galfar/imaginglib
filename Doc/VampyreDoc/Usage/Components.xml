@@ -72,7 +72,7 @@
     <linklist>
       <title>Information about the usage of VCL/CLX/LCL Classes</title>
       <lslink url="../Procedures/Procedures.xml">How To ... </lslink>
-      <lslink url="../Demos/Pascal.xml">ObjectPascal Demos</lslink>
+      <lslink url="../Demos/Pascal.xml">Object Pascal Demos</lslink>
     </linklist>
     
   </chapter>

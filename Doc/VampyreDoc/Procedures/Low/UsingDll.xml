@@ -4,7 +4,7 @@
   <title>Using dll/so Access</title>
   <chapter>
     <title>Using dll/so Access</title>
-    <par>You can use Imaging library directly from your <b>ObjectPascal</b>
+    <par>You can use Imaging library directly from your <b>Object Pascal</b>
     project by means of <icode>uses</icode> clause.
     This kind of usage is recommended but you can also use Imaging library
     in the form of external library - dynamic link library (Windows <keyword>
@@ -12,7 +12,7 @@
     Using external library can be useful if you have have more executables
     using Imaging which will be distributed together (so you can have
     smaller executables). This is also only way how to use Imaging from
-    programming languages other than <b>ObjectPascal</b>.</par>
+    programming languages other than <b>Object Pascal</b>.</par>
 
     <par>First you need Imaging compiled to external library. Projects
     for building external library can be found in
@@ -20,7 +20,7 @@
     You can also use build scripts named <keyword>BuildLibrary*.bat</keyword>
     and <keyword>BuildLibrary*.sh</keyword>. They are located in
     <keyword>Scripts</keyword> directory and compiled library will be placed
-    in <keyword>Bin</keyword> directory. In order to successsfuly use
+    in <keyword>Bin</keyword> directory. In order to successfully use
     these scripts you must have paths to compilers properly set.
     When you have compiled library you must assure that operating system is
     be able to find it at your application's startup.
@@ -30,7 +30,7 @@
 
     <par>
     Next thing you need is wrapper for programming language you want to use.
-    Now there are wrappers for <b>ObjectPascal</b>, <b>C/C++</b>
+    Now there are wrappers for <b>Object Pascal</b>, <b>C/C++</b>
     and <b>Delphi.NET</b>. Wrappers are located in
     <keyword>Source/Wrappers</keyword> directory.
     </par>
@@ -46,7 +46,7 @@
     <par>
     Here you can find some code fragments which will show you how
     to use dll/so access to Imaging library.
-    If you want samples in language other than <b>ObjectPascal</b> look
+    If you want samples in language other than <b>Object Pascal</b> look
     at <link url="../Demos/Demos.xml">Demos</link>.  
     </par>
 
@@ -58,7 +58,7 @@ var
 begin
   // this call loads external Imaging library, you should check if it was successful
   if not <ref>ImLoadLibrary</ref> then
-    WriteLn('Imaging library dll was not loaded successfuly, program will crash soon!');
+    WriteLn('Imaging library dll was not loaded successfully, program will crash soon!');
   // call this before any access to TImageData is made
   <ref>ImInitImage</ref>(Img);
   // load some image
@@ -74,7 +74,7 @@ begin
 end.
     </code>
 
-    <par>Since <ref>TDynImageDataArray</ref> is <b>ObjectPascal</b>'s dynamic array,
+    <par>Since <ref>TDynImageDataArray</ref> is <b>Object Pascal</b> dynamic array,
     which can not be used from other languages, all parameters of this
     type are replaced with <ref>TImageDataList</ref> typed parameters.
     Some new functions are introduced for accessing list's items and properties.
@@ -91,9 +91,9 @@ var
 begin
   // this call loads external Imaging library, you should check if it was successful
   if not <ref>ImLoadLibrary</ref> then
-    WriteLn('Imaging library dll was not loaded successfuly, program will crash soon!');
-  // call this before using TImageDataList, 10 is initial size of list
-  <ref>ImInitImageList</ref>(10, ImgList);
+    WriteLn('Imaging library dll was not loaded successfully, program will crash soon!');
+  // make sure list pointer doesn't point to invalid memory address
+  ImgList := nil;
   // load some images, list's size is changed during loading
   <ref>ImLoadMultiImageFromFile</ref>('/home/galfar/images/jaguar_with_mipmaps.jpg', Img);
   // get the actual list's size
@@ -114,15 +114,12 @@ begin
   // put this new image into the list
   <ref>ImSetImageListElement</ref>(ImgList, Img, Size);
   // save halved images to file
-  <ref>ImSavesMultiImageToFile</ref>('/home/galfar/images/jaguar_smaller.dds', Img);
+  <ref>ImSaveMultiImageToFile</ref>('/home/galfar/images/jaguar_smaller.dds', Img);
   // free all images in list and list itself
   <ref>ImFreeImageList</ref>(ImgList);
   // unload Imaging library
   <ref>ImFreeLibrary</ref>;
 end.
     </code>
-
-
-
   </chapter>
 </doc>

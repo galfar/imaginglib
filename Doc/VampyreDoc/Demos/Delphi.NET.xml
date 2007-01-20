@@ -25,7 +25,7 @@
     in Mono too.
     </note>
     <note>
-    All non-ObjectPascal programs using Imaging require <b>VampyreImaging.dll</b>
+    All non-Object Pascal programs using Imaging require <b>VampyreImaging.dll</b>
     (Windows) or <b>libVampyreImaging.so</b> (Linux) to run.
     Compiled Imaging library must be located somewhere on system's
     search path for these demos to work.

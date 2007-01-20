@@ -20,7 +20,7 @@
     <ref>ImFreeLibrary</ref> when you don't want to use library anymore.
     </note>
     <note>
-    All non-ObjectPascal programs using Imaging require <b>VampyreImaging.dll</b>
+    All non-Object Pascal programs using Imaging require <b>VampyreImaging.dll</b>
     (Windows) or <b>libVampyreImaging.so</b> (Linux) to run.
     Compiled Imaging library must be located somewhere on system's
     search path for these demos to work.
@@ -30,7 +30,7 @@
     <!-- BENCHMARK DEMO   ****************************** -->
     <lcap><anchor name="benchmark">Benchmark</anchor></lcap>
     <par>
-    This is not actually benchmark like ObjectPascal
+    This is not actually benchmark like Object Pascal
     <link url="Pascal.xml#benchmark">version</link> because
     all measured functions are called from external library, but it
     shows how to use Imaging dll from C/C++ at least.
@@ -69,7 +69,7 @@
     </table>
 
     <par>
-    For details look at ObjectPascal
+    For details look at Object Pascal
     <link url="Pascal.xml#benchmark">version</link>. There are only two
     differences:    </par>
     <olist>

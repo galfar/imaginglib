@@ -92,14 +92,14 @@ type
     property Progressive: LongBool read FProgressive write FProgressive;
   end;
 
+implementation
+
 const
   SJpegFormatName = 'Joint Photographic Experts Group Image';
   SJpegMasks      = '*.jpg,*.jpeg,*.jfif,*.jpe,*.jif';
   JpegSupportedFormats: TImageFormats = [ifR8G8B8, ifGray8];
   JpegDefaultQuality = 90;
   JpegDefaultProgressive = False;
-
-implementation
 
 const
   { Jpeg file identifiers.}

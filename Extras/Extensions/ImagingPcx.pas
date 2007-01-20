@@ -51,11 +51,11 @@ type
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   end;
 
+implementation
+
 const
   SPCXFormatName = 'ZSoft Paintbrush Image';
   SPCXMasks      = '*.pcx';
-
-implementation
 
 type
   TPCXHeader = packed record

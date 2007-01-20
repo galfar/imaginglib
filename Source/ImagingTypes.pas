@@ -59,20 +59,22 @@ const
     can be 0 or 1. Default value is 0.}
   ImagingTargaRLE              = 13;
 
-  { Value of this option is non-zero if last loaded DDS file is cube map.}
+  { Value of this option is non-zero if last loaded DDS file was cube map.}
   ImagingDDSLoadedCubeMap      = 14;
-  { Value of this option is non-zero if last loaded DDS file is volume texture.}
+  { Value of this option is non-zero if last loaded DDS file was volume texture.}
   ImagingDDSLoadedVolume       = 15;
   { Value of this option is number of mipmap levels of last loaded DDS image.}
   ImagingDDSLoadedMipMapCount  = 16;
   { Value of this option is depth (slices of volume texture or faces of
     cube map) of last loaded DDS image.}
   ImagingDDSLoadedDepth        = 17;
-  { If it is non-zero next saved DDS file will be stored as cube map.}
+  { If it is non-zero next saved DDS file should be stored as cube map.}
   ImagingDDSSaveCubeMap        = 18;
-  { If it is non-zero next saved DDS file will be stored as volume texture.}
+  { If it is non-zero next saved DDS file should be stored as volume texture.}
   ImagingDDSSaveVolume         = 19;
-  { Sets the number of mipmaps which will be stored in the next saved DDS file.}
+  { Sets the number of mipmaps which should be stored in the next saved DDS file.
+    Only applies to cube maps and volumes, ordinary 2D textures save all
+    levels present in input.}
   ImagingDDSSaveMipMapCount    = 20;
   { Sets the depth (slices of volume texture or faces of cube map)
     of the next saved DDS file.}

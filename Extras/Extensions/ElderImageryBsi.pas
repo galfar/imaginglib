@@ -61,11 +61,11 @@ type
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   end;
 
+implementation
+
 const
   SBSIFormatName = 'Bethesda Image';
   SBSIMasks      = '*.bsi,texbsi.*';
-
-implementation
 
 resourcestring
   SErrorLoadingChunk = 'Error when reading %s chunk data.';

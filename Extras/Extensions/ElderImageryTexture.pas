@@ -61,6 +61,13 @@ type
     property LastTextureName: string read FLastTextureName;
   end;
 
+implementation
+
+const
+  STextureFormatName = 'Daggerfall Texture';
+  STextureMasks      = 'texture.*,*.dagtexture';
+
+type
   { Main texture header.}
   TTexHeader = packed record
     ImgCount: Word;                // Number of images in texture
@@ -102,12 +109,6 @@ type
     Unk3: LongInt;
     Unk4: Word;
   end;
-
-const
-  STextureFormatName = 'Daggerfall Texture';
-  STextureMasks      = 'texture.*,*.dagtexture';
-
-implementation
 
 { TTextureFileFormat }
 

@@ -80,7 +80,7 @@
             
             <item url="Demos/Demos.xml" name="Demos">
               <itemlist>
-                <item url="Demos/Pascal.xml" name="ObjectPascal" />
+                <item url="Demos/Pascal.xml" name="Object Pascal" />
                 <item url="Demos/Delphi.NET.xml" name="Delphi.NET" />
                 <item url="Demos/Cpp.xml" name="C/C++" />
               </itemlist>

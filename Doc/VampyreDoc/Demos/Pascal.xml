@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet type="text/xsl" href="../Xsl/doc2html.xsl"?>
 <doc>
-  <title>ObjectPascal Demos</title>
+  <title>Object Pascal Demos</title>
   <chapter>
-    <title>ObjectPascal Demos</title>
-    <par>These ObjectPascal demos currently exist:</par>
+    <title>Object Pascal Demos</title>
+    <par>These Object Pascal demos currently exist:</par>
     <blist>
       <li><link url="#benchmark">Benchmark</link></li>
       <li><link url="#ibrowser">VCL Image Browser</link></li>
@@ -55,7 +55,7 @@
       </row>
       <row>
         <td><b>Language</b></td>
-        <td>ObjectPascal</td>
+        <td>Object Pascal</td>
       </row>
       <row>
         <td><b>Source Path</b></td>
@@ -123,7 +123,7 @@
       </row>
       <row>
         <td><b>Language</b></td>
-        <td>ObjectPascal</td>
+        <td>Object Pascal</td>
       </row>
       <row>
         <td><b>Source Path</b></td>
@@ -184,7 +184,7 @@
       </row>
       <row>
         <td><b>Language</b></td>
-        <td>ObjectPascal</td>
+        <td>Object Pascal</td>
       </row>
       <row>
         <td><b>Source Path</b></td>
@@ -248,7 +248,7 @@
       </row>
       <row>
         <td><b>Language</b></td>
-        <td>ObjectPascal</td>
+        <td>Object Pascal</td>
       </row>
       <row>
         <td><b>Source Path</b></td>
@@ -333,7 +333,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
     and Imaging's images and vice versa.
     <note>This demo requires <keyword>OpenGL</keyword> drivers and
       <keyword>SDL</keyword> installed to run and requires
-      <keyword>ObjectPascal</keyword> headers to compile.
+      <keyword>Object Pascal</keyword> headers to compile.
     </note>
     </par>
 
@@ -345,7 +345,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
       </row>
       <row>
         <td><b>Language</b></td>
-        <td>ObjectPascal</td>
+        <td>Object Pascal</td>
       </row>
       <row>
         <td><b>Source Path</b></td>
@@ -390,7 +390,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
     from files and Imaging's images and vice versa.
     <note>This demo requires <keyword>Direct3D 9.0</keyword> and
       <keyword>SDL</keyword> installed to run and requires
-      <keyword>ObjectPascal</keyword> headers to compile.
+      <keyword>Object Pascal</keyword> headers to compile.
     </note>
     </par>
 
@@ -402,7 +402,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
       </row>
       <row>
         <td><b>Language</b></td>
-        <td>ObjectPascal</td>
+        <td>Object Pascal</td>
       </row>
       <row>
         <td><b>Source Path</b></td>
@@ -446,7 +446,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
     Demo that shows how to create <keyword>SDL</keyword> surfaces from Imaging's
     images and vice versa.
     <note>This demo requires <keyword>SDL</keyword> installed to run and requires
-      <keyword>ObjectPascal</keyword> headers to compile.
+      <keyword>Object Pascal</keyword> headers to compile.
     </note>
     </par>
 
@@ -458,7 +458,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
       </row>
       <row>
         <td><b>Language</b></td>
-        <td>ObjectPascal</td>
+        <td>Object Pascal</td>
       </row>
       <row>
         <td><b>Source Path</b></td>
@@ -483,15 +483,15 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
     </table>
 
     <par>
-    <keyword>SDL</keyword> window is opened and background
-    and sprite surfaces are loaded and blitted to window. You can change
-    sprite's data format by pressing <keyboard>SPACE</keyboard> key (it cycles trough all
-    <ref>TImageFormat</ref> values) and toggle alpha blending (working only
-    when sprite's current format has alpha channel) and color keying.
-    Sprite can be moved across the screen using arrow keys.
-    Screenshots can also be taken. Status of the sprite
-    and list of active keys are shown in the console window (but <keyword>SDL</keyword>
-    window must have focus for the key input to be recognized).
+      <keyword>SDL</keyword> window is opened and background
+      and sprite surfaces are loaded and blitted to window. You can change
+      sprite's data format by pressing <keyboard>SPACE</keyboard> key (it cycles trough all
+      <ref>TImageFormat</ref> values) and toggle alpha blending (working only
+      when sprite's current format has alpha channel) and color keying.
+      Sprite can be moved across the screen using arrow keys.
+      Screenshots can also be taken. Status of the sprite
+      and list of active keys are shown in the console window (but <keyword>SDL</keyword>
+      window must have focus for the key input to be recognized).
     </par>
     <image url="sdldemo.jpg"/>
 

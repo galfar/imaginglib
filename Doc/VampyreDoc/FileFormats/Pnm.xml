@@ -5,14 +5,16 @@
   <chapter>
     <title>Portable Maps</title>
     <par>
-      Portable Maps or AnyMaps (PNM) is collective name refering to family
+      <b>Portable Maps</b> or <b>AnyMaps</b> (<b>PNM</b>) is collective
+      name refering to family
       of very similar raster file formats. Their format is very simple
       and most of them contain just two-byte Id, Width, Height, and raster data.
       Data can be stored in binary format or in text format (whick produces
       very large files). Most formats can store images with 8 or 16 bit channels
       but not all viewer and editor programs support 16 bit PNMs (or binary ones).
-      Imaging supports five PNM formats where PBM, PGM, and PPM are quite common
-      but PAM and PFM are somewhat rare.
+      Imaging supports five PNM formats where <b>PBM</b>, <b>PGM</b>, and <b>PPM</b>
+      are quite common
+      but <b>PAM</b> and <b>PFM</b> are somewhat rare.
     </par>
     
     <blist>
@@ -147,9 +149,13 @@
       </row>
     </table>
     
-    <par>When working with PNM files you can find useful some options
-    which can be set by <ref>SetOption</ref> function and their current values
-    can be get by <ref>GetOption</ref> function.</par>
+    <par>
+      When working with PNM files you can find useful some options
+      which can be set by <ref>SetOption</ref> function and their current values
+      can be get by <ref>GetOption</ref> function.
+      Or you can set them by modifying properties of <ref>TPGMFileFormat</ref>
+      and <ref>TPPMFileFormat</ref> classes.
+    </par>
     <table>
       <title>Options Related to PNM Files</title>
       <row>

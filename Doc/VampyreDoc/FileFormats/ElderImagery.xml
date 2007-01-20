@@ -44,7 +44,7 @@
         (works for Terminator: FS and maybe other games too).
         Textures are stored in 8bit indexed format with external palette.
         This format is very complicated (more images with subimages,
-        non-standard RLE, many unknowns) so only loading is supported.
+        nonstandard RLE, many unknowns) so only loading is supported.
         These texture files cannot be recognized by filename extension because
         their filenames are in form texture.### where # is number. Use filename
         masks instead.

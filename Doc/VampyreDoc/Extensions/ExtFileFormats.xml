@@ -14,7 +14,7 @@
       be stream safe (you have multiple images in one stream and you load them
       one by one without exactly knowing where they start - after loading one
       stream position must be precisely at the beginning of another - some
-      file formats (e.g. PCX) need to know exact file size during loading so
+      file formats (e.g. Daggerfall images) need to know exact file size during loading so
       they are inherently unsafe).
       File format loaders/savers that do not meet these requirements are
       located in Extras package (<keyword>Extras\Extensions</keyword> directory).
@@ -22,8 +22,8 @@
     
     <par>
       Some complex file formats make compiled binaries significantly larger.
-      Most notably JPEG (around 100 KiB), JPEG2000 (around 150 KiB), and PNG
-      (around 50 KiB). Some formats use others internally - MNG and JNG use
+      Most notably <b>JPEG</b> (around 100 KiB), <b>JPEG2000</b> (around 150 KiB), and <b>PNG</b>
+      (around 50 KiB). Some formats use others internally - <b>MNG</b> and <b>JNG</b> use
       PNG and JPEG. If you know you won't be needing some of those formats
       and you don't want large binaries you can disable them at compile stage.
       This is done by defining/undefining <icode>LINK_*</icode>

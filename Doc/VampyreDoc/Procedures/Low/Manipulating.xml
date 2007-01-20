@@ -20,7 +20,7 @@
 
     <code>
 uses
-  ImageingTypes, Imaging;
+  ImagingTypes, Imaging;
 var
   Img, ImgClone: <ref>TImageData</ref>;
 begin
