@@ -55,12 +55,7 @@ type
     constructor Create; override;
   end;
 
-implementation
-
 const
-  SCIFFormatName = 'Daggerfall MultiImage';
-  SCIFMasks      = '*.cif,*.rci';
-
   { Info about special CIFs without header.}
   NoHeaderCIFInfos: array[0..6] of TNoHeaderFileInfo = (
     (Size:    2601; Width: 17; Height: 17),   // MPOP.RCI
@@ -70,6 +65,12 @@ const
     (Size:   49152; Width: 64; Height: 64),   // CHLD00I0.RCI
     (Size:  249856; Width: 64; Height: 64),   // FACES.CIF
     (Size: 2060295; Width: 64; Height: 64));  // TFAC00I0.RCI
+
+implementation
+
+const
+  SCIFFormatName = 'Daggerfall MultiImage';
+  SCIFMasks      = '*.cif,*.rci';
 
 resourcestring
   SInvalidImageSize = 'Size of image in IMG/CIF format cannot exceed 65535 bytes. %s';

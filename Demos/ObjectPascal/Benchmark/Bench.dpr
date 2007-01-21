@@ -58,6 +58,7 @@ const
   SDataDir = 'Data';
   SImageName = 'Tigers';
   SSaveImage = '_BenchOut';
+  SLogFileName = 'ResultsPas.log';
 
 var
   Time: Int64;
@@ -321,8 +322,18 @@ begin
 {$IFDEF LOG_TO_FILE}
   // If logging to file is defined new output file is created
   // and all messages are written into it.
-  AssignFile(Output, GetAppDir + PathDelim + 'ResultsPas.log');
-  Rewrite(Output);
+  try
+    AssignFile(Output, GetAppDir + PathDelim + SLogFileName);
+    Rewrite(Output);
+  except
+    on E: Exception do
+    begin
+      WriteLn('Exception raised during opening log file for writing: ' +
+        GetAppDir + PathDelim + SLogFileName);
+      WriteLn(E.Message);
+      Halt(1);
+    end;
+  end;
   WriteLn('Benchmarking ...');
 {$ELSE}
   // Otherwise standard System.Output file is used.
@@ -417,7 +428,7 @@ begin
     Imaging.FreeImage(Img);
   {$IFDEF LOG_TO_FILE}
     CloseFile(Output);
-    WriteLn('Results written to "ResultsPas.log" file.');
+    WriteLn('Results written to "' + SLogFileName + '" file.');
   {$ENDIF}
   end;
 

@@ -55,12 +55,7 @@ type
     constructor Create; override;
   end;
 
-implementation
-
 const
-  SIMGFormatName = 'Daggerfall Image';
-  SIMGMasks      = '*.img';
-
   { Info about special images without header.}
   NoHeaderIMGInfos: array[0..18] of TNoHeaderFileInfo = (
     (Size:     64; Width:   8; Height:   8),   // Arena file
@@ -82,6 +77,12 @@ const
     (Size:  64768; Width: 320; Height: 200),   // These contain palette
     (Size:  68800; Width: 320; Height: 215),
     (Size: 112128; Width: 512; Height: 219));
+
+implementation
+
+const
+  SIMGFormatName = 'Daggerfall Image';
+  SIMGMasks      = '*.img';
 
 resourcestring
   SInvalidImageSize = 'Size of image in IMG format cannot exceed 65535 bytes. %s';

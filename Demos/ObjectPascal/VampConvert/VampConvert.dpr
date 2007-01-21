@@ -96,7 +96,7 @@ begin
   WriteLn('  Supported file formats (OUTPUT): ');
   for I := 0 to FileFormats.Count - 1 do
   begin
-    if Boolean(LongInt(FileFormats.Objects[I])) then
+    if Boolean(Integer(FileFormats.Objects[I])) then
       Write(FileFormats[I], ' ');
   end;
   FileFormats.Free;

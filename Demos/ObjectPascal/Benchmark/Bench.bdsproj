@@ -167,8 +167,7 @@
 		<VersionInfoKeys>
 			<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
-		</VersionInfoKeys>  <Excluded_Packages>
-      <Excluded_Packages Name="C:\Documents and Settings\Mark\Dokumenty\Borland Studio Projects\Bpl\DJcl90.bpl">JEDI Code Library RTL package for Delphi 2005</Excluded_Packages>
-    </Excluded_Packages>
+		</VersionInfoKeys>  
+       
   </Delphi.Personality>
 </BorlandProject>
