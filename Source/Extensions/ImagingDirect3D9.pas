@@ -389,7 +389,6 @@ var
   ConvTo: TImageFormat;
   LevelsArray: TDynImageDataArray;
   NeedsResize, NeedsConvert: Boolean;
-  SpecialMipLevel: TImageData;
 begin
   Texture := nil;
   ExistingLevels := 0;

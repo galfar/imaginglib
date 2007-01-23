@@ -502,10 +502,14 @@ var
   I: LongInt;
   Name, Ref, Link: string;
 begin
+  Ref := LowerCase(Elem.FirstChild.NodeValue);
+  if Pos('.pas', Ref) > 1 then
+    Ref := StringReplace(Ref, '.pas', '_pas', [rfIgnoreCase]);
+
   for I := 0 to FRefFiles.Count - 1 do
   begin
     Name := LowerCase(ExtractFileName(FRefFiles[I]));
-    Ref := LowerCase(Elem.FirstChild.NodeValue);
+
     if Pos(Ref, Name) = 1 then
     begin
       Link := ExtractRelativePath(FIntendedOutput, FRefFiles[I]);

@@ -481,7 +481,6 @@ var
   GLInternal: GLint;
   Desired, ConvTo: TImageFormat;
   Info: TImageFormatInfo;
-  SpecialMipLevel: TImageData;
   LevelsArray: TDynImageDataArray;
   NeedsResize, NeedsConvert: Boolean;
   UnpackAlignment, UnpackSkipRows, UnpackSkipPixels, UnpackRowLength: LongInt;

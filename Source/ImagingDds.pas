@@ -304,7 +304,7 @@ var
   Hdr: TDDSFileHeader;
   SrcFormat: TImageFormat;
   FmtInfo: TImageFormatInfo;
-  NeedsSwapChannels, HasMipMaps: Boolean;
+  NeedsSwapChannels: Boolean;
   CurrentWidth, CurrentHeight, ImageCount, LoadSize, I, PitchOrLinear: LongInt;
   Data: PByte;
   UseAsPitch: Boolean;
@@ -321,7 +321,6 @@ begin
   Result := False;
   Data := nil;
   ImageCount := 1;
-  HasMipMaps := False;
   FLoadedMipMapCount := 1;
   FLoadedDepth := 1;
   FLoadedVolume := False;
@@ -462,7 +461,6 @@ begin
       ((Desc.Flags and DDSD_MIPMAPCOUNT) = DDSD_MIPMAPCOUNT) then}
     if Desc.MipMaps > 1 then
     begin
-      HasMipMaps := True;
       FLoadedMipMapCount := Desc.MipMaps;
       ImageCount := Desc.MipMaps;
     end;

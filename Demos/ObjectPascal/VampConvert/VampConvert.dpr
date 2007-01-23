@@ -45,19 +45,24 @@ begin
 end;
 
 procedure PrintUsage;
+type
+  TFormatInfo = record
+    Ext: string;
+    CanSave: Boolean;
+  end;
 var
   I: LongInt;
   FmtIter: TImageFormat;
   Info: TImageFormatInfo;
   Name, Ext, Masks: string;
   CanSave, IsMulti: Boolean;
-  FileFormats: TStringList;
+  FileFormats: array of TFormatInfo;
 begin
   WriteLn('Usage:');
   WriteLn('VampConvert [-op=arg] [..] -infile=file.ext [..] [-outfile=file.ext] [-op=arg]');
   WriteLn('  Options:');
-  WriteLn('    -infile:  specify input image file path');
-  WriteLn('    -outfile: specify output image file path');
+  WriteLn('    -infile  | -i: specify input image file path');
+  WriteLn('    -outfile | -o: specify output image file path');
   WriteLn('       argument: file path or "*.ext" where input file name will be used ');
   WriteLn('                 but with "ext" extension');
   WriteLn('  Operations:');
@@ -82,28 +87,29 @@ begin
 
   // Enumerate all supported file formats and store default ext and
   // their capability to save files to string list.
-  FileFormats := TStringList.Create;
   I := 0;
   while EnumFileFormats(I, Name, Ext, Masks, CanSave, IsMulti) do
-    FileFormats.AddObject(Ext, TObject(CanSave));
+  begin
+    SetLength(FileFormats, I);
+    FileFormats[I - 1].Ext := Ext;
+    FileFormats[I - 1].CanSave := CanSave;
+  end;
   // Print all file formats that support loading files (just write all)
   WriteLn;
-  WriteLn('  Supported file formats (INPUT): ');
-  for I := 0 to FileFormats.Count - 1 do
-    Write(FileFormats[I], ' ');
+  WriteLn(' Supported file formats (INPUT):');
+  for I := 0 to Length(FileFormats) - 1 do
+    Write(FileFormats[I].Ext, ' ');
   // Print all file formats that support saving files
-  WriteLn;
-  WriteLn('  Supported file formats (OUTPUT): ');
-  for I := 0 to FileFormats.Count - 1 do
+  WriteLn('  Supported file formats (OUTPUT):');
+  for I := 0 to Length(FileFormats) - 1 do
   begin
-    if Boolean(Integer(FileFormats.Objects[I])) then
-      Write(FileFormats[I], ' ');
+    if FileFormats[I].CanSave then
+      Write(FileFormats[I].Ext, ' ');
   end;
-  FileFormats.Free;
 
   WriteLn;
   // Iterate over all image data formats and write their names
-  Write  ('  Supported data formats: ');
+  Write('  Supported data formats: ');
   for FmtIter := ifIndex8 to High(TImageFormat) do
   begin
     if Imaging.GetImageFormatInfo(FmtIter, Info) then
@@ -150,9 +156,9 @@ var
     Delete(S, 1, 1);
     S := LowerCase(S);
 
-    if S = 'infile' then
+    if (S = 'infile') or (S = 'i') then
       InFile := Arg
-    else if S = 'outfile' then
+    else if (S = 'outfile') or (S = 'o') then
       OutFile := Arg
     else
       Operations.Add(Format('%s=%s', [S, LowerCase(Arg)]));
@@ -391,6 +397,8 @@ begin
     - allow changing ImagingOptions too
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - added -i and -o shortcut cmd line parameters and fixed
+      FPC 32/64 bit compatibility issue
     - List of supported file formats printed by PrintUsage is now
       dynamic and shows input and output formats separately
 

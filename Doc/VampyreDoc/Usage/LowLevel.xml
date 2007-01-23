@@ -7,7 +7,7 @@
     <par>
       Imaging's low level interface is set of functions operating
       on <ref>TImageData</ref> structure and <ref>TDynImageDataArray</ref>.
-      These functions are implemented in <ref>Imaging</ref> unit
+      These functions are implemented in <ref>Imaging.pas</ref> unit
       and you can find how to use them in
       <link url="../Procedures/Procedures.xml">How To ... </link> section.
       You can also look at <link url="../Demos/Demos.xml">Demos</link> section.

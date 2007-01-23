@@ -126,8 +126,8 @@
 			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;</Directories>
 			<Directories Name="Conditionals"></Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
-			<Directories Name="UsePackages">False</Directories>
-		</Directories>
+			<Directories Name="UsePackages">False</Directories>  <Directories Name="Packages"></Directories>
+    </Directories>
 		<Parameters>
 			<Parameters Name="RunParams">-infile=glsprite.dds</Parameters>
 			<Parameters Name="HostApplication"></Parameters>

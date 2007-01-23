@@ -342,11 +342,6 @@ uses
 {$IFEND}
   ImagingUtility;
 
-type
-  TImagingGraphicAllInOne = class(TImagingGraphic)
-
-  end;
-
 resourcestring
   SBadFormatDataToBitmap = 'Cannot find compatible bitmap format for image %s';
   SBadFormatBitmapToData = 'Cannot find compatible data format for bitmap %p';
@@ -364,7 +359,7 @@ var
   begin
     for I := 0 to Format.Extensions.Count - 1 do
       TPicture.RegisterFileFormat(Format.Extensions[I], SImagingGraphicName,
-        TImagingGraphicAllInOne);
+        TImagingGraphic);
   end;
 
   procedure RegisterFileFormat(AClass: TImagingGraphicForSaveClass);
@@ -893,14 +888,14 @@ end;
 
 procedure TImagingGraphic.ReadDataFromStream(Stream: TStream);
 var
-  Data: TImageData;
+  Image: TSingleImage;
 begin
-  Imaging.InitImage(Data);
-  if Imaging.LoadImageFromStream(Stream, Data) then
+  Image := TSingleImage.Create;
   try
-    AssignFromImageData(Data);
+    Image.LoadFromStream(Stream);
+    Assign(Image);
   finally
-    Imaging.FreeImage(Data);
+    Image.Free;
   end;
 end;
 
@@ -909,9 +904,10 @@ var
   Arr: TDynImageDataArray;
 begin
   if Dest is TSingleImage then
+  begin
     AssignToImage(TSingleImage(Dest))
-  else
-  if Dest is TMultiImage then
+  end
+  else if Dest is TMultiImage then
   begin
     SetLength(Arr, 1);
     AssignToImageData(Arr[0]);
@@ -966,17 +962,19 @@ end;
 
 procedure TImagingGraphicForSave.WriteDataToStream(Stream: TStream);
 var
-  Data: TImageData;
+  Image: TSingleImage;
 begin
-  Imaging.InitImage(Data);
   if FDefaultFileExt <> '' then
-  try
-    AssignToImageData(Data);
-    if FSavingFormat <> ifUnknown then
-      Imaging.ConvertImage(Data, FSavingFormat);
-    Imaging.SaveImageToStream(FDefaultFileExt, Stream, Data);
-  finally
-    Imaging.FreeImage(Data);
+  begin
+    Image := TSingleImage.Create;
+    try
+      Image.Assign(Self);
+      if FSavingFormat <> ifUnknown then
+        Image.Format := FSavingFormat;
+      Image.SaveToStream(FDefaultFileExt, Stream);
+    finally
+      Image.Free;
+    end;
   end;
 end;
 
@@ -1004,7 +1002,7 @@ end;
 constructor TImagingBitmap.Create;
 begin
   inherited Create;
-  FUseRLE := BitmapDefaultRLE;
+  FUseRLE := (GetFileFormat as TBitmapFileFormat).UseRLE;
 end;
 
 class function TImagingBitmap.GetFileFormat: TImageFileFormat;
@@ -1028,8 +1026,8 @@ end;
 constructor TImagingJpeg.Create;
 begin
   inherited Create;
-  FQuality := JpegDefaultQuality;
-  FProgressive := JpegDefaultProgressive;
+  FQuality := (GetFileFormat as TJpegFileFormat).Quality;
+  FProgressive := (GetFileFormat as TJpegFileFormat).Progressive;
 end;
 
 class function TImagingJpeg.GetFileFormat: TImageFileFormat;
@@ -1062,8 +1060,8 @@ end;
 constructor TImagingPNG.Create;
 begin
   inherited Create;
-  FPreFilter := NGDefaultPreFilter;
-  FCompressLevel := NGDefaultCompressLevel;
+  FPreFilter := (GetFileFormat as TPNGFileFormat).PreFilter;
+  FCompressLevel := (GetFileFormat as TPNGFileFormat).CompressLevel;
 end;
 
 class function TImagingPNG.GetFileFormat: TImageFileFormat;
@@ -1088,7 +1086,7 @@ end;
 constructor TImagingTarga.Create;
 begin
   inherited Create;
-  FUseRLE := TargaDefaultRLE;
+  FUseRLE := (GetFileFormat as TTargaFileFormat).UseRLE;
 end;
 
 class function TImagingTarga.GetFileFormat: TImageFileFormat;
@@ -1117,7 +1115,7 @@ end;
 
 class function TImagingDDS.GetFileFormat: TImageFileFormat;
 begin
-  Result := FindImageFileFormatByClass(TDdsFileFormat);
+  Result := FindImageFileFormatByClass(TDDSFileFormat);
 end;
 
 procedure TImagingDDS.SaveToStream(Stream: TStream);
@@ -1145,12 +1143,12 @@ end;
 constructor TImagingMNG.Create;
 begin
   inherited Create;
-  FLossyCompression := NGDefaultLossyCompression;
-  FLossyAlpha := NGDefaultLossyAlpha;
-  FPreFilter := NGDefaultPreFilter;
-  FCompressLevel := NGDefaultCompressLevel;
-  FQuality := NGDefaultQuality;
-  FProgressive := NGDefaultProgressive;
+  FLossyCompression := (GetFileFormat as TMNGFileFormat).LossyCompression;
+  FLossyAlpha := (GetFileFormat as TMNGFileFormat).LossyAlpha;
+  FPreFilter := (GetFileFormat as TMNGFileFormat).PreFilter;
+  FCompressLevel := (GetFileFormat as TMNGFileFormat).CompressLevel;
+  FQuality := (GetFileFormat as TMNGFileFormat).Quality;
+  FProgressive := (GetFileFormat as TMNGFileFormat).Progressive;
 end;
 
 class function TImagingMNG.GetFileFormat: TImageFileFormat;
@@ -1186,11 +1184,11 @@ end;
 constructor TImagingJNG.Create;
 begin
   inherited Create;
-  FLossyAlpha := NGDefaultLossyAlpha;
-  FAlphaPreFilter := NGDefaultPreFilter;
-  FAlphaCompressLevel := NGDefaultCompressLevel;
-  FQuality := NGDefaultQuality;
-  FProgressive := NGDefaultProgressive;
+  FLossyAlpha := (GetFileFormat as TJNGFileFormat).LossyAlpha;
+  FAlphaPreFilter := (GetFileFormat as TJNGFileFormat).PreFilter;
+  FAlphaCompressLevel := (GetFileFormat as TJNGFileFormat).CompressLevel;
+  FQuality := (GetFileFormat as TJNGFileFormat).Quality;
+  FProgressive := (GetFileFormat as TJNGFileFormat).Progressive;
 end;
 
 class function TImagingJNG.GetFileFormat: TImageFileFormat;
@@ -1223,6 +1221,7 @@ finalization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Uses only high level interface now (except for assigning helpers).
     - Slightly changed class hierarchy. TImagingGraphic is now only for loading
       and base class for savers is new TImagingGraphicForSave. Also
       TImagingGraphic is now registered with all supported file formats

@@ -85,7 +85,7 @@
   {$IFDEF DCC}
     {$OPTIMIZATION OFF}
     {$STACKFRAMES ON}
-    {$DEFINE MEMCHECK}
+    { $DEFINE MEMCHECK}
   {$ENDIF}
   {$IFDEF FPC}
     {$S+}
