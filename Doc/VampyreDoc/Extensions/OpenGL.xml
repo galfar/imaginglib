@@ -13,7 +13,7 @@
       Headers from <keyword>JEDI-SDL</keyword> (<icode>gl.pas</icode>)
       and <keyword>Delphi GL</keyword> (<icode>dglOpenGL.pas</icode>) were
       tested and they work.
-      Extension is implemented in <ref>ImagingOpenGL</ref> unit located
+      Extension is implemented in <ref>ImagingOpenGL.pas</ref> unit located
       in <keyword>(ImagingRoot)\Source\Extensions</keyword> directory.
       To use it simply add this unit to <icode>uses</icode> list of your program.
       Currently only 2D textures are supported, DXTC (S3TC) compressed and

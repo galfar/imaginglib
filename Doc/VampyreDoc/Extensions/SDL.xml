@@ -10,7 +10,7 @@
       images to <keyword>SDL</keyword> surfaces and vice versa.
       You need <keyword>SDL</keyword> headers for <keyword>Object Pascal</keyword>
       (<keyword>JEDI-SDL</keyword>) to compile this extension.
-      It is implemented in <ref>ImagingSDL</ref> unit located
+      It is implemented in <ref>ImagingSDL.pas</ref> unit located
       in <keyword>(ImagingRoot)\Source\Extensions</keyword> directory.
       To use it simply add this unit to <icode>uses</icode> list of your program.
       Imaging library with this extension can be used as a replacement

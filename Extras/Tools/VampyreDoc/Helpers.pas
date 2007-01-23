@@ -363,6 +363,8 @@ begin
   FName := FElement.GetAttribute(sXName);
   FURL := SwapPathDelims(FElement.GetAttribute(sXURL));
   FURL := ExpandFileTo(FURL, ExtractFileDir(FProject.ProjectFile));
+  if not FileExists(FURL) then
+    WriteLn('Warning: TOC item "' + ExtractFileName(FURL) + '" not found.');
 
   // if toc item contains toc itemlist and this list has some items
   // we add these items to child list of this content item
@@ -371,8 +373,10 @@ begin
     (FElement.NodeType = ELEMENT_NODE) then
     for I := 0 to FElement.FirstChild.GetChildNodes.Count - 1 do
       if Element.FirstChild.ChildNodes.Item[I].NodeType = ELEMENT_NODE then
-      FChildren.Add(TContentItem.Create(
-        TDOMElement(FElement.FirstChild.ChildNodes.Item[I]), FProject));
+      begin
+        FChildren.Add(TContentItem.Create(
+          TDOMElement(FElement.FirstChild.ChildNodes.Item[I]), FProject));
+      end;
 end;
 
 { TDocProject }
@@ -488,8 +492,6 @@ end;
 
 function TLinkChecker.CheckDocument(const FileName: string;
   Project: TDocProject): Boolean;
-var
-  I: LongInt;
 begin
   FRefFiles := TStringList.Create;
   BuildFileList(Project.FRefDir + PathDelim + '*', faAnyFile, FRefFiles, [flFullNames, flRecursive]);
@@ -501,7 +503,9 @@ procedure TLinkChecker.ResolveReferenceLink(Elem: TDOMElement);
 var
   I: LongInt;
   Name, Ref, Link: string;
+  Resolved: Boolean;
 begin
+  Resolved := False;
   Ref := LowerCase(Elem.FirstChild.NodeValue);
   if Pos('.pas', Ref) > 1 then
     Ref := StringReplace(Ref, '.pas', '_pas', [rfIgnoreCase]);
@@ -515,9 +519,14 @@ begin
       Link := ExtractRelativePath(FIntendedOutput, FRefFiles[I]);
       Link := SwapPathDelims(Link, FNewPathDelim);
       Elem.SetAttribute(sXURL, Link);
+      Resolved := True;
       Break;
     end;
   end;
+
+  if not Resolved then
+    WriteLn('Warning: Reference to "' + ExtractFileName(FFileName) + '->' +
+      Elem.FirstChild.NodeValue + '" not resolved.');
 end;
 
 procedure TLinkChecker.CheckElement(Elem: TDOMElement);
@@ -615,7 +624,7 @@ begin
 end;
 
 
-{ TCSSLinker }
+{ TXSLLinker }
 
 procedure TXSLLinker.CheckElement(Elem: TDOMElement);
 var

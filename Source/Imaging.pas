@@ -514,7 +514,7 @@ function GetImageFileFormatsFilter(OpenFileFilter: Boolean): string;
   in dialog quickly. Index is in range 1..N (as FilterIndex property
   of TOpenDialog/TSaveDialog)}
 function GetFilterIndexExtension(Index: LongInt; OpenFileFilter: Boolean): string;
-{ Returns filter index of image file format specified by Ext. Used filter
+{ Returns filter index of image file format of file specified by FileName. Used filter
   string is defined by GetImageFileFormatsFilter function.
   Returned index is in range 1..N (as FilterIndex property of TOpenDialog/TSaveDialog)}
 function GetFileNameFilterIndex(const FileName: string; OpenFileFilter: Boolean): LongInt;

@@ -20,7 +20,7 @@
       There are more functions in Imaging that are not part of low level interface
       but can be freely used with it. Ulike those, low level interface functions are
       provided for other programming languages too.
-      Look at <ref>Imaging</ref>, <ref>ImagingFormats</ref>, and other units
+      Look at <ref>Imaging.pas</ref>, <ref>ImagingFormats.pas</ref>, and other units
       for more functions.
     </note>
 
@@ -114,7 +114,6 @@
 
       <!-- Image Format Functions  -->
       <row><th>Image Format Functions</th></row>
-      <row><td><ref>GetPixelBytes</ref></td></row>
       <row><td><ref>GetImageFormatInfo</ref></td></row>
       <row><td><ref>GetPixelsSize</ref></td></row>
       

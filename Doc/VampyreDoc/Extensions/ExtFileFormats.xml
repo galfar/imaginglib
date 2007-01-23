@@ -33,7 +33,7 @@
       are defined/enabled by default in this include file.
       There is also <icode>LINK_EXTRAS</icode> symbol that controls
       automatic linking with file formats declared in Extras package
-      (individual file formats can be turned on/off in <ref>ImagingExtras</ref>
+      (individual file formats can be turned on/off in <ref>ImagingExtras.pas</ref>
       unit located in <keyword>Extras\Extensions</keyword> directory).
     </par>
     

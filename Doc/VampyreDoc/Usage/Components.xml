@@ -10,7 +10,7 @@
       for loading and saving various different file formats.
       They actually descend from <icode>TBitmap</icode> and override only
       loading, saving, and assigning procedures.
-      These classes are implemented in <ref>ImagingComponents</ref> unit.
+      These classes are implemented in <ref>ImagingComponents.pas</ref> unit.
     </par>
     
     <par>
@@ -66,7 +66,7 @@
       <row><th>Useful functions in other units</th></row>
       <row><td><ref>GetImageFileFormatsFilter</ref></td></row>
       <row><td><ref>GetFilterIndexExtension</ref></td></row>
-      <row><td><ref>GetExtensionFilterIndex</ref></td></row>
+      <row><td><ref>GetFileNameFilterIndex</ref></td></row>
     </table>
     
     <linklist>

@@ -32,12 +32,12 @@
         </li>
         <li>
           <keyword>[+]</keyword>
-          New unit <ref>ImagingColors</ref> added.
+          New unit <ref>ImagingColors.pas</ref> added.
           Some color space conversion functions are there now.
         </li>
         <li>
           <keyword>[*/F]</keyword>
-          <b>High level</b> interface in <ref>ImagingClasses</ref> unit
+          <b>High level</b> interface in <ref>ImagingClasses.pas</ref> unit
           was extended and many bugs were fixed there.
         </li>
         <li>
@@ -105,13 +105,13 @@
         </li>
         <li>
           <keyword>[+]</keyword>
-          Added new unit <icode>ImagingCanvases</icode> with
+          Added new unit <ref>ImagingCanvases.pas</ref> with
           classes for drawing/effects functions added
           (not much functionality here yet).
         </li>
         <li>
           <keyword>[+/F]</keyword>
-          High level interface in <icode>ImagingClasses</icode> unit
+          High level interface in <ref>ImagingClasses.pas</ref> unit
           was extended and several bugs here were fixed.
         </li>
         <li>
@@ -121,7 +121,7 @@
         </li>
         <li>
           <keyword>[+]</keyword>
-          VCL/CLX/LCL support in <icode>ImagingComponents</icode> unit
+          VCL/CLX/LCL support in <ref>ImagingComponents.pas</ref> unit
           was extended.
         </li>
         <li>
@@ -162,7 +162,7 @@
         </li>
         <li>
           <keyword>[+]</keyword>
-          High level interface in <icode>ImagingClasses</icode> unit
+          High level interface in <ref>ImagingClasses.pas</ref> unit
           was extended.
         </li>
         <li>
@@ -176,7 +176,7 @@
         <li>
           <keyword>[F]</keyword>
           There was a bug in conversion between Imaging image
-          and <icode>TBitmap</icode> in <icode>ImagingComponents</icode>
+          and <icode>TBitmap</icode> in <ref>ImagingComponents.pas</ref>
           unit when using <b>LCL</b> component set (with <b>GTK</b> interface).
         </li>
         <li>
@@ -209,12 +209,12 @@
         <li>
           <keyword>[*/-]</keyword>
           <b>PNG</b> support moved from <icode>ImagingPng</icode> unit to
-          the new <icode>ImagingNetworkGraphics</icode> unit. Old unit was
+          the new <ref>ImagingNetworkGraphics.pas</ref> unit. Old unit was
           removed from Imaging.
         </li>
         <li>
           <keyword>[+]</keyword>
-          New unit <icode>ImagingNetworkGraphics</icode> added for
+          New unit <ref>ImagingNetworkGraphics.pas</ref> added for
           future handling of all Network Graphics image formats.
         </li>
       </bulletlist>
@@ -246,17 +246,17 @@
         <li>
           <keyword>[+]</keyword>
           Extension for creating/loading/saving <keyword>Direct3D 9</keyword>
-          textures using Imaging added to the new <icode>ImagingDirect3D9</icode> unit.
+          textures using Imaging added to the new <ref>ImagingDirect3D9.pas</ref> unit.
         </li>
         <li>
           <keyword>[+]</keyword>
           Extension for creating/loading/saving <keyword>SDL</keyword>
-          surfaces using Imaging added to the new <icode>ImagingSDL</icode> unit.
+          surfaces using Imaging added to the new <ref>ImagingSDL.pas</ref> unit.
         </li>
         <li>
           <keyword>[+]</keyword>
           Extension for creating/loading/saving <keyword>OpenGL</keyword>
-          textures using Imaging added to the new <icode>ImagingOpenGL</icode> unit.
+          textures using Imaging added to the new <ref>ImagingOpenGL.pas</ref> unit.
         </li>
         <li>
           <keyword>[+]</keyword>
@@ -268,7 +268,7 @@
           <icode>TGraphic</icode> descendant classes which use Imaging
           added for <keyword>VCL</keyword>, <keyword>CLX</keyword> and
           <keyword>LCL</keyword> components sets. They are in the new
-          <icode>ImagingComponents</icode> unit.
+          <ref>ImagingComponents.pas</ref> unit.
         </li>
         <li>
           <keyword>[F*]</keyword>
@@ -279,7 +279,7 @@
         <li>
           <keyword>[F]</keyword>
           Headers of some functions exported from Imaging dll/so library were
-          changed in <icode>ImagingExport</icode> unit and in the wrappers for
+          changed in <ref>ImagingExport.pas</ref> unit and in the wrappers for
           the other languages.
         </li>
         <li>
@@ -338,7 +338,7 @@
           <keyword>[+]</keyword>
           Basic high level interface created. Classes
           <icode>TSingleImage</icode> and <icode>TMultiImage</icode>
-          added to <icode>ImagingClasses</icode> unit.
+          added to <ref>ImagingClasses.pas</ref> unit.
         </li>
         <li>
           <keyword>[+]</keyword>
@@ -394,7 +394,7 @@
         <li>
           <keyword>[+]</keyword>
           New field <icode>IsRBSwapped</icode>
-          added to <icode>TImageFormatInfo</icode> record.
+          added to <ref>TImageFormatInfo</ref> record.
           It is used in conversions and in channel related functions to
           distinguish between ARGB and ABGR formats.
         </li>

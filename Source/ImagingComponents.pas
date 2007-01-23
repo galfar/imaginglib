@@ -958,6 +958,7 @@ begin
   inherited Create;
   FDefaultFileExt := GetFileFormat.Extensions[0];
   FSavingFormat := ifUnknown;
+  GetFileFormat.CheckOptionsValidity;
 end;
 
 procedure TImagingGraphicForSave.WriteDataToStream(Stream: TStream);
@@ -1219,6 +1220,7 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+    - how to replce Set/Get option by high level?
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Uses only high level interface now (except for assigning helpers).
