@@ -1223,7 +1223,7 @@ finalization
     - how to replce Set/Get option by high level?
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - Uses only high level interface now (except for assigning helpers).
+    - Uses only high level interface now (except for saving options).
     - Slightly changed class hierarchy. TImagingGraphic is now only for loading
       and base class for savers is new TImagingGraphicForSave. Also
       TImagingGraphic is now registered with all supported file formats

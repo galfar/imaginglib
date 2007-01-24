@@ -40,14 +40,15 @@ unit OpenJpeg;
 interface
 
 const
-  OPENJPEG_VERSION = '1.0.0';
+  OPENJPEG_VERSION = '1.1.0';
 
 { ==========================================================
      Compiler directives
   ========================================================== }
 
 type
-  Bool = LongBool;
+  //Bool = LongBool;
+  Bool = ByteBool;
   Char = AnsiChar;
 
 const
@@ -142,7 +143,7 @@ type
     POC: array[0..31] of opj_poc_t;
     numpocs: Integer;
     tcp_numlayers: Integer;
-    tcp_rates: array[0..99] of Integer;
+    tcp_rates: array[0..99] of Single;
     tcp_distoratio: array[0..99] of Single;
     numresolution: Integer;
     cblockw_init: Integer;
@@ -481,12 +482,16 @@ const
     {$L J2KObjects\w32bor_dwt.obj}
     {$L J2KObjects\w32bor_t2.obj}
     {$L J2KObjects\w32bor_mct.obj}
-    {$L J2KObjects\w32bor_int.obj}
-    {$L J2KObjects\w32bor_fix.obj}
 
-    var
+   var
       __turboFloat: LongInt;
+      _max_dble: Double;
 
+    procedure opj_realloc; cdecl; external;
+    procedure mqc_create; cdecl; external;
+    procedure raw_create; cdecl; external;
+    procedure bio_create; cdecl; external;
+    procedure opj_image_create0; cdecl; external;
     procedure opj_event_msg; cdecl; external;
     procedure opj_clock; cdecl; external;
     procedure cio_read; cdecl; external;
@@ -497,7 +502,6 @@ const
     procedure cio_numbytesleft; cdecl; external;
     procedure cio_getbp; cdecl; external;
     procedure j2k_destroy_compress; cdecl; external;
-    procedure j2k_realloc; cdecl; external;
     procedure tgt_create; cdecl; external;
     procedure tgt_destroy; cdecl; external;
     procedure mqc_setcurctx; cdecl; external;
@@ -551,8 +555,6 @@ const
     {$L J2KObjects\w32msc_pi.obj}
     {$L J2KObjects\w32msc_t2.obj}
     {$L J2KObjects\w32msc_mct.obj}
-    {$L J2KObjects\w32msc_int.obj}
-    {$L J2KObjects\w32msc_fix.obj}
   {$ENDIF}
 {$ENDIF}
 
@@ -611,6 +613,13 @@ begin
     Result := Result - 1.0;
 end;
 
+function ceil(const Num: Double): Double; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
+begin
+  Result := Trunc(Num);
+  if Frac(Num) > 0.0 then
+    Result := Result + 1;
+end;
+
 function pow(const Base, Exponent: Double): Double; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
 begin
   if Exponent = 0.0 then
@@ -645,6 +654,11 @@ asm
         ret     8
 end;
 
+procedure _allmul; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
+begin
+  _llmul;
+end;
+
 procedure _allshr; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
 asm
   // taken from Delphi's System.pas __llshr
@@ -670,49 +684,42 @@ end;
 
 {$IFDEF DCC}
 
-function sprintf(S: PChar; Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
+function sprintf(S, Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
 function printf(Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
 function fprintf(F: Pointer; Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
 function fopen(FileName, Mode: PChar): Pointer; cdecl; external MSCRuntimeLib;
 function fclose(F: Pointer): Integer; cdecl; external MSCRuntimeLib;
-
-function tolower(C: Integer): Integer; cdecl; external MSCRuntimeLib; //{$IFDEF FPC}[Public];{$ENDIF}
-function _ltolower(C: Integer): Integer;cdecl; external MSCRuntimeLib name 'tolower';//{$IFDEF FPC}[Public];{$ENDIF}
-
-function _ftol{(X: Single)}: LongInt; cdecl; external MSCRuntimeLib; //{$IFDEF FPC}[Public];{$ENDIF}
-{asm
-  //Result := Round(X);
-  fstp Result
-
-end;
- }
+function vsprintf(S, Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
+function tolower(C: Integer): Integer; cdecl; external MSCRuntimeLib;
+function _ltolower(C: Integer): Integer;cdecl; external MSCRuntimeLib name 'tolower';
+function _ftol(X: Single): LongInt; cdecl; external MSCRuntimeLib;
 {$ELSE}
 
-function _sprintf(S: PChar; Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib name 'strlen';
-function _printf(Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib name 'strlen';
-function _tolower(C: Integer): Integer; cdecl; external MSCRuntimeLib name 'strlen';
-function _fprintf(F: Pointer; Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib name 'strlen';
-function _fopen(FileName, Mode: PChar): Pointer; cdecl; external MSCRuntimeLib name 'strlen';
-function _fclose(F: Pointer): Integer; cdecl; external MSCRuntimeLib name 'strlen';
+function _tolower(C: Integer): Integer; cdecl; external MSCRuntimeLib name 'tolower';
+function _fopen(FileName, Mode: PChar): Pointer; cdecl; external MSCRuntimeLib name 'fopen';
+function _fclose(F: Pointer): Integer; cdecl; external MSCRuntimeLib name 'fclose';
+function __ftol(X: Single): LongInt; cdecl; external MSCRuntimeLib name '_ftol';
+function __CIpow(Base, Exponent: Double): Double; cdecl; external MSCRuntimeLib name '_CIpow';
 
-function sprintf(S: PChar; Format: PChar): Integer; cdecl; [Public];
+procedure fprintf; cdecl; [Public];
 begin
-//  Result := _sprintf(S, Format);
 end;
 
-function printf(Format: PChar): Integer; cdecl; [Public];
+procedure sprintf; cdecl; [Public];
 begin
+end;
 
+procedure printf; cdecl; [Public];
+begin
+end;
+
+procedure vsprintf; cdecl; [Public];
+begin
 end;
 
 function tolower(C: Integer): Integer; cdecl; [Public];
 begin
   Result := _tolower(C);
-end;
-
-function fprintf(F: Pointer; Format: PChar): Integer; cdecl; {varargs;} [Public];
-begin
-
 end;
 
 function fopen(FileName, Mode: PChar): Pointer; cdecl; [Public];
@@ -724,9 +731,6 @@ function fclose(F: Pointer): Integer; cdecl; [Public];
 begin
   Result := _fclose(F);
 end;
-
-function __ftol(X: Single): LongInt; cdecl; external MSCRuntimeLib name '_ftol';
-function __CIpow(Base, Exponent: Double): Double; cdecl; external MSCRuntimeLib name '_CIpow';
 
 function _ftol(X: Single): LongInt; cdecl; [Public];
 begin

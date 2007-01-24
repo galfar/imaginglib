@@ -47,7 +47,7 @@ type
     of components/channels, each with different bitdepth and optional
     "signedness". Jpeg 2000 images can be lossy or lossless compressed.
 
-    Imaging can load most data formats (except multichannel images
+    Imaging can load most data formats (except images
     with componenet bitdepth > 16 => no Imaging data format equivalents).
     Components with sample separation are loaded correctly, ICC profiles
     or palettes are not used, YCbCr images are translated to RGB.
@@ -91,7 +91,7 @@ implementation
 const
   SJpeg2000FormatName = 'JPEG 2000 Image';
   SJpeg2000Masks      = '*.jp2,*.j2k,*.j2c,*.jpx,*.jpc';
-  Jpeg2000SupportedFormats: TImageFormats = [ifGray8, ifGray16, ifGray32,
+  Jpeg2000SupportedFormats: TImageFormats = [ifGray8, ifGray16, 
     ifA8Gray8, ifA16Gray16, ifR8G8B8, ifR16G16B16, ifA8R8G8B8, ifA16R16G16B16];
   Jpeg2000DefaultQuality = 80;
   Jpeg2000DefaultCodeStreamOnly = False;
@@ -464,7 +464,7 @@ begin
   if Info.IsFloatingPoint then
     ConvFormat := IffFormat(Info.ChannelCount = 1, ifGray16, ifA16R16G16B16)
   else if Info.HasGrayChannel then
-    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16Gray16, ifGray32)
+    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16Gray16, ifGray16)
   else if Info.IsIndexed then
     ConvFormat := ifA8R8G8B8
   else if Info.BytesPerPixel div Info.ChannelCount > 1 then
@@ -492,6 +492,7 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
+    - Removed ifGray32 from supported formats, OpenJPEG crashes when saving them.
     - Added Seek after loading to set input pos to the end of image.
     - Saving added losy/lossless, quality option added.
     - Initial loading-only version created.
