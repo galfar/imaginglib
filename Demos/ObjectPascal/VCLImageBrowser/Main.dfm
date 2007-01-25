@@ -402,6 +402,7 @@ object MainForm: TMainForm
         Height = 19
         Color = clWhite
         Panels = <>
+        SimplePanel = True
       end
     end
   end

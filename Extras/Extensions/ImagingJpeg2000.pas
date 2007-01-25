@@ -351,10 +351,11 @@ end;
 function TJpeg2000FileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
+  TargetSize, Rate: Single;
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
   Info: TImageFormatInfo;
-  I, Z, InvZ, Channel, ChannelSize: LongInt;
+  I, Z, InvZ, Channel, ChannelSize, NumPixels: LongInt;
   Pix: PByte;
   image: popj_image_t;
   cio: popj_cio_t;
@@ -406,9 +407,18 @@ begin
     parameters.tcp_numlayers := 1;
     parameters.cp_disto_alloc := 1;
     if FLosslessCompression then
-      parameters.tcp_rates[0] := 0
+    begin
+      // Set rate to 0 -> lossless
+      parameters.tcp_rates[0] := 0;
+    end
     else
-      parameters.tcp_rates[0] := 101 - FQuality;
+    begin
+      // Quality -> Rate computation taken from ImageMagick
+      Rate := 100.0 / Sqr(115 - FQuality);
+      NumPixels := Width * Height * Info.BytesPerPixel;
+      TargetSize := (NumPixels * Rate) + 550 + (Info.ChannelCount - 1) * 142;
+      parameters.tcp_rates[0] := 1.0 / (TargetSize / NumPixels);
+    end;
     // Setup encoder
     opj_setup_encoder(cinfo, @parameters, image);
 
