@@ -123,7 +123,7 @@
 			<Directories Name="UnitOutputDir"></Directories>
 			<Directories Name="PackageDLLOutputDir"></Directories>
 			<Directories Name="PackageDCPOutputDir"></Directories>
-			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;</Directories>
+			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common</Directories>
 			<Directories Name="Packages">vclx;vcl;VclSmp;rtl;bdertl;vclactnband;vclshlctrls</Directories>
 			<Directories Name="Conditionals"></Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
@@ -167,7 +167,6 @@
 		<VersionInfoKeys>
 			<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
-		</VersionInfoKeys>  
-       
-  </Delphi.Personality>
+		</VersionInfoKeys>
+	</Delphi.Personality>
 </BorlandProject>

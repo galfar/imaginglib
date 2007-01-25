@@ -25,7 +25,6 @@ delintree()
 delintree $ROOTDIR/Bin
 delintree $ROOTDIR/Demos 
 delintree $ROOTDIR/Scripts 
-delintree $ROOTDIR/Source/Tools
 delintree $ROOTDIR/Source/Wrappers
 delintree $ROOTDIR/Source/JpegLib
 delintree $ROOTDIR/Source/ZLib

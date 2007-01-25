@@ -10,7 +10,7 @@ uses
   Imaging, ImagingBitmap, ImagingCanvases, ImagingClasses, ImagingComponents, 
     ImagingDds, ImagingExport, ImagingFormats, ImagingIO, ImagingJpeg, 
     ImagingNetworkGraphics, ImagingTarga, ImagingTypes, ImagingUtility, 
-    ImagingPortableMaps, LazarusPackageIntf; 
+    ImagingPortableMaps, ImagingExtras, LazarusPackageIntf; 
 
 implementation
 

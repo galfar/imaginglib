@@ -8,7 +8,6 @@ set EXTS=%EXTS% *.tgs *.tgw *.identcache *.local
 call :DELINTREE %ROOTDIR%\Bin
 call :DELINTREE %ROOTDIR%\Demos 
 call :DELINTREE %ROOTDIR%\Scripts 
-call :DELINTREE %ROOTDIR%\Source\Tools
 call :DELINTREE %ROOTDIR%\Source\Wrappers
 call :DELINTREE %ROOTDIR%\Source\JpegLib
 call :DELINTREE %ROOTDIR%\Source\ZLib

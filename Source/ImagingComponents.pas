@@ -110,7 +110,7 @@ type
     procedure SaveToStream(Stream: TStream); override;
     { Returns TImageFileFormat descendant for this graphic class.}
     class function GetFileFormat: TImageFileFormat; virtual; abstract;
-  {$IFDEF COMPONENT_SET_LCL}
+  {$IFDEF COMPONENT_SET_LCL}
     { Returns file extensions of this graphic class.}
     class function GetFileExtensions: string; override;
     { Returns default MIME type of this graphic class.}
@@ -314,7 +314,6 @@ procedure DisplayImage(DstCanvas: TCanvas; const DstRect: TRect; Image: TBaseIma
 procedure DisplayImageDataOnDC(DC: HDC; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
 {$ENDIF}
 
-
 implementation
 
 uses
@@ -408,7 +407,6 @@ begin
   RegisterFileFormat(TImagingBitmap);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingBitmap);{$ENDIF}
 {$ENDIF}   
-
 end;
 
 { Unregisters types from VCL/CLX/LCL.}

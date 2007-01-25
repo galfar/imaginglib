@@ -48,7 +48,7 @@ OutputDir=../../Bin
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=../../../Source:../../../Source/JpegLib:../../../Source/ZLib:../Common
+SearchPath=../../../Source:../../../Source/JpegLib:../../../Source/ZLib:../../../Source/Extensions:../Common:../../../Extras/Extensions
 Packages=rtl:visualclx:visualdbclx:dataclx:xmlrtl:netdataclx:netclx:indy:VampyreImagingPackage
 Conditionals=
 DebugSourceDirs=
@@ -62,8 +62,11 @@ UseLauncher=0
 DebugCWD=
 
 [HistoryLists\hlSearchPath]
-Count=1
-Item0=../../../Source:../../../Source/JpegLib:../../../Source/ZLib:../Common
+Count=4
+Item0=../../../Source:../../../Source/JpegLib:../../../Source/ZLib:../../../Source/Extensions:../Common:../../../Extras/Extensions
+Item1=../../../Source:../../../Source/JpegLib:../../../Source/ZLib:../Common:../../../Extras/Extensions:../../../Source/Extensions
+Item2=../../../Source:../../../Source/JpegLib:../../../Source/ZLib:../Common:../../../Extras/Extensions
+Item3=../../../Source:../../../Source/JpegLib:../../../Source/ZLib:../Common
 
 [HistoryLists\hlOutputDirectorry]
 Count=1

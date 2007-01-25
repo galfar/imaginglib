@@ -16,7 +16,7 @@ package VampyreImagingPackageK3;
 {$RANGECHECKS ON}
 {$REFERENCEINFO ON}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES ON}
+{$STACKFRAMES OFF}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS OFF}
 {$WRITEABLECONST OFF}
@@ -45,7 +45,7 @@ contains
   ImagingFormats in '../ImagingFormats.pas',
   ImagingDds in '../ImagingDds.pas',
   ImagingPortableMaps in '../ImagingPortableMaps.pas',
-  ImagingExtras in '../../Extras\Extensions\ImagingExtras.pas',
+  ImagingExtras in '../../Extras/Extensions/ImagingExtras.pas',
   dzlib in '../ZLib/dzlib.pas',
   impaszlib in '../ZLib/impaszlib.pas',
   imadler in '../ZLib/imadler.pas',

@@ -18,7 +18,7 @@ call :BUILD VampConvert\VampConvert.dpr -oVampConvertDOS.exe
 goto END
 
 :BUILD
-  fpc %TARGET% %OPTIONS% %OUTPUT% "%DEMOPATH%\%1" %2
+  fpc %TARGET% %OPTIONS% %OUTPUT% "%DEMOPATH%\%1" %INCLUDE% %UNITS% %2
   if errorlevel 1 (echo Error when building %1) else (set /a DEMOSBUILD+=1)
 goto :EOF
 

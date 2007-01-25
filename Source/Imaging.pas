@@ -2498,7 +2498,10 @@ begin
     end;
 
     FmtStr(Descriptions, '%s%s (%s)|%2:s', [Descriptions, FileFormat.Name, CurFilter]);
-    FmtStr(Filters, '%s;%s', [Filters, CurFilter]);
+    if Filters <> '' then
+      FmtStr(Filters, '%s;%s', [Filters, CurFilter])
+    else
+      Filters := CurFilter;
 
     if I < ImageFileFormats.Count - 1 then
         Descriptions := Descriptions + '|';

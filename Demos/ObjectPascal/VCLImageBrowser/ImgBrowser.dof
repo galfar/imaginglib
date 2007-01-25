@@ -94,7 +94,7 @@ OutputDir=..\..\Bin
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;
+SearchPath=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls;Jcl;JvCoreD7R;JvSystemD7R;JvStdCtrlsD7R;JvCtrlsD7R;JvCmpD7R;JvMMD7R
 Conditionals=
 DebugSourceDirs=
@@ -133,14 +133,15 @@ LegalTrademarks=
 OriginalFilename=
 ProductName=
 ProductVersion=1.0.0.0
-[Excluded Packages]
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\JclVersionControlExpert70.bpl=JCL Integration of version control systems in the IDE
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=1
-Item0=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;
+Count=4
+Item0=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions
+Item1=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common
+Item2=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions
+Item3=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;
 [HistoryLists\hlOutputDirectorry]
 Count=1
 Item0=..\..\Bin

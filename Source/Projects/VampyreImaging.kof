@@ -2,7 +2,7 @@
 Version=6.0
 
 [Compiler]
-A=4
+A=8
 B=0
 C=1
 D=1
@@ -48,7 +48,7 @@ OutputDir=../../Bin
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=../:../JpegLib:../ZLib
+SearchPath=../:../JpegLib:../ZLib:../../Extras/Extensions
 Packages=rtl:visualclx:dataclx:visualdbclx:netclx:netdataclx:xmlrtl:indy:webdsnapclx:websnapclx:soaprtl
 Conditionals=
 DebugSourceDirs=
@@ -61,12 +61,21 @@ Launcher=/usr/X11R6/bin/xterm -T KylixDebuggerOutput -e bash -i -c %debuggee%
 UseLauncher=0
 DebugCWD=
 
+[Excluded Packages]
+/mnt/win_d/Project/NewAge/Programming/Imaging/Source/Projects/bplVampyreImagingPackageK3.so=Vampyre Imaging Library Package
+
 [HistoryLists\hlSearchPath]
-Count=2
-Item0=../:../JpegLib:../ZLib
-Item1=../
+Count=4
+Item0=../:../JpegLib:../ZLib:../../Extras/Extensions
+Item1=../:../JpegLib:../ZLib;../../Extras/Extensions
+Item2=../:../JpegLib:../ZLib
+Item3=../
 
 [HistoryLists\hlOutputDirectorry]
+Count=1
+Item0=../../Bin
+
+[HistoryLists\hlBPLOutput]
 Count=1
 Item0=../../Bin
 

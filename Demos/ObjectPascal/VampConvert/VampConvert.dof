@@ -94,7 +94,7 @@ OutputDir=..\..\Bin
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;
+SearchPath=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls
 Conditionals=
 DebugSourceDirs=
@@ -133,17 +133,15 @@ LegalTrademarks=
 OriginalFilename=
 ProductName=
 ProductVersion=1.0.0.0
-[Excluded Packages]
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\JclDebugIdeD70.bpl=JCL Debug IDE extension for Delphi 7
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\ProjectAnalyzerD70.bpl=JCL Project Analyzer for Delphi 7
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\IdeOpenDlgFavoriteD70.bpl=JCL Open and Save IDE dialogs with favorite folders for Delphi 7
-C:\Program Files\Borland\Delphi7\Projects\Bpl\JvMMD7D.bpl=JVCL Multimedia and Image Components
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=1
-Item0=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;
+Count=4
+Item0=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions
+Item1=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common
+Item2=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions
+Item3=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;
 [HistoryLists\hlOutputDirectorry]
 Count=1
 Item0=..\..\Bin

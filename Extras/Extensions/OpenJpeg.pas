@@ -316,7 +316,7 @@ type
      openjpeg version
   ========================================================== }
 
-function opj_version: PChar; cdecl; external {'_opj_version'};
+function opj_version: PChar; cdecl; external;
 
 { ==========================================================
      image functions definitions
@@ -327,11 +327,11 @@ function opj_version: PChar; cdecl; external {'_opj_version'};
   @param clrspc image color space
   @return returns a new image structure if successful, returns NULL otherwise }
 function opj_image_create(numcmpts: Integer; cmptparms: popj_image_cmptparm_t;
-  clrspc: OPJ_COLOR_SPACE): popj_image_t; cdecl; external {'_opj_image_create'};
+  clrspc: OPJ_COLOR_SPACE): popj_image_t; cdecl; external;
 
 { Deallocate any resources associated with an image
   @param image image to be destroyed }
-procedure opj_image_destroy(image: popj_image_t); cdecl; external {'_opj_image_destroy'};
+procedure opj_image_destroy(image: popj_image_t); cdecl; external;
 
 { ==========================================================
      stream functions definitions
@@ -346,28 +346,28 @@ procedure opj_image_destroy(image: popj_image_t); cdecl; external {'_opj_image_d
   @param length Reading: buffer length. Writing: 0
   @return Returns a CIO handle if successful, returns NULL otherwise }
 function opj_cio_open(cinfo: opj_common_ptr; buffer: PByte;
-  length: Integer): popj_cio_t; cdecl; external {'_opj_cio_open'};
+  length: Integer): popj_cio_t; cdecl; external;
 
 { Close and free a CIO handle
   @param cio CIO handle to free }
-procedure opj_cio_close(cio: popj_cio_t); cdecl; external {'_opj_cio_close'};
+procedure opj_cio_close(cio: popj_cio_t); cdecl; external;
 
 { Get position in byte stream
   @param cio CIO handle
   @return Returns the position in bytes }
-function cio_tell(cio: popj_cio_t): Integer; cdecl; external {'_cio_tell'};
+function cio_tell(cio: popj_cio_t): Integer; cdecl; external;
 
 { Set position in byte stream
   @param cio CIO handle
   @param pos Position, in number of bytes, from the beginning of the stream }
-procedure cio_seek(cio: popj_cio_t; pos: Integer); cdecl; external {'_cio_seek'};
+procedure cio_seek(cio: popj_cio_t; pos: Integer); cdecl; external;
 
 { ==========================================================
      event manager functions definitions
   ========================================================== }
 
 function opj_set_event_mgr(cinfo: opj_common_ptr; event_mgr: popj_event_mgr_t;
-  context: Pointer): popj_event_mgr_t; cdecl; external {'_opj_set_event_mgr'};
+  context: Pointer): popj_event_mgr_t; cdecl; external;
 
 { ==========================================================
      codec functions definitions
@@ -376,42 +376,36 @@ function opj_set_event_mgr(cinfo: opj_common_ptr; event_mgr: popj_event_mgr_t;
 { Creates a J2K/JPT/JP2 decompression structure
   @param format Decoder to select
   @return Returns a handle to a decompressor if successful, returns NULL otherwise }
-function opj_create_decompress(format: OPJ_CODEC_FORMAT): popj_dinfo_t;
-  cdecl; external {'_opj_create_decompress'};
+function opj_create_decompress(format: OPJ_CODEC_FORMAT): popj_dinfo_t; cdecl; external;
 
 { Destroy a decompressor handle
   @param dinfo decompressor handle to destroy }
-procedure opj_destroy_decompress(dinfo: popj_dinfo_t); cdecl;
-  external {'_opj_destroy_decompress'};
+procedure opj_destroy_decompress(dinfo: popj_dinfo_t); cdecl; external;
 
 { Set decoding parameters to default values
   @param parameters Decompression parameters }
-procedure opj_set_default_decoder_parameters(parameters: popj_dparameters_t);
-  cdecl; external {'_opj_set_default_decoder_parameters'};
+procedure opj_set_default_decoder_parameters(parameters: popj_dparameters_t); cdecl; external ;
 
 { Setup the decoder decoding parameters using user parameters.
   Decoding parameters are returned in j2k->cp.
   @param dinfo decompressor handle
   @param parameters decompression parameters }
-procedure opj_setup_decoder(dinfo: popj_dinfo_t; parameters: popj_dparameters_t);
-  cdecl; external {'_opj_setup_decoder'};
+procedure opj_setup_decoder(dinfo: popj_dinfo_t; parameters: popj_dparameters_t); cdecl; external;
 
 { Decode an image from a JPEG-2000 codestream
   @param dinfo decompressor handle
   @param cio Input buffer stream
   @return Returns a decoded image if successful, returns NULL otherwise }
-function opj_decode(dinfo: popj_dinfo_t; cio: popj_cio_t): popj_image_t;
-  cdecl; external {'_opj_decode'};
+function opj_decode(dinfo: popj_dinfo_t; cio: popj_cio_t): popj_image_t; cdecl; external;
 
 { Creates a J2K/JP2 compression structure
   @param format Coder to select
   @return Returns a handle to a compressor if successful, returns NULL otherwise }
-function opj_create_compress(format: OPJ_CODEC_FORMAT): popj_cinfo_t;
-  cdecl; external {'_opj_create_compress'};
+function opj_create_compress(format: OPJ_CODEC_FORMAT): popj_cinfo_t; cdecl; external;
 
 { Destroy a compressor handle
   @param cinfo compressor handle to destroy }
-procedure opj_destroy_compress(cinfo: popj_cinfo_t); cdecl; external {'_opj_destroy_compress'};
+procedure opj_destroy_compress(cinfo: popj_cinfo_t); cdecl; external;
 
 { Set encoding parameters to default values, that means :
   <ul>
@@ -432,15 +426,14 @@ procedure opj_destroy_compress(cinfo: popj_cinfo_t); cdecl; external {'_opj_dest
   <li>Reversible DWT 5-3
   </ul>
   @param parameters Compression parameters }
-procedure opj_set_default_encoder_parameters(parameters: popj_cparameters_t);
-  cdecl; external {'_opj_set_default_encoder_parameters'};
+procedure opj_set_default_encoder_parameters(parameters: popj_cparameters_t); cdecl; external;
 
 { Setup the encoder parameters using the current image and using user parameters.
   @param cinfo compressor handle
   @param parameters compression parameters
   @param image input filled image }
 procedure opj_setup_encoder(cinfo: popj_cinfo_t; parameters: popj_cparameters_t;
-  image: popj_image_t); cdecl; external {'_opj_setup_encoder'};
+  image: popj_image_t); cdecl; external;
 
 { Encode an image into a JPEG-2000 codestream
   @param cinfo compressor handle
@@ -449,20 +442,17 @@ procedure opj_setup_encoder(cinfo: popj_cinfo_t; parameters: popj_cparameters_t;
   @param index Name of the index file if required, NULL otherwise
   @return Returns true if successful, returns false otherwise }
 function opj_encode(cinfo: popj_cinfo_t; cio: popj_cio_t; image: popj_image_t;
-  index: PChar): Bool; cdecl; external {'_opj_encode'};
+  index: PChar): Bool; cdecl; external;
 
 implementation
 
 uses
-{$IFDEF MSWINDOWS}
-  Windows,
-{$ENDIF}
   SysUtils, ImagingUtility;
 
+{$IF Defined(MSWINDOWS)}
 const
   MSCRuntimeLib = 'msvcrt.dll';
 
-{$IFDEF MSWINDOWS}
   {$IFDEF DCC}
     {$L J2KObjects\w32bor_pi.obj}
     {$L J2KObjects\w32bor_openjpeg.obj}
@@ -537,26 +527,25 @@ const
     procedure tgt_decode; cdecl; external;
     procedure bio_inalign; cdecl; external;
   {$ELSE}
-    {$L J2KObjects\w32msc_openjpeg.obj}
-    {$L J2KObjects\w32msc_j2k_lib.obj}
-    {$L J2KObjects\w32msc_event.obj}
-    {$L J2KObjects\w32msc_cio.obj}
-    {$L J2KObjects\w32msc_image.obj}
-    {$L J2KObjects\w32msc_j2k.obj}
-    {$L J2KObjects\w32msc_jp2.obj}
-    {$L J2KObjects\w32msc_jpt.obj}
-    {$L J2KObjects\w32msc_mqc.obj}
-    {$L J2KObjects\w32msc_raw.obj}
-    {$L J2KObjects\w32msc_bio.obj}
-    {$L J2KObjects\w32msc_tgt.obj}
-    {$L J2KObjects\w32msc_tcd.obj}
-    {$L J2KObjects\w32msc_t1.obj}
-    {$L J2KObjects\w32msc_dwt.obj}
-    {$L J2KObjects\w32msc_pi.obj}
-    {$L J2KObjects\w32msc_t2.obj}
-    {$L J2KObjects\w32msc_mct.obj}
+    {$L J2KObjects\w32gcc_openjpeg.o}
+    {$L J2KObjects\w32gcc_j2k_lib.o}
+    {$L J2KObjects\w32gcc_event.o}
+    {$L J2KObjects\w32gcc_cio.o}
+    {$L J2KObjects\w32gcc_image.o}
+    {$L J2KObjects\w32gcc_j2k.o}
+    {$L J2KObjects\w32gcc_jp2.o}
+    {$L J2KObjects\w32gcc_jpt.o}
+    {$L J2KObjects\w32gcc_mqc.o}
+    {$L J2KObjects\w32gcc_raw.o}
+    {$L J2KObjects\w32gcc_bio.o}
+    {$L J2KObjects\w32gcc_tgt.o}
+    {$L J2KObjects\w32gcc_tcd.o}
+    {$L J2KObjects\w32gcc_t1.o}
+    {$L J2KObjects\w32gcc_dwt.o}
+    {$L J2KObjects\w32gcc_pi.o}
+    {$L J2KObjects\w32gcc_t2.o}
+    {$L J2KObjects\w32gcc_mct.o}
   {$ENDIF}
-{$ENDIF}
 
 function malloc(Size: Integer): Pointer; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
 begin
@@ -654,10 +643,6 @@ asm
         ret     8
 end;
 
-procedure _allmul; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  _llmul;
-end;
 
 procedure _allshr; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
 asm
@@ -683,7 +668,6 @@ asm
 end;
 
 {$IFDEF DCC}
-
 function sprintf(S, Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
 function printf(Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
 function fprintf(F: Pointer; Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
@@ -695,32 +679,8 @@ function _ltolower(C: Integer): Integer;cdecl; external MSCRuntimeLib name 'tolo
 function _ftol(X: Single): LongInt; cdecl; external MSCRuntimeLib;
 {$ELSE}
 
-function _tolower(C: Integer): Integer; cdecl; external MSCRuntimeLib name 'tolower';
 function _fopen(FileName, Mode: PChar): Pointer; cdecl; external MSCRuntimeLib name 'fopen';
 function _fclose(F: Pointer): Integer; cdecl; external MSCRuntimeLib name 'fclose';
-function __ftol(X: Single): LongInt; cdecl; external MSCRuntimeLib name '_ftol';
-function __CIpow(Base, Exponent: Double): Double; cdecl; external MSCRuntimeLib name '_CIpow';
-
-procedure fprintf; cdecl; [Public];
-begin
-end;
-
-procedure sprintf; cdecl; [Public];
-begin
-end;
-
-procedure printf; cdecl; [Public];
-begin
-end;
-
-procedure vsprintf; cdecl; [Public];
-begin
-end;
-
-function tolower(C: Integer): Integer; cdecl; [Public];
-begin
-  Result := _tolower(C);
-end;
 
 function fopen(FileName, Mode: PChar): Pointer; cdecl; [Public];
 begin
@@ -732,22 +692,87 @@ begin
   Result := _fclose(F);
 end;
 
-function _ftol(X: Single): LongInt; cdecl; [Public];
+procedure fprintf; cdecl; [Public];
 begin
-  Result := __ftol(X);
 end;
 
-function _ftol2_sse(X: Double): LongInt; cdecl; [Public];
+procedure vsprintf; cdecl; [Public];
 begin
-  Result := __ftol(X);
 end;
 
-function _CIpow(Base, Exponent: Double): Double; cdecl; [Public];
+function fwrite(Buffer: Pointer; Size, Count: Integer; Stream: Pointer): Integer; cdecl; [Public];
 begin
-  Result := __CIpow(Base, Exponent);
 end;
 
+function fputc(C: Integer; Stream: Pointer): Integer; cdecl; [Public];
+begin
+end;
+
+function puts(S: PChar): Integer; cdecl; [Public];
+begin
+end;
 {$ENDIF}
+
+{$ELSEIF Defined(UNIX)}
+  {$IF Defined(FPC)}
+    {$LINKLIB stdc++}
+
+    {$IF Defined(CPU86)}
+
+      // Object files distributed with OpenJPEG-pas
+      // are for Linux 386. If you are running
+      // other platform compile OpenJPEG C sources and
+      // use your new object files.
+
+      {$L J2KObjects/lin386_openjpeg.o}
+      {$L J2KObjects/lin386_j2k_lib.o}
+      {$L J2KObjects/lin386_event.o}
+      {$L J2KObjects/lin386_cio.o}
+      {$L J2KObjects/lin386_image.o}
+      {$L J2KObjects/lin386_j2k.o}
+      {$L J2KObjects/lin386_jp2.o}
+      {$L J2KObjects/lin386_jpt.o}
+      {$L J2KObjects/lin386_mqc.o}
+      {$L J2KObjects/lin386_raw.o}
+      {$L J2KObjects/lin386_bio.o}
+      {$L J2KObjects/lin386_tgt.o}
+      {$L J2KObjects/lin386_tcd.o}
+      {$L J2KObjects/lin386_t1.o}
+      {$L J2KObjects/lin386_dwt.o}
+      {$L J2KObjects/lin386_pi.o}
+      {$L J2KObjects/lin386_t2.o}
+      {$L J2KObjects/lin386_mct.o}
+    {$ELSE}
+      First compile OpenJPEG for your platform
+      and put object files here:
+
+      {$L J2KObjects/openjpeg.o}
+      {$L J2KObjects/j2k_lib.o}
+      {$L J2KObjects/event.o}
+      {$L J2KObjects/cio.o}
+      {$L J2KObjects/image.o}
+      {$L J2KObjects/j2k.o}
+      {$L J2KObjects/jp2.o}
+      {$L J2KObjects/jpt.o}
+      {$L J2KObjects/mqc.o}
+      {$L J2KObjects/raw.o}
+      {$L J2KObjects/bio.o}
+      {$L J2KObjects/tgt.o}
+      {$L J2KObjects/tcd.o}
+      {$L J2KObjects/t1.o}
+      {$L J2KObjects/dwt.o}
+      {$L J2KObjects/pi.o}
+      {$L J2KObjects/t2.o}
+      {$L J2KObjects/mct.o}
+    {$IFEND}
+
+  {$ELSE}
+    No JPEG2000 Support for this compiler
+  {$IFEND}
+
+{$ELSE}
+  No JPEG2000 Support for this platform
+{$IFEND}
 
 end.
 

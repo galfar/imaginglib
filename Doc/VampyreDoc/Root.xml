@@ -13,8 +13,10 @@
       <br /><br />
       <listedlink url="Reference.xml">Reference (generated from source code)</listedlink>
       <br /><br />
-      <br /><br />
-      <br /><br />
+      <br /><br /><br /><br />
+      External: <listedlink url="http://imaginglib.sourceforge.net">Vampyre Imaging Library Homepage</listedlink>
+      <br />
+      External: <listedlink url="http://galfar.vevb.net/imaging/smf">Vampyre Imaging Library Forum</listedlink>
       <br /><br />
     </center>
   </chapter>

@@ -11,7 +11,7 @@
                               // works in Free Pascal and Delphi 9+
 {$DEFINE USE_ASM}             // if defined, assembler versions of some
                               // functions will be used (only for x86)
-{$DEFINE DEBUG}               // if defined, debug info and range/IO/overflow
+{ $DEFINE DEBUG}               // if defined, debug info and range/IO/overflow
                               // checking and stack frames will be turned on
 
 { File format support linking options. Undefine formats which you don't want
@@ -110,7 +110,7 @@
 
 // Define if compiler supports inlining of functions and procedures
 // Note that FPC inline support crashed in older versions (1.9.8)
-{$IF (Defined(DCC) and (CompilerVersion >= 17)) or Defined(FPC)}
+{$IF (Defined(DCC) and (CompilerVersion >= 17)) or (Defined(FPC) and Defined(CPU86))}
   {$DEFINE HAS_INLINE}
 {$IFEND}
 
