@@ -60,7 +60,7 @@ procedure post_process_1pass(cinfo : j_decompress_ptr;
 		             in_row_groups_avail : JDIMENSION;
 		             output_buf : JSAMPARRAY;
                              var out_row_ctr : JDIMENSION;
-		             out_rows_avail : JDIMENSION); far; forward;
+		             out_rows_avail : JDIMENSION); forward;
 {$ifdef QUANT_2PASS_SUPPORTED}
 {METHODDEF}
 procedure post_process_prepass(cinfo : j_decompress_ptr;
@@ -69,7 +69,7 @@ procedure post_process_prepass(cinfo : j_decompress_ptr;
 		               in_row_groups_avail : JDIMENSION;
 		               output_buf : JSAMPARRAY;
                                var out_row_ctr : JDIMENSION;
-		               out_rows_avail : JDIMENSION); far;  forward;
+		               out_rows_avail : JDIMENSION);  forward;
 {METHODDEF}
 procedure post_process_2pass(cinfo : j_decompress_ptr;
  		             input_buf : JSAMPIMAGE;
@@ -77,7 +77,7 @@ procedure post_process_2pass(cinfo : j_decompress_ptr;
 		             in_row_groups_avail : JDIMENSION;
 		             output_buf : JSAMPARRAY;
                              var out_row_ctr : JDIMENSION;
-		             out_rows_avail : JDIMENSION); far;  forward;
+		             out_rows_avail : JDIMENSION);  forward;
 {$endif}
 
 
@@ -85,7 +85,7 @@ procedure post_process_2pass(cinfo : j_decompress_ptr;
 
 {METHODDEF}
 procedure start_pass_dpost (cinfo : j_decompress_ptr;
-                            pass_mode : J_BUF_MODE); far;
+                            pass_mode : J_BUF_MODE);  
 var
   post : my_post_ptr;
 begin

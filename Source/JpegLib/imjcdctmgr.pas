@@ -64,7 +64,7 @@ type
   first scan.  Hence all components should be examined here. }
 
 {METHODDEF}
-procedure start_pass_fdctmgr (cinfo : j_compress_ptr); far;
+procedure start_pass_fdctmgr (cinfo : j_compress_ptr);  
 var
   fdct : my_fdct_ptr;
   ci, qtblno, i : int;
@@ -225,7 +225,7 @@ procedure forward_DCT (cinfo : j_compress_ptr;
                        coef_blocks : JBLOCKROW;
 	               start_row : JDIMENSION;
                        start_col : JDIMENSION;
-	               num_blocks : JDIMENSION); far;
+	               num_blocks : JDIMENSION);  
 { This version is used for integer DCT implementations. }
 var
   { This routine is heavily used, so it's worth coding it tightly. }
@@ -363,7 +363,7 @@ procedure forward_DCT_float (cinfo : j_compress_ptr;
                              coef_blocks : JBLOCKROW;
 		             start_row : JDIMENSION;
                              start_col : JDIMENSION;
-		             num_blocks : JDIMENSION); far;
+		             num_blocks : JDIMENSION);  
 { This version is used for floating-point DCT implementations. }
 var
   { This routine is heavily used, so it's worth coding it tightly. }

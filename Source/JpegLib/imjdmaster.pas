@@ -533,7 +533,7 @@ end;
   (In the latter case, jdapistd.c will crank the pass to completion.) }
 
 {METHODDEF}
-procedure prepare_for_output_pass (cinfo : j_decompress_ptr); far;
+procedure prepare_for_output_pass (cinfo : j_decompress_ptr);  
 var
   master : my_master_ptr;
 begin
@@ -613,7 +613,7 @@ end;
 { Finish up at end of an output pass. }
 
 {METHODDEF}
-procedure finish_output_pass (cinfo : j_decompress_ptr); far;
+procedure finish_output_pass (cinfo : j_decompress_ptr);  
 var
   master : my_master_ptr;
 begin

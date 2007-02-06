@@ -39,7 +39,7 @@ const
   { Current Minor version of Imaging.}
   ImagingVersionMinor = 22;
   { Current patch of Imaging.}
-  ImagingVersionPatch = 0;
+  ImagingVersionPatch = 1;
 
   { Imaging Option Ids whose values can be set/get by SetOption/
     GetOption functions.}

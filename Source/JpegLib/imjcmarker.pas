@@ -472,7 +472,7 @@ end;
 {METHODDEF}
 procedure write_marker_header (cinfo : j_compress_ptr;
                                marker : int;
-                               datalen : uint); far;
+                               datalen : uint);  
 { Emit an arbitrary marker header }
 begin
   if (datalen > uint(65533)) then  { safety check }
@@ -484,7 +484,7 @@ begin
 end;
 
 {METHODDEF}
-procedure write_marker_byte (cinfo : j_compress_ptr; val : int); far;
+procedure write_marker_byte (cinfo : j_compress_ptr; val : int);  
 { Emit one byte of marker parameters following write_marker_header }
 begin
   emit_byte(cinfo, val);
@@ -501,7 +501,7 @@ end;
 
 
 {METHODDEF}
-procedure write_file_header (cinfo : j_compress_ptr); far;
+procedure write_file_header (cinfo : j_compress_ptr);  
 var
   marker : my_marker_ptr;
 begin
@@ -527,7 +527,7 @@ end;
 
 
 {METHODDEF}
-procedure write_frame_header (cinfo : j_compress_ptr); far;
+procedure write_frame_header (cinfo : j_compress_ptr);  
 var
   ci, prec : int;
   is_baseline : boolean;
@@ -595,7 +595,7 @@ end;
   Compressed data will be written following the SOS. }
 
 {METHODDEF}
-procedure write_scan_header (cinfo : j_compress_ptr); far;
+procedure write_scan_header (cinfo : j_compress_ptr);  
 var
   marker : my_marker_ptr;
   i : int;
@@ -656,7 +656,7 @@ end;
 
 
 {METHODDEF}
-procedure write_file_trailer (cinfo : j_compress_ptr); far;
+procedure write_file_trailer (cinfo : j_compress_ptr);  
 begin
   emit_marker(cinfo, M_EOI);
 end;
@@ -669,7 +669,7 @@ end;
 
 
 {METHODDEF}
-procedure write_tables_only (cinfo : j_compress_ptr); far;
+procedure write_tables_only (cinfo : j_compress_ptr);  
 var
   i : int;
 begin

@@ -521,7 +521,7 @@ end;
 procedure color_quantize (cinfo : j_decompress_ptr;
                           input_buf : JSAMPARRAY;
 		          output_buf : JSAMPARRAY;
-                          num_rows : int); far;
+                          num_rows : int);  
 { General case, no dithering }
 var
   cquantize : my_cquantize_ptr;
@@ -561,7 +561,7 @@ end;
 procedure color_quantize3 (cinfo : j_decompress_ptr;
                            input_buf : JSAMPARRAY;
 		           output_buf : JSAMPARRAY;
-                           num_rows : int); far;
+                           num_rows : int);  
 { Fast path for out_color_components=3, no dithering }
 var
   cquantize : my_cquantize_ptr;
@@ -603,7 +603,7 @@ end;
 procedure quantize_ord_dither (cinfo : j_decompress_ptr;
                                input_buf :  JSAMPARRAY;
 		               output_buf : JSAMPARRAY;
-                               num_rows : int); far;
+                               num_rows : int);  
 { General case, with ordered dithering }
 var
   cquantize : my_cquantize_ptr;
@@ -674,7 +674,7 @@ end;
 procedure quantize3_ord_dither (cinfo : j_decompress_ptr;
                                 input_buf : JSAMPARRAY;
 		                output_buf : JSAMPARRAY;
-                                num_rows : int); far;
+                                num_rows : int);  
 { Fast path for out_color_components=3, with ordered dithering }
 var
   cquantize : my_cquantize_ptr;
@@ -746,7 +746,7 @@ end;
 procedure quantize_fs_dither (cinfo : j_decompress_ptr;
                               input_buf : JSAMPARRAY;
 		              output_buf : JSAMPARRAY;
-                              num_rows : int); far;
+                              num_rows : int);  
 { General case, with Floyd-Steinberg dithering }
 var
   cquantize : my_cquantize_ptr;
@@ -895,7 +895,7 @@ end;
 
 {METHODDEF}
 procedure start_pass_1_quant (cinfo : j_decompress_ptr;
-                              is_pre_scan : boolean); far;
+                              is_pre_scan : boolean);  
 var
   cquantize : my_cquantize_ptr;
   arraysize : size_t;
@@ -951,7 +951,7 @@ end;
 { Finish up at the end of the pass. }
 
 {METHODDEF}
-procedure finish_pass_1_quant (cinfo : j_decompress_ptr); far;
+procedure finish_pass_1_quant (cinfo : j_decompress_ptr);  
 begin
   { no work in 1-pass case }
 end;
@@ -961,7 +961,7 @@ end;
   Shouldn't get to this module! }
 
 {METHODDEF}
-procedure new_color_map_1_quant (cinfo : j_decompress_ptr); far;
+procedure new_color_map_1_quant (cinfo : j_decompress_ptr);  
 begin
   ERREXIT(j_common_ptr(cinfo), JERR_MODE_CHANGE);
 end;
