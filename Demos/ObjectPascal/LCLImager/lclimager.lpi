@@ -63,8 +63,8 @@
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
+        <D2Extensions Value="False"/>
         <IncludeAssertionCode Value="True"/>
-        <DelphiCompat Value="True"/>
         <UseAnsiStrings Value="True"/>
       </SyntaxOptions>
     </Parsing>

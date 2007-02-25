@@ -118,7 +118,6 @@
   {$MODE DELPHI}
 {$endif}
 
-
 {!CHANGE: Added this}
 {$define Delphi_Stream}
 {$Q-}

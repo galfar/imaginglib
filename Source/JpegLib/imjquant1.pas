@@ -8,10 +8,10 @@ unit imjquant1;
 
 interface
 
+{$I imjconfig.inc}
+
 uses
   imjpeglib;
-
-{$I imjconfig.inc}
 
 {GLOBAL}
 procedure jinit_1pass_quantizer (cinfo : j_decompress_ptr);

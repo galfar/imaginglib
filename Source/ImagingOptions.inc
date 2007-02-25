@@ -90,6 +90,7 @@
   {$ENDIF}
   {$IFDEF FPC}
     {$S+}
+    {$CHECKPOINTER ON}
   {$ENDIF}
   {$UNDEF USE_INLINE}
 {$ELSE}

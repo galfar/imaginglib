@@ -12,6 +12,8 @@ unit imjdcoefct;
 
 interface
 
+{$I imjconfig.inc}
+
 uses
   imjmorecfg,
   imjinclude,
@@ -19,8 +21,6 @@ uses
   imjerror,
   imjutils,
   imjpeglib;
-
-{$I imjconfig.inc}
 
 {GLOBAL}
 procedure jinit_d_coef_controller (cinfo : j_decompress_ptr;

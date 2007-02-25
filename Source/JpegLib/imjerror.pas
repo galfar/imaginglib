@@ -11,6 +11,8 @@ unit imjerror;
 { note: format_message still contains a hack }
 interface
 
+{$I imjconfig.inc}
+
 uses
   imjmorecfg,
   imjdeferr,

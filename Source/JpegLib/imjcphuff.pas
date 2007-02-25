@@ -10,6 +10,8 @@ unit imjcphuff;
 
 interface
 
+{$I imjconfig.inc}
+
 uses
   imjmorecfg,
   imjinclude,
@@ -19,8 +21,6 @@ uses
   imjutils,
   imjcomapi,
   imjchuff;       	{ Declarations shared with jchuff.c }
-
-{$I imjconfig.inc}
 
 { Module initialization routine for progressive Huffman entropy encoding. }
 

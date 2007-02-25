@@ -9,6 +9,8 @@ unit imjcmaster;
 
 interface
 
+{$I imjconfig.inc}
+
 uses
   imjmorecfg,
   imjinclude,
@@ -16,8 +18,6 @@ uses
   imjerror,
   imjutils,
   imjpeglib;
-
-{$I imjconfig.inc}
 
 { Initialize master compression control. }
 
@@ -294,7 +294,7 @@ begin
   { Now verify that everything got sent. }
   if (cinfo^.progressive_mode) then
   begin
-{$ifdef C_PROGRESSIVE_SUPPORTED
+{$ifdef C_PROGRESSIVE_SUPPORTED}
     { For progressive mode, we only check that at least some DC data
       got sent for each component; the spec does not require that all bits
       of all coefficients be transmitted.  Would it be wiser to enforce

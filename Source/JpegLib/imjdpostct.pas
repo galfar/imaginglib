@@ -14,6 +14,8 @@ unit imjdpostct;
 
 interface
 
+{$I imjconfig.inc}
+
 uses
   imjmorecfg,
   imjinclude,
@@ -21,8 +23,6 @@ uses
   imjerror,
   imjutils,
   imjpeglib;
-
-{$I imjconfig.inc}
 
 { Initialize postprocessing controller. }
 

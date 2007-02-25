@@ -8,6 +8,8 @@ unit imjccoefct;
 
 interface
 
+{$I imjconfig.inc}
+
 uses
   imjmorecfg,
   imjinclude,
@@ -15,8 +17,6 @@ uses
   imjdeferr,
   imjutils,
   imjpeglib;
-
-{$I imjconfig.inc}
 
 { We use a full-image coefficient buffer when doing Huffman optimization,
   and also for writing multiple-scan JPEG files.  In all cases, the DCT
@@ -70,7 +70,7 @@ type
 {METHODDEF}
 function compress_data(cinfo : j_compress_ptr;
                        input_buf : JSAMPIMAGE) : boolean; forward;
-{$ifdef FULL_COEF_BUFFER_SUPPORTED
+{$ifdef FULL_COEF_BUFFER_SUPPORTED}
 {METHODDEF}
 function compress_first_pass(cinfo : j_compress_ptr;
                              input_buf : JSAMPIMAGE) : boolean;  forward;
