@@ -34,7 +34,11 @@ unit ImagingUtility;
 interface
 
 uses
-  SysUtils, Types;
+  SysUtils, Classes, Types;
+
+const
+  STrue = 'True';
+  SFalse = 'False';
 
 type
   TByteArray = array[0..MaxInt - 1] of Byte;
@@ -95,6 +99,16 @@ type
   TChar4 = array[0..3] of Char;
   TChar8 = array[0..7] of Char;
 
+  { Options for BuildFileList function:
+    flFullNames - file names in result will have full path names
+                (ExtractFileDir(Path) + FileName)
+    flRelNames  - file names in result will have names relative to
+                ExtractFileDir(Path) dir
+    flRecursive - adds files in subdirectories found in Path.}
+  TFileListOption = (flFullNames, flRelNames, flRecursive);
+  TFileListOptions = set of TFileListOption;
+
+
 { Frees class instance and sets its reference to nil.}
 procedure FreeAndNil(var Obj); 
 { Frees pointer and sets it to nil.}
@@ -118,6 +132,24 @@ function GetAppDir:string;
   Mask can contain ? and * special characters: ? matches
   one character, * matches zero or more characters.}
 function MatchFileNameMask(const FileName, Mask: string; CaseSensitive: Boolean = False): Boolean;
+{ This function fills Files string list with names of files found
+  with FindFirst/FindNext functions (See details on Path/Atrr here).
+  - BuildFileList('c:\*.*', faAnyFile, List, [flRecursive]) returns
+    list of all files (only name.ext - no path) on C drive
+  - BuildFileList('d:\*.*', faDirectory, List, [flFullNames]) returns
+    list of all directories (d:\dirxxx) in root of D drive.}
+function BuildFileList(Path: string; Attr: LongInt; Files: TStrings;
+  Options: TFileListOptions = []): Boolean;
+{ Similar to RTL's Pos function but with optional Offset where search will start.
+  This function is in the RTL StrUtils unit but }
+function PosEx(const SubStr, S: string; Offset: LongInt = 1): LongInt;
+{ Same as PosEx but without case sensitivity.}
+function PosNoCase(const SubStr, S: string; Offset: LongInt = 1): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Returns a sub-string from S which is followed by
+  Sep separator and deletes the sub-string from S including the separator.}
+function StrToken(var S: string; Sep: Char): string;
+{ Same as StrToken but searches from the end of S string.}
+function StrTokenEnd(var S: string; Sep: Char): string;
 
 { Clamps integer value to range <Min, Max>}
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -238,7 +270,9 @@ procedure ClipStretchBounds(var SrcX, SrcY, SrcWidth, SrcHeight, DstX, DstY,
   it could be used for 'Stretch To Fit Window' image drawing for instance.}
 function ScaleRectToRect(const SourceRect, TargetRect: TRect): TRect;
 
-
+{ Formats given message for usage in Exception.Create(..). Use only
+  in except block - returned message contains message of last raised exception.}
+function FormatExceptMsg(const Msg: string; const Args: array of const): string;
 { Outputs debug message - shows message dialog in Windows and writes to console
   in Linux/Unix.}
 procedure DebugMsg(const Msg: string; const Args: array of const);
@@ -247,16 +281,15 @@ implementation
 
 uses
 {$IFDEF MSWINDOWS}
-  Windows,
+  Windows;
 {$ENDIF}
 {$IFDEF UNIX}
   {$IFDEF KYLIX}
-  Libc,
+  Libc;
   {$ELSE}
-  Dos, BaseUnix, Unix,
+  Dos, BaseUnix, Unix;
   {$ENDIF}
 {$ENDIF}
-  Classes;
 
 procedure FreeAndNil(var Obj);
 var
@@ -461,6 +494,265 @@ begin
     Exit;
   end;
   Result := MatchAt(1, 1);
+end;
+
+function BuildFileList(Path: string; Attr: LongInt;
+  Files: TStrings; Options: TFileListOptions): Boolean;
+var
+  FileMask: string;
+  RootDir: string;
+  Folders: TStringList;
+  CurrentItem: LongInt;
+  Counter: LongInt;
+  LocAttr: LongInt;
+
+  procedure BuildFolderList;
+  var
+    FindInfo: TSearchRec;
+    Rslt: LongInt;
+  begin
+    Counter := Folders.Count - 1;
+    CurrentItem := 0;
+    while CurrentItem <= Counter do
+    begin
+      // Searching for subfolders
+      Rslt := SysUtils.FindFirst(Folders[CurrentItem] + '*', faDirectory, FindInfo);
+      try
+        while Rslt = 0 do
+        begin
+          if (FindInfo.Name <> '.') and (FindInfo.Name <> '..') and
+            (FindInfo.Attr and faDirectory = faDirectory) then
+            Folders.Add(Folders[CurrentItem] + FindInfo.Name + PathDelim);
+          Rslt := SysUtils.FindNext(FindInfo);
+        end;
+      finally
+        SysUtils.FindClose(FindInfo);
+      end;
+      Counter := Folders.Count - 1;
+      Inc(CurrentItem);
+    end;
+  end;
+
+  procedure FillFileList(CurrentCounter: LongInt);
+  var
+    FindInfo: TSearchRec;
+    Res: LongInt;
+    CurrentFolder: string;
+  begin
+    CurrentFolder := Folders[CurrentCounter];
+    Res := SysUtils.FindFirst(CurrentFolder + FileMask, LocAttr, FindInfo);
+    if flRelNames in Options then
+      CurrentFolder := ExtractRelativePath(RootDir, CurrentFolder);
+    try
+      while Res = 0 do
+      begin
+        if (FindInfo.Name <> '.') and (FindInfo.Name <> '..') then
+        begin
+          if (flFullNames in Options) or (flRelNames in Options) then
+            Files.Add(CurrentFolder + FindInfo.Name)
+          else
+            Files.Add(FindInfo.Name);
+        end;
+        Res := SysUtils.FindNext(FindInfo);
+      end;
+    finally
+      SysUtils.FindClose(FindInfo);
+    end;
+  end;
+
+begin
+  FileMask := ExtractFileName(Path);
+  RootDir := ExtractFilePath(Path);
+  Folders := TStringList.Create;
+  Folders.Add(RootDir);
+  Files.Clear;
+{$IFDEF DCC}
+  {$WARN SYMBOL_PLATFORM OFF}
+{$ENDIF}
+  if Attr = faAnyFile then
+    LocAttr := faSysFile or faHidden or faArchive or faReadOnly
+  else
+    LocAttr := Attr;
+{$IFDEF DCC}
+  {$WARN SYMBOL_PLATFORM ON}
+{$ENDIF}
+  // Here's the recursive search for nested folders
+  if flRecursive in Options then
+    BuildFolderList;
+  if Attr <> faDirectory then
+    for Counter := 0 to Folders.Count - 1 do
+      FillFileList(Counter)
+  else
+    Files.AddStrings(Folders);
+  Folders.Free;
+  Result := True;
+end;
+
+function PosEx(const SubStr, S: string; Offset: LongInt = 1): LongInt;
+{$IFDEF USE_ASM}
+asm
+  // The Original ASM Code is (C) Fastcode project.
+       test  eax, eax
+       jz    @Nil
+       test  edx, edx
+       jz    @Nil
+       dec   ecx
+       jl    @Nil
+
+       push  esi
+       push  ebx
+
+       mov   esi, [edx-4]  //Length(Str)
+       mov   ebx, [eax-4]  //Length(Substr)
+       sub   esi, ecx      //effective length of Str
+       add   edx, ecx      //addr of the first char at starting position
+       cmp   esi, ebx
+       jl    @Past         //jump if EffectiveLength(Str)<Length(Substr)
+       test  ebx, ebx
+       jle   @Past         //jump if Length(Substr)<=0
+
+       add   esp, -12
+       add   ebx, -1       //Length(Substr)-1
+       add   esi, edx      //addr of the terminator
+       add   edx, ebx      //addr of the last char at starting position
+       mov   [esp+8], esi  //save addr of the terminator
+       add   eax, ebx      //addr of the last char of Substr
+       sub   ecx, edx      //-@Str[Length(Substr)]
+       neg   ebx           //-(Length(Substr)-1)
+       mov   [esp+4], ecx  //save -@Str[Length(Substr)]
+       mov   [esp], ebx    //save -(Length(Substr)-1)
+       movzx ecx, byte ptr [eax] //the last char of Substr
+
+@Loop:
+       cmp   cl, [edx]
+       jz    @Test0
+@AfterTest0:
+       cmp   cl, [edx+1]
+       jz    @TestT
+@AfterTestT:
+       add   edx, 4
+       cmp   edx, [esp+8]
+       jb   @Continue
+@EndLoop:
+       add   edx, -2
+       cmp   edx, [esp+8]
+       jb    @Loop
+@Exit:
+       add   esp, 12
+@Past:
+       pop   ebx
+       pop   esi
+@Nil:
+       xor   eax, eax
+       ret
+@Continue:
+       cmp   cl, [edx-2]
+       jz    @Test2
+       cmp   cl, [edx-1]
+       jnz   @Loop
+@Test1:
+       add   edx,  1
+@Test2:
+       add   edx, -2
+@Test0:
+       add   edx, -1
+@TestT:
+       mov   esi, [esp]
+       test  esi, esi
+       jz    @Found
+@String:
+       movzx ebx, word ptr [esi+eax]
+       cmp   bx, word ptr [esi+edx+1]
+       jnz   @AfterTestT
+       cmp   esi, -2
+       jge   @Found
+       movzx ebx, word ptr [esi+eax+2]
+       cmp   bx, word ptr [esi+edx+3]
+       jnz   @AfterTestT
+       add   esi, 4
+       jl    @String
+@Found:
+       mov   eax, [esp+4]
+       add   edx, 2
+
+       cmp   edx, [esp+8]
+       ja    @Exit
+
+       add   esp, 12
+       add   eax, edx
+       pop   ebx
+       pop   esi
+end;
+{$ELSE}
+var
+  I, X: LongInt;
+  Len, LenSubStr: LongInt;
+begin
+  I := Offset;
+  LenSubStr := Length(SubStr);
+  Len := Length(S) - LenSubStr + 1;
+  while I <= Len do
+  begin
+    if S[I] = SubStr[1] then
+    begin
+      X := 1;
+      while (X < LenSubStr) and (S[I + X] = SubStr[X + 1]) do
+        Inc(X);
+      if (X = LenSubStr) then
+      begin
+        Result := I;
+        Exit;
+      end;
+    end;
+    Inc(I);
+  end;
+  Result := 0;
+end;
+{$ENDIF}
+
+function PosNoCase(const SubStr, S: string; Offset: LongInt): LongInt;
+begin
+  Result := PosEx(LowerCase(SubStr), LowerCase(S), Offset);
+end;
+
+function StrToken(var S: string; Sep: Char): string;
+var
+  I: LongInt;
+begin
+  I := Pos(Sep, S);
+  if I <> 0 then
+  begin
+    Result := Copy(S, 1, I - 1);
+    Delete(S, 1, I);
+  end
+  else
+  begin
+    Result := S;
+    S := '';
+  end;
+end;
+
+function StrTokenEnd(var S: string; Sep: Char): string;
+var
+  I, J: LongInt;
+begin
+  J := 0;
+  I := Pos(Sep, S);
+  while I <> 0 do
+  begin
+    J := I;
+    I := PosEx(Sep, S, J + 1);
+  end;
+  if J <> 0 then
+  begin
+    Result := Copy(S, J + 1, MaxInt);
+    Delete(S, J, MaxInt);
+  end
+  else
+  begin
+    Result := S;
+    S := '';
+  end;
 end;
 
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt;
@@ -1159,6 +1451,11 @@ begin
   end;
 end;
 
+function FormatExceptMsg(const Msg: string; const Args: array of const): string;
+begin
+  Result := Format(Msg + SLineBreak + 'Message: ' + GetExceptObject.Message, Args);
+end;
+
 procedure DebugMsg(const Msg: string; const Args: array of const);
 var
   FmtMsg: string;
@@ -1200,6 +1497,10 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added some string utils: StrToken, StrTokenEnd, PosEx, PosNoCase. 
+    - Moved BuildFileList here from DemoUtils.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Moved GetVolumeLevelCount from ImagingDds here.

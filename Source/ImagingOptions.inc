@@ -11,8 +11,9 @@
                               // works in Free Pascal and Delphi 9+
 {$DEFINE USE_ASM}             // if defined, assembler versions of some
                               // functions will be used (only for x86)
-{$DEFINE DEBUG}               // if defined, debug info and range/IO/overflow
-                              // checking and stack frames will be turned on
+{$DEFINE DEBUG}               // if defined, debug info, range/IO/overflow
+                              // checking, stack frames, assertions, and
+                              // other debugging options will be turned on
 
 { File format support linking options. Undefine formats which you don't want
   to be registred automatically. }
@@ -51,7 +52,6 @@
 { Compiler options }
 
 {$ALIGN 8}                // Field alignment: 8 B
-{$ASSERTIONS ON}          // Assertions: on
 {$BOOLEVAL OFF}           // Boolean eval: off
 {$EXTENDEDSYNTAX ON}      // Extended syntax: on
 {$LONGSTRINGS ON}         // string = AnsiString: on
@@ -77,6 +77,7 @@
 {$ENDIF}
 
 {$IFDEF DEBUG}
+  {$ASSERTIONS ON}
   {$DEBUGINFO ON}
   {$LOCALSYMBOLS ON}
   {$RANGECHECKS ON}
@@ -92,6 +93,7 @@
   {$ENDIF}
   {$UNDEF USE_INLINE}
 {$ELSE}
+  {$ASSERTIONS OFF}
   {$DEBUGINFO OFF}
   {$LOCALSYMBOLS OFF}
   {$RANGECHECKS OFF}

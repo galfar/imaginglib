@@ -255,7 +255,8 @@ end;
 function ImFreeImage(var Image: TImageData): Boolean;
 begin
   try
-    Result := Imaging.FreeImage(Image);
+    Imaging.FreeImage(Image);
+    Result := True;
   except
     Result := False;
   end;
@@ -409,9 +410,7 @@ begin
     if ImageList <> nil then
     begin
       Int := PInternalList(ImageList);
-      for I := 0 to Length(Int.List) - 1 do
-        Imaging.FreeImage(Int.List[I]);
-      SetLength(Int.List, 0);
+      FreeImagesInArray(Int.List);
       Dispose(Int);
       ImageList := nil;
     end;

@@ -62,12 +62,14 @@ function NewImage(Width, Height: LongInt; Format: TImageFormat;
 { Returns True if given TImageData record is valid.}
 function TestImage(const Image: TImageData): Boolean;
 { Frees given image data. Ater this call image is in the same state
-  as after calling InitImage.}
-function FreeImage(var Image: TImageData): Boolean;
-{ Call FreeImage() on all images in given dynamic
-  array.}
-function FreeImagesInArray(var Images: TDynImageDataArray): Boolean;
-{ Returns True if all TImageData records in given array are valid.}
+  as after calling InitImage. If image is not valid (dost not pass TestImage
+  test) it is only zeroed by calling InitImage.}
+procedure FreeImage(var Image: TImageData);
+{ Call FreeImage() on all images in given dynamic array and sets its
+  length to zero.}
+procedure FreeImagesInArray(var Images: TDynImageDataArray);
+{ Returns True if all TImageData records in given array are valid. Returns False
+  if at least one is invalid or if array is empty.}
 function TestImagesInArray(const Images: TDynImageDataArray): Boolean;
 { Checks given file for every supported image file format and if
   the file is in one of them returns its string identifier
@@ -162,7 +164,7 @@ function FlipImage(var Image: TImageData): Boolean;
   side becomes the right and vice versa.}
 function MirrorImage(var Image: TImageData): Boolean;
 { Resizes given image to new dimensions. Nearest, bilinear, or bicubic filtering
-  can be used.}
+  can be used. Input Image must already be created - use NewImage to create new images.}
 function ResizeImage(var Image: TImageData; NewWidth, NewHeight: LongInt;
   Filter: TResizeFilter): Boolean;
 { Swaps SrcChannel and DstChannel color or alpha channels of image.
@@ -170,16 +172,18 @@ function ResizeImage(var Image: TImageData; NewWidth, NewHeight: LongInt;
   identify channels.}
 function SwapChannels(var Image: TImageData; SrcChannel, DstChannel: LongInt): Boolean;
 { Reduces the number of colors of the Image. Currently MaxColors must be in
-  range <1, 4096>. Color reduction works also for alpha channel. Note that for
+  range <2, 4096>. Color reduction works also for alpha channel. Note that for
   large images and big number of colors it can be very slow.
   Output format of the image is the same as input format.}
 function ReduceColors(var Image: TImageData; MaxColors: LongInt): Boolean;
 { Generates mipmaps for image. Levels is the number of desired mipmaps levels
-  with zero meaning all possible levels.}
+  with zero (or some invalid number) meaning all possible levels.}
 function GenerateMipMaps(const Image: TImageData; Levels: LongInt;
   var MipMaps: TDynImageDataArray): Boolean;
 { Maps image to existing palette producing image in ifIndex8 format.
-  Pal must be allocated to at least Entries * SizeOf(TColor32Rec) bytes.}
+  Pal must be allocated to at least Entries * SizeOf(TColor32Rec) bytes.
+  As resulting image is in 8bit indexed format Entries must be lower or
+  equal to 256.}
 function MapImageToPalette(var Image: TImageData; Pal: PPalette32;
   Entries: LongInt): Boolean;
 { Splits image into XChunks x YChunks subimages. Default size of each chunk is
@@ -716,31 +720,44 @@ function NewImage(Width, Height: LongInt; Format: TImageFormat; var Image:
 var
   FInfo: PImageFormatInfo;
 begin
+  Assert((Width >= 0) and (Height >= 0));
+  Assert(IsImageFormatValid(Format));
   Result := False;
-  if FreeImage(Image) and (Width >= 0) and (Height >= 0) then
+  FreeImage(Image);
   try
     Image.Width := Width;
     Image.Height := Height;
-    // If desired format is not valid then default format is selected
-    if (ImageFormatInfos[Format] = nil) or (Format = ifDefault)  then
+    // Select default data format if selected
+    if (Format = ifDefault)  then
       Image.Format := DefaultImageFormat
     else
       Image.Format := Format;
+    // Get extended format info
     FInfo := ImageFormatInfos[Image.Format];
+    if FInfo = nil then
+    begin
+      InitImage(Image);
+      Exit;
+    end;
+    // Check image dimensions and calculate its size in bytes
+    FInfo.CheckDimensions(FInfo.Format, Image.Width, Image.Height);
     Image.Size := FInfo.GetPixelsSize(FInfo.Format, Image.Width, Image.Height);
-    if FInfo.IsSpecial then
-      FInfo.CheckDimensions(FInfo.Format, Image.Width, Image.Height);
+    if Image.Size = 0 then
+    begin
+      InitImage(Image);
+      Exit;
+    end;
     // Image bits are allocated and set to zeroes
     GetMem(Image.Bits, Image.Size);
     FillChar(Image.Bits^, Image.Size, 0);
     // Palette is allocated and set to zeroes
-    GetMem(Image.Palette, FInfo.PaletteEntries * SizeOf(TColor32Rec));
-    FillChar(Image.Palette^, FInfo.PaletteEntries * SizeOf(TColor32Rec), 0);
-
+    if FInfo.PaletteEntries > 0 then
+    begin
+      GetMem(Image.Palette, FInfo.PaletteEntries * SizeOf(TColor32Rec));
+      FillChar(Image.Palette^, FInfo.PaletteEntries * SizeOf(TColor32Rec), 0);
+    end;
     Result := TestImage(Image);
   except
-    InitImage(Image);
-    Result := False;
     RaiseImaging(SErrorNewImage, [Width, Height, GetFormatName(Format)]);
   end;
 end;
@@ -760,7 +777,7 @@ begin
   end;
 end;
 
-function FreeImage(var Image: TImageData): Boolean;
+procedure FreeImage(var Image: TImageData);
 begin
   try
     if TestImage(Image) then
@@ -769,33 +786,39 @@ begin
       FreeMemNil(Image.Palette);
     end;
     InitImage(Image);
-    Result := True;
   except
-    Result := False;
     RaiseImaging(SErrorFreeImage, [ImageToStr(Image)]);
   end;
 end;
 
-function FreeImagesInArray(var Images: TDynImageDataArray): Boolean;
+procedure FreeImagesInArray(var Images: TDynImageDataArray);
 var
   I: LongInt;
 begin
-  Result := True;
-  for I := 0 to Length(Images) - 1 do
-    Result := Result and FreeImage(Images[I]);
+  if Length(Images) > 0 then
+  begin
+    for I := 0 to Length(Images) - 1 do
+      FreeImage(Images[I]);
+    SetLength(Images, 0);
+  end;
 end;
 
 function TestImagesInArray(const Images: TDynImageDataArray): Boolean;
 var
   I: LongInt;
 begin
-  Result := True;
-  for I := 0 to Length(Images) - 1 do
+  if Length(Images) > 0 then
   begin
-    Result := Result and TestImage(Images[I]);
-    if not Result then
-      Break;
-  end;
+    Result := True;
+    for I := 0 to Length(Images) - 1 do
+    begin
+      Result := Result and TestImage(Images[I]);
+      if not Result then
+        Break;
+    end;
+  end
+  else
+    Result := False;
 end;
 
 function DetermineFileFormat(const FileName: string): string;
@@ -804,6 +827,7 @@ var
   Fmt: TImageFileFormat;
   Handle: TImagingHandle;
 begin
+  Assert(FileName <> '');
   Result := '';
   SetFileIO;
   try
@@ -834,6 +858,7 @@ begin
       IO.Close(Handle);
     end;
   except
+    Result := '';
   end;
 end;
 
@@ -843,21 +868,26 @@ var
   Fmt: TImageFileFormat;
   Handle: TImagingHandle;
 begin
+  Assert(Stream <> nil);
   Result := '';
   SetStreamIO;
   try
     Handle := IO.OpenRead(Pointer(Stream));
-    for I := 0 to ImageFileFormats.Count - 1 do
-    begin
-      Fmt := TImageFileFormat(ImageFileFormats[I]);
-      if Fmt.TestFormat(Handle) then
+    try
+      for I := 0 to ImageFileFormats.Count - 1 do
       begin
-        Result := Fmt.Extensions[0];
-        Exit;
+        Fmt := TImageFileFormat(ImageFileFormats[I]);
+        if Fmt.TestFormat(Handle) then
+        begin
+          Result := Fmt.Extensions[0];
+          Exit;
+        end;
       end;
+    finally
+      IO.Close(Handle);
     end;
-    IO.Close(Handle);
   except
+    Result := '';
   end;
 end;
 
@@ -868,6 +898,7 @@ var
   Handle: TImagingHandle;
   IORec: TMemoryIORec;
 begin
+  Assert((Data <> nil) and (Size > 0));
   Result := '';
   SetMemoryIO;
   IORec.Data := Data;
@@ -875,17 +906,21 @@ begin
   IORec.Size := Size;
   try
     Handle := IO.OpenRead(@IORec);
-    for I := 0 to ImageFileFormats.Count - 1 do
-    begin
-      Fmt := TImageFileFormat(ImageFileFormats[I]);
-      if Fmt.TestFormat(Handle) then
+    try
+      for I := 0 to ImageFileFormats.Count - 1 do
       begin
-        Result := Fmt.Extensions[0];
-        Exit;
+        Fmt := TImageFileFormat(ImageFileFormats[I]);
+        if Fmt.TestFormat(Handle) then
+        begin
+          Result := Fmt.Extensions[0];
+          Exit;
+        end;
       end;
+    finally
+      IO.Close(Handle);
     end;
-    IO.Close(Handle);
   except
+    Result := '';
   end;
 end;
 
@@ -929,6 +964,7 @@ var
   IArray: TDynImageDataArray;
   I: LongInt;
 begin
+  Assert(FileName <> '');
   Result := False;
   Format := FindImageFileFormatByExt(DetermineFileFormat(FileName));
   if Format <> nil then
@@ -952,6 +988,7 @@ var
   IArray: TDynImageDataArray;
   I: LongInt;
 begin
+  Assert(Stream <> nil);
   Result := False;
   Format := FindImageFileFormatByExt(DetermineStreamFormat(Stream));
   if Format <> nil then
@@ -975,6 +1012,7 @@ var
   IArray: TDynImageDataArray;
   I: LongInt;
 begin
+  Assert((Data <> nil) and (Size > 0));
   Result := False;
   Format := FindImageFileFormatByExt(DetermineMemoryFormat(Data, Size));
   if Format <> nil then
@@ -997,6 +1035,7 @@ function LoadMultiImageFromFile(const FileName: string; var Images:
 var
   Format: TImageFileFormat;
 begin
+  Assert(FileName <> '');
   Result := False;
   Format := FindImageFileFormatByExt(DetermineFileFormat(FileName));
   if Format <> nil then
@@ -1010,6 +1049,7 @@ function LoadMultiImageFromStream(Stream: TStream; var Images: TDynImageDataArra
 var
   Format: TImageFileFormat;
 begin
+  Assert(Stream <> nil);
   Result := False;
   Format := FindImageFileFormatByExt(DetermineStreamFormat(Stream));
   if Format <> nil then
@@ -1024,6 +1064,7 @@ function LoadMultiImageFromMemory(Data: Pointer; Size: LongInt;
 var
   Format: TImageFileFormat;
 begin
+  Assert((Data <> nil) and (Size > 0));
   Result := False;
   Format := FindImageFileFormatByExt(DetermineMemoryFormat(Data, Size));
   if Format <> nil then
@@ -1040,6 +1081,7 @@ var
   Format: TImageFileFormat;
   IArray: TDynImageDataArray;
 begin
+  Assert(FileName <> '');
   Result := False;
   Format := FindImageFileFormatByName(FileName);
   if Format <> nil then
@@ -1056,6 +1098,7 @@ var
   Format: TImageFileFormat;
   IArray: TDynImageDataArray;
 begin
+  Assert((Ext <> '') and (Stream <> nil));
   Result := False;
   Format := FindImageFileFormatByExt(Ext);
   if Format <> nil then
@@ -1072,6 +1115,7 @@ var
   Format: TImageFileFormat;
   IArray: TDynImageDataArray;
 begin
+  Assert((Ext <> '') and (Data <> nil) and (Size > 0));
   Result := False;
   Format := FindImageFileFormatByExt(Ext);
   if Format <> nil then
@@ -1087,6 +1131,7 @@ function SaveMultiImageToFile(const FileName: string;
 var
   Format: TImageFileFormat;
 begin
+  Assert(FileName <> '');
   Result := False;
   Format := FindImageFileFormatByName(FileName);
   if Format <> nil then
@@ -1098,6 +1143,7 @@ function SaveMultiImageToStream(const Ext: string; Stream: TStream;
 var
   Format: TImageFileFormat;
 begin
+  Assert((Ext <> '') and (Stream <> nil));
   Result := False;
   Format := FindImageFileFormatByExt(Ext);
   if Format <> nil then
@@ -1109,6 +1155,7 @@ function SaveMultiImageToMemory(const Ext: string; Data: Pointer;
 var
   Format: TImageFileFormat;
 begin
+  Assert((Ext <> '') and (Data <> nil) and (Size > 0));
   Result := False;
   Format := FindImageFileFormatByExt(Ext);
   if Format <> nil then
@@ -1123,32 +1170,31 @@ var
 begin
   Result := False;
   if TestImage(Image) then
-    with Image do
-    try
-      if TestImage(Clone) and (Image.Bits <> Clone.Bits) then
-        FreeImage(Clone)
-      else
-        InitImage(Clone);
+  try
+    if TestImage(Clone) and (Image.Bits <> Clone.Bits) then
+      FreeImage(Clone)
+    else
+      InitImage(Clone);
 
-      Info := ImageFormatInfos[Format];
-      Clone.Width := Width;
-      Clone.Height := Height;
-      Clone.Format := Format;
-      Clone.Size := Size;
+    Info := ImageFormatInfos[Image.Format];
+    Clone.Width := Image.Width;
+    Clone.Height := Image.Height;
+    Clone.Format := Image.Format;
+    Clone.Size := Image.Size;
 
-      if Info.PaletteEntries > 0 then
-      begin
-        GetMem(Clone.Palette, Info.PaletteEntries * SizeOf(TColor32Rec));
-        Move(Palette^, Clone.Palette^, Info.PaletteEntries *
-          SizeOf(TColor32Rec));
-      end;
-      
-      GetMem(Clone.Bits, Clone.Size);
-      Move(Bits^, Clone.Bits^, Clone.Size);
-      Result := True;
-    except
-      RaiseImaging(SErrorCloneImage, [ImageToStr(Image)]);
+    if Info.PaletteEntries > 0 then
+    begin
+      GetMem(Clone.Palette, Info.PaletteEntries * SizeOf(TColor32Rec));
+      Move(Image.Palette^, Clone.Palette^, Info.PaletteEntries *
+        SizeOf(TColor32Rec));
     end;
+
+    GetMem(Clone.Bits, Clone.Size);
+    Move(Image.Bits^, Clone.Bits^, Clone.Size);
+    Result := True;
+  except
+    RaiseImaging(SErrorCloneImage, [ImageToStr(Image)]);
+  end;
 end;
 
 function ConvertImage(var Image: TImageData; DestFormat: TImageFormat): Boolean;
@@ -1158,13 +1204,13 @@ var
   NewSize, NumPixels: LongInt;
   SrcInfo, DstInfo: PImageFormatInfo;
 begin
+  Assert(IsImageFormatValid(DestFormat));
   Result := False;
   if TestImage(Image) then
   with Image do
   try
-    // If default format is set as dest or dest is not defined
-    // we use DefaultImageFormat
-    if DestFormat in [ifDefault, ifUnknown] then
+    // If default format is set we use DefaultImageFormat
+    if DestFormat = ifDefault then
       DestFormat := DefaultImageFormat;
     SrcInfo := ImageFormatInfos[Format];
     DstInfo := ImageFormatInfos[DestFormat];
@@ -1193,66 +1239,54 @@ begin
       GetMem(NewData, NewSize);
       GetMem(NewPal, DstInfo.PaletteEntries * SizeOf(TColor32Rec));
 
-      // Source: indexed format
       if SrcInfo.IsIndexed then
       begin
+        // Source: indexed format
         if DstInfo.IsIndexed then
-          IndexToIndex(NumPixels, Bits, NewData, SrcInfo, DstInfo, Palette,
-            NewPal)
+          IndexToIndex(NumPixels, Bits, NewData, SrcInfo, DstInfo, Palette, NewPal)
+        else if DstInfo.HasGrayChannel then
+          IndexToGray(NumPixels, Bits, NewData, SrcInfo, DstInfo, Palette)
+        else if DstInfo.IsFloatingPoint then
+          IndexToFloat(NumPixels, Bits, NewData, SrcInfo, DstInfo, Palette)
         else
-          if DstInfo.HasGrayChannel then
-            IndexToGray(NumPixels, Bits, NewData, SrcInfo, DstInfo, Palette)
-          else
-            if DstInfo.IsFloatingPoint then
-              IndexToFloat(NumPixels, Bits, NewData, SrcInfo, DstInfo, Palette)
-            else
-              IndexToChannel(NumPixels, Bits, NewData, SrcInfo, DstInfo,
-                Palette)
+          IndexToChannel(NumPixels, Bits, NewData, SrcInfo, DstInfo, Palette);
+      end
+      else if SrcInfo.HasGrayChannel then
+      begin
+        // Source: grayscale format
+        if DstInfo.IsIndexed then
+          GrayToIndex(NumPixels, Bits, NewData, SrcInfo, DstInfo, NewPal)
+        else if DstInfo.HasGrayChannel then
+          GrayToGray(NumPixels, Bits, NewData, SrcInfo, DstInfo)
+        else if DstInfo.IsFloatingPoint then
+          GrayToFloat(NumPixels, Bits, NewData, SrcInfo, DstInfo)
+        else
+          GrayToChannel(NumPixels, Bits, NewData, SrcInfo, DstInfo);
+      end
+      else if SrcInfo.IsFloatingPoint then
+      begin
+        // Source: floating point format
+        if DstInfo.IsIndexed then
+          FloatToIndex(NumPixels, Bits, NewData, SrcInfo, DstInfo, NewPal)
+        else if DstInfo.HasGrayChannel then
+          FloatToGray(NumPixels, Bits, NewData, SrcInfo, DstInfo)
+        else if DstInfo.IsFloatingPoint then
+          FloatToFloat(NumPixels, Bits, NewData, SrcInfo, DstInfo)
+        else
+          FloatToChannel(NumPixels, Bits, NewData, SrcInfo, DstInfo);
       end
       else
-        // Source: grayscale format
-        if SrcInfo.HasGrayChannel then
-        begin
-          if DstInfo.IsIndexed then
-            GrayToIndex(NumPixels, Bits, NewData, SrcInfo, DstInfo, NewPal)
-          else
-            if DstInfo.HasGrayChannel then
-              GrayToGray(NumPixels, Bits, NewData, SrcInfo, DstInfo)
-            else
-              if DstInfo.IsFloatingPoint then
-                GrayToFloat(NumPixels, Bits, NewData, SrcInfo, DstInfo)
-              else
-                GrayToChannel(NumPixels, Bits, NewData, SrcInfo, DstInfo);
-        end
+      begin
+        // Source: standard multi channel image
+        if DstInfo.IsIndexed then
+          ChannelToIndex(NumPixels, Bits, NewData, SrcInfo, DstInfo, NewPal)
+        else if DstInfo.HasGrayChannel then
+          ChannelToGray(NumPixels, Bits, NewData, SrcInfo, DstInfo)
+        else if DstInfo.IsFloatingPoint then
+          ChannelToFloat(NumPixels, Bits, NewData, SrcInfo, DstInfo)
         else
-          // Source: floating point format
-          if SrcInfo.IsFloatingPoint then
-          begin
-            if DstInfo.IsIndexed then
-              FloatToIndex(NumPixels, Bits, NewData, SrcInfo, DstInfo, NewPal)
-            else
-              if DstInfo.HasGrayChannel then
-                FloatToGray(NumPixels, Bits, NewData, SrcInfo, DstInfo)
-              else
-                if DstInfo.IsFloatingPoint then
-                  FloatToFloat(NumPixels, Bits, NewData, SrcInfo, DstInfo)
-                else
-                  FloatToChannel(NumPixels, Bits, NewData, SrcInfo, DstInfo);
-          end              
-          else
-            // Source: standard multi channel image
-          begin
-            if DstInfo.IsIndexed then
-              ChannelToIndex(NumPixels, Bits, NewData, SrcInfo, DstInfo, NewPal)
-            else
-              if DstInfo.HasGrayChannel then
-                ChannelToGray(NumPixels, Bits, NewData, SrcInfo, DstInfo)
-              else
-                if DstInfo.IsFloatingPoint then
-                  ChannelToFloat(NumPixels, Bits, NewData, SrcInfo, DstInfo)
-                else
-                  ChannelToChannel(NumPixels, Bits, NewData, SrcInfo, DstInfo);
-          end;
+          ChannelToChannel(NumPixels, Bits, NewData, SrcInfo, DstInfo);
+      end;
 
       FreeMemNil(Bits);
       FreeMemNil(Palette);
@@ -1264,10 +1298,11 @@ begin
     else
       ConvertSpecial(Image, SrcInfo, DstInfo);
 
+    Assert(SrcInfo.Format <> Image.Format);
+
     Result := True;
   except
-    RaiseImaging(SErrorConvertImage, [GetFormatName(DestFormat),
-      ImageToStr(Image)]);
+    RaiseImaging(SErrorConvertImage, [GetFormatName(DestFormat), ImageToStr(Image)]);
   end;
 end;
 
@@ -1284,6 +1319,7 @@ begin
   try
     if ImageFormatInfos[OldFmt].IsSpecial then
       ConvertImage(Image, ifDefault);
+
     WidthBytes := Width * ImageFormatInfos[Format].BytesPerPixel;
     GetMem(Buff, WidthBytes);
     try
@@ -1296,12 +1332,14 @@ begin
         Move(P2^, P1^, WidthBytes);
         Move(Buff^, P2^, WidthBytes);
       end;
-      Result := True;
     finally
       FreeMemNil(Buff);
     end;
+
     if OldFmt <> Format then
       ConvertImage(Image, OldFmt);
+
+    Result := True;  
   except
     RaiseImaging(SErrorFlipImage, [ImageToStr(Image)]);
   end;
@@ -1321,6 +1359,7 @@ begin
   try
     if ImageFormatInfos[OldFmt].IsSpecial then
       ConvertImage(Image, ifDefault);
+
     Bpp := ImageFormatInfos[Format].BytesPerPixel;
     WidthDiv2 := Width div 2;
     WidthBytes := Width * Bpp;
@@ -1340,9 +1379,11 @@ begin
         Dec(XRight, Bpp);
       end;
     end;
-    Result := True;
+
     if OldFmt <> Format then
       ConvertImage(Image, OldFmt);
+
+    Result := True;
   except
     RaiseImaging(SErrorMirrorImage, [ImageToStr(Image)]);
   end;
@@ -1353,10 +1394,9 @@ function ResizeImage(var Image: TImageData; NewWidth, NewHeight: LongInt;
 var
   WorkImage: TImageData;
 begin
+  Assert((NewWidth > 0) and (NewHeight > 0));
   Result := False;
-  if TestImage(Image) and (NewWidth > 0) and (NewHeight > 0) and
-    ((Image.Width <> NewWidth) or (Image.Height <> NewHeight)) then
-  with Image do
+  if TestImage(Image) and ((Image.Width <> NewWidth) or (Image.Height <> NewHeight)) then
   try
     InitImage(WorkImage);
     // Create new image with desired dimensions
@@ -1385,87 +1425,89 @@ var
   PixF: TColorFPRec;
   SwapF: Single;
 begin
+  Assert((SrcChannel in [0..3]) and (DstChannel in [0..3]));
   Result := False;
-  if TestImage(Image) then
+  if TestImage(Image) and (SrcChannel <> DstChannel) then
   with Image do
   try
     NumPixels := Width * Height;
     Info := ImageFormatInfos[Format];
     Data := Bits;
 
-    // First swap channels of most common formats
     if (Info.Format = ifR8G8B8) or ((Info.Format = ifA8R8G8B8) and
        (SrcChannel <> ChannelAlpha) and (DstChannel <> ChannelAlpha)) then
+    begin
+      // Swap channels of most common formats R8G8B8 and A8R8G8B8 (no alpha)
       for I := 0 to NumPixels - 1 do
-        with PColor24Rec(Data)^ do
+      with PColor24Rec(Data)^ do
+      begin
+        Swap := Channels[SrcChannel];
+        Channels[SrcChannel] := Channels[DstChannel];
+        Channels[DstChannel] := Swap;
+        Inc(Data, Info.BytesPerPixel);
+      end;
+    end
+    else if Info.IsIndexed then
+    begin
+      // Swap palette channels of indexed images
+      SwapChannelsOfPalette(Palette, Info.PaletteEntries, SrcChannel, DstChannel)
+    end
+    else if Info.IsFloatingPoint then
+    begin
+      // Swap channels of floating point images
+      for I := 0 to NumPixels - 1 do
+      begin
+        FloatGetSrcPixel(Data, Info, PixF);
+        with PixF do
+        begin
+          SwapF := Channels[SrcChannel];
+          Channels[SrcChannel] := Channels[DstChannel];
+          Channels[DstChannel] := SwapF;
+        end;
+        FloatSetDstPixel(Data, Info, PixF);
+        Inc(Data, Info.BytesPerPixel);
+      end;
+    end
+    else if Info.IsSpecial then
+    begin
+      // Swap channels of special format images
+      ConvertImage(Image, ifDefault);
+      SwapChannels(Image, SrcChannel, DstChannel);
+      ConvertImage(Image, Info.Format);
+    end
+    else if Info.HasGrayChannel and Info.HasAlphaChannel and
+      ((SrcChannel = ChannelAlpha) or (DstChannel = ChannelAlpha)) then
+    begin
+      for I := 0 to NumPixels - 1 do
+      begin
+        // If we have grayscale image with alpha and alpha is channel
+        // to be swapped, we swap it. No other alternative for gray images,
+        // just alpha and something
+        GrayGetSrcPixel(Data, Info, Pix64, Alpha);
+        Swap := Alpha;
+        Alpha := Pix64.A;
+        Pix64.A := Swap;
+        GraySetDstPixel(Data, Info, Pix64, Alpha);
+        Inc(Data, Info.BytesPerPixel);
+      end;
+    end
+    else
+    begin
+      // Then do general swap on other channel image formats
+      for I := 0 to NumPixels - 1 do
+      begin
+        ChannelGetSrcPixel(Data, Info, Pix64);
+        with Pix64 do
         begin
           Swap := Channels[SrcChannel];
           Channels[SrcChannel] := Channels[DstChannel];
           Channels[DstChannel] := Swap;
-          Inc(Data, Info.BytesPerPixel);
-        end
-    else
-      // Swap palette channels of indexed images
-      if Info.IsIndexed then
-      begin
-        SwapChannelsOfPalette(Palette, Info.PaletteEntries, SrcChannel,
-          DstChannel)
-      end
-      else
-        // Swap channels of floating point images
-        if Info.IsFloatingPoint then
-        begin
-          for I := 0 to NumPixels - 1 do
-          begin
-            FloatGetSrcPixel(Data, Info, PixF);
-            with PixF do
-            begin
-              SwapF := Channels[SrcChannel];
-              Channels[SrcChannel] := Channels[DstChannel];
-              Channels[DstChannel] := SwapF;
-            end;
-            FloatSetDstPixel(Data, Info, PixF);
-            Inc(Data, Info.BytesPerPixel);
-          end;
-        end
-        else
-          // Swap channels of special format images
-          if Info.IsSpecial then
-          begin
-            ConvertImage(Image, ifDefault);
-            SwapChannels(Image, SrcChannel, DstChannel);
-            ConvertImage(Image, Info.Format);
-          end
-          else
-            if Info.HasGrayChannel and Info.HasAlphaChannel and
-              ((SrcChannel = ChannelAlpha) or (DstChannel = ChannelAlpha)) then
-              begin
-                for I := 0 to NumPixels - 1 do
-                begin
-                  // If we have grayscale image with alpha and alpha is channel
-                  // to be swapped, we swap it
-                  GrayGetSrcPixel(Data, Info, Pix64, Alpha);
-                  Swap := Alpha;
-                  Alpha := Pix64.A;
-                  Pix64.A := Swap;
-                  GraySetDstPixel(Data, Info, Pix64, Alpha);
-                  Inc(Data, Info.BytesPerPixel);
-                end;
-              end
-            else
-              // Then do general swap on other channel image formats
-              for I := 0 to NumPixels - 1 do
-              begin
-                ChannelGetSrcPixel(Data, Info, Pix64);
-                with Pix64 do
-                begin
-                  Swap := Channels[SrcChannel];
-                  Channels[SrcChannel] := Channels[DstChannel];
-                  Channels[DstChannel] := Swap;
-                end;
-                ChannelSetDstPixel(Data, Info, Pix64);
-                Inc(Data, Info.BytesPerPixel);
-              end;
+        end;
+        ChannelSetDstPixel(Data, Info, Pix64);
+        Inc(Data, Info.BytesPerPixel);
+      end;
+    end;
+
     Result := True;
   except
     RaiseImaging(SErrorSwapImage, [ImageToStr(Image)]);
@@ -1486,7 +1528,7 @@ begin
   with Image do
   try
     // First create temp image info and allocate output bits and palette
-    MaxColors := Iff(MaxColors > $FFFF, $FFFF, MaxColors);
+    MaxColors := ClampInt(MaxColors, 2, High(Word));
     OldFmt := Format;
     FillChar(TmpInfo, SizeOf(TmpInfo), 0);
     TmpInfo.PaletteEntries := MaxColors;
@@ -1562,21 +1604,21 @@ function MapImageToPalette(var Image: TImageData; Pal: PPalette32;
     Result := 0;
     MinDif := 1020;
     for I := 0 to Entries - 1 do
-      with Pal[I] do
+    with Pal[I] do
+    begin
+      Dif := Abs(R - Col.R);
+      if Dif > MinDif then Continue;
+      Dif := Dif + Abs(G - Col.G);
+      if Dif > MinDif then Continue;
+      Dif := Dif + Abs(B - Col.B);
+      if Dif > MinDif then Continue;
+      Dif := Dif + Abs(A - Col.A);
+      if Dif < MinDif then
       begin
-        Dif := Abs(R - Col.R);
-        if Dif > MinDif then Continue;
-        Dif := Dif + Abs(G - Col.G);
-        if Dif > MinDif then Continue;
-        Dif := Dif + Abs(B - Col.B);
-        if Dif > MinDif then Continue;
-        Dif := Dif + Abs(A - Col.A);
-        if Dif < MinDif then
-        begin
-          MinDif := Dif;
-          Result := I;
-        end;
+        MinDif := Dif;
+        Result := I;
       end;
+    end;
   end;
 
 var
@@ -1586,8 +1628,10 @@ var
   CloneARGB: TImageData;
   Info: PImageFormatInfo;
 begin
+  Assert((Entries >= 2) and (Entries <= 256));
   Result := False;
-  if TestImage(Image) and (Entries <= 256) then
+
+  if TestImage(Image) then
   try
     // We create clone of source image in A8R8G8B8 and
     // then recreate source image in ifIndex8 format
@@ -1631,8 +1675,11 @@ var
   Info: PImageFormatInfo;
   OldFmt: TImageFormat;
 begin
-  OldFmt := Image.Format;
+  Assert((ChunkWidth > 0) and (ChunkHeight > 0));
   Result := False;
+  OldFmt := Image.Format;
+  FreeImagesInArray(Chunks);
+
   if TestImage(Image) then
   try
     Info := ImageFormatInfos[Image.Format];
@@ -1645,9 +1692,8 @@ begin
     // Number of chunks along X and Y axes is computed
     XChunks := Trunc(Ceil(Image.Width / ChunkWidth));
     YChunks := Trunc(Ceil(Image.Height / ChunkHeight));
-
-    FreeImagesInArray(Chunks);
     SetLength(Chunks, XChunks * YChunks);
+
     // For every chunk we create new image and copy a portion of
     // the source image to it. If chunk is on the edge of the source image
     // we fill enpty space with Fill pixel data if PreserveSize is set or
@@ -1655,11 +1701,13 @@ begin
     for Y := 0 to YChunks - 1 do
       for X := 0 to XChunks - 1 do
       begin
+        // Determine if current chunk is on the edge of original image
         NotOnEdge := ((X < XChunks - 1) and (Y < YChunks - 1)) or
           ((Image.Width mod ChunkWidth = 0) and (Image.Height mod ChunkHeight = 0));
 
         if PreserveSize or NotOnEdge then
         begin
+          // We should preserve chunk sizes or we are somewhere inside original image
           NewImage(ChunkWidth, ChunkHeight, Image.Format, Chunks[Y * XChunks + X]);
           if (not NotOnEdge) and (Fill <> nil) then
             FillRect(Chunks[Y * XChunks + X], 0, 0, ChunkWidth, ChunkHeight, Fill);
@@ -1668,12 +1716,14 @@ begin
         end
         else
         begin
+          // Create smaller edge chunk
           XTrunc := Image.Width - (Image.Width div ChunkWidth) * ChunkWidth;
           YTrunc := Image.Height - (Image.Height div ChunkHeight) * ChunkHeight;
           NewImage(XTrunc, YTrunc, Image.Format, Chunks[Y * XChunks + X]);
           CopyRect(Image, X * ChunkWidth, Y * ChunkHeight, XTrunc, YTrunc,
             Chunks[Y * XChunks + X], 0, 0);
         end;
+        
         // If source image is in indexed format we copy its palette to chunk
         if Info.IsIndexed then
         begin
@@ -3179,9 +3229,11 @@ finalization
       dagger textures), other info (PNG/MNG)
       - return additional info about loaded image like this
         TicksPerSecond := PMNGDetails(GetOption(ImagingMNGFileDetails)).TicksPerSecond;
-    - create giga test of MakeCompatible - for all file fromats try
-      to send all possible data formats to MakeCompatible and observe the results
-      and saving/loading too!
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Changed FreeImage and FreeImagesInArray functions to procedures.
+    - Added many assertions, come try-finally, other checks, and small code
+      and doc changes.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - GenerateMipMaps threw failed assertion when input was indexed or special,
