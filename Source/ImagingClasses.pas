@@ -67,6 +67,8 @@ type
     constructor Create; virtual;
     constructor CreateFromImage(AImage: TBaseImage);
     destructor Destroy; override;
+    { Returns info about current image.}
+    function ToString: string;
 
     { Creates a new image data with the given size and format. Old image
       data is lost. Works only for the current image of TMultiImage.}
@@ -93,6 +95,10 @@ type
       fastest for images in the same data format (and slowest for
       images in special formats).}
     procedure StretchTo(SrcX, SrcY, SrcWidth, SrcHeight: LongInt; DstImage: TBaseImage; DstX, DstY, DstWidth, DstHeight: LongInt; Filter: TResizeFilter);
+    { Replaces pixels with OldPixel in the given rectangle by NewPixel.
+      OldPixel and NewPixel should point to the pixels in the same format
+      as the given image is in.}
+    procedure ReplaceColor(X, Y, Width, Height: LongInt; OldColor, NewColor: Pointer);
 
     { Loads current image data from file.}
     procedure LoadFromFile(const FileName: string); virtual;
@@ -462,6 +468,21 @@ begin
       DstImage.FPData^, DstX, DstY, DstWidth, DstHeight, Filter);
     DstImage.DoPixelsChanged;
   end;
+end;
+
+procedure TBaseImage.ReplaceColor(X, Y, Width, Height: Integer; OldColor,
+  NewColor: Pointer);
+begin
+  if Valid then
+  begin
+    Imaging.ReplaceColor(FPData^, X, Y, Width, Height, OldColor, NewColor);
+    DoPixelsChanged;
+  end;
+end;
+
+function TBaseImage.ToString: string;
+begin
+  Result := Iff(Valid, Imaging.ImageToStr(FPData^), 'empty image');
 end;
 
 procedure TBaseImage.LoadFromFile(const FileName: string);
@@ -892,6 +913,12 @@ end;
   -- TODOS ----------------------------------------------------
     - nothing now
     - add SetPalette, create some pal wrapper first
+    - put all low level stuff here like ReplaceColor etc, change
+      CopyTo to Copy, and add overload Copy(SrcRect, DstX, DstY) ...
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added ReplaceColor method to TBaseImage.
+    - Added ToString method to TBaseImage.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Inserting images to empty MultiImage will act as Add method.
