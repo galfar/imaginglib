@@ -404,7 +404,6 @@ end;
 function ImFreeImageList(var ImageList: TImageDataList): Boolean;
 var
   Int: PInternalList;
-  I: LongInt;
 begin
   try
     if ImageList <> nil then
@@ -718,7 +717,8 @@ end;
 function ImNewPalette(Entries: LongInt; var Pal: PPalette32): Boolean;
 begin
   try
-    Result := Imaging.NewPalette(Entries, Pal);
+    Imaging.NewPalette(Entries, Pal);
+    Result := True;
   except
     Result := False;
   end;
@@ -727,7 +727,8 @@ end;
 function ImFreePalette(var Pal: PPalette32): Boolean;
 begin
   try
-    Result := Imaging.FreePalette(Pal);
+    Imaging.FreePalette(Pal);
+    Result := True;
   except
     Result := False;
   end;
@@ -736,7 +737,8 @@ end;
 function ImCopyPalette(SrcPal, DstPal: PPalette32; SrcIdx, DstIdx, Count: LongInt): Boolean;
 begin
   try
-    Result := Imaging.CopyPalette(SrcPal, DstPal, SrcIdx, DstIdx, Count);
+    Imaging.CopyPalette(SrcPal, DstPal, SrcIdx, DstIdx, Count);
+    Result := True;
   except
     Result := False;
   end;
@@ -754,7 +756,8 @@ end;
 function ImFillGrayscalePalette(Pal: PPalette32; Entries: LongInt): Boolean;
 begin
   try
-    Result := Imaging.FillGrayscalePalette(Pal, Entries);
+    Imaging.FillGrayscalePalette(Pal, Entries);
+    Result := True;
   except
     Result := False;
   end;
@@ -764,8 +767,8 @@ function ImFillCustomPalette(Pal: PPalette32; Entries: LongInt; RBits, GBits,
   BBits: Byte; Alpha: Byte): Boolean;
 begin
   try
-    Result := Imaging.FillCustomPalette(Pal, Entries, RBits, GBits, BBits,
-      Alpha);
+    Imaging.FillCustomPalette(Pal, Entries, RBits, GBits, BBits, Alpha);
+    Result := True;
   except
     Result := False;
   end;
@@ -775,7 +778,8 @@ function ImSwapChannelsOfPalette(Pal: PPalette32; Entries, SrcChannel,
   DstChannel: LongInt): Boolean;
 begin
   try
-    Result := Imaging.SwapChannelsOfPalette(Pal, Entries, SrcChannel, DstChannel);
+    Imaging.SwapChannelsOfPalette(Pal, Entries, SrcChannel, DstChannel);
+    Result := True;
   except
     Result := False;
   end;

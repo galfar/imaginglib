@@ -1620,8 +1620,10 @@ begin
     SrcImage.Width, Filter, Radius, WrapEdges);
   MapY := BuildMappingTable(DstY, DstY + DstHeight, SrcY, SrcY + SrcHeight,
     SrcImage.Height, Filter, Radius, WrapEdges);
+
   if (MapX = nil) or (MapY = nil) then
     Exit;
+
   ClusterX := nil;
   ClusterY := nil;
 

@@ -200,10 +200,11 @@ function SplitImage(var Image: TImageData; var Chunks: TDynImageDataArray;
   single palette for all of them. If ConvertImages is True images in array
   are converted to indexed format using resulting palette. if it is False
   images are left intact and only resulting palatte is returned in Pal.
-  Pal must be allocated to at least MaxColors * SizeOf(TColor32Rec) bytes.}
+  Pal must be allocated to have at least MaxColors entries.}
 function MakePaletteForImages(var Images: TDynImageDataArray; Pal: PPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean;
-{ Rotates image by 90, 180, 270, -90, -180, or -270 degrees counterclockwise.}
+{ Rotates image by 90, 180, 270, -90, -180, or -270 degrees counterclockwise.
+  Only multiples of 90 degrees are allowed.}
 function RotateImage(var Image: TImageData; Angle: LongInt): Boolean;
 
 { Drawing/Pixel functions }
@@ -257,31 +258,31 @@ procedure SetPixelFP(const Image: TImageData; X, Y: LongInt; const Color: TColor
 { Palette Functions }
 
 { Allocates new palette with Entries ARGB color entries.}
-function NewPalette(Entries: LongInt; var Pal: PPalette32): Boolean;
+procedure NewPalette(Entries: LongInt; var Pal: PPalette32);
 { Frees given palette.}
-function FreePalette(var Pal: PPalette32): Boolean;
+procedure FreePalette(var Pal: PPalette32);
 { Copies Count palette entries from SrcPal starting at index SrcIdx to
   DstPal at index DstPal.}
-function CopyPalette(SrcPal, DstPal: PPalette32; SrcIdx, DstIdx, Count: LongInt): Boolean;
+procedure CopyPalette(SrcPal, DstPal: PPalette32; SrcIdx, DstIdx, Count: LongInt);
 { Returns index of color in palette or index of nearest color if exact match
-  is not found. Pal must be allocated to at least Entries * SizeOf(TColor32Rec) bytes.}
+  is not found. Pal must have at least Entries color entries.}
 function FindColor(Pal: PPalette32; Entries: LongInt; Color: TColor32): LongInt;
 { Creates grayscale palette where each color channel has the same value.
-  Pal must be allocated to at least Entries * SizeOf(TColor32Rec) bytes.}
-function FillGrayscalePalette(Pal: PPalette32; Entries: LongInt): Boolean;
+  Pal must have at least Entries color entries.}
+procedure FillGrayscalePalette(Pal: PPalette32; Entries: LongInt);
 { Creates palette with given bitcount for each channel.
   2^(RBits + GBits + BBits) should be equl to Entries. Examples:
   (3, 3, 2) will create palette with all possible colors of R3G3B2 format
   and (8, 0, 0) will create palette with 256 shades of red.
   Pal must be allocated to at least Entries * SizeOf(TColor32Rec) bytes.}
-function FillCustomPalette(Pal: PPalette32; Entries: LongInt; RBits, GBits,
-  BBits: Byte; Alpha: Byte = $FF): Boolean;
+procedure FillCustomPalette(Pal: PPalette32; Entries: LongInt; RBits, GBits,
+  BBits: Byte; Alpha: Byte = $FF);
 { Swaps SrcChannel and DstChannel color or alpha channels of palette.
   Use ChannelRed, ChannelBlue, ChannelGreen, ChannelAlpha constants to
   identify channels. Pal must be allocated to at least
   Entries * SizeOf(TColor32Rec) bytes.}
-function SwapChannelsOfPalette(Pal: PPalette32; Entries, SrcChannel,
-  DstChannel: LongInt): Boolean;
+procedure SwapChannelsOfPalette(Pal: PPalette32; Entries, SrcChannel,
+  DstChannel: LongInt);
 
 { Options Functions }
 
@@ -487,8 +488,10 @@ function IffFormat(Condition: Boolean; const TruePart, FalsePart: TImageFormat):
 { Registers new image loader/saver so it can be used by LoadFrom/SaveTo
   functions.}
 procedure RegisterImageFileFormat(AClass: TImageFileFormatClass);
-{ Registers new option so it can be used by Srt/GetOption functions.}
-procedure RegisterOption(OptionId: LongInt; Variable: PLongInt);
+{ Registers new option so it can be used by SetOption and GetOption functions.
+  Returns True if registration was succesful - that is Id is valid and is
+  not already taken by another option.}
+function RegisterOption(OptionId: LongInt; Variable: PLongInt): Boolean;
 { Returns image format loader/saver according to given extension
   or nil if not found.}
 function FindImageFileFormatByExt(const Ext: string): TImageFileFormat;
@@ -1753,6 +1756,7 @@ var
   Target: TImageData;
   DstFormat: TImageFormat;
 begin
+  Assert((Pal <> nil) and (MaxColors > 0));
   Result := False;
   if TestImagesInArray(Images) then
   try
@@ -1801,7 +1805,9 @@ var
   Pix, RotPix: PByte;
   OldFmt: TImageFormat;
 begin
+  Assert(Angle mod 90 = 0);
   Result := False;
+
   if TestImage(Image) then
   try
     if (Angle < -360) or (Angle > 360) then Angle := Angle mod 360;
@@ -1898,30 +1904,30 @@ begin
   OldFormat := ifUnknown;
   if TestImage(SrcImage) and TestImage(DstImage) then
   try
-    Info := ImageFormatInfos[DstImage.Format];
-    if Info.IsSpecial then
-    begin
-      // If dest image is in special format we convert it to default
-      OldFormat := Info.Format;
-      ConvertImage(DstImage, ifDefault);
-      Info := ImageFormatInfos[DstImage.Format];
-    end;
-    if SrcImage.Format <> DstImage.Format then
-    begin
-      // If images are in different format source is converted to dest's format
-      InitImage(WorkImage);
-      CloneImage(SrcImage, WorkImage);
-      ConvertImage(WorkImage, DstImage.Format);
-    end
-    else
-      WorkImage := SrcImage;
-
     // Make sure we are still copying image to image, not invalid pointer to protected memory
     ClipCopyBounds(SrcX, SrcY, Width, Height, DstX, DstY, SrcImage.Width, SrcImage.Height,
       Rect(0, 0, DstImage.Width, DstImage.Height));
-  
+
     if (Width > 0) and (Height > 0) then
     begin
+      Info := ImageFormatInfos[DstImage.Format];
+      if Info.IsSpecial then
+      begin
+        // If dest image is in special format we convert it to default
+        OldFormat := Info.Format;
+        ConvertImage(DstImage, ifDefault);
+        Info := ImageFormatInfos[DstImage.Format];
+      end;
+      if SrcImage.Format <> DstImage.Format then
+      begin
+        // If images are in different format source is converted to dest's format
+        InitImage(WorkImage);
+        CloneImage(SrcImage, WorkImage);
+        ConvertImage(WorkImage, DstImage.Format);
+      end
+      else
+        WorkImage := SrcImage;
+
       MoveBytes := Width * Info.BytesPerPixel;
       DstWidthBytes := DstImage.Width * Info.BytesPerPixel;
       DstPointer := @PByteArray(DstImage.Bits)[DstY * DstWidthBytes +
@@ -1942,8 +1948,9 @@ begin
       // Working image must be freed if it is not the same as source image
       if WorkImage.Bits <> SrcImage.Bits then
         FreeImage(WorkImage);
+
+      Result := True;
     end;
-    Result := True;
   except
     RaiseImaging(SErrorCopyRect, [ImageToStr(SrcImage), ImageToStr(DstImage)]);
   end;
@@ -2009,6 +2016,7 @@ var
   LinePointer, PixPointer: PByte;
   OldFmt: TImageFormat;
 begin
+  Assert((OldColor <> nil) and (NewColor <> nil));
   Result := False;
   if TestImage(Image) then
   try
@@ -2057,11 +2065,20 @@ var
 begin
   Result := False;
   OldFormat := ifUnknown;
-  if (SrcWidth <> DstWidth) or (SrcHeight <> DstHeight) then
-  begin
-    // If source and dest rectangles don't have the same size we do stretch
-    if TestImage(SrcImage) and TestImage(DstImage) then
-    try
+  if TestImage(SrcImage) and TestImage(DstImage) then
+  try
+    // Make sure we are still copying image to image, not invalid pointer to protected memory
+    ClipStretchBounds(SrcX, SrcY, SrcWidth, SrcHeight, DstX, DstY, DstWidth, DstHeight,
+      SrcImage.Width, SrcImage.Height, Rect(0, 0, DstImage.Width, DstImage.Height));
+
+    if (SrcWidth = DstWidth) or (SrcHeight = DstHeight) then
+    begin
+      // If source and dest rectangles have the same size call CopyRect
+      Result := CopyRect(SrcImage, SrcX, SrcY, SrcWidth, SrcHeight, DstImage, DstX, DstY);
+    end
+    else if (SrcWidth > 0) and (SrcHeight > 0) and (DstWidth > 0) and (DstHeight > 0) then
+    begin
+      // If source and dest rectangles don't have the same size we do stretch
       Info := ImageFormatInfos[DstImage.Format];
 
       if Info.IsSpecial then
@@ -2081,10 +2098,6 @@ begin
       end
       else
         WorkImage := SrcImage;
-
-      // Make sure we are still copying image to image, not invalid pointer to protected memory
-      ClipStretchBounds(SrcX, SrcY, SrcWidth, SrcHeight, DstX, DstY, DstWidth, DstHeight,
-        SrcImage.Width, SrcImage.Height, Rect(0, 0, DstImage.Width, DstImage.Height));
 
       // Only pixel resize is supported for indexed images
       if Info.IsIndexed then
@@ -2107,14 +2120,9 @@ begin
         FreeImage(WorkImage);
 
       Result := True;
-    except
-      RaiseImaging(SErrorStretchRect, [ImageToStr(SrcImage), ImageToStr(DstImage)]);
     end;
-  end
-  else
-  begin
-    // If source and dest rectangles have the same size call CopyRect
-    Result := CopyRect(SrcImage, SrcX, SrcY, SrcWidth, SrcHeight, DstImage, DstX, DstY)
+  except
+    RaiseImaging(SErrorStretchRect, [ImageToStr(SrcImage), ImageToStr(DstImage)]);
   end;
 end;
 
@@ -2122,6 +2130,7 @@ procedure GetPixelDirect(const Image: TImageData; X, Y: LongInt; Pixel: Pointer)
 var
   BytesPerPixel: LongInt;
 begin
+  Assert(Pixel <> nil);
   BytesPerPixel := ImageFormatInfos[Image.Format].BytesPerPixel;
   CopyPixel(@PByteArray(Image.Bits)[(Y * Image.Width + X) * BytesPerPixel],
     Pixel, BytesPerPixel);
@@ -2131,6 +2140,7 @@ procedure SetPixelDirect(const Image: TImageData; X, Y: LongInt; Pixel: Pointer)
 var
   BytesPerPixel: LongInt;
 begin
+  Assert(Pixel <> nil);
   BytesPerPixel := ImageFormatInfos[Image.Format].BytesPerPixel;
   CopyPixel(Pixel, @PByteArray(Image.Bits)[(Y * Image.Width + X) * BytesPerPixel],
     BytesPerPixel);
@@ -2178,35 +2188,32 @@ end;
 
 { Palette Functions }
 
-function NewPalette(Entries: LongInt; var Pal: PPalette32): Boolean;
+procedure NewPalette(Entries: LongInt; var Pal: PPalette32);
 begin
-  Result := False;
+  Assert((Entries > 2) and (Entries <= 65535));
   try
     GetMem(Pal, Entries * SizeOf(TColor32Rec));
     FillChar(Pal^, Entries * SizeOf(TColor32Rec), $FF);
-    Result := True;
   except
     RaiseImaging(SErrorNewPalette, [Entries]);
   end;
 end;
 
-function FreePalette(var Pal: PPalette32): Boolean;
+procedure FreePalette(var Pal: PPalette32);
 begin
-  Result := False;
   try
     FreeMemNil(Pal);
-    Result := True;
   except
     RaiseImaging(SErrorFreePalette, [Pal]);
   end;
 end;
 
-function CopyPalette(SrcPal, DstPal: PPalette32; SrcIdx, DstIdx, Count: LongInt): Boolean;
+procedure CopyPalette(SrcPal, DstPal: PPalette32; SrcIdx, DstIdx, Count: LongInt);
 begin
-  Result := False;
+  Assert((SrcPal <> nil) and (DstPal <> nil));
+  Assert((SrcIdx >= 0) and (DstIdx >= 0) and (Count >= 0));
   try
     Move(SrcPal[SrcIdx], DstPal[DstIdx], Count * SizeOf(TColor32Rec));
-    Result := True;
   except
     RaiseImaging(SErrorCopyPalette, [Count, SrcPal, DstPal]);
   end;
@@ -2218,51 +2225,50 @@ var
   Col: TColor32Rec;
   I, MinDif, Dif: LongInt;
 begin
-  Result := 0;
+  Assert(Pal <> nil);
+  Result := -1;
   Col.Color := Color;
-  if Pal <> nil then
   try
     // First try to find exact match
     for I := 0 to Entries - 1 do
-      with Pal[I] do
+    with Pal[I] do
+    begin
+      if (A = Col.A) and (R = Col.R) and
+        (G = Col.G) and (B = Col.B) then
       begin
-        if (A = Col.A) and (R = Col.R) and
-          (G = Col.G) and (B = Col.B) then
-        begin
-          Result := I;
-          Exit;
-        end;
+        Result := I;
+        Exit;
       end;
+    end;
 
     // If exact match was not found, find nearest color
     MinDif := 1020;
     for I := 0 to Entries - 1 do
-      with Pal[I] do
+    with Pal[I] do
+    begin
+      Dif := Abs(R - Col.R);
+      if Dif > MinDif then Continue;
+      Dif := Dif + Abs(G - Col.G);
+      if Dif > MinDif then Continue;
+      Dif := Dif + Abs(B - Col.B);
+      if Dif > MinDif then Continue;
+      Dif := Dif + Abs(A - Col.A);
+      if Dif < MinDif then
       begin
-        Dif := Abs(R - Col.R);
-        if Dif > MinDif then Continue;
-        Dif := Dif + Abs(G - Col.G);
-        if Dif > MinDif then Continue;
-        Dif := Dif + Abs(B - Col.B);
-        if Dif > MinDif then Continue;
-        Dif := Dif + Abs(A - Col.A);
-        if Dif < MinDif then
-        begin
-          MinDif := Dif;
-          Result := I;
-        end;
+        MinDif := Dif;
+        Result := I;
       end;
+    end;
   except
     RaiseImaging(SErrorFindColor, [Pal, Entries]);
   end;
 end;
 
-function FillGrayscalePalette(Pal: PPalette32; Entries: LongInt): Boolean;
+procedure FillGrayscalePalette(Pal: PPalette32; Entries: LongInt);
 var
   I: LongInt;
 begin
-  Result := False;
-  if Pal <> nil then
+  Assert(Pal <> nil);
   try
     for I := 0 to Entries - 1 do
     with Pal[I] do
@@ -2272,22 +2278,20 @@ begin
       G := Byte(I);
       B := Byte(I);
     end;
-    Result := True;
   except
     RaiseImaging(SErrorGrayscalePalette, [Pal, Entries]);
   end;
 end;
 
-function FillCustomPalette(Pal: PPalette32; Entries: LongInt; RBits, GBits,
-  BBits: Byte; Alpha: Byte = $FF): Boolean;
+procedure FillCustomPalette(Pal: PPalette32; Entries: LongInt; RBits, GBits,
+  BBits: Byte; Alpha: Byte = $FF);
 var
   I, TotalBits, MaxEntries: LongInt;
 begin
-  Result := False;
+  Assert(Pal <> nil);
   TotalBits := RBits + GBits + BBits;
   MaxEntries := Min(Pow2Int(TotalBits), Entries);
-  FillChar(Pal^, Entries * SizeOf(TColor32Rec), 0);  
-  if Pal <> nil then
+  FillChar(Pal^, Entries * SizeOf(TColor32Rec), 0);
   try
     for I := 0 to MaxEntries - 1 do
     with Pal[I] do
@@ -2300,20 +2304,19 @@ begin
       if BBits > 0 then
         B := ((I shr 0) and (1 shl BBits - 1)) * 255 div (1 shl BBits - 1);
     end;
-    Result := True;
   except
     RaiseImaging(SErrorCustomPalette, [Pal, Entries]);
   end;
 end;
 
-function SwapChannelsOfPalette(Pal: PPalette32; Entries, SrcChannel,
-  DstChannel: LongInt): Boolean;
+procedure SwapChannelsOfPalette(Pal: PPalette32; Entries, SrcChannel,
+  DstChannel: LongInt);
 var
   I: LongInt;
   Swap: Byte;
 begin
-  Result := False;
-  if Pal <> nil then
+  Assert(Pal <> nil);
+  Assert((SrcChannel in [0..3]) and (DstChannel in [0..3]));
   try
     for I := 0 to Entries - 1 do
     with Pal[I] do
@@ -2322,7 +2325,6 @@ begin
       Channels[SrcChannel] := Channels[DstChannel];
       Channels[DstChannel] := Swap;
     end;
-    Result := True;
   except
     RaiseImaging(SErrorSwapPalette, [Pal, Entries]);
   end;
@@ -2432,7 +2434,8 @@ end;
 
 function GetVersionStr: string;
 begin
-  Result := Format('%.1d.%.2d.%.1d', [ImagingVersionMajor, ImagingVersionMinor, ImagingVersionPatch]);
+  Result := Format('%.1d.%.2d.%.1d', [ImagingVersionMajor,
+    ImagingVersionMinor, ImagingVersionPatch]);
 end;
 
 function IffFormat(Condition: Boolean; const TruePart, FalsePart: TImageFormat): TImageFormat;
@@ -2452,18 +2455,17 @@ begin
     ImageFileFormats.Add(AClass.Create);
 end;
 
-procedure RegisterOption(OptionId: LongInt; Variable: PLongInt);
+function RegisterOption(OptionId: LongInt; Variable: PLongInt): Boolean;
 begin
   if Options = nil then
     InitOptions;
 
-  if Options <> nil then
-  begin
-    if OptionId >= Length(Options) then
-      SetLength(Options, OptionId + InitialOptions);
-    if (OptionId >= 0) and (OptionId < Length(Options)) and (Options[OptionId] = nil) then
-      Options[OptionId] := Variable;
-  end;
+  Assert(Variable <> nil);
+
+  if OptionId >= Length(Options) then
+    SetLength(Options, OptionId + InitialOptions);
+  if (OptionId >= 0) and (OptionId < Length(Options)) and (Options[OptionId] = nil) then
+    Options[OptionId] := Variable;
 end;
 
 function FindImageFileFormatByExt(const Ext: string): TImageFileFormat;
@@ -2517,7 +2519,6 @@ begin
   else
     Result := nil;
 end;
-
 
 function GetImageFileFormatsFilter(OpenFileFilter: Boolean): string;
 var
@@ -2697,7 +2698,9 @@ begin
   FreeAndNil(OptionStack);
 end;
 
-{ TImageFileFormat class implementation }
+{
+  TImageFileFormat class implementation
+}
 
 constructor TImageFileFormat.Create;
 begin
@@ -2757,6 +2760,8 @@ begin
   if FCanSave then
   begin
     Len := Length(Images);
+    Assert(Len > 0);
+
     // If there are no images to be saved exit
     if Len = 0 then Exit;
 
@@ -3231,6 +3236,9 @@ finalization
         TicksPerSecond := PMNGDetails(GetOption(ImagingMNGFileDetails)).TicksPerSecond;
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Changed RegisterOption procedure to function
+    - Changed bunch of palette functions from low level interface to procedure
+      (there was no reason for them to be functions).
     - Changed FreeImage and FreeImagesInArray functions to procedures.
     - Added many assertions, come try-finally, other checks, and small code
       and doc changes.
