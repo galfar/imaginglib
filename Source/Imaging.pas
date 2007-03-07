@@ -3206,6 +3206,8 @@ initialization
     System.ReportMemoryLeaksOnShutdown := True;
   {$IFEND}
 {$ENDIF}
+  if ImageFileFormats = nil then
+    ImageFileFormats := TList.Create;
   InitImageFormats;
   RegisterOption(ImagingColorReductionMask, @ColorReductionMask);
   RegisterOption(ImagingLoadOverrideFormat, @LoadOverrideFormat);

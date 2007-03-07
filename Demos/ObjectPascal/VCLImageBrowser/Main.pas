@@ -40,7 +40,7 @@ uses
   ImagingClasses,
   ImagingComponents,
   ImagingCanvases,
-  ImagingFormats,
+  ImagingFormats,   
   ImagingUtility;
 
 type
