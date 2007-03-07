@@ -42,6 +42,19 @@ const
   SGIFFormatName = 'Graphics Interchange Format';
   SGIFMasks      = '*.gif';
 
+type
+  TGIFHeader = packed record
+    // File header part
+    Signature: TChar3;  // Header Signature (always "GIF")
+    Version: TChar3;    // GIF format version("87a" or "89a")
+    // Logical Screen Descriptor part
+    ScreenWidth: Word;  // Width of Display Screen in Pixels
+    ScreenHeight: Word; // Height of Display Screen in Pixels
+    PackedFields: Byte; // Screen and color map information
+    BackgroundColorIndex: Byte; // Background color index (in global color table)
+    AspectRatio: Byte;  // Pixel aspect ratio, ratio = (AspectRatio + 15) / 64
+  end;
+
 {
   File Notes:
 

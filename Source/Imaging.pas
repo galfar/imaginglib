@@ -548,6 +548,9 @@ uses
 {$IFDEF LINK_TARGA}
   ImagingTarga,
 {$ENDIF}
+{$IFDEF LINK_GIF}
+  ImagingGif,
+{$ENDIF}
 {$IFDEF LINK_PNM}
   ImagingPortableMaps,
 {$ENDIF}
@@ -2457,6 +2460,7 @@ end;
 
 function RegisterOption(OptionId: LongInt; Variable: PLongInt): Boolean;
 begin
+  Result := False;
   if Options = nil then
     InitOptions;
 
@@ -2465,7 +2469,10 @@ begin
   if OptionId >= Length(Options) then
     SetLength(Options, OptionId + InitialOptions);
   if (OptionId >= 0) and (OptionId < Length(Options)) and (Options[OptionId] = nil) then
+  begin
     Options[OptionId] := Variable;
+    Result := True;
+  end;
 end;
 
 function FindImageFileFormatByExt(const Ext: string): TImageFileFormat;

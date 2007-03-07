@@ -126,8 +126,9 @@
 			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions</Directories>
 			<Directories Name="Conditionals"></Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
-			<Directories Name="UsePackages">False</Directories>  <Directories Name="Packages"></Directories>
-    </Directories>
+			<Directories Name="UsePackages">False</Directories>
+			<Directories Name="Packages"></Directories>
+		</Directories>
 		<Parameters>
 			<Parameters Name="RunParams"></Parameters>
 			<Parameters Name="HostApplication"></Parameters>

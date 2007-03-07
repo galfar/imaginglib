@@ -20,6 +20,11 @@
   data format. Active subimage is then drawn TPainBox component's
   client area using DisplayImage procedure (direct bit copy, no need to
   convert Imaging's data to TGraphic).
+
+  You need ShellCtrls unit and its components installed in Delphi for this demo.
+  In BDS 2006 you can find them in Demos\DelphiWin32\VCLWin32\ShellControls
+  directory. In some other versions of Delphi it is installed by default during
+  IDE installation.
 }
 
 unit Main;

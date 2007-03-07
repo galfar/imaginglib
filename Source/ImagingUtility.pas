@@ -96,6 +96,7 @@ type
   PFloatHelper = ^TFloatHelper;
 
   TChar2 = array[0..1] of Char;
+  TChar3 = array[0..2] of Char;
   TChar4 = array[0..3] of Char;
   TChar8 = array[0..7] of Char;
 
