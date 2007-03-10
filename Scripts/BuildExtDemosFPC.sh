@@ -12,7 +12,7 @@ UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib
   -Fu$DEMOPATH/Common -Fu$ROOTDIR/Source/Extensions -Fu$ROOTDIR/Extras/Extensions -Fu$SDLDIR -Fu$OPENGLDIR"
 INCLUDE="-Fi$ROOTDIR/Source -Fi$SDLDir -Fi$OPENGLDIR" 
 OUTPUT="-FE$ROOTDIR/Demos/Bin"
-OPTIONS="-Sgi2dh -OG2 -Xs"
+OPTIONS="-Sgi -OG2 -Xs"
 
 fpc $OPTIONS $OUTPUT "$DEMOPATH/SDLDemo/SDLDemo.dpr" $UNITS $INCLUDE -oSDLDemo
 if test $? = 0; then

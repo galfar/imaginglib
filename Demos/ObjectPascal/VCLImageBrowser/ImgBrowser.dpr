@@ -2,9 +2,7 @@ program ImgBrowser;
 
 uses
   Forms,
-  Main,
-  ImagingGif in '..\..\..\Source\ImagingGif.pas',
-  ImagingPsd in '..\..\..\Extras\Extensions\ImagingPsd.pas';
+  Main;
 
 {$R *.res}
 

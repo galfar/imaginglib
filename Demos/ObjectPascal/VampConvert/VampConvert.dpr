@@ -29,10 +29,6 @@ const
   DefaultOutputFile = 'output.png';
   DefaultFileFormat = 'png';
 
-const
-  STrue = 'true';
-  SFalse = 'false';
-
 var
   InFile, OutFile: string;
   Operations: TStringList;

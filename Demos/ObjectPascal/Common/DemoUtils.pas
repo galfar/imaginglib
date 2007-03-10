@@ -31,7 +31,7 @@ function ExpandFileTo(const FileName, BasePath: string): string;
 var
  OldPath: string;
 begin
-  OldPath:= GetCurrentDir;
+  GetDir(0, OldPath);
   try
    if SysUtils.DirectoryExists(BasePath) then
    begin
