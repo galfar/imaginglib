@@ -41,6 +41,8 @@
 
 unit dzlib;
 
+{$I ImagingOptions.inc}
+
 interface
 
 {$DEFINE IMPASZLIB}
