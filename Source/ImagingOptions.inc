@@ -194,10 +194,13 @@
 
 { More compiler options }
 
-{$IFDEF FPC}               // Free Pascal options
+{$IFDEF FPC}               // Free Pascal options - some options set above (like min enum size)
+                           // are reset to defaults by setting {$MODE} so they are
+                           // redeclared here 
   {$MODE DELPHI}           // compatible with delphi
   {$GOTO ON}               // alow goto
   {$PACKRECORDS 8}         // same as ALING 8 for Delphi
+  {$PACKENUM 4}            // Min enum size: 4 B
   {$CALLING REGISTER}      // default calling convention is register
   {$IFDEF CPU86}
     {$IFNDEF DYN_LIBRARY}
