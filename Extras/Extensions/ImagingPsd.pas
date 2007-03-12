@@ -34,13 +34,33 @@ unit ImagingPsd;
 interface
 
 uses
-  SysUtils, Imaging, ImagingTypes, ImagingUtility;
-          
+  SysUtils, ImagingTypes, Imaging, ImagingColors, ImagingUtility;
+
+type
+  TPSDFileFormat = class(TImageFileFormat)
+  protected
+    function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
+      OnlyFirstLevel: Boolean): Boolean; override;
+    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt): Boolean; override;
+    procedure ConvertToSupported(var Image: TImageData;
+      const Info: TImageFormatInfo); override;
+  public
+    constructor Create; override;
+    function TestFormat(Handle: TImagingHandle): Boolean; override;
+  end;
+
 implementation
 
 const
   SPSDFormatName = 'Photoshop Image';
-  SPSDMasks      = '*.psd';
+  SPSDMasks      = '*.psd,*.pdd';
+  PSDSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8,
+    ifR16G16B16, ifA16R16G16B16, ifGray16, ifA16Gray16,
+    ifR16G16B16, ifA16R16G16B16, ifR32F, ifA32R32G32B32F];
+
+const
+  SPSDMagic = '8BPS';
 
 type
   {$MINENUMSIZE 2}
@@ -68,12 +88,368 @@ type
     Mode: TPSDColorMode;           // Color mode
   end;
 
+procedure SwapHeader(var Header: TPSDHeader);
+begin
+  Header.Version := SwapEndianWord(Header.Version);
+  Header.Channels := SwapEndianWord(Header.Channels);
+  Header.Depth := SwapEndianWord(Header.Depth);
+  Header.Rows := SwapEndianLongWord(Header.Rows);
+  Header.Columns := SwapEndianLongWord(Header.Columns);
+  Header.Mode := TPSDColorMode(SwapEndianWord(Word(Header.Mode)));
+end; 
+
+{
+  TPSDFileFormat class implementation
+}
+
+constructor TPSDFileFormat.Create;
+begin
+  inherited Create;
+  FName := SPSDFormatName;
+  FCanLoad := True;
+  FCanSave := not True;
+  FIsMultiImageFormat := False;
+  FSupportedFormats := PSDSupportedFormats;
+  AddMasks(SPSDMasks);
+end;
+
+function TPSDFileFormat.LoadData(Handle: TImagingHandle;
+  var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+var
+  Header: TPSDHeader;
+  ByteCount: LongWord;
+  RawPal: array[0..767] of Byte;
+  Compression, PackedSize: Word;
+  LineSize, ChannelPixelSize, WidthBytes,
+    CurrChannel, MaxRLESize, I, Y, X: LongInt;
+  Info: TImageFormatInfo;
+  PackedLine, LineBuffer: PByte;
+  RLELineSizes: array of Word;
+  Col32: TColor32Rec;
+  Col64: TColor64Rec;
+  PCol32: PColor32Rec;
+  PCol64: PColor64Rec;
+  PColF: PColorFPRec;
+
+  { PackBits RLE decode code from Mike Lischke's GraphicEx library.}
+  procedure DecodeRLE(Source, Dest: PByte; PackedSize, UnpackedSize: LongInt);
+  var
+    Count: LongInt;
+  begin
+    while (UnpackedSize > 0) and (PackedSize > 0) do
+    begin
+      Count := ShortInt(Source^);
+      Inc(Source);
+      Dec(PackedSize);
+      if Count < 0 then
+      begin
+        // Replicate next byte -Count + 1 times
+        if Count = -128 then
+          Continue;
+        Count := -Count + 1;
+        if Count > UnpackedSize then
+          Count := UnpackedSize;
+        FillChar(Dest^, Count, Source^);
+        Inc(Source);
+        Dec(PackedSize);
+        Inc(Dest, Count);
+        Dec(UnpackedSize, Count);
+      end
+      else
+      begin
+        // Copy next Count + 1 bytes from input
+        Inc(Count);
+        if Count > UnpackedSize then
+          Count := UnpackedSize;
+        if Count > PackedSize then
+          Count := PackedSize;
+        Move(Source^, Dest^, Count);
+        Inc(Dest, Count);
+        Inc(Source, Count);
+        Dec(PackedSize, Count);
+        Dec(UnpackedSize, Count);
+      end;
+    end;
+  end;
+
+begin
+  Result := False;
+  SetLength(Images, 1);
+  with GetIO, Images[0] do
+  begin
+    // Read PSD header
+    Read(Handle, @Header, SizeOf(Header));
+    SwapHeader(Header);
+    // Determine image data format 
+    Format := ifUnknown;
+    case Header.Mode of
+      cmGrayscale:
+        begin
+          if Header.Depth in [8, 16] then
+          begin
+            if Header.Channels = 1 then
+              Format := IffFormat(Header.Depth = 8, ifGray8, ifGray16)
+            else if Header.Channels >= 2 then
+              Format := IffFormat(Header.Depth = 8, ifA8Gray8, ifA16Gray16);
+          end
+          else if (Header.Depth = 32) and (Header.Channels = 1) then
+            Format := ifR32F;
+        end;
+      cmIndexed:
+        begin
+          if Header.Depth = 8 then
+            Format := ifIndex8;
+        end;
+      cmRGB, cmMultiChannel, cmCMYK:
+        begin
+          if Header.Depth in [8, 16] then
+          begin
+            if Header.Channels = 3 then
+              Format := IffFormat(Header.Depth = 8, ifR8G8B8, ifR16G16B16)
+            else if Header.Channels >= 4 then
+              Format := IffFormat(Header.Depth = 8, ifA8R8G8B8, ifA16R16G16B16);
+          end
+          else if Header.Depth = 32 then
+            Format := ifA32R32G32B32F;
+        end;
+      cmMono: ;
+      cmDuoTone: ;
+      cmLab: ;
+    end;
+
+    // Exit if no compatible format was found
+    if Format = ifUnknown then
+      Exit;
+
+    NewImage(Header.Columns, Header.Rows, Format, Images[0]);
+    Info := GetFormatInfo(Format);
+
+    // Read or skip Color Mode Data Block (palette)
+    Read(Handle, @ByteCount, SizeOf(ByteCount));
+    ByteCount := SwapEndianLongWord(ByteCount);
+    if Format = ifIndex8 then
+    begin
+      // Read palette only for indexed images
+      Read(Handle, @RawPal, SizeOf(RawPal));
+      for I := 0 to 255 do
+      begin
+        Palette[I].A := $FF;
+        Palette[I].R := RawPal[I + 0];
+        Palette[I].G := RawPal[I + 256];
+        Palette[I].B := RawPal[I + 512];
+      end; 
+    end
+    else
+      Seek(Handle, ByteCount, smFromCurrent);
+
+    // Skip Image Resources Block
+    Read(Handle, @ByteCount, SizeOf(ByteCount));
+    ByteCount := SwapEndianLongWord(ByteCount);
+    Seek(Handle, ByteCount, smFromCurrent);
+    // Skip Layer and Mask Information Block
+    Read(Handle, @ByteCount, SizeOf(ByteCount));
+    ByteCount := SwapEndianLongWord(ByteCount);
+    Seek(Handle, ByteCount, smFromCurrent);
+
+    // Read compression flag
+    Read(Handle, @Compression, SizeOf(Compression));
+    Compression := SwapEndianWord(Compression);
+
+    if Compression = 1 then
+    begin
+      // RLE compressed PSDs (most) have first lengths of compressed scanlines
+      // for each channel stored
+      SetLength(RLELineSizes, Height * Header.Channels);
+      Read(Handle, @RLELineSizes[0], Length(RLELineSizes) * SizeOf(Word));
+      SwapEndianWord(@RLELineSizes[0], Height * Header.Channels);
+      MaxRLESize := RLELineSizes[0];
+      for I := 1 to High(RLELineSizes) do
+      begin
+        if MaxRLESize < RLELineSizes[I] then
+          MaxRLESize := RLELineSizes[I];
+      end;
+    end
+    else
+      MaxRLESize := 0;
+
+    ChannelPixelSize := Info.BytesPerPixel div Info.ChannelCount;
+    LineSize := Width * ChannelPixelSize;
+    WidthBytes := Width * Info.BytesPerPixel;
+    GetMem(LineBuffer, LineSize);
+    GetMem(PackedLine, MaxRLESize);
+
+    try
+      // Image color chanels are stored separately in PSDs so we will load
+      // one by one and copy their data to appropriate addresses of dest image.
+      for I := 0 to Header.Channels - 1 do
+      begin
+        // Now determine to which color channel of destination image we are going
+        // to write pixels.
+        if I <= 4 then
+        begin
+          // If PSD has alpha channel we need to switch current channel order -
+          // PSDs have alpha stored after blue channel but Imaging has alpha
+          // before red.
+          if Info.HasAlphaChannel and (Header.Mode <> cmCMYK) then
+          begin
+            if I = Info.ChannelCount - 1 then
+              CurrChannel := I
+            else
+              CurrChannel := Info.ChannelCount - 2 - I;
+          end
+          else
+            CurrChannel := Info.ChannelCount - 1 - I;
+        end
+        else
+        begin
+          // No valid channel remains
+          CurrChannel := -1;
+        end;
+
+        if CurrChannel >= 0 then
+        begin
+          for Y := 0 to Height - 1 do
+          begin
+            if Compression = 1 then
+            begin
+              // Read RLE line and decompress it
+              PackedSize := RLELineSizes[I * Height + Y];
+              Read(Handle, PackedLine, PackedSize);
+              DecodeRLE(PackedLine, LineBuffer, PackedSize, LineSize);
+            end
+            else
+            begin
+              // Just read uncompressed line
+              Read(Handle, LineBuffer, LineSize);
+            end;
+
+            if Info.ChannelCount > 1 then
+            begin
+              // Copy each pixel fragment to its right place in destination image
+              for X := 0 to Width - 1 do
+              begin
+                Move(PByteArray(LineBuffer)[X * ChannelPixelSize],
+                  PByteArray(Bits)[Y * WidthBytes + X * Info.BytesPerPixel + CurrChannel * ChannelPixelSize],
+                  ChannelPixelSize);
+              end;
+            end
+            else
+            begin
+              // Just copy the line
+              Move(LineBuffer^, PByteArray(Bits)[Y * LineSize], LineSize);
+            end;
+          end;
+        end
+        else
+        begin
+          // Skip current color channel, not needed for image loading - just to
+          // get stream's position to the and of PSD
+          if Compression = 1 then
+          begin
+            for Y := 0 to Height - 1 do
+              Seek(Handle, RLELineSizes[I * Height + Y], smFromCurrent);
+          end
+          else
+            Seek(Handle, LineSize * Height, smFromCurrent);
+        end;
+      end;
+
+      if Header.Mode = cmCMYK then
+      begin
+        // Convert CMYK images to RGB (alpha is ignored here). PSD stores CMYK
+        // channels in the way that first requires substraction from max channel value
+        if ChannelPixelSize = 1 then
+        begin
+          PCol32 := Bits;
+          for X := 0 to Width * Height - 1 do
+          begin
+            Col32.A := 255 - PCol32.A;
+            Col32.R := 255 - PCol32.R;
+            Col32.G := 255 - PCol32.G;
+            Col32.B := 255 - PCol32.B;
+            CMYKToRGB(Col32.A, Col32.R, Col32.G, Col32.B, PCol32.R, PCol32.G, PCol32.B);
+            PCol32.A := 255;
+            Inc(PCol32);
+          end;
+        end
+        else
+        begin
+          PCol64 := Bits;
+          for X := 0 to Width * Height - 1 do
+          begin
+            Col64.A := 65535 - SwapEndianWord(PCol64.A);
+            Col64.R := 65535 - SwapEndianWord(PCol64.R);
+            Col64.G := 65535 - SwapEndianWord(PCol64.G);
+            Col64.B := 65535 - SwapEndianWord(PCol64.B);
+            CMYKToRGB16(Col64.A, Col64.R, Col64.G, Col64.B, PCol64.R, PCol64.G, PCol64.B);
+            PCol64.A := 65535;
+            Inc(PCol64);
+          end;
+        end;
+      end;
+
+      if Header.Depth = 32 then
+      begin
+        // HDR images are stored in big endian
+        SwapEndianLongWord(Bits, Width * Height * Info.ChannelCount);
+        if (Header.Channels = 3) and (Header.Mode = cmRGB) then
+        begin
+          // RGB images were loaded as ARGB so we must wet alpha manually to 1.0
+          PColF := Bits;
+          for X := 0 to Width * Height - 1 do
+          begin
+            PColF.A := 1.0;
+            Inc(PColF);
+          end;
+        end;
+      end;
+
+      Result := True;
+    finally
+      FreeMem(LineBuffer);
+      FreeMem(PackedLine);
+    end;
+  end;
+end;
+
+function TPSDFileFormat.SaveData(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: Integer): Boolean;
+begin
+  Result := False;
+end;
+
+procedure TPSDFileFormat.ConvertToSupported(var Image: TImageData;
+  const Info: TImageFormatInfo);
+begin
+
+end;
+
+function TPSDFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
+var
+  Header: TPSDHeader;
+  ReadCount: LongInt;
+begin
+  Result := False;
+  if Handle <> nil then
+  begin
+    ReadCount := GetIO.Read(Handle, @Header, SizeOf(Header));
+    SwapHeader(Header);
+    GetIO.Seek(Handle, -ReadCount, smFromCurrent);
+    Result := (ReadCount >= SizeOf(Header)) and
+      (Header.Signature = SPSDMagic) and
+      (Header.Version = 1);
+  end;
+end;
+
+initialization
+  RegisterImageFileFormat(TPSDFileFormat);
+
 {
   File Notes:
 
  -- TODOS ----------------------------------------------------
     - nothing now
-    - add some initial stuff!
+    - add some saving support
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Unit created with initial stuff!

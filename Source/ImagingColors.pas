@@ -54,11 +54,19 @@ procedure YCbCrToRGB16(Y, Cb, Cr: Word; var R, G, B: Word);
 procedure RGBToCMY(R, G, B: Byte; var C, M, Y: Byte);
 { Converts CMY to RGB color.}
 procedure CMYToRGB(C, M, Y: Byte; var R, G, B: Byte);
+{ Converts RGB color to CMY.}
+procedure RGBToCMY16(R, G, B: Word; var C, M, Y: Word);
+{ Converts CMY to RGB color.}
+procedure CMYToRGB16(C, M, Y: Word; var R, G, B: Word);
 
 { Converts RGB color to CMYK.}
 procedure RGBToCMYK(R, G, B: Byte; var C, M, Y, K: Byte);
 { Converts CMYK to RGB color.}
 procedure CMYKToRGB(C, M, Y, K: Byte; var R, G, B: Byte);
+{ Converts RGB color to CMYK.}
+procedure RGBToCMYK16(R, G, B: Word; var C, M, Y, K: Word);
+{ Converts CMYK to RGB color.}
+procedure CMYKToRGB16(C, M, Y, K: Word; var R, G, B: Word);
 
 implementation
 
@@ -123,6 +131,20 @@ begin
   B := 255 - Y;
 end;
 
+procedure RGBToCMY16(R, G, B: Word; var C, M, Y: Word);
+begin
+  C := 65535 - R;
+  M := 65535 - G;
+  Y := 65535 - B;
+end;
+
+procedure CMYToRGB16(C, M, Y: Word; var R, G, B: Word);
+begin
+  R := 65535 - C;
+  G := 65535 - M;
+  B := 65535 - Y;
+end;
+
 procedure RGBToCMYK(R, G, B: Byte; var C, M, Y, K: Byte);
 begin
   RGBToCMY(R, G, B, C, M, Y);
@@ -137,9 +159,28 @@ end;
 
 procedure CMYKToRGB(C, M, Y, K: Byte; var R, G, B: Byte);
 begin
-   if C + K < 255 then R := 255 - (C + K) else R := 0;
-   if M + K < 255 then G := 255 - (M + K) else G := 0;
-   if Y + K < 255 then B := 255 - (Y + K) else B := 0;
+   R := (255 - (C - MulDiv(C, K, 255) + K));
+   G := (255 - (M - MulDiv(M, K, 255) + K));
+   B := (255 - (Y - MulDiv(Y, K, 255) + K));
+end;
+
+procedure RGBToCMYK16(R, G, B: Word; var C, M, Y, K: Word);
+begin
+  RGBToCMY16(R, G, B, C, M, Y);
+  K := Min(C, Min(M, Y));
+  if K > 0 then
+  begin
+    C := C - K;
+    M := M - K;
+    Y := Y - K;
+  end;
+end;
+
+procedure CMYKToRGB16(C, M, Y, K: Word; var R, G, B: Word);
+begin
+  R := 65535 - (C - MulDiv(C, K, 65535) + K);
+  G := 65535 - (M - MulDiv(M, K, 65535) + K);
+  B := 65535 - (Y - MulDiv(Y, K, 65535) + K);
 end;
 
 {
@@ -147,6 +188,10 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added RGB<>CMY(K) converion functions for 16 bit channels
+      (needed by PSD loading code).
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Added some color space conversion functions and LUTs

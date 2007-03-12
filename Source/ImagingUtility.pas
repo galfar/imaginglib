@@ -187,7 +187,7 @@ function Max(A, B: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
 function MaxFloat(A, B: Single): Single; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns result from multiplying Number by Numerator and then dividing by Denominator.
   Denominator must be greater than 0.}
-function MulDiv(Number, Numerator, Denominator: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
+function MulDiv(Number, Numerator, Denominator: Word): Word; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { Switches Boolean value.}
 procedure Switch(var Value: Boolean); {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -1030,10 +1030,17 @@ begin
     Result := B;
 end;
 
-function MulDiv(Number, Numerator, Denominator: LongInt): LongInt;
+function MulDiv(Number, Numerator, Denominator: Word): Word;
+{$IF Defined(USE_ASM) and (not Defined(USE_INLINE))}
+asm
+         MUL DX
+         DIV CX
+end;
+{$ELSE}
 begin
   Result := Number * Numerator div Denominator;
 end;
+{$IFEND}
 
 function IsLittleEndian: Boolean;
 var

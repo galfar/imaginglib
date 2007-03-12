@@ -450,7 +450,7 @@ begin
         else
         begin
           Dest := Bits;
-          // FP images' are in BGR order and endian swap maybe needed.
+          // FP images are in BGR order and endian swap maybe needed.
           // Some programs store scanlines in bottom-up order but
           // I will stick with Photoshops behaviour here
           for I := 0 to Width * Height - 1 do

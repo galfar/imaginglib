@@ -93,7 +93,6 @@
     {$S+}
     {$CHECKPOINTER ON}
   {$ENDIF}
-  {$UNDEF USE_INLINE}
 {$ELSE}
   {$ASSERTIONS OFF}
   {$DEBUGINFO OFF}
