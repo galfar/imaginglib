@@ -37,6 +37,13 @@ uses
   SysUtils, ImagingTypes, Imaging, ImagingColors, ImagingUtility;
 
 type
+  { Class for loading and saving Adobe Photoshop PSD images.
+    Loading and saving of indexed, grayscale, RGB(A), HDR (FP32), and CMYK
+    (auto converted to RGB)  images is supported. Non-HDR gray, RGB,
+    and CMYK images can have 8bit or 16bit color channels.
+    There is no support for loading mono images, duotone images are treated
+    like grayscale images, and multichannel and CIE Lab images are loaded as
+    RGB images but without actual conversion to RGB color space.}
   TPSDFileFormat = class(TImageFileFormat)
   protected
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
@@ -56,8 +63,8 @@ const
   SPSDFormatName = 'Photoshop Image';
   SPSDMasks      = '*.psd,*.pdd';
   PSDSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8,
-    ifR16G16B16, ifA16R16G16B16, ifGray16, ifA16Gray16,
-    ifR16G16B16, ifA16R16G16B16, ifR32F, ifA32R32G32B32F];
+    ifR8G8B8, ifA8R8G8B8, ifGray16, ifA16Gray16, ifR16G16B16, ifA16R16G16B16,
+    ifR32F, ifA32R32G32B32F];
 
 const
   SPSDMagic = '8BPS';
@@ -107,7 +114,7 @@ begin
   inherited Create;
   FName := SPSDFormatName;
   FCanLoad := True;
-  FCanSave := not True;
+  FCanSave := True;
   FIsMultiImageFormat := False;
   FSupportedFormats := PSDSupportedFormats;
   AddMasks(SPSDMasks);
@@ -183,7 +190,7 @@ begin
     // Determine image data format 
     Format := ifUnknown;
     case Header.Mode of
-      cmGrayscale:
+      cmGrayscale, cmDuoTone:
         begin
           if Header.Depth in [8, 16] then
           begin
@@ -200,7 +207,7 @@ begin
           if Header.Depth = 8 then
             Format := ifIndex8;
         end;
-      cmRGB, cmMultiChannel, cmCMYK:
+      cmRGB, cmMultiChannel, cmCMYK, cmLab:
         begin
           if Header.Depth in [8, 16] then
           begin
@@ -212,9 +219,7 @@ begin
           else if Header.Depth = 32 then
             Format := ifA32R32G32B32F;
         end;
-      cmMono: ;
-      cmDuoTone: ;
-      cmLab: ;
+      cmMono:; // Not supported
     end;
 
     // Exit if no compatible format was found
@@ -323,6 +328,12 @@ begin
               Read(Handle, LineBuffer, LineSize);
             end;
 
+            // Swap endian if needed
+            if ChannelPixelSize = 4 then
+              SwapEndianLongWord(PLongWord(LineBuffer), Width)
+            else if ChannelPixelSize = 2 then
+              SwapEndianWord(PWordArray(LineBuffer), Width);
+
             if Info.ChannelCount > 1 then
             begin
               // Copy each pixel fragment to its right place in destination image
@@ -377,10 +388,10 @@ begin
           PCol64 := Bits;
           for X := 0 to Width * Height - 1 do
           begin
-            Col64.A := 65535 - SwapEndianWord(PCol64.A);
-            Col64.R := 65535 - SwapEndianWord(PCol64.R);
-            Col64.G := 65535 - SwapEndianWord(PCol64.G);
-            Col64.B := 65535 - SwapEndianWord(PCol64.B);
+            Col64.A := 65535 - PCol64.A;
+            Col64.R := 65535 - PCol64.R;
+            Col64.G := 65535 - PCol64.G;
+            Col64.B := 65535 - PCol64.B;
             CMYKToRGB16(Col64.A, Col64.R, Col64.G, Col64.B, PCol64.R, PCol64.G, PCol64.B);
             PCol64.A := 65535;
             Inc(PCol64);
@@ -390,8 +401,6 @@ begin
 
       if Header.Depth = 32 then
       begin
-        // HDR images are stored in big endian
-        SwapEndianLongWord(Bits, Width * Height * Info.ChannelCount);
         if (Header.Channels = 3) and (Header.Mode = cmRGB) then
         begin
           // RGB images were loaded as ARGB so we must wet alpha manually to 1.0
@@ -413,15 +422,125 @@ begin
 end;
 
 function TPSDFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer): Boolean;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
+var
+  MustBeFreed: Boolean;
+  ImageToSave: TImageData;
+  Info: TImageFormatInfo;
+  Header: TPSDHeader;
+  I, X, Y, CurrChannel, LineSize, ChannelPixelSize, WidthBytes: LongInt;
+  LongVal: LongWord;
+  WordVal: Word;
+  RawPal: array[0..767] of Byte;
+  LineBuffer: PByte;
 begin
   Result := False;
+  if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
+  with GetIO, ImageToSave do
+  try
+    Info := GetFormatInfo(Format);
+    // Fill header with proper info and save it
+    FillChar(Header, SizeOf(Header), 0);
+    Header.Signature := SPSDMagic;
+    Header.Version := 1;
+    Header.Channels := Info.ChannelCount;
+    Header.Rows := Height;
+    Header.Columns := Width;
+    Header.Depth := Info.BytesPerPixel div Info.ChannelCount * 8;
+    if Info.IsIndexed then
+      Header.Mode := cmIndexed
+    else if Info.HasGrayChannel or (Info.ChannelCount = 1) then
+      Header.Mode := cmGrayscale
+    else
+      Header.Mode := cmRGB;
+
+    SwapHeader(Header);
+    Write(Handle, @Header, SizeOf(Header));
+
+    // Write palette size and data
+    LongVal := SwapEndianLongWord(IffUnsigned(Info.IsIndexed, SizeOf(RawPal), 0));
+    Write(Handle, @LongVal, SizeOf(LongVal));
+    if Info.IsIndexed then
+    begin
+      for I := 0 to Info.PaletteEntries - 1 do
+      begin
+        RawPal[I] := Palette[I].R;
+        RawPal[I + 256] := Palette[I].G;
+        RawPal[I + 512] := Palette[I].B;
+      end;
+      Write(Handle, @RawPal, SizeOf(RawPal));
+    end;
+    // Write resource and layer block sizes
+    LongVal := 0;
+    Write(Handle, @LongVal, SizeOf(LongVal));
+    Write(Handle, @LongVal, SizeOf(LongVal));
+    // Set compression off
+    WordVal := 0;
+    Write(Handle, @WordVal, SizeOf(WordVal));
+
+    ChannelPixelSize := Info.BytesPerPixel div Info.ChannelCount;
+    LineSize := Width * ChannelPixelSize;
+    WidthBytes := Width * Info.BytesPerPixel;
+    GetMem(LineBuffer, LineSize);
+
+    for I := 0 to Info.ChannelCount - 1 do
+    begin
+      // Now determine which color channel we are going to write to file.
+      if Info.HasAlphaChannel then
+      begin
+        if I = Info.ChannelCount - 1 then
+          CurrChannel := I
+        else
+          CurrChannel := Info.ChannelCount - 2 - I;
+      end
+      else
+        CurrChannel := Info.ChannelCount - 1 - I;
+
+      for Y := 0 to Height - 1 do
+      begin
+        if Info.ChannelCount > 1 then
+        begin
+          // Copy each pixel fragment to its right place in destination image
+          for X := 0 to Width - 1 do
+          begin
+            Move(PByteArray(Bits)[Y * WidthBytes + X * Info.BytesPerPixel + CurrChannel * ChannelPixelSize],
+              PByteArray(LineBuffer)[X * ChannelPixelSize], ChannelPixelSize);
+          end;
+        end
+        else
+          Move(PByteArray(Bits)[Y * LineSize], LineBuffer^, LineSize);
+
+        // Write current channel line to file (swap endian if needed first)
+        if ChannelPixelSize = 4 then
+          SwapEndianLongWord(PLongWord(LineBuffer), Width)
+        else if ChannelPixelSize = 2 then
+          SwapEndianWord(PWordArray(LineBuffer), Width);
+        Write(Handle, LineBuffer, LineSize);
+      end;
+    end;
+
+    Result := True;
+  finally
+    if MustBeFreed then
+      FreeImage(ImageToSave);
+  end;
 end;
 
 procedure TPSDFileFormat.ConvertToSupported(var Image: TImageData;
   const Info: TImageFormatInfo);
+var
+  ConvFormat: TImageFormat;
 begin
+  if Info.IsFloatingPoint then
+    ConvFormat :=  IffFormat(Info.ChannelCount = 1, ifR32F, ifA32R32G32B32F)
+  else if Info.HasGrayChannel then
+    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16Gray16, ifGray16)
+  else if Info.RBSwapFormat in GetSupportedFormats then
+    ConvFormat := Info.RBSwapFormat
+  else
+    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8R8G8B8, ifR8G8B8);
 
+  ConvertImage(Image, ConvFormat);
 end;
 
 function TPSDFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
@@ -449,9 +568,9 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
-    - add some saving support
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Saving implemented.
     - Unit created with initial stuff!
 }
 

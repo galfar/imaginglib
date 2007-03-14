@@ -422,6 +422,7 @@ end;
 
 procedure TMainForm.MenuItem3Click(Sender: TObject);
 begin
+  Caption := IntToStr(SizeOf(TImageFormat));
   OpenD.Filter := GetImageFileFormatsFilter(True);
   if OpenD.Execute then
     OpenFile(OpenD.FileName);
