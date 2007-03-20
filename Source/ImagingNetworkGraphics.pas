@@ -295,6 +295,10 @@ type
     FileType: TNGFileType;
     Frames: array of TFrameInfo;
     MHDR: TMHDR;
+    GlobalPalette: PPalette24;
+    GlobalPaletteEntries: LongInt;
+    GlobalTransparency: Pointer;
+    GlobalTransparencySize: LongInt;
     procedure Clear;
     function GetLastFrame: TFrameInfo;
     function AddFrameInfo: TFrameInfo;
@@ -458,6 +462,10 @@ begin
   for I := 0 to Length(Frames) - 1 do
     Frames[I].Free;
   SetLength(Frames, 0);
+  FreeMemNil(GlobalPalette);
+  GlobalPaletteEntries := 0;
+  FreeMemNil(GlobalTransparency);
+  GlobalTransparencySize := 0;
 end;
 
 function TNGFileHandler.GetLastFrame: TFrameInfo;
@@ -557,22 +565,58 @@ var
   procedure LoadPLTE;
   begin
     ReadChunkData;
-    if GetLastFrame.Palette = nil then
+    if GetLastFrame = nil then
     begin
-      GetMem(GetLastFrame.Palette, Chunk.DataSize);
-      Move(ChunkData^, GetLastFrame.Palette^, Chunk.DataSize);
-      GetLastFrame.PaletteEntries := Chunk.DataSize div 3;
+      // Load global palette
+      GetMem(GlobalPalette, Chunk.DataSize);
+      Move(ChunkData^, GlobalPalette^, Chunk.DataSize);
+      GlobalPaletteEntries := Chunk.DataSize div 3;
+    end
+    else if GetLastFrame.Palette = nil then
+    begin
+      if (Chunk.DataSize = 0) and (GlobalPalette <> nil) then
+      begin
+        // Use global palette
+        GetMem(GetLastFrame.Palette, GlobalPaletteEntries * SizeOf(TColor24Rec));
+        Move(GlobalPalette^, GetLastFrame.Palette^, GlobalPaletteEntries * SizeOf(TColor24Rec));
+        GetLastFrame.PaletteEntries := GlobalPaletteEntries;
+      end
+      else
+      begin
+        // Load pal from PLTE chunk
+        GetMem(GetLastFrame.Palette, Chunk.DataSize);
+        Move(ChunkData^, GetLastFrame.Palette^, Chunk.DataSize);
+        GetLastFrame.PaletteEntries := Chunk.DataSize div 3;
+      end;
     end;
   end;
 
   procedure LoadtRNS;
   begin
     ReadChunkData;
-    if GetLastFrame.Transparency = nil then
+    if GetLastFrame = nil then
     begin
-      GetMem(GetLastFrame.Transparency, Chunk.DataSize);
-      Move(ChunkData^, GetLastFrame.Transparency^, Chunk.DataSize);
-      GetLastFrame.TransparencySize := Chunk.DataSize;
+      // Load global transparency
+      GetMem(GlobalTransparency, Chunk.DataSize);
+      Move(ChunkData^, GlobalTransparency^, Chunk.DataSize);
+      GlobalTransparencySize := Chunk.DataSize;
+    end
+    else if GetLastFrame.Transparency = nil then
+    begin
+      if (Chunk.DataSize = 0) and (GlobalTransparency <> nil) then
+      begin
+        // Use global transparency
+        GetMem(GetLastFrame.Transparency, GlobalTransparencySize);
+        Move(GlobalTransparency^, GetLastFrame.Transparency^, Chunk.DataSize);
+        GetLastFrame.TransparencySize := GlobalTransparencySize;
+      end
+      else
+      begin
+        // Load pal from tRNS chunk
+        GetMem(GetLastFrame.Transparency, Chunk.DataSize);
+        Move(ChunkData^, GetLastFrame.Transparency^, Chunk.DataSize);
+        GetLastFrame.TransparencySize := Chunk.DataSize;
+      end;
     end;
   end;
 
@@ -2063,8 +2107,12 @@ finalization
   -- TODOS ----------------------------------------------------
     - nothing now
 
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added loading of global palettes and transparencies in MNG files
+      (and by doing so fixed crash when loading images with global PLTE or tRNS).
+
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - Small changes in converting to supported formats. 
+    - Small changes in converting to supported formats.
     - MakeCompatible method moved to base class, put ConvertToSupported here.
       GetSupportedFormats removed, it is now set in constructor.
     - Made public properties for options registered to SetOption/GetOption
