@@ -661,7 +661,7 @@ begin
     // Other fields will be filled later - we don't know all values now
     BF.ID := BMMagic;
     Write(Handle, @BF, SizeOf(BF));
-    if Info.HasAlphaChannel then
+    if Info.HasAlphaChannel and (Info.BytesPerPixel = 2) then
       // Save images with alpha in V4 format
       BI.Size := V4InfoHeaderSize
     else
