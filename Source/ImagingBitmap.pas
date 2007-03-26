@@ -661,7 +661,7 @@ begin
     // Other fields will be filled later - we don't know all values now
     BF.ID := BMMagic;
     Write(Handle, @BF, SizeOf(BF));
-    if Info.HasAlphaChannel and (Info.BytesPerPixel = 2) then
+    if Info.HasAlphaChannel and (Info.BytesPerPixel = 2){V4 temp hack} then
       // Save images with alpha in V4 format
       BI.Size := V4InfoHeaderSize
     else
@@ -674,8 +674,8 @@ begin
     // Set compression
     if (Info.BytesPerPixel = 1) and FUseRLE then
       BI.Compression := BI_RLE8
-    else if Info.HasAlphaChannel or
-      ((BI.BitCount = 16) and (Format <> ifX1R5G5B5)) then
+    else if (Info.HasAlphaChannel or
+      ((BI.BitCount = 16) and (Format <> ifX1R5G5B5))) and (Info.BytesPerPixel = 2){V4 temp hack} then
       BI.Compression := BI_BITFIELDS
     else
       BI.Compression := BI_RGB;
@@ -801,6 +801,10 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Temp hacks to disable V4 headers for 32bit images (compatibility with
+      other soft).
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Removed temporary data allocation for image with aligned scanlines.
