@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 245
+  Left = 249
   Height = 642
-  Top = 170
+  Top = 292
   Width = 840
   HorzScrollBar.Page = 839
   VertScrollBar.Page = 621
@@ -120,6 +120,7 @@ object MainForm: TMainForm
     AutoSize = True
     Center = True
     OnClick = ImageClick
+    Transparent = False
   end
   object MainMenu: TMainMenu
     left = 112

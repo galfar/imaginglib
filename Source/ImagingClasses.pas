@@ -99,6 +99,10 @@ type
       OldPixel and NewPixel should point to the pixels in the same format
       as the given image is in.}
     procedure ReplaceColor(X, Y, Width, Height: LongInt; OldColor, NewColor: Pointer);
+    { Swaps SrcChannel and DstChannel color or alpha channels of image.
+      Use ChannelRed, ChannelBlue, ChannelGreen, ChannelAlpha constants to
+      identify channels.}
+    procedure SwapChannels(SrcChannel, DstChannel: LongInt);
 
     { Loads current image data from file.}
     procedure LoadFromFile(const FileName: string); virtual;
@@ -476,6 +480,15 @@ begin
   if Valid then
   begin
     Imaging.ReplaceColor(FPData^, X, Y, Width, Height, OldColor, NewColor);
+    DoPixelsChanged;
+  end;
+end;
+
+procedure TBaseImage.SwapChannels(SrcChannel, DstChannel: Integer);
+begin
+  if Valid then
+  begin
+    Imaging.SwapChannels(FPData^, SrcChannel, DstChannel);
     DoPixelsChanged;
   end;
 end;
@@ -917,6 +930,7 @@ end;
       CopyTo to Copy, and add overload Copy(SrcRect, DstX, DstY) ...
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added SwapChannels method to TBaseImage.
     - Added ReplaceColor method to TBaseImage.
     - Added ToString method to TBaseImage.
 

@@ -671,6 +671,8 @@ begin
     BI.Height := -Height;
     BI.Planes := 1;
     BI.BitCount := Info.BytesPerPixel * 8;
+    BI.XPelsPerMeter := 2835; // 72 dpi
+    BI.YPelsPerMeter := 2835; // 72 dpi
     // Set compression
     if (Info.BytesPerPixel = 1) and FUseRLE then
       BI.Compression := BI_RLE8
