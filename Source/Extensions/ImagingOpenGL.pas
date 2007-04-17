@@ -36,7 +36,7 @@ interface
 
 uses
   SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats,
-  ImagingUtility, gl, glext{,dglOpenGL};
+  ImagingUtility, {gl, glext,}dglOpenGL;
 
 type
   { Various texture capabilities of installed OpenGL driver.}

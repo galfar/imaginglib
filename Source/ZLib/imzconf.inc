@@ -16,6 +16,8 @@
   {$MODE DELPHI}
 {$ENDIF}
 
+{$UNDEF DEBUG} // for Delphi 2007 in DEBUG mode
+
 {$RANGECHECKS OFF}
 {$OVERFLOWCHECKS OFF}
 { -------------------------------------------------------------------- }

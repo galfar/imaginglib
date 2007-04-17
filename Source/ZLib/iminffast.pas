@@ -17,7 +17,7 @@ interface
 
 uses
   {$ifdef DEBUG}
-  strutils,
+  SysUtils, strutils,
   {$ENDIF}
   imzutil, impaszlib;
 
