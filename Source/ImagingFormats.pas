@@ -2646,7 +2646,8 @@ begin
   for I := 0 to NumPixels - 1 do
     begin
       PColor24Rec(Dst)^ := PColor24Rec(Src)^;
-      PColor32Rec(Dst).A := 255;
+      if DstInfo.HasAlphaChannel then
+        PColor32Rec(Dst).A := 255;
       Inc(Src, SrcInfo.BytesPerPixel);
       Inc(Dst, DstInfo.BytesPerPixel);
     end
@@ -3631,8 +3632,8 @@ end;
 procedure CheckDXTDimensions(Format: TImageFormat; var Width, Height: LongInt);
 begin
   // DXT image dimensions must be multiples of four
-  Width := (Width + 3) and not 3;
-  Height := (Height + 3) and not 3;
+  Width := (Width + 3) and not 3; // div 4 * 4;
+  Height := (Height + 3) and not 3; // div 4 * 4;
 end;
 
 { Optimized pixel readers/writers for 32bit and FP colors to be stored in TImageFormatInfo }

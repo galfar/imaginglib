@@ -493,6 +493,15 @@ begin
     FmtInfo := GetFormatInfo(SrcFormat);
     SetLength(Images, ImageCount);
 
+    // Compute the pitch or get if from file if present
+    UseAsPitch := (Desc.Flags and DDSD_PITCH) = DDSD_PITCH;
+    UseAsLinear := (Desc.Flags and DDSD_LINEARSIZE) = DDSD_LINEARSIZE;
+    // Use linear as default if none is set
+    if not UseAsPitch and not UseAsLinear then
+      UseAsLinear := True;
+    // Main image pitch or linear size
+    PitchOrLinear := Desc.PitchOrLinearSize;
+
     for I := 0 to ImageCount - 1 do
     begin
       // Compute dimensions of surrent subimage based on texture type and
@@ -501,35 +510,38 @@ begin
         FloadedCubeMap, FLoadedVolume, CurrentWidth, CurrentHeight);
       NewImage(CurrentWidth, CurrentHeight, SrcFormat, Images[I]);
 
-      // Compute the pitch or get if from file if present
-      UseAsPitch := (Desc.Flags and DDSD_PITCH) = DDSD_PITCH;
-      UseAsLinear := (Desc.Flags and DDSD_LINEARSIZE) = DDSD_LINEARSIZE;
+      if (I > 0) or (PitchOrLinear = 0) then
+      begin
+        // Compute pitch or linear size for mipmap levels, or even for main image
+        // since some formats do not fill pitch nor size
+        if UseAsLinear then
+          PitchOrLinear := FmtInfo.GetPixelsSize(SrcFormat, CurrentWidth, CurrentHeight)
+        else
+          PitchOrLinear := (CurrentWidth * FmtInfo.BytesPerPixel + 3) div 4 * 4; // must be DWORD aligned
+      end;
 
-      if (I = 0) and (UseAsPitch or UseAsLinear) then
-        PitchOrLinear := Desc.PitchOrLinearSize
+      if UseAsLinear then
+        LoadSize := PitchOrLinear
       else
-        PitchOrLinear := FmtInfo.GetPixelsSize(SrcFormat, CurrentWidth, CurrentHeight);
+        LoadSize := CurrentHeight * PitchOrLinear;
 
-      if UseAsPitch then
-        LoadSize := CurrentHeight * PitchOrLinear
-      else
-        LoadSize := PitchOrLinear;
-
-      if not UseAsPitch then
+      if UseAsLinear or (LoadSize = Images[I].Size) then
       begin
         // If DDS does not use Pitch we can simply copy data
         Read(Handle, Images[I].Bits, LoadSize)
       end
       else
-      try
+      begin
         // If DDS uses Pitch we must load aligned scanlines
         // and then remove padding
         GetMem(Data, LoadSize);
-        Read(Handle, Data, LoadSize);
-        RemovePadBytes(Data, Images[I].Bits, CurrentWidth, CurrentHeight,
-          FmtInfo.BytesPerPixel, PitchOrLinear);
-      finally
-        FreeMem(Data);
+        try
+          Read(Handle, Data, LoadSize);
+          RemovePadBytes(Data, Images[I].Bits, CurrentWidth, CurrentHeight,
+            FmtInfo.BytesPerPixel, PitchOrLinear);
+       finally
+          FreeMem(Data);
+        end;
       end;
 
       if NeedsSwapChannels then
@@ -608,7 +620,7 @@ begin
     begin
       // Set proper flags if we have some mipmaps to be saved
       Desc.Flags := Desc.Flags or DDSD_MIPMAPCOUNT;
-      Desc.Caps.Caps1 := Desc.Caps.Caps1 or DDSCAPS_MIPMAP;
+      Desc.Caps.Caps1 := Desc.Caps.Caps1 or DDSCAPS_MIPMAP or DDSCAPS_COMPLEX;
       Desc.MipMaps := MipMapCount;
     end;
 
@@ -801,6 +813,11 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Saved DDS with mipmaps now correctly defineds COMPLEX flag.
+    - Fixed loading of RGB DDS files that use pitch and have mipmaps -
+      mipmaps were loaded wrongly.   
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Changed saving behaviour a bit: mipmaps are inlcuded automatically for

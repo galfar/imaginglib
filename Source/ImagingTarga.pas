@@ -497,12 +497,17 @@ begin
     Hdr.Width := Width;
     Hdr.Height := Height;
     Hdr.PixelSize := FmtInfo.BytesPerPixel * 8;
-    Hdr.ColorMapLength := fmtInfo.PaletteEntries;
+    Hdr.ColorMapLength := FmtInfo.PaletteEntries;
     Hdr.ColorEntrySize := Iff(FmtInfo.PaletteEntries > 0, 24, 0);
     Hdr.ColorMapOff := 0;
     // This indicates that targa is stored in top-left format
     // as our images -> no flipping is needed.
     Hdr.Desc := 32;
+    // Set alpha channel size in descriptor (mostly ignored by other software though)
+    if Format = ifA8R8G8B8 then
+      Hdr.Desc := Hdr.Desc or 8
+    else if Format = ifA1R5G5B5 then
+      Hdr.Desc := Hdr.Desc or 1;
 
     // Choose image type
     if FmtInfo.IsIndexed then

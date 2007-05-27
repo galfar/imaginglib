@@ -720,7 +720,7 @@ begin
       // to be multiples of 4
       Pad := 0;
       WidthBytes := Width * Info.BytesPerPixel;
-      PadSize := (((Width * BI.BitCount) + 31) shr 5) * 4 - WidthBytes;
+      PadSize := ((Width * BI.BitCount + 31) div 32) * 4 - WidthBytes;
       if PadSize > 0 then
       begin
         for I := 0 to Height - 1 do

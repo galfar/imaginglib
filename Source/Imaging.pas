@@ -1243,7 +1243,9 @@ begin
       NumPixels := Width * Height;
       NewSize := NumPixels * DstInfo.BytesPerPixel;
       GetMem(NewData, NewSize);
+      FillChar(NewData^, NewSize, 0);
       GetMem(NewPal, DstInfo.PaletteEntries * SizeOf(TColor32Rec));
+      FillChar(NewPal^, DstInfo.PaletteEntries * SizeOf(TColor32Rec), 0);
 
       if SrcInfo.IsIndexed then
       begin
@@ -3245,6 +3247,8 @@ finalization
         TicksPerSecond := PMNGDetails(GetOption(ImagingMNGFileDetails)).TicksPerSecond;
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - ConvertImage now fills new image with zeroes to avoid random data in
+      some conversions (RGB->XRGB)
     - Changed RegisterOption procedure to function
     - Changed bunch of palette functions from low level interface to procedure
       (there was no reason for them to be functions).
@@ -3254,7 +3258,7 @@ finalization
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - GenerateMipMaps threw failed assertion when input was indexed or special,
-      fixed. 
+      fixed.
     - Added CheckOptionsValidity to TImageFileFormat and its decendants.
     - Unit ImagingExtras which registers file formats in Extras package
       is now automatically added to uses clause if LINK_EXTRAS symbol is

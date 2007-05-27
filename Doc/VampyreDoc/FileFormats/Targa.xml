@@ -90,7 +90,7 @@
         <td>Indicates whether Targa image will be saved with or without
         RLE compression (efficient only for images
         with large areas of the same color).
-        Default value is <b>1 (true)</b>. </td>
+        Default value is <b>0 (false)</b>. </td>
       </row>
     </table>
 

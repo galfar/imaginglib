@@ -171,7 +171,7 @@ begin
   // in this case it is NOT equal to Length(ImgArray) div Slices
   MipMapLevels := <ref>GetOption</ref>(<ref>ImagingDDSLoadedMipMapCount</ref>);
   // check whether we have loaded volume texture 
-  IsVolume := <ref>GetOption</ref>(<ref>ImagingDDSLoadedVolume</ref>);
+  IsVolume := Boolean(<ref>GetOption</ref>(<ref>ImagingDDSLoadedVolume</ref>));
   // get the number of volume slices in the loaded DDS file
   // Length(ImgArray) &lt;&gt; Slices * MipMapLevels
   Slices := <ref>GetOption</ref>(<ref>ImagingDDSLoadedDepth</ref>);
