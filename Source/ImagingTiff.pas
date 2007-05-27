@@ -1,5 +1,5 @@
 {
-  $Id$
+  $Id: ImagingTiff.pas 71 2007-03-08 00:10:10Z galfar $
   Vampyre Imaging Library
   by Marek Mauder 
   http://imaginglib.sourceforge.net
@@ -26,8 +26,8 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ This unit contains image format loader/saver for GIF images.}
-unit ImagingGif;
+{ This unit contains image format loader/saver for TIFF images.}
+unit ImagingTiff;
 
 {$I ImagingOptions.inc}
 
@@ -37,8 +37,8 @@ uses
   SysUtils, Imaging, ImagingTypes, ImagingUtility;
 
 type
-  { GIF (Graphics Interchange Format) loader/saver class.}
-  TGIFFileFormat = class(TImageFileFormat)
+  { TIFF (Tag Image File Format) loader/saver class.}
+  TTiffFileFormat = class(TImageFileFormat)
   protected
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
@@ -54,75 +54,62 @@ type
 implementation
 
 const
-  SGIFFormatName = 'Graphics Interchange Format';
-  SGIFMasks      = '*.gif';
-  GIFSupportedFormats: TImageFormats = [ifR8G8B8];
-
-type
-  TGIFHeader = packed record
-    // File header part
-    Signature: TChar3;  // Header Signature (always "GIF")
-    Version: TChar3;    // GIF format version("87a" or "89a")
-    // Logical Screen Descriptor part
-    ScreenWidth: Word;  // Width of Display Screen in Pixels
-    ScreenHeight: Word; // Height of Display Screen in Pixels
-    PackedFields: Byte; // Screen and color map information
-    BackgroundColorIndex: Byte; // Background color index (in global color table)
-    AspectRatio: Byte;  // Pixel aspect ratio, ratio = (AspectRatio + 15) / 64
-  end;
+  STiffFormatName = 'Tag Image File Format';
+  STiffMasks      = '*.tif,*.tiff';
+  TiffSupportedFormats: TImageFormats = [ifR8G8B8];
 
 {
-  TGIFFileFormat implementation
+  TTiffFileFormat implementation
 }
 
-constructor TGIFFileFormat.Create;
+constructor TTiffFileFormat.Create;
 begin
   inherited Create;
-  FName := SGIFFormatName;
+  FName := STiffFormatName;
   FCanLoad := True;
   FCanSave := True;
   FIsMultiImageFormat := True;
-  FSupportedFormats := GIFSupportedFormats;
+  FSupportedFormats := TiffSupportedFormats;
 
-  AddMasks(SGIFMasks);
+  AddMasks(STiffMasks);
 end;
 
-function TGIFFileFormat.LoadData(Handle: TImagingHandle;
+function TTiffFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 begin
 
 end;
 
-function TGIFFileFormat.SaveData(Handle: TImagingHandle;
+function TTiffFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer): Boolean;
 begin
 
 end;
 
-procedure TGIFFileFormat.ConvertToSupported(var Image: TImageData;
+procedure TTiffFileFormat.ConvertToSupported(var Image: TImageData;
   const Info: TImageFormatInfo);
 begin
   inherited;
 
 end;
 
-function TGIFFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
+function TTiffFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
 begin
 
 end;
 
 initialization
-//  RegisterImageFileFormat(TGIFFileFormat);
+//  RegisterImageFileFormat(TTiffFileFormat);
 
 {
   File Notes:
 
- -- TODOS ----------------------------------------------------
+  -- TODOS ----------------------------------------------------
     - nothing now
-    - add some initial stuff!
+    - Add TIFF support!
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
-    - Unit created with initial stuff!
+    - Unit created and initial code added.
 }
 
 end.

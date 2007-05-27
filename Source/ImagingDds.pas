@@ -220,6 +220,7 @@ begin
   FSaveDepth := 1;
 
   AddMasks(SDDSMasks);
+
   RegisterOption(ImagingDDSLoadedCubeMap, @FLoadedCubeMap);
   RegisterOption(ImagingDDSLoadedVolume, @FLoadedVolume);
   RegisterOption(ImagingDDSLoadedMipMapCount, @FLoadedMipMapCount);
@@ -817,7 +818,7 @@ initialization
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Saved DDS with mipmaps now correctly defineds COMPLEX flag.
     - Fixed loading of RGB DDS files that use pitch and have mipmaps -
-      mipmaps were loaded wrongly.   
+      mipmaps were loaded wrongly.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Changed saving behaviour a bit: mipmaps are inlcuded automatically for
