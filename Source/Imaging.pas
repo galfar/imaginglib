@@ -542,14 +542,14 @@ uses
 {$IF Defined(LINK_PNG) or Defined(LINK_MNG) or Defined(LINK_JNG)}
   ImagingNetworkGraphics,
 {$IFEND}
+{$IFDEF LINK_GIF}
+  ImagingGif,
+{$ENDIF}
 {$IFDEF LINK_DDS}
   ImagingDds,
 {$ENDIF}
 {$IFDEF LINK_TARGA}
   ImagingTarga,
-{$ENDIF}
-{$IFDEF LINK_GIF}
-  ImagingGif,
 {$ENDIF}
 {$IFDEF LINK_PNM}
   ImagingPortableMaps,

@@ -270,6 +270,10 @@ procedure ClipStretchBounds(var SrcX, SrcY, SrcWidth, SrcHeight, DstX, DstY,
 { Scales one rectangle to fit into another. Proportions are preserved so
   it could be used for 'Stretch To Fit Window' image drawing for instance.}
 function ScaleRectToRect(const SourceRect, TargetRect: TRect): TRect;
+{ Returns True if R1 fits into R2.}
+function RectInRect(const R1, R2: TRect): Boolean;
+{ Returns True if R1 and R2 intersects.}
+function RectIntersects(const R1, R2: TRect): Boolean;
 
 { Formats given message for usage in Exception.Create(..). Use only
   in except block - returned message contains message of last raised exception.}
@@ -1459,6 +1463,24 @@ begin
   end;
 end;
 
+function RectInRect(const R1, R2: TRect): Boolean;
+begin
+  Result:=
+    (R1.Left >= R2.Left) and
+    (R1.Top >= R2.Top) and
+    (R1.Right <= R2.Right) and
+    (R1.Bottom <= R2.Bottom);
+end;
+
+function RectIntersects(const R1, R2: TRect): Boolean;
+begin
+  Result :=
+    not (R1.Left > R2.Right) and
+    not (R1.Top > R2.Bottom) and
+    not (R1.Right < R2.Left) and
+    not (R1.Bottom < R2.Top);
+end;
+
 function FormatExceptMsg(const Msg: string; const Args: array of const): string;
 begin
   Result := Format(Msg + SLineBreak + 'Message: ' + GetExceptObject.Message, Args);
@@ -1507,6 +1529,7 @@ initialization
     - nothing now
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added RectInRect and RectIntersects functions
     - Added some string utils: StrToken, StrTokenEnd, PosEx, PosNoCase. 
     - Moved BuildFileList here from DemoUtils.
 

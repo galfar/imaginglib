@@ -59,6 +59,13 @@ const
   GIFSupportedFormats: TImageFormats = [ifR8G8B8];
 
 type
+  TGIFVersion = (gv87, gv89);
+
+const
+  GIFSignature: TChar3 = 'GIF';
+  GIFVersions: array[TGIFVersion] of TChar3 = ('87a', '89a');
+
+type
   TGIFHeader = packed record
     // File header part
     Signature: TChar3;  // Header Signature (always "GIF")
@@ -69,6 +76,15 @@ type
     PackedFields: Byte; // Screen and color map information
     BackgroundColorIndex: Byte; // Background color index (in global color table)
     AspectRatio: Byte;  // Pixel aspect ratio, ratio = (AspectRatio + 15) / 64
+  end;
+
+  TImageDescriptor = packed record
+    //Separator: Byte; // leave that out since we always read one bye ahead
+    Left: Word;        // X position of image with respect to logical screen
+    Top: Word;         // Y position
+    Width: Word;
+    Height: Word;
+    PackedFields: Byte;
   end;
 
 {
@@ -89,8 +105,25 @@ end;
 
 function TGIFFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+var
+  Header: TGIFHeader;
+  UsesGlobalPal: Boolean;
+  BitsPerPixel, PalLength: Integer;
 begin
+  Result := False;
+  SetLength(Images, 1);
+  with GetIO, Images[0] do
+  begin
+    // Read GIF header
+    Read(Handle, @Header, SizeOf(Header));
+    UsesGlobalPal := Header.PackedFields and $80 = $80;    // Bit 7
+    BitsPerPixel := Header.PackedFields and $70 shr 4 + 1; // Bits 4-6
+    PalLength := Header.PackedFields and 7;                // Bits 0-1
+    PalLength := Pow2Int(PalLength + 1);   // Total pal length is 2^(n+1)
 
+
+    Result := True;
+  end;
 end;
 
 function TGIFFileFormat.SaveData(Handle: TImagingHandle;
@@ -107,12 +140,23 @@ begin
 end;
 
 function TGIFFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
+var
+  Header: TGIFHeader;
+  ReadCount: LongInt;
 begin
-
+  Result := False;
+  if Handle <> nil then
+  begin
+    ReadCount := GetIO.Read(Handle, @Header, SizeOf(Header));
+    GetIO.Seek(Handle, -ReadCount, smFromCurrent);
+    Result := (ReadCount >= SizeOf(Header)) and
+      (Header.Signature = GIFSignature) and
+      ((Header.Version = GIFVersions[gv87]) or (Header.Version = GIFVersions[gv89]));
+  end;
 end;
 
 initialization
-//  RegisterImageFileFormat(TGIFFileFormat);
+  RegisterImageFileFormat(TGIFFileFormat);
 
 {
   File Notes:
