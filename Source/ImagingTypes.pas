@@ -224,7 +224,8 @@ type
     { Special formats.}
     ifDXT1           = 220,
     ifDXT3           = 221,
-    ifDXT5           = 222);
+    ifDXT5           = 222,
+    ifBTC            = 223);
 
   { Color value for 32 bit images.}
   TColor32 = LongWord;
@@ -397,6 +398,9 @@ type
     GetPixelFP: TGetPixelFPFunc;      // FP ARGB pixel get function
     SetPixel32: TSetPixel32Proc;      // 32bit ARGB pixel set procedure
     SetPixelFP: TSetPixelFPProc;      // FP ARGB pixel set procedure
+    SpecialNearestFormat: TImageFormat; // Regular image format used when
+                                      // compressing/decompressing special images
+                                      // as source/target
   end;
 
   { Handle to list of image data records.}
@@ -440,6 +444,10 @@ implementation
       (add something like FormatType = (ftIndexed, ftRGB, ftIntensity, ftCompressed,
       ftFloatingPoint, ftRGBBitFields) and additional infos like HasAlphaChannel,
       ChannelSize, ChannelCount, ...)
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added ifBTC image format and SpecialNearestFormat field
+      to TImageFormatInfo.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Added option constants for PGM and PPM file formats.

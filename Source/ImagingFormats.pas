@@ -299,6 +299,8 @@ function GetDXTPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt
 { Checks if Width and Height are valid for given DXT format. If they are
   not valid, they are changed to pass the check.}
 procedure CheckDXTDimensions(Format: TImageFormat; var Width, Height: LongInt); forward;
+{ Returns size in bytes of image in BTC format.}
+function GetBTCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
 
 { Optimized pixel readers/writers for 32bit and FP colors to be stored in TImageFormatInfo }
 
@@ -724,7 +726,8 @@ var
     HasAlphaChannel: True;
     IsSpecial: True;
     GetPixelsSize: GetDXTPixelsSize;
-    CheckDimensions: CheckDXTDimensions);
+    CheckDimensions: CheckDXTDimensions;
+    SpecialNearestFormat: ifA8R8G8B8);
 
   DXT3Info: TImageFormatInfo = (
     Format: ifDXT3;
@@ -733,7 +736,8 @@ var
     HasAlphaChannel: True;
     IsSpecial: True;
     GetPixelsSize: GetDXTPixelsSize;
-    CheckDimensions: CheckDXTDimensions);
+    CheckDimensions: CheckDXTDimensions;
+    SpecialNearestFormat: ifA8R8G8B8);
 
   DXT5Info: TImageFormatInfo = (
     Format: ifDXT5;
@@ -742,7 +746,18 @@ var
     HasAlphaChannel: True;
     IsSpecial: True;
     GetPixelsSize: GetDXTPixelsSize;
-    CheckDimensions: CheckDXTDimensions);
+    CheckDimensions: CheckDXTDimensions;
+    SpecialNearestFormat: ifA8R8G8B8);
+
+  BTCInfo: TImageFormatInfo = (
+    Format: ifBTC;
+    Name: 'BTC';
+    ChannelCount: 1;
+    HasAlphaChannel: False;
+    IsSpecial: True;
+    GetPixelsSize: GetBTCPixelsSize;
+    CheckDimensions: CheckDXTDimensions;
+    SpecialNearestFormat: ifGray8);
 
 {$WARNINGS ON}
 
@@ -788,6 +803,7 @@ begin
   Infos[ifDXT1] := @DXT1Info;
   Infos[ifDXT3] := @DXT3Info;
   Infos[ifDXT5] := @DXT5Info;
+  Infos[ifBTC] :=  @BTCInfo;
 
   PFR3G3B2 := PixelFormat(0, 3, 3, 2);
   PFX5R1G1B1 := PixelFormat(0, 1, 1, 1);
@@ -3062,9 +3078,6 @@ end;
 
 { Special formats conversion functions }
 
-var
-  UnSpecialFormat: TImageFormat = ifA8R8G8B8;
-
 type
   // DXT RGB color block
   TDXTColorBlock = packed record
@@ -3552,6 +3565,96 @@ begin
     end;
 end;
 
+type
+  TBTCBlock = packed record
+    MLower, MUpper: Byte;
+    BitField: Word;
+  end;
+  PBTCBlock = ^TBTCBlock;
+
+procedure EncodeBTC(SrcBits: Pointer; DestBits: PByte; Width, Height: Integer);
+var
+  X, Y, I, J: Integer;
+  Block: TBTCBlock;
+  M, MLower, MUpper, K: Integer;
+  Pixels: array[0..15] of Byte;
+begin
+  for Y := 0 to Height div 4 - 1 do
+    for X := 0 to Width div 4 - 1 do
+    begin
+      M := 0;
+      MLower := 0;
+      MUpper := 0;
+      FillChar(Block, SizeOf(Block), 0);
+      K := 0;
+
+      // Store 4x4 pixels and compute average, lower, and upper intensity levels
+      for I := 0 to 3 do
+        for J := 0 to 3 do
+        begin
+          Pixels[K] := PByteArray(SrcBits)[(Y shl 2 + I) * Width + X shl 2 + J];
+          Inc(M, Pixels[K]);
+          Inc(K);
+        end;
+
+      M := M div 16;
+      K := 0;
+
+      // Now compute upper and lower levels, number of upper pixels,
+      // and update bit field (1 when pixel is above avg. level M)
+      for I := 0 to 15 do
+      begin
+        if Pixels[I] > M then
+        begin
+          Inc(MUpper, Pixels[I]);
+          Inc(K);
+          Block.BitField := Block.BitField or (1 shl I);
+        end
+        else
+          Inc(MLower, Pixels[I]);
+      end;
+
+      // Scale levels and save them to block
+      if K > 0 then
+        Block.MUpper := ClampToByte(MUpper div K)
+      else
+        Block.MUpper := 0;
+      Block.MLower := ClampToByte(MLower div (16 - K));
+
+      // Finally save block to dest data
+      PBTCBlock(DestBits)^ := Block;
+      Inc(DestBits, SizeOf(Block));
+    end;
+end;
+
+procedure DecodeBTC(SrcBits, DestBits: PByte; Width, Height: LongInt);
+var
+  X, Y, I, J, K: Integer;
+  Block: TBTCBlock;
+  Dest: PByte;
+begin
+  for Y := 0 to Height div 4 - 1 do
+    for X := 0 to Width div 4 - 1 do
+    begin
+      Block := PBTCBlock(SrcBits)^;
+      Inc(SrcBits, SizeOf(Block));
+      K := 0;
+
+      // Just write MUpper when there is '1' in bit field and MLower
+      // when there is '0'
+      for I := 0 to 3 do
+        for J := 0 to 3 do
+        begin
+          Dest := @PByteArray(DestBits)[(Y shl 2 + I) * Width + X shl 2 + J];
+          if Block.BitField and (1 shl K) <> 0 then
+            Dest^ := Block.MUpper
+          else
+            Dest^ := Block.MLower;
+          Inc(K);
+        end;
+    end;
+end;
+
 procedure SpecialToUnSpecial(const SrcImage: TImageData; DestBits: Pointer;
   SrcInfo, DstInfo: PImageFormatInfo);
 begin
@@ -3559,6 +3662,7 @@ begin
     ifDXT1: DecodeDXT1(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
     ifDXT3: DecodeDXT3(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
     ifDXT5: DecodeDXT5(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
+    ifBTC:  DecodeBTC (SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
   end;
 end;
 
@@ -3569,6 +3673,7 @@ begin
     ifDXT1: EncodeDXT1(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
     ifDXT3: EncodeDXT3(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
     ifDXT5: EncodeDXT5(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
+    ifBTC:  EncodeBTC (SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
   end;
 end;
 
@@ -3582,13 +3687,13 @@ begin
   if SrcInfo.IsSpecial then
   begin
     InitImage(WorkImage);
-    NewImage(Image.Width, Image.Height, UnSpecialFormat, WorkImage);
+    NewImage(Image.Width, Image.Height, SrcInfo.SpecialNearestFormat, WorkImage);
     SpecialToUnSpecial(Image, WorkImage.Bits, SrcInfo, DstInfo);
     FreeImage(Image);
     Image := WorkImage;
   end
   else
-    ConvertImage(Image, UnSpecialFormat);
+    ConvertImage(Image, DstInfo.SpecialNearestFormat);
   // we have now image in default non-special format and
   // if dest format is special we will convert to this special format
   if DstInfo.IsSpecial then
@@ -3634,6 +3739,14 @@ begin
   // DXT image dimensions must be multiples of four
   Width := (Width + 3) and not 3; // div 4 * 4;
   Height := (Height + 3) and not 3; // div 4 * 4;
+end;
+
+function GetBTCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+begin
+  // BTC can be used only for images with dimensions that are
+  // multiples of four
+  CheckDXTDimensions(Format, Width, Height);
+  Result := Width * Height div 4; // 2bits/pixel
 end;
 
 { Optimized pixel readers/writers for 32bit and FP colors to be stored in TImageFormatInfo }
@@ -3791,6 +3904,9 @@ end;
   -- TODOS ----------------------------------------------------
     - nothing now
     - rewrite StretchRect for 8bit channels to use integer math?
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added ifBTC image format support structures and functions.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - FillMipMapLevel now works well with indexed and special formats too.

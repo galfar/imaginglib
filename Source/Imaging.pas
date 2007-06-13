@@ -577,7 +577,7 @@ resourcestring
     'Height=%d Format=%s.';
   SErrorConvertImage = 'Error while converting image to format "%s". %s';
   SImageInfo = 'Image @%p info: Width = %dpx, Height = %dpx, ' +
-    'Format = %s, Size = %.0nKiB, Bits @%p, Palette @%p.';
+    'Format = %s, Size = %.0n %s, Bits @%p, Palette @%p.';
   SImageInfoInvalid = 'Access violation encountered when getting info on ' +
     'image at address %p.';
   SFileNotValid = 'File "%s" is not valid image in "%s" format.';
@@ -2427,12 +2427,18 @@ begin
 end;
 
 function ImageToStr(const Image: TImageData): string;
+var
+  ImgSize: Integer;
 begin
   if TestImage(Image) then
+  with Image do
   begin
-    with Image do
-      Result := SysUtils.Format(SImageInfo, [@Image, Width, Height,
-        GetFormatName(Format), (Size div 1024) + 0.0, Bits, Palette]);
+    ImgSize := Size;
+    if ImgSize > 8192 then
+      ImgSize := ImgSize div 1024;
+    Result := SysUtils.Format(SImageInfo, [@Image, Width, Height,
+      GetFormatName(Format), ImgSize + 0.0, Iff(ImgSize = Size, 'B', 'KiB'), Bits,
+      Palette]);
   end
   else
     Result := SysUtils.Format(SImageInfoInvalid, [@Image]);
