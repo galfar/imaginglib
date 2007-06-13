@@ -58,6 +58,22 @@ const
   STiffMasks      = '*.tif,*.tiff';
   TiffSupportedFormats: TImageFormats = [ifR8G8B8];
 
+type
+  { TIFF file header.}
+  TTiffHeader = packed record
+    ByteOrder: Word;        // 'II' = little endian, 'MM' = big endian
+    Version: Word;          // 42
+    IFDOffset: LongWord;    // Offset of first Image File Directory
+  end;
+
+  { Image File Directory entry.}
+  TIFDEntry = packed record
+    Tag: Word;
+    DataType: Word;
+    DataLength: LongWord;
+    ValueOrOffset: LongWord;
+  end;
+
 {
   TTiffFileFormat implementation
 }

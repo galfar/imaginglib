@@ -156,7 +156,7 @@ var
   BC: TBitmapCoreHeader;
   IsOS2: Boolean;
   PalRGB: PPalette24;
-  I, FPalSize, AlignedSize, StartPos, AlignedWidthBytes, WidthBytes: LongInt;
+  I, FPalSize, AlignedSize, StartPos, HeaderSize, AlignedWidthBytes, WidthBytes: LongInt;
   Info: TImageFormatInfo;
   Data: Pointer;
 
@@ -415,8 +415,8 @@ begin
     else
     begin
       // Windows type bitmap
-      Read(Handle, @PByteArray(@BI)[SizeOf(BI.Size)],
-        BI.Size - SizeOf(BI.Size));
+      HeaderSize := Min(BI.Size - SizeOf(BI.Size), SizeOf(BI) - SizeOf(BI.Size)); // do not read more than size of BI!
+      Read(Handle, @PByteArray(@BI)[SizeOf(BI.Size)], HeaderSize);
       // SizeImage can be 0 for BI_RGB images, but it is here because of:
       // I saved 8bit bitmap in Paint Shop Pro 8 as OS2 RLE compressed.
       // It wrote strange 64 Byte Info header with SizeImage set to 0
@@ -574,14 +574,15 @@ var
     end;
 
   begin
-    SrcPos := 0;
     BufferPos := 0;
     with GetIO, ImageToSave do
     begin
-      Pixels := Bits;
-      for Y := 0 to Height - 1 do
+      for Y := Height - 1 downto 0 do
       begin
         X := 0;
+        SrcPos := 0;
+        Pixels := @PByteArray(Bits)[Y * Width];
+
         while X < Width do
         begin
           SameCount := 1;
@@ -668,7 +669,7 @@ begin
       // Save images without alpha in V3 format - for better compatibility
       BI.Size := V3InfoHeaderSize;
     BI.Width := Width;
-    BI.Height := -Height;
+    BI.Height := Height;
     BI.Planes := 1;
     BI.BitCount := Info.BytesPerPixel * 8;
     BI.XPelsPerMeter := 2835; // 72 dpi
@@ -717,21 +718,17 @@ begin
     if BI.Compression <> BI_RLE8 then
     begin
       // Save uncompressed data, scanlines must be filled with pad bytes
-      // to be multiples of 4
+      // to be multiples of 4, save as bottom-up (Windows native) bitmap
       Pad := 0;
       WidthBytes := Width * Info.BytesPerPixel;
       PadSize := ((Width * BI.BitCount + 31) div 32) * 4 - WidthBytes;
-      if PadSize > 0 then
+
+      for I := Height - 1 downto 0 do
       begin
-        for I := 0 to Height - 1 do
-        begin
-          Write(Handle, @PByteArray(Bits)[I * WidthBytes], WidthBytes);
+        Write(Handle, @PByteArray(Bits)[I * WidthBytes], WidthBytes);
+        if PadSize > 0 then
           Write(Handle, @Pad, PadSize);
-        end;
-      end
-      else
-        // No padding needed, write whole image at once
-        Write(Handle, Bits, Size);
+      end;
     end
     else
     begin
@@ -805,6 +802,9 @@ initialization
     - nothing now
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Now saves bitmaps as bottom-up for better compatibility
+      (mainly Lazarus' TImage!).
+    - Fixed crash when loading bitmaps with headers larger than V4.
     - Temp hacks to disable V4 headers for 32bit images (compatibility with
       other soft).
 

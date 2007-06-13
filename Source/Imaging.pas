@@ -337,6 +337,7 @@ type
     Read: TReadProc;
     Write: TWriteProc;
   end;
+  PIOFunctions = ^TIOFunctions;
 
   { Base class for various image file format loaders/savers which
     descend from this class. If you want to add support for new image file
