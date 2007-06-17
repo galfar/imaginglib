@@ -86,11 +86,7 @@ var
 begin
   repeat
     if Format < High(TImageFormat) then
-{$IFDEF DCC}
       Format := Succ(Format)
-{$ELSE}
-      Format := TImageFormat(Succ(LongInt(Format)))
-{$ENDIF}
     else
       Format := ifIndex8;
   until GetImageFormatInfo(Format, Info);

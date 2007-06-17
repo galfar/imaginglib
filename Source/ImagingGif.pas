@@ -70,6 +70,8 @@ const
 
 type
   TGIFVersion = (gv87, gv89);
+  TDisposalMethod = (dmUndefined, dmLeave, dmRestoreBackground,
+    dmRestorePrevious, dmReserved4, dmReserved5, dmReserved6, dmReserved7);
 
 const
   GIFSignature: TChar3 = 'GIF';
@@ -94,6 +96,11 @@ const
   GIFImageDescriptor         = Ord(',');
   GIFExtensionIntroducer     = Ord('!');
   GIFTrailer                 = Ord(';');
+
+  // Masks for accessing fields in PackedFields of TGraphicControlExtension
+  GIFTransparent    = $01;
+  GIFUserInput      = $02;
+  GIFDisposalMethod = $1C;
 
 type
   TGIFHeader = packed record
@@ -412,6 +419,7 @@ var
   BlockID: Byte;
   HasGraphicExt: Boolean;
   GraphicExt: TGraphicControlExtension;
+  Disposal, OldDisposal: TDisposalMethod;
 
   function ReadBlockID: Byte;
   begin
@@ -451,16 +459,39 @@ var
     end;
   end;
 
+  procedure CopyFrameTransparent(const Image, Frame: TImageData; Left, Top, TransIndex: Integer);
+  var
+    X, Y: Integer;
+    Src, Dst: PByte;
+  begin
+    Src := Frame.Bits;
+
+    // Copy all pixels from frame to log screen but ignore the transparent ones 
+    for Y := 0 to Frame.Height - 1 do
+    begin
+      Dst := @PByteArray(Image.Bits)[(Top + Y) * Image.Width + Left];
+      for X := 0 to Frame.Width - 1 do
+      begin
+        if Src^ <> TransIndex then
+          Dst^ := Src^;
+        Inc(Src);
+        Inc(Dst);
+      end;
+    end;
+  end;
+
   procedure ReadFrame;
   var
     ImageDesc: TImageDescriptor;
-    HasLocalPal, Interlaced, HasTransparency: Boolean;
+    HasLocalPal, Interlaced, HasTransparency, FrameSmallerThanScreen: Boolean;
     I, Idx, LocalPalLength: Integer;
     LocalPal: TPalette32Size256;
+    BlockTerm: Byte;
+    Frame: TImageData;
   begin
     Idx := Length(Images);
     SetLength(Images, Idx + 1);
-    with GetIO, Images[Idx] do
+    with GetIO do
     begin
       // Read and parse image descriptor
       Read(Handle, @ImageDesc, SizeOf(ImageDesc));
@@ -469,8 +500,11 @@ var
       LocalPalLength := Header.PackedFields and GIFColorTableSize;
       LocalPalLength := 1 shl (LocalPalLength + 1);   // Total pal length is 2^(n+1)
 
-      // Create image for this frame
-      NewImage(ImageDesc.Width, ImageDesc.Height, ifIndex8, Images[Idx]);
+      // Create new logical screen
+      NewImage(Header.ScreenWidth, Header.ScreenHeight, ifIndex8, Images[Idx]);
+      // Create new image for this frame which would be later pasted onto logical screen
+      InitImage(Frame);
+      NewImage(ImageDesc.Width, ImageDesc.Height, ifIndex8, Frame);
 
       // Load local palette if there is any
       if HasLocalPal then
@@ -485,28 +519,67 @@ var
       // Use local pal if present or global pal if present or create
       // default pal if neither of them is present
       if HasLocalPal then
-        Move(LocalPal, Palette^, SizeOf(LocalPal))
+        Move(LocalPal, Images[Idx].Palette^, SizeOf(LocalPal))
       else if HasGlobalPal then
-        Move(GlobalPal, Palette^, SizeOf(GlobalPal))
+        Move(GlobalPal, Images[Idx].Palette^, SizeOf(GlobalPal))
       else
-        FillCustomPalette(Palette, GlobalPalLength, 3, 3, 2);
+        FillCustomPalette(Images[Idx].Palette, GlobalPalLength, 3, 3, 2);
 
-      // Data decompression finally
-      LZWDecompress(GetIO, Handle, Width, Height, Interlaced, PChar(Bits));
-
+      // If Grahic Control Extension is present make use of it  
       if HasGraphicExt then
       begin
-        HasTransparency := (GraphicExt.PackedFields and 1) = 1;
+        HasTransparency := (GraphicExt.PackedFields and GIFTransparent) = GIFTransparent;
+        OldDisposal := Disposal;
+        Disposal := TDisposalMethod((GraphicExt.PackedFields and GIFDisposalMethod) shr 2);
+
         if HasTransparency then
-        begin
-          Palette[GraphicExt.TransparentColorIndex].A := 0;
+          Images[Idx].Palette[GraphicExt.TransparentColorIndex].A := 0;
+      end;
+
+      // If previous frame had some special disposal method we take it into
+      // account now
+      if Idx >= 1 then
+      begin
+        case OldDisposal of
+          dmUndefined: ; // Do nothing
+          dmLeave:
+            begin
+              // Leave previous frame on log screen
+              CopyRect(Images[Idx - 1], 0, 0, Images[Idx].Width,
+                Images[Idx].Height, Images[Idx], 0, 0);
+            end;
+          dmRestoreBackground:
+            begin
+              // Clear log screen with background color
+              FillRect(Images[Idx], 0, 0, Images[Idx].Width, Images[Idx].Height,
+                @Header.BackgroundColorIndex);
+            end;
+          dmRestorePrevious:
+            if Idx >= 2 then
+            begin
+              // Set log screen to "previous of previous" frame
+              CopyRect(Images[Idx - 2], 0, 0, Images[Idx].Width,
+                Images[Idx].Height, Images[Idx], 0, 0);
+            end;
         end;
+      end;
+
+      try
+        // Data decompression finally
+        LZWDecompress(GetIO, Handle, ImageDesc.Width, ImageDesc.Height, Interlaced, PChar(Frame.Bits));
+        Read(Handle, @BlockTerm, SizeOf(BlockTerm));
+
+        CopyFrameTransparent(Images[Idx], Frame, ImageDesc.Left, ImageDesc.Top,
+          GraphicExt.TransparentColorIndex);
+      finally
+        FreeImage(Frame);
       end;
     end;
   end;
 
 begin
   Result := False;
+  Disposal := dmUndefined;
   SetLength(Images, 0);
   with GetIO do
   begin
@@ -588,6 +661,9 @@ initialization
     - add some initial stuff!
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Fixed bug when loading multiframe GIFs and implemented few animation
+      features (disposal methods, ...). 
+    - Loading of GIFs working.
     - Unit created with initial stuff!
 }
 
