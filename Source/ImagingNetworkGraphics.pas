@@ -1431,6 +1431,8 @@ var
 
 begin
   GetImageFormatInfo(Image.Format, FmtInfo);
+  InitImage(ColorImage);
+  InitImage(AlphaImage);
 
   if FmtInfo.HasAlphaChannel then
   begin

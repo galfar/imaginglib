@@ -2077,7 +2077,7 @@ begin
     ClipStretchBounds(SrcX, SrcY, SrcWidth, SrcHeight, DstX, DstY, DstWidth, DstHeight,
       SrcImage.Width, SrcImage.Height, Rect(0, 0, DstImage.Width, DstImage.Height));
 
-    if (SrcWidth = DstWidth) or (SrcHeight = DstHeight) then
+    if (SrcWidth = DstWidth) and (SrcHeight = DstHeight) then
     begin
       // If source and dest rectangles have the same size call CopyRect
       Result := CopyRect(SrcImage, SrcX, SrcY, SrcWidth, SrcHeight, DstImage, DstX, DstY);
@@ -3254,6 +3254,8 @@ finalization
         TicksPerSecond := PMNGDetails(GetOption(ImagingMNGFileDetails)).TicksPerSecond;
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Fixed bug in StretchRect: Image was not properly stretched if
+      src and dst dimensions differed only in height.
     - ConvertImage now fills new image with zeroes to avoid random data in
       some conversions (RGB->XRGB)
     - Changed RegisterOption procedure to function

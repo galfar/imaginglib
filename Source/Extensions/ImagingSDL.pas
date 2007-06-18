@@ -156,6 +156,7 @@ begin
   Result := nil;
   if TestImage(ImageData) then
   begin
+    InitImage(WorkData);
     CloneImage(ImageData, WorkData);
     // Image is converted to override format
     if OverrideFormat <> ifUnknown then
@@ -382,6 +383,9 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Fixed possible int overflow in CreateSDLSurfaceFromImage.
 
   -- 0.15 Changes/Bug Fixes -----------------------------------
     - unit created and initial stuff added

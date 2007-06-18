@@ -77,6 +77,14 @@
   {$ENDIF}
 {$ENDIF}
 
+{$IF (Defined(DCC) and (CompilerVersion >= 18.5))}
+  {$IFDEF RELEASE}
+    {$UNDEF DEBUG} // If we are using Delphi 2007+ where you can set
+                   // DEBUG/RELEASE mode in project options and RELEASE
+                   // is currently set we undef DEBUG mode
+  {$ENDIF}
+{$IFEND}
+
 {$IFDEF DEBUG}
   {$ASSERTIONS ON}
   {$DEBUGINFO ON}
@@ -122,7 +130,8 @@
   {$DEFINE HAS_ADVANCED_RECORDS}
 {$IFEND}
 
-// Define if compiler supports operator overloading (unfortunately Delphi and FPC operator overloaing is not compatible)
+// Define if compiler supports operator overloading
+// (unfortunately Delphi and FPC operator overloaing is not compatible)
 {$IF (Defined(DCC) and (CompilerVersion >= 18)) or Defined(FPC)}
   {$DEFINE HAS_OPERATOR_OVERLOADING}
 {$IFEND}
