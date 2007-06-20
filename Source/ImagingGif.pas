@@ -47,8 +47,11 @@ type
     transparency.}
   TGIFFileFormat = class(TImageFileFormat)
   private
-    procedure LZWDecompress(IO: TIOFunctions; Handle: TImagingHandle;
-      Width, Height: Integer; Interlaced: Boolean; OutData: PChar);
+    function InterlaceStep(Y, Height: Integer; var Pass: Integer): Integer;
+    procedure LZWDecompress(const IO: TIOFunctions; Handle: TImagingHandle;
+      Width, Height: Integer; Interlaced: Boolean; Data: Pointer);
+    procedure LZWCompress(const IO: TIOFunctions; Handle: TImagingHandle;
+      Width, Height, BitCount: Integer; Interlaced: Boolean; Data: Pointer);
   protected
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
@@ -89,13 +92,14 @@ const
   GIFLocalTableSorted = $20;
 
   // Block identifiers
-  GIFPlainText               = $01;
-  GIFGraphicControlExtension = $F9;
-  GIFCommentExtension        = $FE;
-  GIFApplicationExtension    = $FF;
-  GIFImageDescriptor         = Ord(',');
-  GIFExtensionIntroducer     = Ord('!');
-  GIFTrailer                 = Ord(';');
+  GIFPlainText: Byte               = $01;
+  GIFGraphicControlExtension: Byte = $F9;
+  GIFCommentExtension: Byte        = $FE;
+  GIFApplicationExtension: Byte    = $FF;
+  GIFImageDescriptor: Byte         = Ord(',');
+  GIFExtensionIntroducer: Byte     = Ord('!');
+  GIFTrailer: Byte                 = Ord(';');
+  GIFBlockTerminator: Byte         = $00;
 
   // Masks for accessing fields in PackedFields of TGraphicControlExtension
   GIFTransparent    = $01;
@@ -140,6 +144,56 @@ type
     Terminator: Byte;
   end;
 
+const
+  CodeTableSize = 4096;
+  HashTableSize = 17777;
+  
+type
+  TReadContext = record
+    Inx: Integer;
+    Size: Integer;
+    Buf: array [0..255 + 4] of Byte;
+    CodeSize: Integer;
+    ReadMask: Integer;
+  end;
+  PReadContext = ^TReadContext;
+
+  TWriteContext = record
+    Inx: Integer;
+    CodeSize: Integer;
+    Buf: array [0..255 + 4] of Byte;
+  end;
+  PWriteContext = ^TWriteContext;
+
+  TOutputContext = record
+    W: Integer;
+    H: Integer;
+    X: Integer;
+    Y: Integer;
+    BitsPerPixel: Integer;
+    Pass: Integer;
+    Interlace: Boolean;
+    LineIdent: Integer;
+    Data: Pointer;
+    CurrLineData: Pointer;
+  end;
+
+  TImageDict = record
+    Tail: Word;
+    Index: Word;
+    Col: Byte;
+  end;
+  PImageDict = ^TImageDict;
+
+  PIntCodeTable = ^TIntCodeTable;
+  TIntCodeTable = array [0..CodeTableSize - 1] of Word;
+
+  TDictTable = array [0..CodeTableSize - 1] of TImageDict;
+  PDictTable = ^TDictTable;
+
+resourcestring
+  SGIFDecodingError = 'Error when decoding GIF LZW data';
+
 {
   TGIFFileFormat implementation
 }
@@ -149,262 +203,441 @@ begin
   inherited Create;
   FName := SGIFFormatName;
   FCanLoad := True;
-  FCanSave := not True;
+  FCanSave := True;
   FIsMultiImageFormat := True;
   FSupportedFormats := GIFSupportedFormats;
 
   AddMasks(SGIFMasks);
 end;
 
-procedure TGIFFileFormat.LZWDecompress(IO: TIOFunctions; Handle: TImagingHandle;
-  Width, Height: Integer; Interlaced: Boolean; OutData: PChar);
-// The decompressor is based on work done by
-//   * readgif.c (GIFTOOL) by David Koblas <koblas@netcom.com>
-type
-  KeyInt = LongInt;
-  CodeInt = SmallInt;
-const
-  HashKeyBits     = 13;
-  GIFCodeBits     = 12;
-  HashSize        = 8009;
-  StackSize       = 2 shl GIFCodeBits;
-  TableSize       = 1 shl GIFCodeBits;
-  HashKeyMax      = 1 shl HashKeyBits - 1;
-  GIFCodeMax      = 1 shl GIFCodeBits - 1;
-  TableMaxMaxCode = 1 shl GIFCodeBits;
-  TableMaxFill    = TableMaxMaxCode - 1;
-  HashKeyMask     = HashKeyMax;
-  GIFCodeMask     = GIFCodeMax;
-  HashEmpty       = $000FFFFF;
+function TGIFFileFormat.InterlaceStep(Y, Height: Integer; var Pass: Integer): Integer;
+begin
+  Result := Y;
+  case Pass of
+    0, 1:
+      Inc(Result, 8);
+    2:
+      Inc(Result, 4);
+    3:
+      Inc(Result, 2);
+  end;
+  if Result >= Height then
+  begin
+    if Pass = 0 then
+    begin
+      Pass := 1;
+      Result := 4;
+      if Result < Height then
+        Exit;
+    end;
+    if Pass = 1 then
+    begin
+      Pass := 2;
+      Result := 2;
+      if Result < Height then
+        Exit;
+    end;
+    if Pass = 2 then
+    begin
+      Pass := 3;
+      Result := 1;
+    end;
+  end;
+end;
+
+{ GIF LZW decompresion code is from JVCL JvGIF.pas unit.}
+procedure TGIFFileFormat.LZWDecompress(const IO: TIOFunctions; Handle: TImagingHandle; Width, Height: Integer;
+  Interlaced: Boolean; Data: Pointer);
 var
-  Table: array[0..1, 0..TableSize - 1] of Integer;
-  Stack: array[0..StackSize - 1] of Integer;
-  Buf: array[0..257] of Byte;
-  Dest: PChar;
-  Source: PInteger;
-  InitialBitsPerCode: Byte;
-  MaxCode: CodeInt;
-  I, FirstCode, OldCode, BitsPerCode, Step, EOFCode, MaxCodeSize, ClearCode,
-    StartBit, LastBit, LastByte, V, XPos, YPos, Pass: Integer;
-  GetDone, ReturnClear, ZeroBlock: Boolean;
+  MinCodeSize: Byte;
+  MaxCode, BitMask, InitCodeSize: Integer;
+  ClearCode, EndingCode, FirstFreeCode, FreeCode: Word;
+  I, OutCount, Code: Integer;
+  CurCode, OldCode, InCode, FinalChar: Word;
+  Prefix, Suffix, OutCode: PIntCodeTable;
+  ReadCtxt: TReadContext;
+  OutCtxt: TOutputContext;
+  TableFull: Boolean;
 
-  function Read(var Buffer; Size: LongInt): Boolean;
+  function ReadCode(var Context: TReadContext): Integer;
+  var
+    RawCode: Integer;
+    ByteIndex: Integer;
+    Bytes: Byte;
+    BytesToLose: Integer;
   begin
-    Result := IO.Read(Handle, @Buffer, Size) = Size;
+    while Context.Inx + Context.CodeSize > Context.Size do
+    begin
+      // Not enough bits in buffer - refill it - Not very efficient, but infrequently called
+      BytesToLose := Context.Inx shr 3;
+      // Note biggest Code Size is 12 bits. And this can at worst span 3 Bytes
+      Move(Context.Buf[Word(BytesToLose)], Context.Buf[0], 3);
+      Context.Inx := Context.Inx and 7;
+      Context.Size := Context.Size - (BytesToLose shl 3);
+      IO.Read(Handle, @Bytes, 1);
+      if Bytes > 0 then
+        IO.Read(Handle, @Context.Buf[Word(Context.Size shr 3)], Bytes);
+      Context.Size := Context.Size + (Bytes shl 3);
+    end;
+    ByteIndex := Context.Inx shr 3;
+    RawCode := Context.Buf[Word(ByteIndex)] +
+      (Word(Context.Buf[Word(ByteIndex + 1)]) shl 8);
+    if Context.CodeSize > 8 then
+      RawCode := RawCode + (Longint(Context.Buf[ByteIndex + 2]) shl 16);
+    RawCode := RawCode shr (Context.Inx and 7);
+    Context.Inx := Context.Inx + Byte(Context.CodeSize);
+    Result := RawCode and Context.ReadMask;
   end;
 
-  function NextCode(BitsPerCode: Integer): Integer;
-  const
-    Masks: array[0..15] of Integer =
-      ($0000, $0001, $0003, $0007,
-       $000F, $001F, $003F, $007F,
-       $00FF, $01FF, $03FF, $07FF,
-       $0FFF, $1FFF, $3FFF, $7FFF);
+  procedure Output(Value: Byte; var Context: TOutputContext);
   var
-    StartIndex, EndIndex, Ret, EndBit: Integer;
-    Count: Byte;
+    P: PByte;
   begin
-    if ReturnClear then
-    begin
-      ReturnClear := False;
-      Result := ClearCode;
+    if Context.Y >= Context.H then
       Exit;
-    end;
-    EndBit := StartBit + BitsPerCode;
-    if EndBit >= LastBit then
-    begin
-      if GetDone then
-      begin
-        Result := -1;
-        Exit;
-      end;
-      Buf[0] := Buf[LastByte - 2];
-      Buf[1] := Buf[LastByte - 1];
-      if not Read(Count, SizeOf(Count)) then
-      begin
-        Result := -1;
-        Exit;
-      end;
-      if Count = 0 then
-      begin
-        ZeroBlock := True;
-        GetDone := True;
-      end
-      else
-        Read(Buf[2], Count);
 
-      LastByte := 2 + Count;
-      StartBit := (StartBit - LastBit) + 16;
-      LastBit := LastByte * 8;
-      EndBit := StartBit + BitsPerCode;
-    end;
+    // Only ifIndex8 supported
+    P := @PByteArray(Context.CurrLineData)[Context.X];
+    P^ := Value;
 
-    EndIndex := EndBit div 8;
-    StartIndex := StartBit div 8;
-    if StartIndex = EndIndex then
-      Ret := Buf[StartIndex]
-    else if StartIndex + 1 = EndIndex then
-      Ret := Buf[StartIndex] or (Buf[StartIndex + 1] shl 8)
+    {case Context.BitsPerPixel of
+      1:
+        begin
+          P := @PByteArray(Context.CurrLineData)[Context.X shr 3];
+          if (Context.X and $07) <> 0 then
+            P^ := P^ or Word(Value shl (7 - (Word(Context.X and 7))))
+          else
+            P^ := Byte(Value shl 7);
+        end;
+      4:
+        begin
+          P := @PByteArray(Context.CurrLineData)[Context.X shr 1];
+          if (Context.X and 1) <> 0 then
+            P^ := P^ or Value
+          else
+            P^ := Byte(Value shl 4);
+        end;
+      8:
+        begin
+          P := @PByteArray(Context.CurrLineData)[Context.X];
+          P^ := Value;
+        end;
+    end;}
+    Inc(Context.X);
+
+    if Context.X < Context.W then
+      Exit;
+    Context.X := 0;
+    if Context.Interlace then
+      Context.Y := InterlaceStep(Context.Y, Context.H, Context.Pass)
     else
-      Ret := Buf[StartIndex] or (Buf[StartIndex + 1] shl 8) or (Buf[StartIndex + 2] shl 16);
+      Inc(Context.Y);
 
-    Ret := (Ret shr (StartBit and $0007)) and Masks[BitsPerCode];
-    Inc(StartBit, BitsPerCode);
-    Result := Ret;
-  end;
-
-  function NextLWZ: Integer;
-  var
-    I, Code, InCode: Integer;
-    B: Byte;
-  begin
-    Code := NextCode(BitsPerCode);
-    while Code >= 0 do
-    begin
-      if Code = ClearCode then
-      begin
-        for I := 0 to ClearCode-1 do
-        begin
-          Table[0, I] := 0;
-          Table[1, I] := I;
-        end;
-        for I := ClearCode to TableSize-1 do
-        begin
-          Table[0, I] := 0;
-          Table[1, I] := 0;
-        end;
-        BitsPerCode := InitialBitsPerCode+1;
-        MaxCodeSize := 2 * ClearCode;
-        MaxCode := ClearCode + 2;
-        Source := @Stack;
-        repeat
-          FirstCode := NextCode(BitsPerCode);
-          OldCode := FirstCode;
-        until (FirstCode <> ClearCode);
-        Result := FirstCode;
-        Exit;
-      end;
-
-      if Code = EOFCode then
-      begin
-        Result := -2;
-        if (ZeroBlock) then
-          Exit;
-        if not Read(B, SizeOf(B)) then
-          Exit;
-        while (B <> 0) do
-        begin
-          IO.Seek(Handle, B, smFromCurrent);
-          if not Read(B, SizeOf(B)) then
-            Exit;
-        end;
-        Exit;
-      end;
-      InCode := Code;
-      if Code >= MaxCode then
-      begin
-        Source^ := FirstCode;
-        Inc(Source);
-        Code := OldCode;
-      end;
-      while Code >= ClearCode do
-      begin
-        Source^ := Table[1, Code];
-        Inc(Source);
-        if (Code = Table[0, Code]) then
-           raise EImagingError.Create('Unrecognized GIF image: LZW decompression failed');
-        Code := Table[0, Code];
-      end;
-      FirstCode := Table[1, Code];
-      Source^ := FirstCode;
-      Inc(Source);
-      Code := MaxCode;
-      if Code <= GIFCodeMax then
-      begin
-        Table[0, Code] := OldCode;
-        Table[1, Code] := FirstCode;
-        Inc(MaxCode);
-        if (MaxCode >= MaxCodeSize) and (MaxCodeSize <= GIFCodeMax) then
-        begin
-          MaxCodeSize := MaxCodeSize * 2;
-          Inc(BitsPerCode);
-        end;
-      end;
-      OldCode := InCode;
-      if Cardinal(Source) > Cardinal(@Stack) then
-      begin
-        Dec(Source);
-        Result := Source^;
-        Exit;
-      end
-    end;
-    Result := Code;
-  end;
-
-  function ReadLWZ: Integer;
-  begin
-    if Cardinal(Source) > Cardinal(@Stack) then
-    begin
-      Dec(Source);
-      Result := Source^;
-    end
-    else
-      Result := NextLWZ;
+    Context.CurrLineData := @PByteArray(Context.Data)[Context.Y * Context.LineIdent];
   end;
 
 begin
-  Read(InitialBitsPerCode, SizeOf(InitialBitsPerCode));
-  BitsPerCode := InitialBitsPerCode + 1;
-  ClearCode := 1 shl InitialBitsPerCode;
-  EOFCode := ClearCode + 1;
-  MaxCodeSize := 2 * ClearCode;
-  MaxCode := ClearCode + 2;
-  StartBit := 0;
-  LastBit := 0;
-  LastByte := 2;
-  ZeroBlock := False;
-  GetDone := False;
-  ReturnClear := True;
-  Source := @Stack;
-
-  if Interlaced then
-  begin
-    YPos := 0;
-    Pass := 0;
-    Step := 8;
-    for I := 0 to Height - 1 do
+  OutCount := 0;
+  OldCode := 0;
+  FinalChar := 0;
+  TableFull := False;
+  GetMem(Prefix, SizeOf(TIntCodeTable));
+  GetMem(Suffix, SizeOf(TIntCodeTable));
+  GetMem(OutCode, SizeOf(TIntCodeTable) + SizeOf(Word));
+  try
+    IO.Read(Handle, @MinCodeSize, 1);
+    if (MinCodeSize < 2) or (MinCodeSize > 9) then
+      RaiseImaging(SGIFDecodingError, []);
+    // Initial read context
+    ReadCtxt.Inx := 0;
+    ReadCtxt.Size := 0;
+    ReadCtxt.CodeSize := MinCodeSize + 1;
+    ReadCtxt.ReadMask := (1 shl ReadCtxt.CodeSize) - 1;
+    // Initialise pixel-output context
+    OutCtxt.X := 0;
+    OutCtxt.Y := 0;
+    OutCtxt.Pass := 0;
+    OutCtxt.W := Width;
+    OutCtxt.H := Height;
+    OutCtxt.BitsPerPixel := MinCodeSize;
+    OutCtxt.Interlace := Interlaced;
+    OutCtxt.LineIdent := Width;
+    OutCtxt.Data := Data;
+    OutCtxt.CurrLineData := Data;
+    BitMask := (1 shl OutCtxt.BitsPerPixel) - 1;
+    // 2 ^ MinCodeSize accounts for all colours in file
+    ClearCode := 1 shl MinCodeSize;
+    EndingCode := ClearCode + 1;
+    FreeCode := ClearCode + 2;
+    FirstFreeCode := FreeCode;
+    // 2^ (MinCodeSize + 1) includes clear and eoi Code and space too
+    InitCodeSize := ReadCtxt.CodeSize;
+    MaxCode := 1 shl ReadCtxt.CodeSize;
+    Code := ReadCode(ReadCtxt);
+    while (Code <> EndingCode) and (Code <> $FFFF) and
+      (OutCtxt.Y < OutCtxt.H) do
     begin
-      Dest := OutData + Width * YPos;
-      for XPos := 0 to Width - 1 do
+      if Code = ClearCode then
       begin
-        V := ReadLWZ;
-        if V < 0 then
-          Exit;
-        Dest^ := Char(V);
-        Inc(Dest);
-      end;
+        ReadCtxt.CodeSize := InitCodeSize;
+        MaxCode := 1 shl ReadCtxt.CodeSize;
+        ReadCtxt.ReadMask := MaxCode - 1;
+        FreeCode := FirstFreeCode;
+        Code := ReadCode(ReadCtxt);
+        CurCode := Code;
+        OldCode := Code;
+        if Code = $FFFF then
+          Break;
+        FinalChar := (CurCode and BitMask);
+        Output(Byte(FinalChar), OutCtxt);
+        TableFull := False;
+      end
+      else
+      begin
+        CurCode := Code;
+        InCode := Code;
+        if CurCode >= FreeCode then
+        begin
+          CurCode := OldCode;
+          OutCode^[OutCount] := FinalChar;
+          Inc(OutCount);
+        end;
+        while CurCode > BitMask do
+        begin
+          if OutCount > CodeTableSize then
+            RaiseImaging(SGIFDecodingError, []);
+          OutCode^[OutCount] := Suffix^[CurCode];
+          Inc(OutCount);
+          CurCode := Prefix^[CurCode];
+        end;
 
-      Inc(YPos, Step);
-      if YPos >= Height then
-      repeat
-        if Pass > 0 then
-          Step := Step div 2;
-        Inc(Pass);
-        YPos := Step div 2;
-      until YPos <= Height;
+        FinalChar := CurCode and BitMask;
+        OutCode^[OutCount] := FinalChar;
+        Inc(OutCount);
+        for I := OutCount - 1 downto 0 do
+          Output(Byte(OutCode^[I]), OutCtxt);
+        OutCount := 0;
+        // Update dictionary
+        if not TableFull then
+        begin
+          Prefix^[FreeCode] := OldCode;
+          Suffix^[FreeCode] := FinalChar;
+          // Advance to next free slot
+          Inc(FreeCode);
+          if FreeCode >= MaxCode then
+          begin
+            if ReadCtxt.CodeSize < 12 then
+            begin
+              Inc(ReadCtxt.CodeSize);
+              MaxCode := MaxCode shl 1;
+              ReadCtxt.ReadMask := (1 shl ReadCtxt.CodeSize) - 1;
+            end
+            else
+              TableFull := True;
+          end;
+        end;
+        OldCode := InCode;
+      end;
+      Code := ReadCode(ReadCtxt);
     end;
-  end
-  else
+    if Code = $FFFF then
+      RaiseImaging(SGIFDecodingError, []);
+  finally
+    FreeMem(Prefix);
+    FreeMem(OutCode);
+    FreeMem(Suffix);
+  end;
+end;
+
+{ GIF LZW compresion code is from JVCL JvGIF.pas unit.}
+procedure TGIFFileFormat.LZWCompress(const IO: TIOFunctions; Handle: TImagingHandle; Width, Height, BitCount: Integer;
+    Interlaced: Boolean; Data: Pointer);
+var
+  LineIdent: Integer;
+  MinCodeSize, Col: Byte;
+  InitCodeSize, X, Y: Integer;
+  Pass: Integer;
+  MaxCode: Integer; { 1 shl CodeSize }
+  ClearCode, EndingCode, LastCode, Tail: Integer;
+  I, HashValue: Integer;
+  LenString: Word;
+  Dict: PDictTable;
+  HashTable: TList;
+  PData: PByte;
+  WriteCtxt: TWriteContext;
+
+  function InitHash(P: Integer): Integer;
   begin
-    Dest := OutData;
-    for YPos := 0 to Height * Width - 1 do
+    Result := (P + 3) * 301;
+  end;
+
+  procedure WriteCode(Code: Integer; var Context: TWriteContext);
+  var
+    BufIndex: Integer;
+    Bytes: Byte;
+  begin
+    BufIndex := Context.Inx shr 3;
+    Code := Code shl (Context.Inx and 7);
+    Context.Buf[BufIndex] := Context.Buf[BufIndex] or Byte(Code);
+    Context.Buf[BufIndex + 1] := Byte(Code shr 8);
+    Context.Buf[BufIndex + 2] := Byte(Code shr 16);
+    Context.Inx := Context.Inx + Context.CodeSize;
+    if Context.Inx >= 255 * 8 then
     begin
-      V := ReadLWZ;
-      if V < 0 then
-        Exit;
-      Dest^ := Char(V);
-      Inc(Dest);
+      // Flush out full buffer
+      Bytes := 255;
+      IO.Write(Handle, @Bytes, 1);
+      IO.Write(Handle, @Context.Buf, Bytes);
+      Move(Context.Buf[255], Context.Buf[0], 2);
+      FillChar(Context.Buf[2], 255, 0);
+      Context.Inx := Context.Inx - (255 * 8);
     end;
+  end;
+
+  procedure FlushCode(var Context: TWriteContext);
+  var
+    Bytes: Byte;
+  begin
+    Bytes := (Context.Inx + 7) shr 3;
+    if Bytes > 0 then
+    begin
+      IO.Write(Handle, @Bytes, 1);
+      IO.Write(Handle, @Context.Buf, Bytes);
+    end;
+    // Data block terminator - a block of zero Size
+    Bytes := 0;
+    IO.Write(Handle, @Bytes, 1);
+  end;
+
+begin
+  LineIdent := Width;
+  Tail := 0;
+  HashValue := 0;
+  Col := 0;
+  HashTable := TList.Create;
+  GetMem(Dict, SizeOf(TDictTable));
+  try
+    for I := 0 to HashTableSize - 1 do
+      HashTable.Add(nil);
+
+    // Initialise encoder variables
+    InitCodeSize := BitCount + 1;
+    if InitCodeSize = 2 then
+      Inc(InitCodeSize);
+    MinCodeSize := InitCodeSize - 1;
+    IO.Write(Handle, @MinCodeSize, 1);
+    ClearCode := 1 shl MinCodeSize;
+    EndingCode := ClearCode + 1;
+    LastCode := EndingCode;
+    MaxCode := 1 shl InitCodeSize;
+    LenString := 0;
+    // Setup write context
+    WriteCtxt.Inx := 0;
+    WriteCtxt.CodeSize := InitCodeSize;
+    FillChar(WriteCtxt.Buf, SizeOf(WriteCtxt.Buf), 0);
+    WriteCode(ClearCode, WriteCtxt);
+    Y := 0;
+    Pass := 0;
+
+    while Y < Height do
+    begin
+      PData := @PByteArray(Data)[Y * LineIdent];
+      for X := 0 to Width - 1 do
+      begin
+        // Only ifIndex8 support
+        case BitCount of
+          8:
+            begin
+              Col := PData^;
+              PData := @PByteArray(PData)[1];
+            end;
+          {4:
+            begin
+              if X and 1 <> 0 then
+              begin
+                Col := PData^ and $0F;
+                PData := @PByteArray(PData)[1];
+              end
+              else
+                Col := PData^ shr 4;
+            end;
+          1:
+            begin
+              if X and 7 = 7 then
+              begin
+                Col := PData^ and 1;
+                PData := @PByteArray(PData)[1];
+              end
+              else
+                Col := (PData^ shr (7 - (X and $07))) and $01;
+            end;}
+        end;
+        Inc(LenString);
+        if LenString = 1 then
+        begin
+          Tail := Col;
+          HashValue := InitHash(Col);
+        end
+        else
+        begin
+          HashValue := HashValue * (Col + LenString + 4);
+          I := HashValue mod HashTableSize;
+          HashValue := HashValue mod HashTableSize;
+          while (HashTable[I] <> nil) and
+            ((PImageDict(HashTable[I])^.Tail <> Tail) or
+            (PImageDict(HashTable[I])^.Col <> Col)) do
+          begin
+            Inc(I);
+            if I >= HashTableSize then
+              I := 0;
+          end;
+          if HashTable[I] <> nil then // Found in the strings table
+            Tail := PImageDict(HashTable[I])^.Index
+          else
+          begin
+            // Not found
+            WriteCode(Tail, WriteCtxt);
+            Inc(LastCode);
+            HashTable[I] := @Dict^[LastCode];
+            PImageDict(HashTable[I])^.Index := LastCode;
+            PImageDict(HashTable[I])^.Tail := Tail;
+            PImageDict(HashTable[I])^.Col := Col;
+            Tail := Col;
+            HashValue := InitHash(Col);
+            LenString := 1;
+            if LastCode >= MaxCode then
+            begin
+              // Next Code will be written longer
+              MaxCode := MaxCode shl 1;
+              Inc(WriteCtxt.CodeSize);
+            end
+            else
+            if LastCode >= CodeTableSize - 2 then
+            begin
+              // Reset tables
+              WriteCode(Tail, WriteCtxt);
+              WriteCode(ClearCode, WriteCtxt);
+              LenString := 0;
+              LastCode := EndingCode;
+              WriteCtxt.CodeSize := InitCodeSize;
+              MaxCode := 1 shl InitCodeSize;
+              for I := 0 to HashTableSize - 1 do
+                HashTable[I] := nil;
+            end;
+          end;
+        end;
+      end;
+      if Interlaced then
+        Y := InterlaceStep(Y, Height, Pass)
+      else
+        Inc(Y);
+    end;
+    WriteCode(Tail, WriteCtxt);
+    WriteCode(EndingCode, WriteCtxt);
+    FlushCode(WriteCtxt);
+  finally
+    HashTable.Free;
+    FreeMem(Dict);
   end;
 end;
 
@@ -413,13 +646,13 @@ function TGIFFileFormat.LoadData(Handle: TImagingHandle;
 var
   Header: TGIFHeader;
   HasGlobalPal: Boolean;
-  BitsPerPixel, GlobalPalLength: Integer;
+  GlobalPalLength: Integer;
   GlobalPal: TPalette32Size256;
   I: Integer;
   BlockID: Byte;
   HasGraphicExt: Boolean;
   GraphicExt: TGraphicControlExtension;
-  Disposal, OldDisposal: TDisposalMethod;
+  Disposals: array of TDisposalMethod;
 
   function ReadBlockID: Byte;
   begin
@@ -440,19 +673,17 @@ var
     begin
       Read(Handle, @ExtType, SizeOf(ExtType));
 
-      case ExtType of
-        GIFGraphicControlExtension:
-          begin
-            HasGraphicExt := True;
-            Read(Handle, @GraphicExt, SizeOf(GraphicExt));
-          end;
-        GIFCommentExtension, GIFApplicationExtension, GIFPlainText:
-          repeat
-            // Read block sizes and skip them
-            Read(Handle, @BlockSize, SizeOf(BlockSize));
-            Seek(Handle, BlockSize, smFromCurrent);
-          until BlockSize = 0;
-      end;
+      if ExtType = GIFGraphicControlExtension then
+      begin
+        HasGraphicExt := True;
+        Read(Handle, @GraphicExt, SizeOf(GraphicExt));
+      end
+      else if ExtType in [GIFCommentExtension, GIFApplicationExtension, GIFPlainText] then
+      repeat
+        // Read block sizes and skip them
+        Read(Handle, @BlockSize, SizeOf(BlockSize));
+        Seek(Handle, BlockSize, smFromCurrent);
+      until BlockSize = 0;
 
       // Read ID of following block
       BlockID := ReadBlockID;
@@ -483,21 +714,22 @@ var
   procedure ReadFrame;
   var
     ImageDesc: TImageDescriptor;
-    HasLocalPal, Interlaced, HasTransparency, FrameSmallerThanScreen: Boolean;
-    I, Idx, LocalPalLength: Integer;
+    HasLocalPal, Interlaced, HasTransparency: Boolean;
+    I, Idx, LocalPalLength, TransIndex: Integer;
     LocalPal: TPalette32Size256;
     BlockTerm: Byte;
     Frame: TImageData;
   begin
     Idx := Length(Images);
     SetLength(Images, Idx + 1);
+    FillChar(LocalPal, SizeOf(LocalPal), 0);
     with GetIO do
     begin
       // Read and parse image descriptor
       Read(Handle, @ImageDesc, SizeOf(ImageDesc));
       HasLocalPal := (ImageDesc.PackedFields and GIFLocalColorTable) = GIFLocalColorTable;
       Interlaced := (ImageDesc.PackedFields and GIFInterlaced) = GIFInterlaced;
-      LocalPalLength := Header.PackedFields and GIFColorTableSize;
+      LocalPalLength := ImageDesc.PackedFields and GIFColorTableSize;
       LocalPalLength := 1 shl (LocalPalLength + 1);   // Total pal length is 2^(n+1)
 
       // Create new logical screen
@@ -525,22 +757,26 @@ var
       else
         FillCustomPalette(Images[Idx].Palette, GlobalPalLength, 3, 3, 2);
 
-      // If Grahic Control Extension is present make use of it  
+      // Add default disposal method for this frame
+      SetLength(Disposals, Length(Disposals) + 1);
+      Disposals[High(Disposals)] := dmUndefined;
+
+      // If Grahic Control Extension is present make use of it
       if HasGraphicExt then
       begin
         HasTransparency := (GraphicExt.PackedFields and GIFTransparent) = GIFTransparent;
-        OldDisposal := Disposal;
-        Disposal := TDisposalMethod((GraphicExt.PackedFields and GIFDisposalMethod) shr 2);
-
+        Disposals[High(Disposals)] := TDisposalMethod((GraphicExt.PackedFields and GIFDisposalMethod) shr 2);
         if HasTransparency then
           Images[Idx].Palette[GraphicExt.TransparentColorIndex].A := 0;
-      end;
+      end
+      else
+        HasTransparency := False;
 
       // If previous frame had some special disposal method we take it into
       // account now
       if Idx >= 1 then
       begin
-        case OldDisposal of
+        case Disposals[Idx - 1] of
           dmUndefined: ; // Do nothing
           dmLeave:
             begin
@@ -566,11 +802,11 @@ var
 
       try
         // Data decompression finally
-        LZWDecompress(GetIO, Handle, ImageDesc.Width, ImageDesc.Height, Interlaced, PChar(Frame.Bits));
+        LZWDecompress(GetIO, Handle, ImageDesc.Width, ImageDesc.Height, Interlaced, Frame.Bits);
         Read(Handle, @BlockTerm, SizeOf(BlockTerm));
-
-        CopyFrameTransparent(Images[Idx], Frame, ImageDesc.Left, ImageDesc.Top,
-          GraphicExt.TransparentColorIndex);
+        // Now copy frame to logical screen with skipping of transparent pixels (if enabled)
+        TransIndex := Iff(HasTransparency, GraphicExt.TransparentColorIndex, MaxInt);
+        CopyFrameTransparent(Images[Idx], Frame, ImageDesc.Left, ImageDesc.Top, TransIndex);
       finally
         FreeImage(Frame);
       end;
@@ -578,15 +814,13 @@ var
   end;
 
 begin
-  Result := False;
-  Disposal := dmUndefined;
   SetLength(Images, 0);
+  FillChar(GlobalPal, SizeOf(GlobalPal), 0);
   with GetIO do
   begin
     // Read GIF header
     Read(Handle, @Header, SizeOf(Header));
     HasGlobalPal := Header.PackedFields and GIFGlobalColorTable = GIFGlobalColorTable; // Bit 7
-    BitsPerPixel := Header.PackedFields and GIFColorResolution shr 4 + 1; // Bits 4-6
     GlobalPalLength := Header.PackedFields and GIFColorTableSize; // Bits 0-2
     GlobalPalLength := 1 shl (GlobalPalLength + 1);   // Total pal length is 2^(n+1)
 
@@ -624,8 +858,79 @@ end;
 
 function TGIFFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer): Boolean;
-begin
+var
+  Header: TGIFHeader;
+  ImageDesc: TImageDescriptor;
+  ImageToSave: TImageData;
+  MustBeFreed: Boolean;
+  I, J: Integer;
+  GraphicExt: TGraphicControlExtension;
 
+  procedure FindMaxDimensions(var MaxWidth, MaxHeight: Word);
+  var
+    I: Integer;
+  begin
+    MaxWidth := Images[FFirstIdx].Width;
+    MaxHeight := Images[FFirstIdx].Height;
+
+    for I := FFirstIdx + 1 to FLastIdx do
+    begin
+      MaxWidth := Iff(Images[I].Width > MaxWidth, Images[I].Width, MaxWidth);
+      MaxHeight := Iff(Images[I].Height > MaxWidth, Images[I].Height, MaxHeight);
+    end;
+  end;
+
+begin
+  // Fill header with data, select size of largest image in array as
+  // logical screen size
+  FillChar(Header, Sizeof(Header), 0);
+  Header.Signature := GIFSignature;
+  Header.Version := GIFVersions[gv89];
+  FindMaxDimensions(Header.ScreenWidth, Header.ScreenHeight);
+  Header.PackedFields := GIFColorResolution; // Color resolution is 256
+  GetIO.Write(Handle, @Header, SizeOf(Header));
+
+  // Prepare default GC extension with delay
+  FillChar(GraphicExt, Sizeof(GraphicExt), 0);
+  GraphicExt.DelayTime := 65;
+  GraphicExt.BlockSize := 4;
+
+  for I := FFirstIdx to FLastIdx do
+  begin
+    if MakeCompatible(Images[I], ImageToSave, MustBeFreed) then
+    with GetIO, ImageToSave do
+    try
+      // Write Graphic Control Extension with default delay
+      Write(Handle, @GIFExtensionIntroducer, SizeOf(GIFExtensionIntroducer));
+      Write(Handle, @GIFGraphicControlExtension, SizeOf(GIFGraphicControlExtension));
+      Write(Handle, @GraphicExt, SizeOf(GraphicExt));
+      // Write frame marker and fill and write image descriptor for this frame
+      Write(Handle, @GIFImageDescriptor, SizeOf(GIFImageDescriptor));
+      FillChar(ImageDesc, Sizeof(ImageDesc), 0);
+      ImageDesc.Width := Width;
+      ImageDesc.Height := Height;
+      ImageDesc.PackedFields := GIFLocalColorTable or GIFColorTableSize; // Use lccal color table with 256 entries
+      Write(Handle, @ImageDesc, SizeOf(ImageDesc));
+
+      // Write local color table for each frame
+      for J := 0 to 255 do
+      begin
+        Write(Handle, @Palette[J].R, SizeOf(Palette[J].R));
+        Write(Handle, @Palette[J].G, SizeOf(Palette[J].G));
+        Write(Handle, @Palette[J].B, SizeOf(Palette[J].B));
+      end;
+
+      // Fonally compress image data 
+      LZWCompress(GetIO, Handle, Width, Height, 8, False, Bits);
+
+    finally
+      if MustBeFreed then
+        FreeImage(ImageToSave);
+    end;
+  end;
+
+  GetIO.Write(Handle, @GIFTrailer, SizeOf(GIFTrailer));
+  Result := True;
 end;
 
 procedure TGIFFileFormat.ConvertToSupported(var Image: TImageData;
@@ -658,9 +963,10 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
-    - add some initial stuff!
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Fixed other loading bugs (local pal size, transparency).
+    - Added GIF saving.
     - Fixed bug when loading multiframe GIFs and implemented few animation
       features (disposal methods, ...). 
     - Loading of GIFs working.

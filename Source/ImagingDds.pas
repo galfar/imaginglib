@@ -567,6 +567,8 @@ var
   NeedsConvert: Boolean;
 begin
   Result := False;
+  FillChar(Hdr, Sizeof(Hdr), 0);
+
   MainIdx := FFirstIdx;
   Len := FLastIdx - MainIdx + 1;
   // Some DDS saving rules:
@@ -606,7 +608,6 @@ begin
   with GetIO, MainImage, Hdr do
   try
     FmtInfo := GetFormatInfo(Format);
-    FillChar(Hdr, Sizeof(Hdr), 0);
     Magic := DDSMagic;
     Desc.Size := SizeOf(Desc);
     Desc.Width := Width;

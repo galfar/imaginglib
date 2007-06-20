@@ -35,7 +35,7 @@ unit ImagingIO;
 interface
 
 uses
-  ImagingTypes, Imaging, SysUtils, Classes, ImagingUtility;
+  SysUtils, Classes, ImagingTypes, Imaging, ImagingUtility;
 
 type
   TMemoryIORec = record
