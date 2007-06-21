@@ -36,6 +36,7 @@ unit ImagingExtras;
 {$I ImagingOptions.inc}
 
 {$DEFINE LINK_JPEG2000}    // link support for JPEG2000 images
+{$DEFINE LINK_TIFF}        // link support for TIFF images
 {$DEFINE LINK_PSD}         // link support for PSD images
 {$DEFINE LINK_PCX}         // link support for PCX images
 {$DEFINE LINK_ELDER}       // link support for Elder Imagery images
@@ -43,6 +44,10 @@ unit ImagingExtras;
 {$IF not (Defined(MSWINDOWS) or (Defined(UNIX) and Defined(FPC) and Defined(CPU86)))}
   // JPEG2000 only for Windows and for Linux/Unix with FPC
   {$UNDEF LINK_JPEG2000}
+{$IFEND}
+
+{$IF not Defined(DELPHI)}
+  {$UNDEF LINK_TIFF} // Only for Delphi now 
 {$IFEND}
 
 interface
@@ -60,12 +65,21 @@ const
   will be losslessly compressed. Otherwise lossy compression is used.
   Default value is False (0).}
   ImagingJpeg2000LosslessCompression = 57;
+  { Specifies compression scheme used when saving TIFF images. Supported values
+    are 0 (Uncompressed), 1 (LZW), 2 (PackBits RLE), 3 (Deflate - ZLib), 4 (JPEG).
+    Default is 1 (LZW). Note that not all images can be stored with
+    JPEG compression - these images will be saved with default compression if
+    JPEG is set.}
+  ImagingTiffCompression             = 65;
 
 implementation
 
 uses
 {$IFDEF LINK_JPEG2000}
   ImagingJpeg2000,
+{$ENDIF}
+{$IFDEF LINK_TIFF}
+  ImagingTiff,
 {$ENDIF}
 {$IFDEF LINK_PSD}
   ImagingPsd,

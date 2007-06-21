@@ -350,7 +350,7 @@ end;
 
 
 {METHODDEF}
-procedure format_message (cinfo : j_common_ptr; var buffer : string);  
+procedure format_message (cinfo : j_common_ptr; var buffer : string);
 var
   err : jpeg_error_mgr_ptr;
   msg_code : J_MESSAGE_CODE;
@@ -404,7 +404,7 @@ begin
         err^.msg_parm.i[6], err^.msg_parm.i[7] ]);
    {$ENDIF}
  {$ENDIF}
-  end;
+  end; 
 end;
 
 

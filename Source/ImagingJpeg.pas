@@ -47,14 +47,13 @@ interface
 
 uses
   SysUtils, ImagingTypes, Imaging,
-{$IFDEF IMJPEGLIB}
+{$IF Defined(IMJPEGLIB)}
   imjpeglib, imjmorecfg, imjcomapi, imjdapimin,
   imjdapistd, imjcapimin, imjcapistd, imjdmarker, imjcparam,
-{$ENDIF}
-{$IFDEF PASJPEG}
+{$ELSEIF Defined(PASJPEG)}
   jpeglib, jmorecfg, jcomapi, jdapimin,
   jdapistd, jcapimin, jcapistd, jdmarker, jcparam,
-{$ENDIF}
+{$IFEND}
   ImagingUtility;
 
 {$IF Defined(FPC) and Defined(PASJPEG)}

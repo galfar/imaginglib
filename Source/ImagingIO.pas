@@ -71,7 +71,7 @@ type
     FBufSize: LongInt;
     FBufPos: LongInt;
     FBufEnd: LongInt;
-    function GetSize: LongInt;
+    function GetSize: LongInt; virtual;
     function GetPosition: LongInt; virtual; abstract;
     procedure SetPosition(Value: LongInt); virtual; abstract;
     procedure FlushBuffer; virtual; abstract;
@@ -99,6 +99,7 @@ type
     (size < ABufferSize) and large ones are written whole at once.}
   TBufferedWriteFile = class(TBufferedFile)
   protected
+    function GetSize: LongInt; override;
     function GetPosition: LongInt; override;
     procedure SetPosition(Value: LongInt); override;
     procedure FlushBuffer; override;
@@ -169,9 +170,11 @@ begin
         // new data is read to buffer
         FlushBuffer;
         if FBufEnd = 0 then
+        begin
           // This happens if no new data was read to buffer - stream reached
           // end of file
           Exit;
+        end;
       end;
       // Get exact number of bytes to copy
       CopyNow := FBufEnd - FBufPos;
@@ -211,7 +214,7 @@ end;
 constructor TBufferedWriteFile.Create(const AFileName: string;
   ABufferSize: LongInt);
 begin
-  inherited Create(AFileName, fmCreate or fmShareExclusive, ABufferSize);
+  inherited Create(AFileName, fmCreate or fmShareDenyWrite, ABufferSize);
 end;
 
 destructor TBufferedWriteFile.Destroy;
@@ -253,6 +256,11 @@ begin
         FlushBuffer;
     end;
   end;
+end;
+
+function TBufferedWriteFile.GetSize: LongInt;
+begin
+  Result := inherited GetSize + FBufPos;
 end;
 
 function TBufferedWriteFile.GetPosition: LongInt;
@@ -317,13 +325,13 @@ end;
 function FileRead(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt):
   LongInt; cdecl;
 begin
-  Result := TBufferedReadFile(Handle).Read(Buffer^, Count);
+  Result := TBufferedReadFile(Handle){(TObject(Handle) as TBufferedReadFile)}.Read(Buffer^, Count);
 end;
 
 function FileWrite(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt):
   LongInt; cdecl;
 begin
-  Result := TBufferedWriteFile(Handle).Write(Buffer^, Count);
+  Result := (TObject(Handle) as TBufferedWriteFile).Write(Buffer^, Count);
 end;
 
 { Stream IO functions }
@@ -489,6 +497,12 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+    - must merge buffered read abd write streams - TIFF needs
+      both writing and reading when saving
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Fixed bug causing wrong value of TBufferedWriteFile.Size
+      (needed to add buffer pos to size).
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Removed TMemoryIORec.Written, use Position to get proper memory

@@ -800,6 +800,7 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+    - Add option to choose to save V3 or V4 headers. 
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Now saves bitmaps as bottom-up for better compatibility

@@ -161,6 +161,7 @@ type
     FImageCanvas: TImagingCanvas;
     FFileName: string;
     procedure OpenFile(const FileName: string);
+    procedure SaveFile(const FileName: string);
     procedure SelectSubimage(Index: LongInt);
     procedure UpdateView;
     function CheckCanvasFormat: Boolean;
@@ -506,7 +507,7 @@ begin
   if SaveD.Execute then
   begin
     FFileName := ChangeFileExt(SaveD.FileName, '.' + GetFilterIndexExtension(SaveD.FilterIndex, False));
-    FImage.SaveMultiToFile(FFileName);
+    SaveFile(FFileName);
   end;
 end;
 
@@ -518,8 +519,22 @@ end;
 procedure TMainForm.OpenFile(const FileName: string);
 begin
   FFileName := FileName;
-  FImage.LoadMultiFromFile(FileName);
+  try
+    FImage.LoadMultiFromFile(FileName);
+  except
+    FImage.CreateFromParams(32, 32, ifA8R8G8B8, 1);
+    MessageDlg('Error when loading file: ' + FileName, mtError, [mbOK], 0);
+  end;
   SelectSubimage(0);
+end;
+
+procedure TMainForm.SaveFile(const FileName: string);
+begin
+  try
+    FImage.SaveMultiToFile(FileName);
+  except
+    MessageDlg('Error when saving file: ' + FileName, mtError, [mbOK], 0);
+  end;
 end;
 
 procedure TMainForm.SelectSubimage(Index: LongInt);
@@ -542,6 +557,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - add more canvas stuff when it will be avaiable
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Catches exceptions during file load/save.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Save As... now saves all images levels instead of just current one.

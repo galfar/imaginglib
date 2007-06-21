@@ -45,32 +45,29 @@ unit dzlib;
 
 interface
 
-{$DEFINE IMPASZLIB}
-{ $DEFINE FPCPASZLIB}
 { $DEFINE ZLIBEX}
 { $DEFINE DELPHIZLIB}
 { $DEFINE ZLIBPAS}
+{$DEFINE IMPASZLIB}
+{ $DEFINE FPCPASZLIB}
 
 uses
-{$IFDEF IMPASZLIB}
-  { use paszlib modified by me for Delphi and FPC }
-  imzdeflate, imzinflate, impaszlib,
-{$ENDIF}
-{$IFDEF FPCPASZLIB}
-  { use FPC's paszlib }
-  zbase, paszlib,
-{$ENDIF}
-{$IFDEF ZLIBEX}
+{$IF Defined(ZLIBEX)}
+  { Use ZlibEx unit.}
   ZLibEx,
-{$ENDIF}
-{$IFDEF DELPHIZLIB}
-  { use ZLib unit shipped with Delphi }
+{$ELSEIF Defined(DELPHIZLIB)}
+  { Use ZLib unit shipped with Delphi.}
   ZLib,
-{$ENDIF}
-{$IFDEF ZLIBPAS}
-  { pascal interface to ZLib shipped with ZLib C source }
+{$ELSEIF Defined(ZLIBPAS)}
+  { Pascal interface to ZLib shipped with ZLib C source.}
   zlibpas,
-{$ENDIF}
+{$ELSEIF Defined(IMPASZLIB)}
+  { Use paszlib modified by me for Delphi and FPC.}
+  imzdeflate, imzinflate, impaszlib,
+{$ELSEIF Defined(FPCPASZLIB)}
+  { Use FPC's paszlib.}
+  zbase, paszlib,
+{$IFEND}
   SysUtils, Classes;
 
 {$IF Defined(IMPASZLIB) or Defined(FPCPASZLIB) or Defined(ZLIBPAS)}
@@ -268,8 +265,10 @@ var
   P: Pointer;
 begin
   FillChar(strm, sizeof(strm), 0);
+{$IFNDEF FPCPASZLIB}
   strm.zalloc := @zlibAllocMem;
   strm.zfree := @zlibFreeMem;
+{$ENDIF}
   OutBytes := ((InBytes + (InBytes div 10) + 12) + 255) and not 255;
   GetMem(OutBuf, OutBytes);
   try
@@ -306,8 +305,10 @@ var
   BufInc: Integer;
 begin
   FillChar(strm, sizeof(strm), 0);
+{$IFNDEF FPCPASZLIB}
   strm.zalloc := @zlibAllocMem;
   strm.zfree := @zlibFreeMem;
+{$ENDIF}
   BufInc := (InBytes + 255) and not 255;
   if OutEstimate = 0 then
     OutBytes := BufInc
@@ -348,8 +349,10 @@ begin
   inherited Create;
   FStrm := Strm;
   FStrmPos := Strm.Position;
+{$IFNDEF FPCPASZLIB}
   FZRec.zalloc := @zlibAllocMem;
   FZRec.zfree := @zlibFreeMem;
+{$ENDIF}
 end;
 
 procedure TCustomZLibStream.Progress(Sender: TObject);

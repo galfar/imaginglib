@@ -65,7 +65,7 @@
                           // others are not supported
 {$ENDIF}
 
-{$IFNDEF FPC}
+{$IFDEF DCC}
   {$IFDEF LINUX}
     {$DEFINE KYLIX}       // using Kylix
   {$ENDIF}
@@ -95,7 +95,7 @@
   {$IFDEF DCC}
     {$OPTIMIZATION OFF}
     {$STACKFRAMES ON}
-    { $DEFINE MEMCHECK}
+    {$DEFINE MEMCHECK}
   {$ENDIF}
   {$IFDEF FPC}
     {$S+}

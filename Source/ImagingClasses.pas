@@ -213,6 +213,7 @@ type
     procedure AddImages(const Images: TDynImageDataArray); overload;
     { Adds existing MultiImage images at the end of the image array. }
     procedure AddImages(Images: TMultiImage); overload;
+
     { Inserts new image image at the given position in the image array. }
     procedure InsertImage(Index, AWidth, AHeight: LongInt; AFormat: TImageFormat = ifDefault); overload;
     { Inserts existing image at the given position in the image array. }
@@ -225,6 +226,7 @@ type
     { Inserts existing images (all images of a TmultiImage) at
       the given position in the image array. }
     procedure InsertImages(Index: LongInt; Images: TMultiImage); overload;
+
     { Exchanges two images at the given positions in the image array. }
     procedure ExchangeImages(Index1, Index2: LongInt);
     { Deletes image at the given position in the image array.}

@@ -201,7 +201,7 @@ function SplitImage(var Image: TImageData; var Chunks: TDynImageDataArray;
   are converted to indexed format using resulting palette. if it is False
   images are left intact and only resulting palatte is returned in Pal.
   Pal must be allocated to have at least MaxColors entries.}
-function MakePaletteForImages(var Images: TDynImageDataArray; Pal: PPalette32;
+function MakePaletteForImages(const Images: TDynImageDataArray; Pal: PPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean;
 { Rotates image by 90, 180, 270, -90, -180, or -270 degrees counterclockwise.
   Only multiples of 90 degrees are allowed.}
@@ -1754,16 +1754,18 @@ begin
   end;
 end;
 
-function MakePaletteForImages(var Images: TDynImageDataArray; Pal: PPalette32;
+function MakePaletteForImages(const Images: TDynImageDataArray; Pal: PPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean;
 var
   I: LongInt;
   SrcInfo, DstInfo: PImageFormatInfo;
-  Target: TImageData;
+  Target, TempImage: TImageData;
   DstFormat: TImageFormat;
 begin
   Assert((Pal <> nil) and (MaxColors > 0));
   Result := False;
+  InitImage(TempImage);
+
   if TestImagesInArray(Images) then
   try
     // Null the color histogram
@@ -1771,9 +1773,22 @@ begin
     for I := 0 to Length(Images) - 1 do
     begin
       SrcInfo := ImageFormatInfos[Images[I].Format];
+      if SrcInfo.IsIndexed or SrcInfo.IsSpecial then
+      begin
+        // create temp image in supported format for updating histogram
+        CloneImage(Images[I], TempImage);
+        ConvertImage(TempImage, ifA8R8G8B8);
+        SrcInfo := ImageFormatInfos[TempImage.Format];
+      end
+      else
+        TempImage := Images[I];
+
       // Update histogram with colors of each input image
-      ReduceColorsMedianCut(Images[I].Width * Images[I].Height, Images[I].Bits,
+      ReduceColorsMedianCut(TempImage.Width * TempImage.Height, TempImage.Bits,
         nil, SrcInfo, nil, MaxColors, ColorReductionMask, nil, [raUpdateHistogram]);
+
+      if Images[I].Bits <> TempImage.Bits then
+        FreeImage(TempImage);
     end;
     // Construct reduced color map from the histogram
     ReduceColorsMedianCut(0, nil, nil, nil, nil, MaxColors, ColorReductionMask,
@@ -1787,6 +1802,14 @@ begin
       for I := 0 to Length(Images) - 1 do
       begin
         SrcInfo := ImageFormatInfos[Images[I].Format];
+        if SrcInfo.IsIndexed or SrcInfo.IsSpecial then
+        begin
+          // If source image is in format not supported by ReduceColorsMedianCut
+          // we convert it
+          ConvertImage(Images[I], ifA8R8G8B8);
+          SrcInfo := ImageFormatInfos[Images[I].Format];
+        end;
+
         InitImage(Target);
         NewImage(Images[I].Width, Images[I].Height, DstFormat, Target);
         // We map each input image to reduced palette and replace
@@ -1794,6 +1817,7 @@ begin
         ReduceColorsMedianCut(Images[I].Width * Images[I].Height, Images[I].Bits,
           Target.Bits, SrcInfo, DstInfo, MaxColors, 0, nil, [raMapImage]);
         Move(Pal^, Target.Palette^, MaxColors * SizeOf(TColor32Rec));
+
         FreeImage(Images[I]);
         Images[I] := Target;
       end;
@@ -3248,12 +3272,9 @@ finalization
     - add loading of multi images from file sequence
     - do not load all frames when only one is required, possible?
       (LoadImageFromFile on MNG/DDS)
-    - allow loaders to store additional infos - file structure (DDS volumes,
-      dagger textures), other info (PNG/MNG)
-      - return additional info about loaded image like this
-        TicksPerSecond := PMNGDetails(GetOption(ImagingMNGFileDetails)).TicksPerSecond;
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - MakePaletteForImages now works correctly for indexed and special format images
     - Fixed bug in StretchRect: Image was not properly stretched if
       src and dst dimensions differed only in height.
     - ConvertImage now fills new image with zeroes to avoid random data in

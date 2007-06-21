@@ -1225,15 +1225,25 @@ procedure ReduceColorsMedianCut(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
 
 begin
   MaxColors := ClampInt(MaxColors, 2, MaxPossibleColors);
+
+  if (raUpdateHistogram in Actions) or (raMapImage in Actions) then
+  begin
+    Assert(not SrcInfo.IsSpecial);
+    Assert(not SrcInfo.IsIndexed);
+  end;
+
   if raCreateHistogram in Actions then
     FillChar(Table, SizeOf(Table), 0);
+
   if raUpdateHistogram in Actions then
     CreateHistogram(Src, SrcInfo, ChannelMask);
+
   if raMakeColorMap in Actions then
   begin
     MakeColorMap;
     FillOutputPalette;
   end;
+
   if raMapImage in Actions then
     MapImage(Src, Dst, SrcInfo, DstInfo);
 end;

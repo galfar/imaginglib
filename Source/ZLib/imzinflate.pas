@@ -32,7 +32,7 @@ function inflateInit(var z : z_stream) : int;
 
 function inflateInit_(z : z_streamp;
                       const version : string;
-                      stream_size : int) : int;
+                      stream_size : int) : int; 
 
 
 function inflateInit2_(var z: z_stream;

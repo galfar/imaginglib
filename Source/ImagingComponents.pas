@@ -176,6 +176,14 @@ type
   end;
 {$ENDIF}
 
+{$IFDEF LINK_GIF}
+  { TImagingGraphic descendant for loading/saving GIF images.}
+  TImagingGIF = class(TImagingGraphicForSave)
+  public
+    class function GetFileFormat: TImageFileFormat; override;
+  end;
+{$ENDIF}
+
 {$IFDEF LINK_TARGA}
   { TImagingGraphic descendant for loading/saving Targa images.}
   TImagingTarga = class(TImagingGraphicForSave)
@@ -329,6 +337,9 @@ uses
 {$ENDIF}
 {$IFDEF LINK_JPEG}
   ImagingJpeg,
+{$ENDIF}
+{$IFDEF LINK_GIF}
+  ImagingGif,
 {$ENDIF}
 {$IFDEF LINK_TARGA}
   ImagingTarga,
@@ -1078,6 +1089,17 @@ begin
 end;
 {$ENDIF}
 
+{$IFDEF LINK_GIF}
+
+{ TImagingGIF class implementation}
+
+class function TImagingGIF.GetFileFormat: TImageFileFormat;
+begin
+  Result := FindImageFileFormatByClass(TGIFFileFormat);
+end;
+
+{$ENDIF}
+
 {$IFDEF LINK_TARGA}
 
 { TImagingTarga class implementation }
@@ -1219,6 +1241,9 @@ finalization
   -- TODOS ----------------------------------------------------
     - nothing now
     - how to replce Set/Get option by high level?
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added TImagingGIF. 
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Uses only high level interface now (except for saving options).
