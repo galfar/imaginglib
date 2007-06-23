@@ -6,6 +6,9 @@ unit LibTiffDelphi;
 {$ENDIF}
 *)
 
+{$ALIGN 8}
+{$MINENUMSIZE 1}
+
 interface
 
 uses
