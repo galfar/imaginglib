@@ -43,6 +43,13 @@ unit ImagingJpeg;
 {$DEFINE IMJPEGLIB}
 { $DEFINE PASJPEG}
 
+{ Automatically use FPC's PasJpeg when compiling with Lazarus.}
+
+{$IFDEF LCL}
+  { $UNDEF IMJPEGLIB}
+  {$DEFINE PASJPEG}
+{$ENDIF}
+
 interface
 
 uses
@@ -58,7 +65,7 @@ uses
 
 {$IF Defined(FPC) and Defined(PASJPEG)}
   { When using FPC's pasjpeg in FPC the channel order is BGR instead of RGB}
-  {$DEFINE RGBSWAPPED}
+  { $DEFINE RGBSWAPPED}
 {$IFEND}
 
 type
@@ -512,9 +519,7 @@ begin
     ReadCount := Read(Handle, @ID, SizeOf(ID));
     Seek(Handle, -ReadCount, smFromCurrent);
     Result := (ReadCount = SizeOf(ID)) and
-      CompareMem(@ID, @JpegMagic, SizeOf(JpegMagic)) and
-      (CompareMem(@ID[6], @JFIFSignature, SizeOf(JFIFSignature)) or
-      CompareMem(@ID[6], @EXIFSignature, SizeOf(EXIFSignature)));
+      CompareMem(@ID, @JpegMagic, SizeOf(JpegMagic));
   end;
 end;
 
@@ -532,6 +537,10 @@ initialization
  -- TODOS ----------------------------------------------------
     - nothing now
 
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Removed JFIF/EXIF detection from TestFormat. Found JPEGs
+      with different headers (Lavc) which weren't recognized. 
+
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - MakeCompatible method moved to base class, put ConvertToSupported here.
       GetSupportedFormats removed, it is now set in constructor.
@@ -545,7 +554,7 @@ initialization
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - input position is now set correctly to the end of the image
       after loading is done. Loading of sequence of JPEG files stored in
-      single stream works now 
+      single stream works now
     - when loading and saving images in FPC with PASJPEG read and
       blue channels are swapped to have the same chanel order as IMJPEGLIB
     - you can now choose between IMJPEGLIB and PASJPEG implementations
