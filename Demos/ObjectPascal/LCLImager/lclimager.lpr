@@ -2,10 +2,10 @@ program LCLImager;
 
 {$IFDEF MSWINDOWS}
   {$APPTYPE GUI}
-  {$R *.res}
+  {$IFDEF WIN32}
+    {$R *.res}
+  {$ENDIF}
 {$ENDIF}
-
-{$R *.res}
 
 {$mode objfpc}{$H+}
 

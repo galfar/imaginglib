@@ -38,7 +38,11 @@ uses
   LibTiffDelphi;
 
 type
-  { TIFF (Tag Image File Format) loader/saver class.}
+  { TIFF (Tag Image File Format) loader/saver class. Uses LibTiff so
+    it can handle most types of TIFF files.
+
+    Uses LibTiffDelphi now so it is only usable with Delphi. Native support
+    is planned.}
   TTiffFileFormat = class(TImageFileFormat)
   protected
     FCompression: LongInt;
@@ -391,11 +395,6 @@ begin
         Photometric := PHOTOMETRIC_MINISBLACK
       else
         Photometric := PHOTOMETRIC_RGB;
-      {
-      if I = 0 then
-        CompressionScheme := COMPRESSION_DEFLATE
-      else
-        CompressionScheme := COMPRESSION_JPEG;}
 
       // Write tags
       TIFFSetField(Tif, TIFFTAG_IMAGEWIDTH, Width);

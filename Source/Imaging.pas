@@ -201,7 +201,7 @@ function SplitImage(var Image: TImageData; var Chunks: TDynImageDataArray;
   are converted to indexed format using resulting palette. if it is False
   images are left intact and only resulting palatte is returned in Pal.
   Pal must be allocated to have at least MaxColors entries.}
-function MakePaletteForImages(const Images: TDynImageDataArray; Pal: PPalette32;
+function MakePaletteForImages(var Images: TDynImageDataArray; Pal: PPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean;
 { Rotates image by 90, 180, 270, -90, -180, or -270 degrees counterclockwise.
   Only multiples of 90 degrees are allowed.}
@@ -1754,10 +1754,10 @@ begin
   end;
 end;
 
-function MakePaletteForImages(const Images: TDynImageDataArray; Pal: PPalette32;
+function MakePaletteForImages(var Images: TDynImageDataArray; Pal: PPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean;
 var
-  I: LongInt;
+  I: Integer;
   SrcInfo, DstInfo: PImageFormatInfo;
   Target, TempImage: TImageData;
   DstFormat: TImageFormat;
@@ -1799,6 +1799,7 @@ begin
       DstFormat := ifIndex8;
       DstInfo := ImageFormatInfos[DstFormat];
       MaxColors := Min(DstInfo.PaletteEntries, MaxColors);
+
       for I := 0 to Length(Images) - 1 do
       begin
         SrcInfo := ImageFormatInfos[Images[I].Format];

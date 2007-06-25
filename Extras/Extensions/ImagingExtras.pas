@@ -41,7 +41,7 @@ unit ImagingExtras;
 {$DEFINE LINK_PCX}         // link support for PCX images
 {$DEFINE LINK_ELDER}       // link support for Elder Imagery images
 
-{$IF not (Defined(MSWINDOWS) or (Defined(UNIX) and Defined(FPC) and Defined(CPU86)))}
+{$IF not ((Defined(MSWINDOWS) or (Defined(UNIX) and Defined(FPC))) and Defined(CPU86))}
   // JPEG2000 only for Windows and for Linux/Unix with FPC
   {$UNDEF LINK_JPEG2000}
 {$IFEND}

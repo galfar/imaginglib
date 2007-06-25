@@ -51,6 +51,13 @@ interface
 {$DEFINE IMPASZLIB}
 { $DEFINE FPCPASZLIB}
 
+{ Automatically use FPC's PasZLib when compiling with Lazarus.}
+
+{$IFDEF LCL}
+  {$UNDEF IMPASZLIB}
+  {$DEFINE FPCPASZLIB}
+{$ENDIF}
+
 uses
 {$IF Defined(ZLIBEX)}
   { Use ZlibEx unit.}

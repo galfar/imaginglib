@@ -16,6 +16,7 @@ implementation
 
 procedure Register; 
 begin
+  RegisterUnit('ImagingComponents', @ImagingComponents.Register); 
 end; 
 
 initialization

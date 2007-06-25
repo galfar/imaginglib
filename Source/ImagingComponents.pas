@@ -322,6 +322,10 @@ procedure DisplayImage(DstCanvas: TCanvas; const DstRect: TRect; Image: TBaseIma
 procedure DisplayImageDataOnDC(DC: HDC; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
 {$ENDIF}
 
+{$IFDEF COMPONENT_SET_LCL}
+procedure Register;
+{$ENDIF}
+
 implementation
 
 uses
@@ -446,6 +450,13 @@ begin
   TPicture.UnregisterGraphicClass(TImagingGraphic);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingGraphic);{$ENDIF}
 end;
+
+{$IFDEF COMPONENT_SET_LCL}
+procedure Register;
+begin
+  RegisterTypes;
+end;
+{$ENDIF}
 
 function DataFormatToPixelFormat(Format: TImageFormat): TPixelFormat;
 begin
