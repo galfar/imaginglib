@@ -16,8 +16,7 @@ implementation
 
 procedure Register; 
 begin
-  RegisterUnit('ImagingComponents', @ImagingComponents.Register); 
-end; 
+end;
 
 initialization
   RegisterPackage('VampyreImagingPackage', @Register); 

@@ -322,10 +322,6 @@ procedure DisplayImage(DstCanvas: TCanvas; const DstRect: TRect; Image: TBaseIma
 procedure DisplayImageDataOnDC(DC: HDC; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
 {$ENDIF}
 
-{$IFDEF COMPONENT_SET_LCL}
-procedure Register;
-{$ENDIF}
-
 implementation
 
 uses
@@ -386,7 +382,7 @@ var
   end;
 
 begin
-  for I := 0 to Imaging.GetFileFormatCount - 1 do
+  for I := Imaging.GetFileFormatCount - 1 downto 0 do
     RegisterFileFormatAllInOne(Imaging.GetFileFormatAtIndex(I));
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingGraphic);{$ENDIF}
 
@@ -405,6 +401,10 @@ begin
 {$IFDEF LINK_MNG}
   RegisterFileFormat(TImagingMNG);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingMNG);{$ENDIF}
+{$ENDIF}
+{$IFDEF LINK_GIF}
+  RegisterFileFormat(TImagingGIF);
+  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingGIF);{$ENDIF}
 {$ENDIF}
 {$IFDEF LINK_PNG}
   {$IFDEF COMPONENT_SET_LCL}
@@ -439,6 +439,10 @@ begin
   TPicture.UnregisterGraphicClass(TImagingPNG);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingPNG);{$ENDIF}
 {$ENDIF}
+{$IFDEF LINK_GIF}
+  TPicture.UnregisterGraphicClass(TImagingGIF);
+  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingGIF);{$ENDIF}
+{$ENDIF}
 {$IFDEF LINK_TARGA}
   TPicture.UnregisterGraphicClass(TImagingTarga);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingTarga);{$ENDIF}
@@ -450,13 +454,6 @@ begin
   TPicture.UnregisterGraphicClass(TImagingGraphic);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingGraphic);{$ENDIF}
 end;
-
-{$IFDEF COMPONENT_SET_LCL}
-procedure Register;
-begin
-  RegisterTypes;
-end;
-{$ENDIF}
 
 function DataFormatToPixelFormat(Format: TImageFormat): TPixelFormat;
 begin
@@ -1251,7 +1248,6 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
-    - how to replce Set/Get option by high level?
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added TImagingGIF. 

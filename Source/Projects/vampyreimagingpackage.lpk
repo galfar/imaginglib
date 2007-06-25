@@ -57,7 +57,6 @@
       </Item4>
       <Item5>
         <Filename Value="..\ImagingComponents.pas"/>
-        <HasRegisterProc Value="True"/>
         <UnitName Value="ImagingComponents"/>
       </Item5>
       <Item6>

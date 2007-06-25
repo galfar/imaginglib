@@ -65,7 +65,7 @@ uses
 
 {$IF Defined(FPC) and Defined(PASJPEG)}
   { When using FPC's pasjpeg in FPC the channel order is BGR instead of RGB}
-  { $DEFINE RGBSWAPPED}
+  { $DEFINE RGBSWAPPED} // not needed now apparently
 {$IFEND}
 
 type

@@ -105,15 +105,11 @@ HostApplication=
 Launcher=
 UseLauncher=0
 DebugCWD=
-[Language]
-ActiveLang=
-ProjectLang=
-RootDir=C:\Program Files\Borland\Delphi7\Bin\
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
-MinorVer=22
+MinorVer=24
 Release=0
 Build=0
 Debug=0
@@ -121,20 +117,18 @@ PreRelease=0
 Special=0
 Private=0
 DLL=0
-Locale=1029
-CodePage=1250
+Locale=1033
+CodePage=1252
 [Version Info Keys]
 CompanyName=http://imaginglib.sourceforge.net
 FileDescription=Image loading, saving and manipulation library
-FileVersion=0.22.0.0
+FileVersion=0.24.0.0
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=Vampyre Imaging Library
 ProductVersion=1.0.0.0
-[Excluded Packages]
-D:\Project\Libs\Imaging\Bin\VampyreImagingPackageD7.bpl=Vampyre Imaging Library Package
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;

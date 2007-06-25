@@ -172,6 +172,7 @@ type
 
 const
   SWindowTitle = 'LCL Imager - Vampyre Imaging Library %s Demo';
+  
 var
   MainForm: TMainForm;
 
