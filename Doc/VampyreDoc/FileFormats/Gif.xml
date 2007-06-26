@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<?xml-stylesheet type="text/xsl" href="../Xsl/doc2html.xsl"?>
+<doc>
+  <title>Graphics Interchange Format</title>
+  <chapter>
+    <title>Graphics Interchange Format</title>
+    <par>
+      GIF was
+      (and is still used) popular format for storing images supporting
+      multiple images per file and single color transparency.
+      Pixel format is 8 bit indexed where each image frame can have
+      its own color palette. GIF uses lossless LZW compression
+      (patent expired few years ago).
+      Imaging can load and save all GIFs with all frames and supports
+      transparency.
+    </par>
+    
+    <table>
+      <title>GIF File Format Support</title>
+      <row>
+        <th>Format</th>
+        <th>TImageFormat equivalent</th>
+        <th>Loading</th>
+        <th>Saving</th>
+      </row>
+      <row>
+        <td>up to 256 colors indexed</td>
+        <td><icode>ifIndex8</icode></td>
+        <td>Yes</td><td>Yes</td>
+      </row>
+    </table>
+  </chapter>
+</doc>

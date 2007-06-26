@@ -19,11 +19,12 @@
 
     <linklist>
       <title>Core File Formats</title>
+      <lslink url="Bitmap.xml">BMP Windows Bitmap File Format</lslink>
       <lslink url="Jpeg.xml">JPEG File Format</lslink>
+      <lslink url="Png.xml">PNG Portable Network Graphics File Format</lslink>
+      <lslink url="Gif.xml">GIF Graphics Interchange Format</lslink>
       <lslink url="Targa.xml">TGA Targa File Format</lslink>
       <lslink url="Dds.xml">DDS DirectDraw Surface File Format</lslink>
-      <lslink url="Bitmap.xml">BMP Windows Bitmap File Format</lslink>
-      <lslink url="Png.xml">PNG Portable Network Graphics File Format</lslink>
       <lslink url="Mng.xml">MNG Multiple Network Graphics File Format</lslink>
       <lslink url="Jng.xml">JNG JPEG Network Graphics File Format</lslink>
       <lslink url="Pnm.xml">Portable Maps: PBM, PGM, PPM, PAM, and PFM File Formats</lslink>
@@ -32,6 +33,8 @@
     <linklist>
       <title>Extras File Formats</title>
       <lslink url="Jpeg2000.xml">JPEG2000 File Format</lslink>
+      <lslink url="Psd.xml">PSD Photoshop Document File Format</lslink>
+      <lslink url="Tiff.xml">TIFF Tagged Image File Format</lslink>
       <lslink url="Pcx.xml">PCX ZSoft PaintBrush File Format</lslink>
       <lslink url="ElderImagery.xml">Elder Imagery Extension</lslink>
     </linklist>

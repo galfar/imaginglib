@@ -39,11 +39,12 @@ uses
 type
   { Class for loading and saving Adobe Photoshop PSD images.
     Loading and saving of indexed, grayscale, RGB(A), HDR (FP32), and CMYK
-    (auto converted to RGB)  images is supported. Non-HDR gray, RGB,
+    (auto converted to RGB) images is supported. Non-HDR gray, RGB,
     and CMYK images can have 8bit or 16bit color channels.
     There is no support for loading mono images, duotone images are treated
     like grayscale images, and multichannel and CIE Lab images are loaded as
-    RGB images but without actual conversion to RGB color space.}
+    RGB images but without actual conversion to RGB color space.
+    Also no layer information is loaded.}
   TPSDFileFormat = class(TImageFileFormat)
   protected
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;

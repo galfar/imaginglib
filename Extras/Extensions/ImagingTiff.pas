@@ -66,7 +66,7 @@ type
 implementation
 
 const
-  STiffFormatName = 'Tag Image File Format';
+  STiffFormatName = 'Tagged Image File Format';
   STiffMasks      = '*.tif,*.tiff';
   TiffSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8, 
     ifGray16, ifA16Gray16, ifGray32, ifR8G8B8, ifA8R8G8B8, ifR16G16B16,

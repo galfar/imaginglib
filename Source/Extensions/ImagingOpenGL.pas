@@ -32,11 +32,19 @@ unit ImagingOpenGL;
 
 {$I ImagingOptions.inc}
 
+{ Define this symbol if you want to use dglOpenGL header.}
+{ $DEFINE USE_DGL_HEADERS}
+
 interface
 
 uses
   SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats,
-  ImagingUtility, {gl, glext,}dglOpenGL;
+{$IFDEF USE_DGL_HEADERS}
+  dglOpenGL,
+{$ELSE}
+  gl, glext,
+{$ENDIF}
+ ImagingUtility;
 
 type
   { Various texture capabilities of installed OpenGL driver.}

@@ -10,22 +10,25 @@
       on any dynamically linked libraries or other platform specific binaries.
       Supported platforms are:
       <blist>
-        <li> <b>MS Windows</b></li>
-        <li> x86/AMD64 <b>Linux</b></li>
-        <li> x86/AMD64 <b>FreeBSD</b></li>
-        <li> <b>DOS</b></li>
+        <li><b>Windows</b> x86/AMD64</li>
+        <li><b>Linux</b> x86/AMD64</li>
+        <li><b>FreeBSD</b> x86/AMD64</li>
+        <li><b>DOS</b></li>
         <li><b>.NET</b> (using unmanaged DLL)</li>
       </blist>
     </li>
     <li>
       Loading and saving of these image file formats:
       <blist>
-        <li> <b>PNG</b>, <b>MNG</b>, <b>JNG</b></li>
-        <li> <b>JPEG</b>, <b>JPEG2000</b></li>
-        <li> <b>DDS</b></li>
-        <li> <b>TGA</b></li>
         <li> <b>BMP</b></li>
+        <li> <b>JPEG</b>, <b>JPEG2000</b></li>
+        <li> <b>PNG</b>, <b>MNG</b>, <b>JNG</b></li>
+        <li> <b>GIF</b></li>
+        <li> <b>TGA</b></li>
+        <li> <b>DDS</b></li>
         <li> <b>PBM</b>, <b>PGM</b>, <b>PPM</b>, <b>PAM</b>, <b>PFM</b></li>
+        <li> <b>TIFF</b></li>
+        <li> <b>PSD</b></li>
         <li> <b>PCX</b></li>
         <li> and more</li>
       </blist>

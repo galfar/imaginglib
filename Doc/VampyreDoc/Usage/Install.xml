@@ -49,6 +49,10 @@
         <td><keyword>(Imaging Root)\Extras\Extensions</keyword></td>
         <td>Extras extensions source code (mainly new file formats)</td>
       </row>
+      <row>
+        <td><keyword>(Imaging Root)\Extras\Extensions\LibTiff</keyword></td>
+        <td>Needed if you enable TIFF support.</td>
+      </row>
     </table>
 
     <lcap>Compiler Setup</lcap>
@@ -167,6 +171,10 @@
       </row>
       <row>
         <td><keyword>BuildDemosFPC.bat (Win32)</keyword></td>
+        <td>Builds demos in <keyword>Demos\Bin</keyword> directory using Free Pascal</td>
+      </row>
+      <row>
+        <td><keyword>BuildDemosFPC64.bat (Win64)</keyword></td>
         <td>Builds demos in <keyword>Demos\Bin</keyword> directory using Free Pascal</td>
       </row>
       <row>

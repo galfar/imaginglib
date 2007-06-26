@@ -37,7 +37,7 @@ const
   { Current Major version of Imaging.}
   ImagingVersionMajor = 0;
   { Current Minor version of Imaging.}
-  ImagingVersionMinor = 23;
+  ImagingVersionMinor = 24;
   { Current patch of Imaging.}
   ImagingVersionPatch = 0;
 

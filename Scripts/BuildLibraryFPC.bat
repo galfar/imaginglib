@@ -7,7 +7,7 @@ set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZL
 set UNITS=%UNITS% -Fu%ROOTDIR%\Source\Extensions -Fu%ROOTDIR%\Extras\Extensions
 set INCLUDE=-Fi%ROOTDIR%\Source 
 set OUTPUT=-oVampyreImaging.dll -FE%ROOTDIR%\Bin
-set OPTIONS=-Sgi -OG2p3 -Xs
+set OPTIONS=-Sgi -O2p3 -Xs
 
 set TARGET=-Twin32
 

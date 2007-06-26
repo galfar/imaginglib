@@ -6,18 +6,21 @@
     <title>Vampyre Imaging Library Future</title>
 
     <par>
-      In the long term I'm planning to redesign and rewrite major parts of library in
+      In the long term I'm planning to redesign and rewrite major parts
+      (practically create new library - no compatibility with current version)
+      of library in
       future to make it more compact and easier to use and extend.
-      First version of this new design should be 0.30
-      (probably in late 2007 or 2008) but few more versions based on
-      old design should be released before that.
+      First working version of this new design will be 0.30 (Imaging 0.3x branch in SVN)
+      and first release will be version 0.40 (sometime in 2008).
+      Few more versions based on old design should be released before that
+      (although current 0.24 is probably last major one).
     </par>
     
     <par>Here is a list of some of the features I want to include in future
     Imaging releases:</par>
     <bulletlist>
-      <li>native GIF support and TIFF support (native subset of TIFF or
-        non-native libtiff in Extras?)</li>
+      <li>new library</li>
+      <li>native Pascal TIFF support</li>
       <li>register your own data formats</li>
       <li>native Pascal JPEG2000 support</li>
       <li>more texture related functions</li>

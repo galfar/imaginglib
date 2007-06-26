@@ -20,8 +20,10 @@
     </par>
     <par>
       Currently supported image file formats
-      are: (loading and saving) <b>PNG</b>, <b>JPEG</b>, <b>DDS</b>, <b>TGA</b>, <b>MNG</b>, <b>JNG</b>, <b>BMP</b>,
-        <b>JPEG2000</b>, <b>PGM</b>, <b>PPM</b>, <b>PAM</b>, <b>PFM</b>
+      are: (loading and saving) <b>BMP</b>, <b>JPEG</b>, <b>PNG</b>, <b>GIF</b>,
+        <b>TGA</b>, <b>DDS</b>, <b>MNG</b>, <b>JNG</b>,
+        <b>JPEG2000</b>, <b>PSD</b>, <b>TIFF</b>, <b>PGM</b>,
+        <b>PPM</b>, <b>PAM</b>, <b>PFM</b>
       (loading only) <b>PCX</b>, and <b>PBM</b>.
       Many internal image data formats are supported:
       8/16/24/32/48/64 bit <b>RGB</b> and <b>ARGB</b> formats, indexed formats,

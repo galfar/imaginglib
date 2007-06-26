@@ -20,6 +20,11 @@
       <li><b>OpenJPEG</b> for JPEG 2000 support by
       Communications and remote sensing Laboratory,
       Universite catholique de Louvain, Belgium </li>
+      <li><b>LibTiff</b> for TIFF support by
+      Sam Leffler, Silicon Graphics, Inc., and contributors.
+      <b>LibTiffDelphi</b> (pre-compiled LibTiff for Borland Delphi)
+      by AWare Systems.
+      </li>
     </blist>
   </chapter>
 </doc>

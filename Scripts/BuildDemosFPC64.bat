@@ -7,7 +7,7 @@ set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZL
 set INCLUDE=-Fi%ROOTDIR%\Source 
 set OUTPUT=-FE%ROOTDIR%\Demos\Bin
 set OPTIONS=-Sgi -O2p3 -Xs
-set TARGET=-Twin32
+set TARGET=-Twin64
 
 set DEMOSBUILD=0
 set DEMOCOUNT=2

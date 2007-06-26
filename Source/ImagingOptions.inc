@@ -52,7 +52,7 @@
 
 { Compiler options }
 
-{$ALIGN 8}                // Field alignment: 8 B
+{$ALIGN ON}               // Field alignment: 8 Bytes (in D6+)
 {$BOOLEVAL OFF}           // Boolean eval: off
 {$EXTENDEDSYNTAX ON}      // Extended syntax: on
 {$LONGSTRINGS ON}         // string = AnsiString: on

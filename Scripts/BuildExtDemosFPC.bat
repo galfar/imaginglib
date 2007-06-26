@@ -12,7 +12,7 @@ set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZL
 set UNITS=%UNITS% -Fu%ROOTDIR%\Source\Extensions -Fu%ROOTDIR%\Extras\Extensions -Fu"%SDLDIR%" -Fu"%OPENGLDIR%" -Fu"%D3DDIR%"
 set INCLUDE=-Fi%ROOTDIR%\Source -Fi"%SDLDIR%" -Fi"%OPENGLDIR%" -Fi"%D3DDIR%"
 set OUTPUT=-FE%ROOTDIR%\Demos\Bin
-set OPTIONS=-Sgi -OG2p3 -Xs
+set OPTIONS=-Sgi -O2p3 -Xs
 set TARGET=-Twin32
 
 set DEMOSBUILD=0

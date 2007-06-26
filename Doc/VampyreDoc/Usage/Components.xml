@@ -50,6 +50,7 @@
       <row><td><ref>TImagingBitmap</ref></td></row>
       <row><td><ref>TImagingJpeg</ref></td></row>
       <row><td><ref>TImagingPNG</ref></td></row>
+      <row><td><ref>TImagingGIF</ref></td></row>
       <row><td><ref>TImagingTarga</ref></td></row>
       <row><td><ref>TImagingDDS</ref></td></row>
       <row><td><ref>TImagingMNG</ref></td></row>

@@ -3268,8 +3268,6 @@ finalization
       CreateImageFromRawData(W, H, Bpp, Data, Align, Flipped, Endian, ...)
       and CreateRawDataFromImage() - use these in BMP loading (align)
       and PNG loading (endian)
-    - remove cloning of SrcImage in CopyRect for
-      incompatible formats - use CopyPixel rather? test speeds
     - add loading of multi images from file sequence
     - do not load all frames when only one is required, possible?
       (LoadImageFromFile on MNG/DDS)

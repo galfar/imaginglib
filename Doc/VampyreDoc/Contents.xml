@@ -69,10 +69,13 @@
                 <item url="FileFormats/Dds.xml" name="DDS" />
                 <item url="FileFormats/Bitmap.xml" name="Bitmap" />
                 <item url="FileFormats/Png.xml" name="PNG" />
+                <item url="FileFormats/Gif.xml" name="GIF" />
                 <item url="FileFormats/Mng.xml" name="MNG" />
                 <item url="FileFormats/Jng.xml" name="JNG" />
                 <item url="FileFormats/Pnm.xml" name="Portable Maps" />
+                <item url="FileFormats/Psd.xml" name="Photoshop" />
                 <item url="FileFormats/Jpeg2000.xml" name="Jpeg2000" />
+                <item url="FileFormats/Tiff.xml" name="TIFF" />
                 <item url="FileFormats/Pcx.xml" name="PCX" />
                 <item url="FileFormats/ElderImagery.xml" name="ElderImagery" />
               </itemlist>
