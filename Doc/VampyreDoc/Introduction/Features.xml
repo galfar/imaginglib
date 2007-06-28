@@ -6,7 +6,7 @@
     <title>Features</title>
     <blist>
     <li>
-      Native <b>Object Pascal</b> crossplatform library with no dependencies
+      Native <b>Object Pascal</b> open source crossplatform library with no dependencies
       on any dynamically linked libraries or other platform specific binaries.
       Supported platforms are:
       <blist>
@@ -40,7 +40,7 @@
         <li> indexed formats</li>
         <li> grayscale formats</li>
         <li> floating point formats (<b>IEEE754</b> and <b>half</b> precision)</li>
-        <li> compressed formats like <b>DXT1</b>/3/5</li>
+        <li> compressed formats like <b>DXT1</b>/<b>3</b>/<b>5</b></li>
        </blist>
     </li>
     <li>
@@ -56,7 +56,7 @@
       Extensions for creating <b>OpenGL</b>, <b>Direct3D</b>, and <b>SDL</b> textures/surfaces.
     </li>
     <li>
-      <b>VCL</b>, <b>CLX</b> and <b>LCL</b> graphic classes and functions.
+      <b>VCL</b>, <b>CLX</b>, and <b>LCL</b> graphic classes and functions.
     </li>
     <li>
       Drawing, effects, and filters.

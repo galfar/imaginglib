@@ -337,7 +337,7 @@ begin
       end;
     end;
     // Set the input position just after end of image
-    Seek(Handle, StartPos + LongWord(cio.bp) - LongWord(cio.start), smFromBeginning);
+    Seek(Handle, StartPos + Cardinal(cio.bp) - Cardinal(cio.start), smFromBeginning);
 
     Result := True;
   finally

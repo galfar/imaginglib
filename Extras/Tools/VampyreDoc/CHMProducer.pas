@@ -1,6 +1,6 @@
 unit CHMProducer;
 
-{$INCLUDE ImagingOptions.inc}
+{$I ImagingOptions.inc}
 
 interface
 

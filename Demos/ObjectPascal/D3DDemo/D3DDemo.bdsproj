@@ -123,12 +123,11 @@
 			<Directories Name="UnitOutputDir"></Directories>
 			<Directories Name="PackageDLLOutputDir"></Directories>
 			<Directories Name="PackageDCPOutputDir"></Directories>
-			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;</Directories>
-			
+			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions</Directories>
 			<Directories Name="Conditionals"></Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
-			<Directories Name="UsePackages">False</Directories>
-		</Directories>
+			<Directories Name="UsePackages">False</Directories>  <Directories Name="Packages"></Directories>
+    </Directories>
 		<Parameters>
 			<Parameters Name="RunParams"></Parameters>
 			<Parameters Name="HostApplication"></Parameters>
@@ -174,6 +173,6 @@
 			<Language Name="ActiveLang"></Language>
 			<Language Name="ProjectLang">$00000000</Language>
 			<Language Name="RootDir"></Language>
-		</Language>  
-  </Delphi.Personality>
+		</Language>
+	</Delphi.Personality>
 </BorlandProject>

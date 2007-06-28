@@ -51,7 +51,7 @@
       </row>
       <row>
         <td><keyword>(Imaging Root)\Extras\Extensions\LibTiff</keyword></td>
-        <td>Needed if you enable TIFF support.</td>
+        <td>Needed if you enable <link url="../FileFormats/Tiff.xml">TIFF</link> support.</td>
       </row>
     </table>
 

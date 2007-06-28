@@ -369,7 +369,7 @@ initialization
     - nothing now
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - Made loader stream-safe - stream position is exactly at the ned of the
+    - Made loader stream-safe - stream position is exactly at the end of the
       image after loading and file size doesn't need to be know during the process.
     - Initial TPCXFileFormat class implemented.
 

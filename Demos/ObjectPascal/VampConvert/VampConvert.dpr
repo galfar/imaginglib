@@ -93,11 +93,13 @@ begin
   // Print all file formats that support loading files (just write all)
   WriteLn;
   WriteLn(' Supported file formats (INPUT):');
-  for I := 0 to Length(FileFormats) - 1 do
+  for I := 0 to High(FileFormats) do
     Write(FileFormats[I].Ext, ' ');
+
+  WriteLn;
   // Print all file formats that support saving files
   WriteLn('  Supported file formats (OUTPUT):');
-  for I := 0 to Length(FileFormats) - 1 do
+  for I := 0 to High(FileFormats) do
   begin
     if FileFormats[I].CanSave then
       Write(FileFormats[I].Ext, ' ');

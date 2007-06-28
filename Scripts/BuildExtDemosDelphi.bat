@@ -9,10 +9,10 @@ set D3DDIR=
 set ROOTDIR=..
 set DEMOPATH=%ROOTDIR%\Demos\ObjectPascal
 set OUTPUT=-E%ROOTDIR%\Demos\Bin
-set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\JpegLib -U%ROOTDIR%\Source\ZLib -U%DEMOPATH%\Common
+set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\JpegLib -U%ROOTDIR%\Source\ZLib -U%DEMOPATH%\Common -U%ROOTDIR%\Extras\Extensions\LibTiff
 set UNITS=%UNITS% -U%ROOTDIR%\Source\Extensions -U%ROOTDIR%\Extras\Extensions -U"%SDLDIR%" -U"%OPENGLDIR%" -U"%D3DDIR%"
 set INCLUDE=-I%ROOTDIR%\Source -I"%SDLDIR%" -I"%OPENGLDIR%" -I"%D3DDIR%"
-set OPTIONS=
+set OPTIONS=-B -$D- -$L- -$Y- -DRELEASE
 
 set DEMOSBUILD=0
 set DEMOCOUNT=3

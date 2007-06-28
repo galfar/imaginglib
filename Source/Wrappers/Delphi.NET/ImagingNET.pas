@@ -42,7 +42,7 @@ uses
 
 const
   ImagingVersionMajor = 0;
-  ImagingVersionMinor = 22;
+  ImagingVersionMinor = 24;
   ImagingVersionPatch = 0;
 
   ImagingJpegQuality           = 10;
@@ -70,6 +70,13 @@ const
   ImagingJNGAlphaCompressLevel = 42;
   ImagingJNGQuality            = 43;
   ImagingJNGProgressive        = 44;
+  ImagingPGMSaveBinary         = 50;
+  ImagingPPMSaveBinary         = 51;
+
+  ImagingJpeg2000Quality             = 55;
+  ImagingJpeg2000CodeStreamOnly      = 56;
+  ImagingJpeg2000LosslessCompression = 57;
+  ImagingTiffCompression             = 65;
 
   ImagingColorReductionMask   = 128;
   ImagingLoadOverrideFormat   = 129;
@@ -121,7 +128,8 @@ type
     // special formats
     ifDXT1           = 220,
     ifDXT3           = 221,
-    ifDXT5           = 222);
+    ifDXT5           = 222,
+    ifBTC            = 223);
 
   TColor32 = UInt32;
   TColor64 = UInt64;
@@ -275,8 +283,8 @@ function ImDetermineMemoryFormat(Data: array of Byte; Size: LongInt; Ext: String
 [SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
 function ImIsFileFormatSupported(const FileName: string): Boolean; external;
 [SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-function ImEnumFileFormats(var Index: LongInt;
-{[out, MarshalAs(UnmanagedType.LPArray)] }Name, DefaultExt, Masks: StringBuilder; var CanSave, IsMultiImageFormat: Boolean): Boolean; external;
+function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: StringBuilder;
+  var CanSave, IsMultiImageFormat: Boolean): Boolean; external;
 
 { Image List Functions }
 
@@ -1428,9 +1436,12 @@ initialization
     - add typecast operators to color records rather than SetColor methods 
     - add create System.Drawing.Bitmap from TImageData function
 
+  -- 0.23 -----------------------------------------------------
+    - Updated to DLL new version.
+
   -- 0.21 -----------------------------------------------------
     - Changed out PChar parameter types of imported functions to StringBuilders
-      for easier conversions to System.String in Imaging class methods. 
+      for easier conversions to System.String in Imaging class methods.
     - Added GetImageFileFormatFilter method to Imaging class.
     - Updated to DLL new version, some changes in Imaging class methods
       that return strings.

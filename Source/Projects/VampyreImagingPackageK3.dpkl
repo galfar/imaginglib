@@ -45,6 +45,8 @@ contains
   ImagingFormats in '../ImagingFormats.pas',
   ImagingDds in '../ImagingDds.pas',
   ImagingPortableMaps in '../ImagingPortableMaps.pas',
+  ImagingGif in '../ImagingGif.pas',
+  ImagingColors in '../ImagingColors.pas',
   ImagingExtras in '../../Extras/Extensions/ImagingExtras.pas',
   dzlib in '../ZLib/dzlib.pas',
   impaszlib in '../ZLib/impaszlib.pas',

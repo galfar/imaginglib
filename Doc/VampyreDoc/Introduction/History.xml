@@ -14,6 +14,66 @@
       <link url="#legend">Changes Legend</link>.
     </par>
     
+    <!-- VERSION 00.24.0 -->
+    <section>
+      <mediumcap>Version 0.24.0 - 27th June 2007</mediumcap>
+      <notes>
+        For complete list of changes see <keyword>File Notes</keyword>
+        section at the end of each source file.
+      </notes>
+      <bulletlist>
+        <li>
+          <keyword>[D]</keyword>
+          Documentation updated to version <b>0.24</b>.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>TIFF</b> image file format
+          loading and saving added to <keyword>Extras</keyword>.
+          Not yet native Object Pascal.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>GIF</b> image file format
+          loading and saving added to core library.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New compressed image data format added: <icode>ifBTC</icode>
+          (block truncation coding).
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Changed headers of some low level interface functions.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>High level</b> interface in <ref>ImagingClasses.pas</ref> unit
+          was slightly extended.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Other library enhancements (color conversions for 16bit channels,
+          new buffered file IO, ...).
+        </li>
+        <li>
+          <keyword>[+/*/F]</keyword>
+          Compatibility enhancements (Bitmap saving, JPEG loading,
+          DDS loading/saving,
+          UNIX compilation, Win64 compilation, FPC compilation, ...).
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          Many bugs in library fixed.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>Photoshop PSD</b> image file format
+          loading and saving added to <keyword>Extras</keyword>.
+        </li>
+      </bulletlist>
+    </section>
+    
     <!-- VERSION 00.22.0 -->
     <section>
       <mediumcap>Version 0.22.0 - 25.01.2007</mediumcap>
@@ -127,7 +187,7 @@
         <li>
           <keyword>[+]</keyword>
           New image data formats based on half-float (FP16) type added:
-          <icode>ifR32F</icode>, <icode>ifA16R16G16B16F</icode>, <icode>ifA16B16G16R16F</icode>.
+          <icode>ifR16F</icode>, <icode>ifA16R16G16B16F</icode>, <icode>ifA16B16G16R16F</icode>.
           <b>Direct3D</b> and <b>OpenGL</b> extensions now create textures in these formats too.
         </li>
         <li>

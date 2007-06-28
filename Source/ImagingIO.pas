@@ -79,6 +79,7 @@ type
     function GetSize: Integer;
     procedure ReadBuffer;
     procedure WriteBuffer;
+    procedure SetPosition(const Value: Integer);
   public
     constructor Create(AStream: TStream);
     destructor Destroy; override;
@@ -87,7 +88,7 @@ type
     function Seek(Offset: Integer; Origin: Word): Integer;
     procedure Commit;
     property Stream: TStream read FStream;
-    property Position: Integer read GetPosition;
+    property Position: Integer read GetPosition write SetPosition;
     property Size: Integer read GetSize;
   end;
 
@@ -111,12 +112,18 @@ begin
     Commit;
     FreeMem(FBuffer);
   end;
+  FStream.Position := Position; // Make sure source stream has right position
   inherited Destroy;
 end;
 
 function TBufferedStream.GetPosition: Integer;
 begin
   Result := FBufStart + FBufPos;
+end;
+
+procedure TBufferedStream.SetPosition(const Value: Integer);
+begin
+  Seek(Value, soFromCurrent);
 end;
 
 function TBufferedStream.GetSize: Integer;
@@ -225,7 +232,7 @@ end;
 
 function TBufferedStream.Seek(Offset: Integer; Origin: Word): Integer;
 var
-  NewPageStart, NewPos: Integer;
+  NewBufStart, NewPos: Integer;
 begin
   // Calculate the new position
   case Origin of
@@ -235,24 +242,27 @@ begin
   else
     raise Exception.Create('TBufferedStream.Seek: invalid origin');
   end;
+
   if (NewPos < 0) or (NewPos > FSize) then
-    raise Exception.Create('TBufferedStream.Seek: invalid new position');
+  begin
+    //NewPos := ClampInt(NewPos, 0, FSize); don't do this - for writing
+  end;
   // Calculate which page of the file we need to be at
-  NewPageStart := NewPos and not(pred(longint(FBufSize)));
+  NewBufStart := NewPos and not Pred(FBufSize);
   // If the new page is different than the old, mark the buffer as being
   // ready to be replenished, and if need be write out any dirty data
-  if NewPageStart <> FBufStart then
+  if NewBufStart <> FBufStart then
   begin
     if FDirty then
     begin
       WriteBuffer;
       FDirty := False;
     end;
-    FBufStart := NewPageStart;
+    FBufStart := NewBufStart;
     FBytesInBuf := 0;
   end;
   // Save the new position
-  FBufPos := NewPos - NewPageStart;
+  FBufPos := NewPos - NewBufStart;
   Result := NewPos;
 end;
 
@@ -449,7 +459,7 @@ begin
     smFromCurrent:   Result := PMemoryIORec(Handle).Position + Offset;
     smFromEnd:       Result := PMemoryIORec(Handle).Size + Offset;
   end;
-  Result := ClampInt(Result, 0, PMemoryIORec(Handle).Size);
+  //Result := ClampInt(Result, 0, PMemoryIORec(Handle).Size); don't do this - some file formats use it
   PMemoryIORec(Handle).Position := Result;
 end;
 

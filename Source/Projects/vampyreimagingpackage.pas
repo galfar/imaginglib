@@ -10,13 +10,14 @@ uses
   Imaging, ImagingBitmap, ImagingCanvases, ImagingClasses, ImagingComponents, 
     ImagingDds, ImagingExport, ImagingFormats, ImagingIO, ImagingJpeg, 
     ImagingNetworkGraphics, ImagingTarga, ImagingTypes, ImagingUtility, 
-    ImagingPortableMaps, ImagingExtras, LazarusPackageIntf; 
+    ImagingPortableMaps, ImagingExtras, ImagingGif, ImagingColors, 
+    LazarusPackageIntf; 
 
 implementation
 
 procedure Register; 
 begin
-end;
+end; 
 
 initialization
   RegisterPackage('VampyreImagingPackage', @Register); 

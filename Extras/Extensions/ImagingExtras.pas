@@ -36,14 +36,14 @@ unit ImagingExtras;
 {$I ImagingOptions.inc}
 
 {$DEFINE LINK_JPEG2000}    // link support for JPEG2000 images
-{$DEFINE LINK_TIFF}        // link support for TIFF images
+{ $DEFINE LINK_TIFF}        // link support for TIFF images - disabled by default!
 {$DEFINE LINK_PSD}         // link support for PSD images
 {$DEFINE LINK_PCX}         // link support for PCX images
 {$DEFINE LINK_ELDER}       // link support for Elder Imagery images
 
-{$IF not ((Defined(MSWINDOWS) or (Defined(UNIX) and Defined(FPC))) and Defined(CPU86))}
+{$IF not (Defined(DELPHI) or (Defined(FPC) and Defined(CPU86) and not Defined(MSDOS)))}
   // JPEG2000 only for Windows and for Linux/Unix with FPC
-  {$UNDEF LINK_JPEG2000}
+  {$UNDEF LINK_JPEG2000}  
 {$IFEND}
 
 {$IF not Defined(DELPHI)}
@@ -99,7 +99,8 @@ uses
     - nothing now
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
-    - Added PSD related stuff.
+    - Better IF conditional to disable JPEG2000 on unsupported platforms.
+    - Added PSD and TIFF related stuff.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Created with initial stuff.

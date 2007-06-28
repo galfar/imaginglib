@@ -308,6 +308,11 @@
         <td>Image in this format is compressed with DXT5 compression
         (16 bit interpolated color, 8 bit interpolated alpha).</td>
       </row>
+      <row>
+        <td><icode>ifBTC</icode></td>
+        <td>Image in this format is compressed with BTC compression
+        (block truncation coding, grayscale, 2bits per pixel).</td>
+      </row>
     </table>
 
   </chapter>

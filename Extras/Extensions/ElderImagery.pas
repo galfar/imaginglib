@@ -618,7 +618,7 @@ begin
     // Check ordinary IMG/CIF files with header
     ReadCount := GetIO.Read(Handle, @Hdr, SizeOf(Hdr));
     GetIO.Seek(Handle, -ReadCount, smFromCurrent);
-    Result := (Hdr.ImageSize <= Hdr.Width * Hdr.Height) and
+    Result := (ReadCount > 0) and (Hdr.ImageSize <= Hdr.Width * Hdr.Height) and
       (Hdr.Width * Hdr.Height <= High(Word)) and (Hdr.ImageSize <> 0) and
       (Hdr.Width <> 0) and (Hdr.Height <> 0);
     if FIsMultiImageFormat then
@@ -641,6 +641,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Fixed TestFormat which could identify something (eof) as image.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Too large images that are to be saved in CIF/IMG formats are

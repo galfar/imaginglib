@@ -1,6 +1,6 @@
 unit Helpers;
 
-{$INCLUDE ImagingOptions.inc}
+{$I ImagingOptions.inc}
 
 interface
 
@@ -243,7 +243,7 @@ procedure TransformDoc(const InDoc, OutDoc, StyleSheet: string);
 var
   CmdLine: string;
 begin
-  CmdLine := 'saxon -o ' + OutDoc + ' ' + InDoc + ' ' + StyleSheet;
+  CmdLine := Format('saxon-transform -novw -s "%s" -o "%s" "%s"', [InDoc, OutDoc, StyleSheet]);
   if not RunCmdLine(CmdLine) then
     raise Exception.Create('SAXON cannot be executed.');
 end;

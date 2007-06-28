@@ -482,9 +482,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
-    - Add TIFF support!
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+    - Added TIFF loading and saving.
     - Unit created and initial code added.
 }
 

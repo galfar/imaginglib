@@ -5,9 +5,9 @@ set ROOTDIR=..
 set LIBFILE=%ROOTDIR%\Source\Projects\VampyreImaging.dpr
 set OUTPUT=-E%ROOTDIR%\Bin
 set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\JpegLib -U%ROOTDIR%\Source\ZLib 
-set UNITS=%UNITS% -U%ROOTDIR%\Source\Extensions -U%ROOTDIR%\Extras\Extensions
+set UNITS=%UNITS% -U%ROOTDIR%\Source\Extensions -U%ROOTDIR%\Extras\Extensions -U%ROOTDIR%\Extras\Extensions\LibTiff
 set INCLUDE=-I%ROOTDIR%\Source 
-set OPTIONS=
+set OPTIONS=-B -$D- -$L- -$Y- -DRELEASE
 
 dcc32 %OPTIONS% %LIBFILE% %OUTPUT% %UNITS% %INCLUDE%
 

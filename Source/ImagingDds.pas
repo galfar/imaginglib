@@ -320,7 +320,6 @@ var
 
 begin
   Result := False;
-  Data := nil;
   ImageCount := 1;
   FLoadedMipMapCount := 1;
   FLoadedDepth := 1;

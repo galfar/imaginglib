@@ -1,8 +1,10 @@
 unit ZLibDelphi;
 
+(*
 {$IFOPT D+}
 {$DEFINE ZLIB_DEBUG}
 {$ENDIF}
+*)
 
 interface
 

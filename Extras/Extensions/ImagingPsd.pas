@@ -572,6 +572,7 @@ initialization
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Saving implemented.
+    - Loading implemented.
     - Unit created with initial stuff!
 }
 

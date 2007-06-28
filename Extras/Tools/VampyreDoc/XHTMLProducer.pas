@@ -16,7 +16,7 @@
 
 unit XHTMLProducer;
 
-{$INCLUDE ImagingOptions.inc}
+{$I ImagingOptions.inc}
 
 interface
 

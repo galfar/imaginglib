@@ -8,12 +8,12 @@
       Main development language is <b>Object Pascal</b> and two
       main supported compilers are <b>Borland Delphi</b> and <b>Free Pascal</b>.
       <b>Kylix</b> works too but <b>C++ Builder</b> crashes on internal error.
-      Other Pascal compilers like GPC or TMT were not tested.
+      Other Pascal compilers like GPC or TMT were not tested (probably won't work).
       Supported platforms are now <b>Windows</b>, <b>Linux</b>, <b>FreeBSD</b>
       (some other Unix systems most probably too),
       and <b>DOS</b> (and <b>.NET</b> using unmanaged DLL).
       Imaging was tested on 32bit <b>x86</b>
-      and 64bit <b>AMD64</b> (Linux only - no Win64 Pascal compiler yet)
+      and 64bit <b>AMD64</b> (Linux64 and Win64 using Free Pascal)
       CPU architectures.
       It could work on some big endian machines too (except some file format loaders
       that assume little endian) but I can't test it on any.
@@ -31,12 +31,13 @@
         <th>Info</th>
       </row>
       <row>
-        <td><keyword>Delphi 7/2006 (Win32)</keyword></td>
+        <td><keyword>Delphi 7/2006/2007 (Win32)</keyword></td>
         <td>Tested and everything compiled successfully (Delphi 6, 2005, and TurboDelphi
             should work too, older probably not)</td>
       </row>
       <row>
-        <td><keyword>Free Pascal 2.0.4 (Win32, Linux, FreeBSD, DOS)</keyword></td>
+        <td><keyword>Free Pascal 2.0.4 (Win32, Linux, FreeBSD, DOS),
+          Free Pascal 2.1.5 (Win64)</keyword></td>
         <td>Tested and everything compiled successfully</td>
       </row>
       <row>

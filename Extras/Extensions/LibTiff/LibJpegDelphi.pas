@@ -1,8 +1,10 @@
 unit LibJpegDelphi;
 
+(*
 {$IFOPT D+}
 {$DEFINE LIBJPEG_DEBUG}
 {$ENDIF}
+*)
 
 interface
 

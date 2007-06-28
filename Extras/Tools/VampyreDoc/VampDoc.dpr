@@ -41,7 +41,7 @@ program VampDoc;
 
 {$APPTYPE CONSOLE}
 
-{$INCLUDE ImagingOptions.inc}
+{$I ImagingOptions.inc}
 
 uses
   SysUtils,

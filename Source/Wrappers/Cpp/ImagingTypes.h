@@ -45,7 +45,7 @@ namespace Imaging
 #endif
 
 #define ImagingMajor 0
-#define ImagingMinor 22
+#define ImagingMinor 24
 #define ImagingPatch 0
 
 #define ImagingJpegQuality           10
@@ -73,6 +73,11 @@ namespace Imaging
 #define ImagingJNGAlphaCompressLevel 42
 #define ImagingJNGQuality            43
 #define ImagingJNGProgressive        44
+
+#define ImagingJpeg2000Quality             55;
+#define ImagingJpeg2000CodeStreamOnly      56;
+#define ImagingJpeg2000LosslessCompression 57;
+#define ImagingTiffCompression             65;
 
 #define ImagingColorReductionMask    128
 #define ImagingLoadOverrideFormat    129
@@ -134,6 +139,7 @@ typedef enum TImageFormat
   ifDXT1           = 220,
   ifDXT3           = 221,
   ifDXT5           = 222,
+  ifBTC            = 223,
   /* dummy */
   ifForce32        = 0x7FFFFFFF
 } TImageFormat;
