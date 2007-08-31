@@ -611,6 +611,8 @@ begin
   RawImage.DataSize := WorkData.Size;
 
   // Create bitmap from raw image
+  { For Lazarus rev. 11861 and newer use following line instead:
+    if RawImage_CreateBitmaps(RawImage, ImgHandle, ImgMaskHandle, False) then }
   if CreateBitmapFromRawImage(RawImage, ImgHandle, ImgMaskHandle, False) then
   begin
     Bitmap.Handle := ImgHandle;
@@ -645,6 +647,9 @@ begin
   // current format (it is usually set to pfDevice). So bitmap's format is obtained
   // trough RawImage api and cannot be changed to mirror some Imaging format
   // (so formats with no coresponding Imaging format cannot be saved now).
+
+  { For Lazarus rev. 11861 and newer use following line instead:
+    if RawImage_DescriptionFromBitmap(Bitmap.Handle, RawImage.Description) then }
   if GetBitmapRawImageDescription(Bitmap.Handle, @RawImage.Description) then
     case RawImage.Description.BitsPerPixel of
       8: Format := ifIndex8;
@@ -721,6 +726,8 @@ begin
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   // Get raw image from bitmap (mask handle must be 0 or expect violations)
+  { For Lazarus rev. 11861 and newer use following line instead:
+    if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, Classes.Rect(0, 0, Data.Width, Data.Height)) then }
   if GetRawImageFromBitmap(Bitmap.Handle, 0, Classes.Rect(0, 0, Data.Width, Data.Height), RawImage) then
   begin
     LineLazBytes := GetBytesPerLine(Data.Width, RawImage.Description.BitsPerPixel,
@@ -729,6 +736,8 @@ begin
     for I := 0 to Data.Height - 1 do
       Move(PByteArray(RawImage.Data)[I * LineLazBytes],
         PByteArray(Data.Bits)[I * LineBytes], LineBytes);
+    { For Lazarus rev. 11861 and newer use following line instead:
+      RawImage.FreeData; }
     FreeRawImageData(@RawImage);
   end;
 {$ENDIF}
@@ -1248,6 +1257,12 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.24.1 Changes/Bug Fixes ---------------------------------
+    - Added commnets with code for Lazarus rev. 11861+ regarding
+      RawImage interface. Replace current code with that in comments
+      if you use Lazarus from SVN. New RawImage interface will be used by
+      default after next Lazarus release. 
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added TImagingGIF. 
