@@ -53,7 +53,7 @@ unit ImagingJpeg;
 interface
 
 uses
-  SysUtils, ImagingTypes, Imaging,
+  SysUtils, ImagingTypes, Imaging, ImagingColors,
 {$IF Defined(IMJPEGLIB)}
   imjpeglib, imjmorecfg, imjcomapi, imjdapimin,
   imjdapistd, imjcapimin, imjcapistd, imjdmarker, imjcparam,
@@ -371,10 +371,12 @@ end;
 function TJpegFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
-  PtrInc, LinesPerCall, LinesRead: LongInt;
+  PtrInc, LinesPerCall, LinesRead, I: Integer;
   Dest: PByte;
   jc: TJpegContext;
   Info: TImageFormatInfo;
+  Format: TImageFormat;
+  Col32: PColor32Rec;
 {$IFDEF RGBSWAPPED}
   I: LongInt;
   Pix: PColor24Rec;
@@ -386,8 +388,12 @@ begin
   with JIO, Images[0] do
   try
     InitDecompressor(Handle, jc);
-    NewImage(jc.d.image_width, jc.d.image_height,
-      IffFormat(jc.d.out_color_space = JCS_GRAYSCALE, ifGray8, ifR8G8B8), Images[0]);
+    case jc.d.out_color_space of
+      JCS_GRAYSCALE: Format := ifGray8;
+      JCS_RGB:       Format := ifR8G8B8;
+      JCS_CMYK:      Format := ifA8R8G8B8;
+    end;
+    NewImage(jc.d.image_width, jc.d.image_height, Format, Images[0]);
     jpeg_start_decompress(@jc.d);
     GetImageFormatInfo(Format, Info);
     PtrInc := Width * Info.BytesPerPixel;
@@ -409,6 +415,19 @@ begin
       end;
     {$ENDIF}
       Inc(Dest, PtrInc * LinesRead);
+    end;
+
+    if jc.d.out_color_space = JCS_CMYK then
+    begin
+      Col32 := Bits;
+      // Translate from CMYK to RGB
+      for I := 0 to Width * Height - 1 do
+      begin
+        CMYKToRGB(255 - Col32.B, 255 - Col32.G, 255 - Col32.R, 255 - Col32.A,
+          Col32.R, Col32.G, Col32.B);
+        Col32.A := 255;
+        Inc(Col32);
+      end;
     end;
 
     jpeg_finish_output(@jc.d);
@@ -536,6 +555,10 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.24.1 Changes/Bug Fixes ---------------------------------
+    - Fixed loading of CMYK jpeg images. Could cause heap corruption
+      and loaded image looked wrong.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Removed JFIF/EXIF detection from TestFormat. Found JPEGs

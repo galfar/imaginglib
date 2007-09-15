@@ -842,10 +842,10 @@ begin
   Y2 := Y1;
   OldY := Y1;
 
-  DeltaX := (RadX * RadX) * 1;
-  DeltaY := (RadY * RadY) * 1;
+  DeltaX := (RadX * RadX);
+  DeltaY := (RadY * RadY);
   R  := RadX * RadY * RadY;
-  RX := R * 1;
+  RX := R;
   RY := 0;
 
   if (FFillMode <> fmClear) then

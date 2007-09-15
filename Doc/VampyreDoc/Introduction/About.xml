@@ -28,7 +28,7 @@
       Many internal image data formats are supported:
       8/16/24/32/48/64 bit <b>RGB</b> and <b>ARGB</b> formats, indexed formats,
       grayscale formats, half/single precision <b>floating point</b> formats,
-      and compressed formats  <b>DXT1</b>, <b>DXT3</b>, and <b>DXT5</b>.
+      and compressed formats  <b>DXT1/3/5</b> and <b>BTC</b>.
     </par>
   </chapter>
 </doc>
