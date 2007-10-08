@@ -326,7 +326,7 @@ implementation
 
 uses
 {$IF Defined(UNIX) and Defined(COMPONENT_SET_LCL)}
-  {$IFDEF GTK2}
+  {$IFDEF LCLGTK2}
     GLib2, GDK2, GTK2, GTKDef, GTKProc,
   {$ELSE}
     GDK, GTK, GTKDef, GTKProc,
