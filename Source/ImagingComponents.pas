@@ -1259,6 +1259,8 @@ finalization
     - nothing now
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
+    - Fixed wrong IFDEF causing that Imaging wouldn't compile in Lazarus
+      with GTK2 target.
     - Added commnets with code for Lazarus rev. 11861+ regarding
       RawImage interface. Replace current code with that in comments
       if you use Lazarus from SVN. New RawImage interface will be used by

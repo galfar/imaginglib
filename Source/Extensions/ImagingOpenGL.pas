@@ -103,25 +103,28 @@ function CreateGLTextureFromImage(const Image: TImageData;
   OverrideFormat: TImageFormat = ifUnknown; CreatedWidth: PLongInt = nil;
   CreatedHeight: PLongInt = nil): GLuint;
 { Converts images in TDymImageDataArray to one OpenGL texture.
-  First image in array is used as main mipmap level and additional images
-  are used as subsequent levels. If there is not enough images
-  in array missing levels are automatically generated.
+  Image at index MainLevelIndex in the array is used as main mipmap level and
+  additional images are used as subsequent levels. If there is not enough images
+  in array missing levels are automatically generated (and if there is enough images
+  but they have wrong dimensions or format then they are resized/converted).
   If driver supports only power of two sized textures images are resized.
   OverrideFormat can be used to convert image into specific format before
   it is passed to OpenGL, ifUnknown means no conversion.
   If desired texture format is not supported by hardware default
   A8R8G8B8 format is used instead for color images and ifGray8 is used
   for luminance images. DXTC (S3TC) compressed and floating point textures
-  are created if supported by hardware. Width and Height of 0 mean
-  use width and height of main image. MipMaps set to True mean build
-  all possible levels, False means use only level 0.
+  are created if supported by hardware.
+  Width and Height can be used to set size of main mipmap level according
+  to your needs, Width and Height of 0 mean use width and height of input
+  image that will become main level mipmap.
+  MipMaps set to True mean build all possible levels, False means use only level 0.
   You can use CreatedWidth and CreatedHeight parameters to query dimensions of
   created texture's largest mipmap level (it could differ from dimensions
   of source image).}
 function CreateGLTextureFromMultiImage(const Images: TDynImageDataArray;
   Width: LongInt = 0; Height: LongInt = 0; MipMaps: Boolean = True;
-  OverrideFormat: TImageFormat = ifUnknown; CreatedWidth: PLongInt = nil;
-  CreatedHeight: PLongInt = nil): GLuint;
+  MainLevelIndex: LongInt = 0; OverrideFormat: TImageFormat = ifUnknown;
+  CreatedWidth: PLongInt = nil; CreatedHeight: PLongInt = nil): GLuint;
 
 { Saves GL texture to file in one of formats supported by Imaging.
   Saves all present mipmap levels.}
@@ -430,7 +433,7 @@ begin
   if LoadMultiImageFromFile(FileName, Images) and (Length(Images) > 0) then
   begin
     Result := CreateGLTextureFromMultiImage(Images, Images[0].Width,
-      Images[0].Height, True, ifUnknown, CreatedWidth, CreatedHeight);
+      Images[0].Height, True, 0, ifUnknown, CreatedWidth, CreatedHeight);
   end
   else
     Result := 0;
@@ -444,7 +447,7 @@ begin
   if LoadMultiImageFromStream(Stream, Images) and (Length(Images) > 0) then
   begin
     Result := CreateGLTextureFromMultiImage(Images, Images[0].Width,
-      Images[0].Height, True, ifUnknown, CreatedWidth, CreatedHeight);
+      Images[0].Height, True, 0, ifUnknown, CreatedWidth, CreatedHeight);
   end
   else
     Result := 0;
@@ -458,7 +461,7 @@ begin
   if LoadMultiImageFromMemory(Data, Size, Images)  and (Length(Images) > 0) then
   begin
     Result := CreateGLTextureFromMultiImage(Images, Images[0].Width,
-      Images[0].Height, True, ifUnknown, CreatedWidth, CreatedHeight);
+      Images[0].Height, True, 0, ifUnknown, CreatedWidth, CreatedHeight);
   end
   else
     Result := 0;
@@ -474,15 +477,18 @@ begin
   // Just calls function operating on image arrays
   SetLength(Arr, 1);
   Arr[0] := Image;
-  Result := CreateGLTextureFromMultiImage(Arr, Width, Height, MipMaps,
+  Result := CreateGLTextureFromMultiImage(Arr, Width, Height, MipMaps, 0,
     OverrideFormat, CreatedWidth, CreatedHeight);
 end;
 
 function CreateGLTextureFromMultiImage(const Images: TDynImageDataArray;
-  Width, Height: LongInt; MipMaps: Boolean; OverrideFormat: TImageFormat;
+  Width, Height: LongInt; MipMaps: Boolean; MainLevelIndex: LongInt; OverrideFormat: TImageFormat;
   CreatedWidth, CreatedHeight: PLongInt): GLuint;
+const
+  CompressedFormats: TImageFormats = [ifDXT1, ifDXT3, ifDXT5];
 var
-  I, MipLevels, PossibleLevels, ExistingLevels, CurrentWidth, CurrentHeight: LongInt;
+  I, MipLevels, PossibleLevels, ExistingLevels,
+  CurrentWidth, CurrentHeight, TempWidth, TempHeight: LongInt;
   Caps: TGLTextureCaps;
   GLFormat: GLenum;
   GLType: GLenum;
@@ -494,12 +500,16 @@ var
   UnpackAlignment, UnpackSkipRows, UnpackSkipPixels, UnpackRowLength: LongInt;
 begin
   Result := 0;
-  ExistingLevels := 0;
+
   if GetGLTextureCaps(Caps) and (Length(Images) > 0) then
   try
+    // Check if requested main level is at valid index
+    if (MainLevelIndex < 0) or (MainLevelIndex > High(Images)) then
+      MainLevelIndex := 0;
+
     // First check desired size and modify it if necessary
-    if Width <= 0 then Width := Images[0].Width;
-    if Height <= 0 then Height := Images[0].Height;
+    if Width <= 0 then Width := Images[MainLevelIndex].Width;
+    if Height <= 0 then Height := Images[MainLevelIndex].Height;
     if Caps.PowerOfTwo then
     begin
       // If device supports only power of 2 texture sizes
@@ -518,9 +528,13 @@ begin
     else
       MipLevels := 1;
 
+    // Prepare array for mipmap levels. Make it larger than necessary - that
+    // way we can use the same index for input images and levels in the large loop below
+    SetLength(LevelsArray, MipLevels + MainLevelIndex);
+
     // Now determine which image format will be used
     if OverrideFormat = ifUnknown then
-      Desired := Images[0].Format
+      Desired := Images[MainLevelIndex].Format
     else
       Desired := OverrideFormat;
 
@@ -546,9 +560,6 @@ begin
     else
       ConvTo := Desired;
 
-    // Prepare array for mipmap levels
-    SetLength(LevelsArray, MipLevels);
-
     CurrentWidth := Width;
     CurrentHeight := Height;
     // If user is interested in width and height of created texture lets
@@ -573,15 +584,23 @@ begin
     if Byte(glIsTexture(Result)) <> GL_TRUE then
       Exit;
 
-    for I := 0 to MipLevels - 1 do
+    for I := MainLevelIndex to MipLevels - 1 + MainLevelIndex do
     begin
       // Check if we can use input image array as a source for this mipmap level
       if I < ExistingLevels then
       begin
         // Check if input image for this mipmap level has the right
         // size and format
-        NeedsResize := not ((Images[I].Width = CurrentWidth) and (Images[I].Height = CurrentHeight));
         NeedsConvert := not (Images[I].Format = ConvTo);
+        if ConvTo in CompressedFormats then
+        begin
+          // Input images in DXTC will have min dimensions of 4, but we need
+          // current Width and Height to be lesser (for glCompressedTexImage2D)
+          NeedsResize := not ((Images[I].Width = Max(4, CurrentWidth)) and
+            (Images[I].Height = Max(4, CurrentHeight)));
+        end
+        else
+          NeedsResize := not ((Images[I].Width = CurrentWidth) and (Images[I].Height = CurrentHeight));
 
         if NeedsResize or NeedsConvert then
         begin
@@ -604,20 +623,20 @@ begin
         FillMipMapLevel(LevelsArray[I - 1], CurrentWidth, CurrentHeight, LevelsArray[I]);
       end;
 
-      if ConvTo in [ifDXT1, ifDXT3, ifDXT5] then
+      if ConvTo in CompressedFormats then
       begin
         // Note: GL DXTC texture snaller than 4x4 must have width and height
         // as expected for non-DXTC texture (like 1x1 -  we cannot
         // use LevelsArray[I].Width and LevelsArray[I].Height - they are
         // at least 4 for DXTC images). But Bits and Size passed to
         // glCompressedTexImage2D must contain regular 4x4 DXTC block.
-        glCompressedTexImage2D(GL_TEXTURE_2D, I, GLInternal, CurrentWidth,
+        glCompressedTexImage2D(GL_TEXTURE_2D, I - MainLevelIndex, GLInternal, CurrentWidth,
           CurrentHeight, 0, LevelsArray[I].Size, LevelsArray[I].Bits)
       end
       else
       begin
-        glTexImage2D(GL_TEXTURE_2D, I, GLInternal, LevelsArray[I].Width,
-          LevelsArray[I].Height, 0, GLFormat, GLType, LevelsArray[I].Bits);
+        glTexImage2D(GL_TEXTURE_2D, I - MainLevelIndex, GLInternal, CurrentWidth,
+          CurrentHeight, 0, GLFormat, GLType, LevelsArray[I].Bits);
       end;
 
       // Calculate width and height of the next mipmap level
@@ -782,6 +801,11 @@ initialization
     - use internal format of texture in CreateMultiImageFromGLTexture
       not only A8R8G8B8
     - support for cube and 3D maps
+
+  -- 0.24.1 Changes/Bug Fixes ---------------------------------
+    - Better NeedsResize determination for small DXTC textures -
+      avoids needless resizing.
+    - Added MainLevelIndex to CreateMultiImageFromGLTexture.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Added CreatedWidth and CreatedHeight parameters to most
