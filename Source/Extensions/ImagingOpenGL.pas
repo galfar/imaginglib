@@ -150,6 +150,21 @@ function CreateMultiImageFromGLTexture(const Texture: GLuint;
   var Images: TDynImageDataArray; MipLevels: LongInt = 0;
   OverrideFormat: TImageFormat = ifUnknown): Boolean;
 
+var
+  { Standard behaviour of image->texture functions like CreateGLTextureFrom(Multi)Image is:
+    If graphic card supports non power of 2 textures and image is nonpow2 then
+    texture is created directly from image.
+    If graphic card does not support them input image is rescaled (bilinear)
+    to power of 2 size.
+    If you set PasteNonPow2ImagesIntoPow2 to True then instead of rescaling, a new
+    pow2 texture is created and nonpow2 input image is pasted into it
+    keeping its original size. This could be useful for some 2D stuff
+    (and its faster than rescaling of course). Note that this is applied
+    to all rescaling smaller->bigger operations that might ocurr during
+    image->texture process (usually only pow2/nonpow2 stuff and when you
+    set custom Width & Height in CreateGLTextureFrom(Multi)Image).}
+  PasteNonPow2ImagesIntoPow2: Boolean = False;
+
 implementation
 
 const
@@ -487,8 +502,7 @@ function CreateGLTextureFromMultiImage(const Images: TDynImageDataArray;
 const
   CompressedFormats: TImageFormats = [ifDXT1, ifDXT3, ifDXT5];
 var
-  I, MipLevels, PossibleLevels, ExistingLevels,
-  CurrentWidth, CurrentHeight, TempWidth, TempHeight: LongInt;
+  I, MipLevels, PossibleLevels, ExistingLevels, CurrentWidth, CurrentHeight: LongInt;
   Caps: TGLTextureCaps;
   GLFormat: GLenum;
   GLType: GLenum;
@@ -498,10 +512,23 @@ var
   LevelsArray: TDynImageDataArray;
   NeedsResize, NeedsConvert: Boolean;
   UnpackAlignment, UnpackSkipRows, UnpackSkipPixels, UnpackRowLength: LongInt;
+
+  procedure PasteImage(var Image: TImageData; Width, Height: LongInt);
+  var
+    Clone: TImageData;
+  begin
+    CloneImage(Image, Clone);
+    NewImage(Width, Height, Clone.Format, Image);
+    FillRect(Image, 0, 0, Width, Height, Clone.Bits);
+    CopyRect(Clone, 0, 0, Clone.Width, Clone.Height, Image, 0, 0);
+    FreeImage(Clone);
+  end;
+
 begin
   Result := 0;
+  ExistingLevels := Length(Images);
 
-  if GetGLTextureCaps(Caps) and (Length(Images) > 0) then
+  if GetGLTextureCaps(Caps) and (ExistingLevels > 0) then
   try
     // Check if requested main level is at valid index
     if (MainLevelIndex < 0) or (MainLevelIndex > High(Images)) then
@@ -521,7 +548,6 @@ begin
 
     // Get various mipmap level counts and modify
     // desired MipLevels if its value is invalid
-    ExistingLevels := Length(Images);
     PossibleLevels := GetNumMipMapLevels(Width, Height);
     if MipMaps then
       MipLevels := PossibleLevels
@@ -610,7 +636,17 @@ begin
           if NeedsConvert then
             ConvertImage(LevelsArray[I], ConvTo);
           if NeedsResize then
-            ResizeImage(LevelsArray[I], CurrentWidth, CurrentHeight, rfBilinear);
+          begin
+            if (not PasteNonPow2ImagesIntoPow2) or (LevelsArray[I].Width > CurrentWidth) or
+              (LevelsArray[I].Height > CurrentHeight)then
+            begin
+              // If pasteNP2toP2 is disabled or if source is bigger than target
+              // we rescale image, otherwise we paste it with the same size
+              ResizeImage(LevelsArray[I], CurrentWidth, CurrentHeight, rfBilinear)
+            end
+            else
+              PasteImage(LevelsArray[I], CurrentWidth, CurrentHeight);
+          end;
         end
         else
           // Input image can be used without any changes
@@ -803,6 +839,7 @@ initialization
     - support for cube and 3D maps
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
+    - Added PasteNonPow2ImagesIntoPow2 option and related functionality.
     - Better NeedsResize determination for small DXTC textures -
       avoids needless resizing.
     - Added MainLevelIndex to CreateMultiImageFromGLTexture.
