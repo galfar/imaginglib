@@ -35,7 +35,7 @@ unit ImagingPortableMaps;
 interface
 
 uses
-  SysUtils, ImagingTypes, Imaging, ImagingExtras, ImagingFormats, ImagingUtility;
+  SysUtils, ImagingTypes, Imaging, ImagingFormats, ImagingUtility;
 
 type
   { Types of pixels of PNM images.}
