@@ -1,10 +1,11 @@
 object AboutForm: TAboutForm
-  Left = 338
+  Left = 666
   Height = 288
-  Top = 200
+  Top = 316
   Width = 286
   HorzScrollBar.Page = 285
   VertScrollBar.Page = 287
+  ActiveControl = BitBtn1
   BorderIcons = []
   BorderStyle = bsSingle
   Caption = 'About'
@@ -22,6 +23,7 @@ object AboutForm: TAboutForm
     Height = 89
     Top = 16
     Width = 188
+    Transparent = False
   end
   object Image2: TImage
     Left = 88
@@ -261,6 +263,7 @@ object AboutForm: TAboutForm
       FF80000003FF0000FFC0F0007FFF0000FFFFFFFFFFFF0000FFFFFFFFFFFF0000
       FFFFFFFFFFFF0000
     }
+    Transparent = False
   end
   object ImLabel: TLabel
     Left = 8
@@ -270,7 +273,6 @@ object AboutForm: TAboutForm
     Alignment = taCenter
     AutoSize = False
     Caption = 'Vampyre Imaging Library version '
-    Color = clNone
     Font.Color = clBlack
     Font.Style = [fsBold]
     ParentColor = False
@@ -279,9 +281,8 @@ object AboutForm: TAboutForm
     Left = 144
     Height = 40
     Top = 188
-    Width = 46
+    Width = 45
     Caption = 'Lazarus Imager Demo'
-    Color = clNone
     Font.Color = clBlack
     Font.Style = [fsBold]
     ParentColor = False
@@ -295,7 +296,6 @@ object AboutForm: TAboutForm
     Alignment = taCenter
     AutoSize = False
     Caption = 'http://imaginglib.sourceforge.net'
-    Color = clNone
     Font.Color = clBlue
     ParentColor = False
   end

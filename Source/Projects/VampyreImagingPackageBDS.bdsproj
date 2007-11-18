@@ -165,7 +165,7 @@
 			<VersionInfo Name="CodePage">1252</VersionInfo>
 		</VersionInfo>
 		<VersionInfoKeys>
-			<VersionInfoKeys Name="FileVersion">0.24.0.0</VersionInfoKeys>
+			<VersionInfoKeys Name="FileVersion">0.24.2.0</VersionInfoKeys>
 			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys>
 			<VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys>

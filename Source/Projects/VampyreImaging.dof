@@ -105,16 +105,12 @@ HostApplication=
 Launcher=
 UseLauncher=0
 DebugCWD=
-[Language]
-ActiveLang=
-ProjectLang=
-RootDir=C:\Program Files\Borland\Delphi7\Bin\
 [Version Info]
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
-MinorVer=20
-Release=0
+MinorVer=24
+Release=2
 Build=0
 Debug=0
 PreRelease=0
@@ -126,18 +122,13 @@ CodePage=1252
 [Version Info Keys]
 CompanyName=http://imaginglib.sourceforge.net
 FileDescription=Image loading, saving and manipulation library
-FileVersion=0.20.0.0
+FileVersion=0.24.2.0
 InternalName=VampyreImaging.dll
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=Vampyre Imaging Library
 ProductVersion=1.0.0.0
-[Excluded Packages]
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\JclDebugIdeD70.bpl=JCL Debug IDE extension for Delphi 7
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\ProjectAnalyzerD70.bpl=JCL Project Analyzer for Delphi 7
-C:\PROGRA~1\Borland\Delphi7\Projects\Bpl\IdeOpenDlgFavoriteD70.bpl=JCL Open and Save IDE dialogs with favorite folders for Delphi 7
-C:\Program Files\Borland\Delphi7\Projects\Bpl\JvMMD7D.bpl=JVCL Multimedia and Image Components
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
