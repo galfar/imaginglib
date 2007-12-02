@@ -772,10 +772,10 @@ var
       else
         HasTransparency := False;
 
-      // If previous frame had some special disposal method we take it into
-      // account now
       if Idx >= 1 then
       begin
+        // If previous frame had some special disposal method we take it into
+        // account now
         case Disposals[Idx - 1] of
           dmUndefined: ; // Do nothing
           dmLeave:
@@ -798,6 +798,12 @@ var
                 Images[Idx].Height, Images[Idx], 0, 0);
             end;
         end;
+      end
+      else
+      begin
+        // First frame - just fill with background color
+        FillRect(Images[Idx], 0, 0, Images[Idx].Width, Images[Idx].Height,
+          @Header.BackgroundColorIndex);
       end;
 
       try
@@ -826,6 +832,7 @@ begin
 
     // Read global palette from file if present
     if HasGlobalPal then
+    begin
       for I := 0 to GlobalPalLength - 1 do
       begin
         GlobalPal[I].A := 255;
@@ -833,6 +840,8 @@ begin
         Read(Handle, @GlobalPal[I].G, SizeOf(GlobalPal[I].G));
         Read(Handle, @GlobalPal[I].B, SizeOf(GlobalPal[I].B));
       end;
+      GlobalPal[Header.BackgroundColorIndex].A := 0;
+    end;
 
     // Read ID of the first block
     BlockID := ReadBlockID;
@@ -963,6 +972,9 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.24.1 Changes/Bug Fixes ---------------------------------
+    - Made backround color transparent by default (alpha = 0).
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Fixed other loading bugs (local pal size, transparency).
