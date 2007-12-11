@@ -5,6 +5,7 @@ set ROOTDIR=..
 set DEMOPATH=%ROOTDIR%\Demos\ObjectPascal
 set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZLib -Fu%ROOTDIR%\Extras\Extensions -Fu%DEMOPATH%\Common
 set INCLUDE=-Fi%ROOTDIR%\Source 
+set LIBS=-Fl%ROOTDIR%\Extras\Extensions\J2KObjects
 set OUTPUT=-FE%ROOTDIR%\Demos\Bin
 set OPTIONS=-Sgi -O2p3 -Xs
 set TARGET=-Twin64
@@ -18,7 +19,7 @@ call :BUILD VampConvert\VampConvert.dpr -oVampConvert.exe
 goto END
 
 :BUILD
-  fpc %TARGET% %OPTIONS% %OUTPUT% "%DEMOPATH%\%1" %UNITS% %INCLUDE% %2
+  fpc %TARGET% %OPTIONS% %OUTPUT% "%DEMOPATH%\%1" %UNITS% %INCLUDE% %LIBS% %2
   if errorlevel 1 (echo Error when building %1) else (set /a DEMOSBUILD+=1)
 goto :EOF
 

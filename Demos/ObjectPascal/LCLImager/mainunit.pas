@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
-  LCL Imager (ObjectPascal, high level/component sets/canvas, Win32/Linux)
-  tested in Lazarus 0.9.18
+  LCL Imager (ObjectPascal, high level/component sets/canvas, Win32/Linux/BSD)
+  tested in Lazarus 0.9.24
   written by Marek Mauder
 
   Simple image manipulator program which shows usage of Imaging VCL/CLX/LCL
@@ -41,8 +41,13 @@ uses
 
 type
 
-  { TMainForm }
+  TManipulationType = (mtFlip, mtMirror, mtRotate90CW, mtRotate90CCW,
+    mtResize50Nearest, mtResize50Linear, mtResize50Cubic,
+    mtResize200Nearest, mtResize200Linear, mtResize200Cubic,
+    mtSwapRB, mtSwapRG, mtSwapGB, mtReduce1024,
+    mtReduce256, mtReduce64, mtReduce16, mtReduce2);
 
+  { TMainForm }
   TMainForm = class(TForm)
     ActViewInfo: TAction;
     ActViewFitToWindow: TAction;
@@ -107,6 +112,7 @@ type
     MenuItem8: TMenuItem;
     MenuItem9: TMenuItem;
     OpenD: TOpenPictureDialog;
+    PanelStatus: TPanel;
     SaveD: TSavePictureDialog;
     procedure ActViewFitToWindowExecute(Sender: TObject);
     procedure ActViewInfoExecute(Sender: TObject);
@@ -166,6 +172,8 @@ type
     procedure UpdateView;
     function CheckCanvasFormat: Boolean;
     procedure ApplyConvolution(Kernel: Pointer; Size: LongInt; NeedsBlur: Boolean);
+    procedure ApplyManipulation(ManipType: TManipulationType);
+    procedure MeasureTime(const Msg: string; const OldTime: Int64);
   public
 
   end; 
@@ -187,136 +195,92 @@ end;
 
 procedure TMainForm.MenuItem12Click(Sender: TObject);
 begin
-  SwapChannels(FImage.ImageDataPointer^, ChannelRed, ChannelBlue);
-  UpdateView;
+  ApplyManipulation(mtSwapRB);
 end;
 
 procedure TMainForm.MenuItem13Click(Sender: TObject);
 begin
-  SwapChannels(FImage.ImageDataPointer^, ChannelRed, ChannelGreen);
-  UpdateView;
+  ApplyManipulation(mtSwapRG);
 end;
 
 procedure TMainForm.MenuItem14Click(Sender: TObject);
 begin
-  SwapChannels(FImage.ImageDataPointer^, ChannelGreen, ChannelBlue);
-  UpdateView;
+  ApplyManipulation(mtSwapGB);
 end;
 
 procedure TMainForm.MenuItem15Click(Sender: TObject);
 begin
-  ReduceColors(FImage.ImageDataPointer^, 1024);
-  UpdateView;
+  ApplyManipulation(mtReduce1024);
 end;
 
 procedure TMainForm.MenuItem18Click(Sender: TObject);
 begin
-  ReduceColors(FImage.ImageDataPointer^, 256);
-  UpdateView;
+  ApplyManipulation(mtReduce256);
 end;
 
 procedure TMainForm.MenuItem19Click(Sender: TObject);
 begin
-  ReduceColors(FImage.ImageDataPointer^, 64);
-  UpdateView;
+  ApplyManipulation(mtReduce64);
 end;
 
 procedure TMainForm.MenuItem20Click(Sender: TObject);
 begin
-  ReduceColors(FImage.ImageDataPointer^, 16);
-  UpdateView;
+  ApplyManipulation(mtReduce16);
+end;
+
+procedure TMainForm.MenuItem4Click(Sender: TObject);
+begin
+  ApplyManipulation(mtMirror);
 end;
 
 procedure TMainForm.MenuItem23Click(Sender: TObject);
 begin
-  FImage.Rotate(-90);
-  UpdateView;
+  ApplyManipulation(mtRotate90CW);
 end;
 
 procedure TMainForm.MenuItem24Click(Sender: TObject);
 begin
-  FImage.Rotate(90);
-  UpdateView;
+  ApplyManipulation(mtRotate90CCW);
 end;
 
 procedure TMainForm.MenuItem26Click(Sender: TObject);
 begin
-  FImage.Resize(FImage.Width div 2, FImage.Height div 2, rfNearest);
-  UpdateView;
+  ApplyManipulation(mtResize50Nearest);
 end;
 
 procedure TMainForm.MenuItem27Click(Sender: TObject);
 begin
-  FImage.Resize(FImage.Width div 2, FImage.Height div 2, rfBilinear);
-  UpdateView;
+  ApplyManipulation(mtResize50Linear);
 end;
 
 procedure TMainForm.MenuItem28Click(Sender: TObject);
 begin
-  FImage.Resize(FImage.Width div 2, FImage.Height div 2, rfBicubic);
-  UpdateView;
+  ApplyManipulation(mtResize50Cubic);
 end;
 
 procedure TMainForm.MenuItem29Click(Sender: TObject);
 begin
-  FImage.Resize(FImage.Width * 2, FImage.Height * 2, rfNearest);
-  UpdateView;
+  ApplyManipulation(mtResize200Nearest);
 end;
 
 procedure TMainForm.MenuItem2Click(Sender: TObject);
 begin
-  FImage.Flip;;
-  UpdateView;
+  ApplyManipulation(mtFlip);
 end;
 
 procedure TMainForm.MenuItem30Click(Sender: TObject);
 begin
-  FImage.Resize(FImage.Width * 2, FImage.Height * 2, rfBilinear);
-  UpdateView;
+  ApplyManipulation(mtResize200Linear);
 end;
 
 procedure TMainForm.MenuItem31Click(Sender: TObject);
 begin
-  FImage.Resize(FImage.Width * 2, FImage.Height * 2, rfBicubic);
-  UpdateView;
+  ApplyManipulation(mtResize200Cubic);
 end;
 
 procedure TMainForm.MenuItem33Click(Sender: TObject);
 begin
-  ReduceColors(FImage.ImageDataPointer^, 2);
-  UpdateView;
-end;
-
-procedure TMainForm.MenuItem34Click(Sender: TObject);
-begin
-  SelectSubimage(FImage.ActiveImage + 1);
-end;
-
-procedure TMainForm.MenuItem35Click(Sender: TObject);
-begin
-  SelectSubimage(FImage.ActiveImage - 1);
-end;
-
-function TMainForm.CheckCanvasFormat: Boolean;
-begin
-  Result := FImage.Format in FImageCanvas.GetSupportedFormats;
-  if not Result then
-    MessageDlg('Image is in format that is not supported by TImagingCanvas.', mtError, [mbOK], 0);
-end;
-
-procedure TMainForm.ApplyConvolution(Kernel: Pointer; Size: LongInt; NeedsBlur: Boolean);
-begin
-  if CheckCanvasFormat then
-  begin
-    FImageCanvas.CreateForImage(FImage);
-    if NeedsBlur then
-      FImageCanvas.ApplyConvolution3x3(FilterGaussian3x3);
-    if Size = 3 then
-      FImageCanvas.ApplyConvolution3x3(TConvolutionFilter3x3(Kernel^))
-    else
-      FImageCanvas.ApplyConvolution5x5(TConvolutionFilter5x5(Kernel^));
-    UpdateView;
-  end;
+  ApplyManipulation(mtReduce2);
 end;
 
 procedure TMainForm.MenuItem37Click(Sender: TObject);
@@ -332,101 +296,6 @@ end;
 procedure TMainForm.MenuItem39Click(Sender: TObject);
 begin
   ApplyConvolution(@FilterSharpen3x3, 3, False);
-end;
-
-procedure TMainForm.FormCreate(Sender: TObject);
-var
-  Item: TMenuItem;
-  Fmt: TImageFormat;
-  Info: TImageFormatInfo;
-begin
-  Caption := Format(SWindowTitle, [Imaging.GetVersionStr]);
-
-  { Source image and Image's graphic are created and
-    default image is opened.}
-  FImage := TMultiImage.Create;
-  FBitmap := TImagingBitmap.Create;
-  Image.Picture.Graphic := FBitmap;
-  FImageCanvas := TImagingCanvas.Create;
-
-  { This builds Format submenu containing all possible
-    image data formats (it dos not start at Low(TImageFormat)
-    because there are some helper formats). Format for each item
-    is stored in its Tag for later use in OnClick event.}
-  for Fmt := ifIndex8 to High(TImageFormat) do
-  begin
-    GetImageFormatInfo(Fmt, Info);
-    if Info.Name <> '' then
-    begin
-      Item := TMenuItem.Create(MainMenu);
-      Item.Caption := Info.Name;
-      Item.Tag := Ord(Fmt);
-      Item.OnClick := FormatChangeClick;
-      FormatItem.Add(Item);
-    end;
-  end;
-  
-  if (ParamCount > 0) and FileExists(ParamStr(1)) then
-    OpenFile(ParamStr(1))
-  else
-    OpenFile(GetDataDir + PathDelim + 'Tigers.jpg');
-end;
-
-procedure TMainForm.FormatChangeClick(Sender: TObject);
-begin
-  with Sender as TMenuItem do
-  begin
-    FImage.Format := TImageFormat(Tag);
-    UpdateView;
-  end;
-end;
-
-procedure TMainForm.ActViewRealSizeExecute(Sender: TObject);
-begin
-  ActViewRealSize.Checked := not ActViewRealSize.Checked;
-  ActViewFitToWindow.Checked := not ActViewFitToWindow.Checked;
-  if ActViewRealSize.Checked then
-  begin
-    Image.Proportional := False;
-    Image.Stretch := False;
-    Image.AutoSize := True;
-  end;
-end;
-
-procedure TMainForm.ActViewFitToWindowExecute(Sender: TObject);
-begin
-  ActViewFitToWindow.Checked := not ActViewFitToWindow.Checked;
-  ActViewRealSize.Checked := not ActViewRealSize.Checked;
-  if ActViewFitToWindow.Checked then
-  begin
-    Image.Proportional := True;
-    Image.AutoSize := False;
-    Image.Stretch := True;
-  end;
-end;
-
-procedure TMainForm.ActViewInfoExecute(Sender: TObject);
-begin
-  MessageDlg('Image Info: ' + ImageToStr(FImage.ImageDataPointer^), mtInformation, [mbOK], 0);
-end;
-
-procedure TMainForm.FormDestroy(Sender: TObject);
-begin
-  FImageCanvas.Free;
-  FBitmap.Free;
-  FImage.Free;
-end;
-
-procedure TMainForm.ImageClick(Sender: TObject);
-begin
-  ActViewInfo.Execute;
-end;
-
-procedure TMainForm.MenuItem3Click(Sender: TObject);
-begin
-  OpenD.Filter := GetImageFileFormatsFilter(True);
-  if OpenD.Execute then
-    OpenFile(OpenD.FileName);
 end;
 
 procedure TMainForm.MenuItem40Click(Sender: TObject);
@@ -474,12 +343,6 @@ begin
   ApplyConvolution(@FilterEdgeEnhance3x3, 3, False);
 end;
 
-procedure TMainForm.MenuItem4Click(Sender: TObject);
-begin
-  FImage.Mirror;
-  UpdateView;
-end;
-
 procedure TMainForm.MenuItem50Click(Sender: TObject);
 begin
   ApplyConvolution(@FilterPrewittHorz3x3, 3, True);
@@ -500,6 +363,167 @@ begin
   ApplyConvolution(@FilterKirshVert3x3, 3, True);
 end;
 
+procedure TMainForm.MenuItem34Click(Sender: TObject);
+begin
+  SelectSubimage(FImage.ActiveImage + 1);
+end;
+
+procedure TMainForm.MenuItem35Click(Sender: TObject);
+begin
+  SelectSubimage(FImage.ActiveImage - 1);
+end;
+
+function TMainForm.CheckCanvasFormat: Boolean;
+begin
+  Result := FImage.Format in FImageCanvas.GetSupportedFormats;
+  if not Result then
+    MessageDlg('Image is in format that is not supported by TImagingCanvas.', mtError, [mbOK], 0);
+end;
+
+procedure TMainForm.ApplyConvolution(Kernel: Pointer; Size: LongInt; NeedsBlur: Boolean);
+var
+  T: Int64;
+begin
+  if CheckCanvasFormat then
+  begin
+    FImageCanvas.CreateForImage(FImage);
+    T := GetTimeMicroseconds;
+    
+    if NeedsBlur then
+      FImageCanvas.ApplyConvolution3x3(FilterGaussian3x3);
+    if Size = 3 then
+      FImageCanvas.ApplyConvolution3x3(TConvolutionFilter3x3(Kernel^))
+    else
+      FImageCanvas.ApplyConvolution5x5(TConvolutionFilter5x5(Kernel^));
+      
+    MeasureTime('Image convolved in:', T);
+    UpdateView;
+  end;
+end;
+
+procedure TMainForm.ApplyManipulation(ManipType: TManipulationType);
+var
+  T: Int64;
+begin
+  T := GetTimeMicroseconds;
+  case ManipType of
+    mtFlip:             FImage.Flip;
+    mtMirror:           FImage.Mirror;
+    mtRotate90CW:       FImage.Rotate(-90);
+    mtRotate90CCW:      FImage.Rotate(90);
+    mtResize50Nearest:  FImage.Resize(FImage.Width div 2, FImage.Height div 2, rfNearest);
+    mtResize50Linear:   FImage.Resize(FImage.Width div 2, FImage.Height div 2, rfBilinear);
+    mtResize50Cubic:    FImage.Resize(FImage.Width div 2, FImage.Height div 2, rfBicubic);
+    mtResize200Nearest: FImage.Resize(FImage.Width * 2, FImage.Height * 2, rfNearest);
+    mtResize200Linear:  FImage.Resize(FImage.Width * 2, FImage.Height * 2, rfBilinear);
+    mtResize200Cubic:   FImage.Resize(FImage.Width * 2, FImage.Height * 2, rfBicubic);
+    mtSwapRB:           FImage.SwapChannels(ChannelRed, ChannelBlue);
+    mtSwapRG:           FImage.SwapChannels(ChannelRed, ChannelGreen);
+    mtSwapGB:           FImage.SwapChannels(ChannelGreen, ChannelBlue);
+    mtReduce1024:       ReduceColors(FImage.ImageDataPointer^, 1024);
+    mtReduce256:        ReduceColors(FImage.ImageDataPointer^, 256);
+    mtReduce64:         ReduceColors(FImage.ImageDataPointer^, 64);
+    mtReduce16:         ReduceColors(FImage.ImageDataPointer^, 16);
+    mtReduce2:          ReduceColors(FImage.ImageDataPointer^, 2);
+  end;
+  MeasureTime('Image manipulated in:', T);
+  UpdateView;
+end;
+
+procedure TMainForm.FormCreate(Sender: TObject);
+var
+  Item: TMenuItem;
+  Fmt: TImageFormat;
+  Info: TImageFormatInfo;
+begin
+  Caption := Format(SWindowTitle, [Imaging.GetVersionStr]);
+
+  { Source image and Image's graphic are created and
+    default image is opened.}
+  FImage := TMultiImage.Create;
+  FBitmap := TImagingBitmap.Create;
+  Image.Picture.Graphic := FBitmap;
+  FImageCanvas := TImagingCanvas.Create;
+
+  { This builds Format submenu containing all possible
+    image data formats (it dos not start at Low(TImageFormat)
+    because there are some helper formats). Format for each item
+    is stored in its Tag for later use in OnClick event.}
+  for Fmt := ifIndex8 to High(TImageFormat) do
+  begin
+    GetImageFormatInfo(Fmt, Info);
+    if Info.Name <> '' then
+    begin
+      Item := TMenuItem.Create(MainMenu);
+      Item.Caption := Info.Name;
+      Item.Tag := Ord(Fmt);
+      Item.OnClick := FormatChangeClick;
+      FormatItem.Add(Item);
+    end;
+  end;
+  
+  // Set 'Fit to window' mode
+  ActViewFitToWindowExecute(Self);
+  
+  if (ParamCount > 0) and FileExists(ParamStr(1)) then
+    OpenFile(ParamStr(1))
+  else
+    OpenFile(GetDataDir + PathDelim + 'Tigers.jpg');
+end;
+
+procedure TMainForm.FormatChangeClick(Sender: TObject);
+var
+  T: Int64;
+begin
+  with Sender as TMenuItem do
+  begin
+    T := GetTimeMicroseconds;
+    FImage.Format := TImageFormat(Tag);
+    MeasureTime('Image converted in:', T);
+    UpdateView;
+  end;
+end;
+
+procedure TMainForm.ActViewRealSizeExecute(Sender: TObject);
+begin
+  ActViewRealSize.Checked := True;
+  ActViewFitToWindow.Checked := False;
+  Image.Proportional := False;
+  Image.Stretch := False;
+end;
+
+procedure TMainForm.ActViewFitToWindowExecute(Sender: TObject);
+begin
+  ActViewFitToWindow.Checked := True;
+  ActViewRealSize.Checked := False;
+  Image.Proportional := True;
+  Image.Stretch := True;
+end;
+
+procedure TMainForm.ActViewInfoExecute(Sender: TObject);
+begin
+  MessageDlg('Image Info: ' + ImageToStr(FImage.ImageDataPointer^), mtInformation, [mbOK], 0);
+end;
+
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+  FImageCanvas.Free;
+  FBitmap.Free;
+  FImage.Free;
+end;
+
+procedure TMainForm.ImageClick(Sender: TObject);
+begin
+  ActViewInfo.Execute;
+end;
+
+procedure TMainForm.MenuItem3Click(Sender: TObject);
+begin
+  OpenD.Filter := GetImageFileFormatsFilter(True);
+  if OpenD.Execute then
+    OpenFile(OpenD.FileName);
+end;
+
 procedure TMainForm.MenuItem5Click(Sender: TObject);
 begin
   SaveD.Filter := GetImageFileFormatsFilter(False);
@@ -518,10 +542,14 @@ begin
 end;
 
 procedure TMainForm.OpenFile(const FileName: string);
+var
+  T: Int64;
 begin
   FFileName := FileName;
   try
+    T := GetTimeMicroseconds;
     FImage.LoadMultiFromFile(FileName);
+    MeasureTime(Format('File %s opened in:', [ExtractFileName(FileName)]), T);
   except
     FImage.CreateFromParams(32, 32, ifA8R8G8B8, 1);
     MessageDlg('Error when loading file: ' + FileName, mtError, [mbOK], 0);
@@ -530,9 +558,13 @@ begin
 end;
 
 procedure TMainForm.SaveFile(const FileName: string);
+var
+  T: Int64;
 begin
   try
+    T := GetTimeMicroseconds;
     FImage.SaveMultiToFile(FileName);
+    MeasureTime(Format('File %s saved in:', [ExtractFileName(FileName)]), T);
   except
     MessageDlg('Error when saving file: ' + FileName, mtError, [mbOK], 0);
   end;
@@ -550,6 +582,11 @@ begin
   Image.Picture.Graphic.Assign(FImage);
 end;
 
+procedure TMainForm.MeasureTime(const Msg: string; const OldTime: Int64);
+begin
+  PanelStatus.Caption := Format('  %s %.0n ms', [Msg, (GetTimeMicroseconds - OldTime) / 1000.0]);
+end;
+
 initialization
   {$I mainunit.lrs}
 
@@ -558,6 +595,15 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - add more canvas stuff when it will be avaiable
+
+  -- 0.24.1 Changes/Bug Fixes ---------------------------------
+    - Added status bar which shows times taken by some oprations.
+    - Reworked manipulation commands to get rid of UpdateView calls
+      everywhere.
+    - With Lazarus 0.9.24 images are now displayed with
+      proper transparency (those with alpha). Also it doesn't
+      screw up some images with 'Fit to window' so that is now
+      default.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Catches exceptions during file load/save.

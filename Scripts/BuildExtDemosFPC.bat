@@ -11,6 +11,7 @@ set DEMOPATH=%ROOTDIR%\Demos\ObjectPascal
 set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZLib -Fu%DEMOPATH%\Common
 set UNITS=%UNITS% -Fu%ROOTDIR%\Source\Extensions -Fu%ROOTDIR%\Extras\Extensions -Fu"%SDLDIR%" -Fu"%OPENGLDIR%" -Fu"%D3DDIR%"
 set INCLUDE=-Fi%ROOTDIR%\Source -Fi"%SDLDIR%" -Fi"%OPENGLDIR%" -Fi"%D3DDIR%"
+set LIBS=-Fl%ROOTDIR%\Extras\Extensions\J2KObjects
 set OUTPUT=-FE%ROOTDIR%\Demos\Bin
 set OPTIONS=-Sgi -O2p3 -Xs
 set TARGET=-Twin32
@@ -30,7 +31,7 @@ if "%D3DDIR%"=="" (echo D3D search directory not set - skipping %CURRDEMO%) else
 goto END
 
 :BUILD
-  fpc %TARGET% %OPTIONS% %OUTPUT% "%DEMOPATH%\%1" %UNITS% %INCLUDE% %2
+  fpc %TARGET% %OPTIONS% %OUTPUT% "%DEMOPATH%\%1" %UNITS% %INCLUDE% %LIBS% %2
   if errorlevel 1 (echo Error when building %1) else (set /a DEMOSBUILD+=1)
 goto :EOF
 

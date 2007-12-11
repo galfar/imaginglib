@@ -1,15 +1,15 @@
 object MainForm: TMainForm
-  Left = 307
+  Left = 313
   Height = 512
-  Top = 201
+  Top = 196
   Width = 768
   HorzScrollBar.Page = 767
   VertScrollBar.Page = 491
-  AutoSize = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
   ClientHeight = 492
   ClientWidth = 768
-  Color = clGray
+  Constraints.MinHeight = 240
+  Constraints.MinWidth = 320
   Icon.Data = {
     360C0000424D360C000000000000360000002800000020000000200000000100
     180000000000000C000064000000640000000000000000000000FFFFFFFFFFFF
@@ -114,15 +114,27 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poDesktopCenter
+  WindowState = wsMaximized
   object Image: TImage
     Cursor = crHandPoint
-    Height = 492
+    Height = 470
     Width = 768
     Align = alClient
     AutoSize = True
     Center = True
     OnClick = ImageClick
+    Proportional = True
+    Stretch = True
     Transparent = False
+  end
+  object PanelStatus: TPanel
+    Height = 22
+    Top = 470
+    Width = 768
+    Align = alBottom
+    Alignment = taLeftJustify
+    BevelWidth = 2
+    TabOrder = 0
   end
   object MainMenu: TMainMenu
     left = 112
@@ -160,6 +172,7 @@ object MainForm: TMainForm
       end
       object MenuItem16: TMenuItem
         Action = ActViewFitToWindow
+        Checked = True
         OnClick = ActViewFitToWindowExecute
       end
       object MenuItem17: TMenuItem

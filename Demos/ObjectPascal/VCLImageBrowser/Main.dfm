@@ -11,7 +11,7 @@ object MainForm: TMainForm
   Font.Name = 'Verdana'
   Font.Style = [fsBold]
   OldCreateOrder = False
-  Position = poDesktopCenter
+  Position = poScreenCenter
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96

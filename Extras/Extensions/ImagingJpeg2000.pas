@@ -91,7 +91,7 @@ implementation
 const
   SJpeg2000FormatName = 'JPEG 2000 Image';
   SJpeg2000Masks      = '*.jp2,*.j2k,*.j2c,*.jpx,*.jpc';
-  Jpeg2000SupportedFormats: TImageFormats = [ifGray8, ifGray16, 
+  Jpeg2000SupportedFormats: TImageFormats = [ifGray8, ifGray16,
     ifA8Gray8, ifA16Gray16, ifR8G8B8, ifR16G16B16, ifA8R8G8B8, ifA16R16G16B16];
   Jpeg2000DefaultQuality = 80;
   Jpeg2000DefaultCodeStreamOnly = False;
@@ -178,6 +178,8 @@ begin
   else
     Exit;
   end;
+  // Set event manager to nil to avoid getting messages
+  dinfo.event_mgr := nil;
   // Currently OpenJPEG can load images only from memory so we have to
   // preload whole input to mem buffer. Not good but no other way now.
   // At least we set stream pos to end of JP2 data after loading (we will now
@@ -400,6 +402,8 @@ begin
     else
       cinfo := opj_create_compress(CODEC_JP2);
 
+    // Set event manager to nil to avoid getting messages
+    cinfo.event_mgr := nil;  
     // Set compression parameters based current file format properties
     opj_set_default_encoder_parameters(@parameters);
     parameters.cod_format := Iff(FCodeStreamOnly, 0, 1);

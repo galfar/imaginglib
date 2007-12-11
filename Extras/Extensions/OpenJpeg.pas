@@ -1,9 +1,11 @@
-{
+(*
+ * Copyright (c) 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+ * Copyright (c) 2002-2007, Professor Benoit Macq
  * Copyright (c) 2001-2003, David Janssens
  * Copyright (c) 2002-2003, Yannick Verschueren
- * Copyright (c) 2003-2005, Francois Devaux and Antonin Descampe
- * Copyright (c) 2005, Hervé Drolon, FreeImage Team
- * Copyright (c) 2002-2005, Communications and remote sensing Laboratory, Universite catholique de Louvain, Belgium
+ * Copyright (c) 2003-2007, Francois-Olivier Devaux and Antonin Descampe
+ * Copyright (c) 2005, Herve Drolon, FreeImage Team
+ * Copyright (c) 2006-2007, Parvatha Elangovan
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,46 +28,80 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
-}
+ *)
 
 {
-  Translated to Object Pascal by Marek Mauder for Vampyre Imaging Library
-  http://imaginglib.sourceforge.net
+  Translated to Object Pascal by Marek Mauder (http://galfar.vevb.net)
+  for Vampyre Imaging Library (http://imaginglib.sourceforge.net)
+
+  Current translation is based on OpenJpeg 1.2.0 SVN revision 484
+
+  
 }
 
 unit OpenJpeg;
 
-{$I ImagingOptions.inc}
+{$IFDEF FPC}
+  { Free Pascal settings }
+  {$MODE DELPHI}
+  {$PACKRECORDS 8}
+  {$PACKENUM 4}
+{$ELSE}
+  { Delphi settings }
+  {$DEFINE DCC}
+  {$ALIGN 8}
+  {$MINENUMSIZE 4}
+{$ENDIF}
 
 interface
 
 const
-  OPENJPEG_VERSION = '1.1.0';
-
-{ ==========================================================
-     Compiler directives
-  ========================================================== }
+  OPENJPEG_VERSION = '1.2.0';
 
 type
-  //Bool = LongBool;
   Bool = ByteBool;
   Char = AnsiChar;
 
 const
   { Maximum allowed size for filenames }
-  MAX_PATH = 260;
+  OPJ_PATH_LEN = 4096;
 
   { Number of maximum resolution level authorized }
   J2K_MAXRLVLS = 33;
   { Number of maximum sub-band linked to number of resolution level }
   J2K_MAXBANDS = 3 * J2K_MAXRLVLS - 2;
 
+  JPWL_MAX_NO_TILESPECS = 16;
+  JPWL_MAX_NO_PACKSPECS = 16;
+  JPWL_MAX_NO_MARKERS = 512;
+  JPWL_PRIVATEINDEX_NAME = 'jpwl_index_privatefilename';
+  JPWL_EXPECTED_COMPONENTS = 3;
+  JPWL_MAXIMUM_TILES = 8192;
+  JPWL_MAXIMUM_HAMMING = 2;
+  JPWL_MAXIMUM_EPB_ROOM = 65450;
 
 { ==========================================================
      enum definitions
   ========================================================== }
 
 type
+  { Rsiz Capabilities }
+  RSIZ_CAPABILITIES = (
+    STD_RSIZ = 0, { Standard JPEG2000 profile }
+    CINEMA2K = 3, { Profile name for a 2K image }
+    CINEMA4K = 4  { Profile name for a 4K image }
+  );
+  OPJ_RSIZ_CAPABILITIES = RSIZ_CAPABILITIES;
+
+  { Digital cinema operation mode }
+  CINEMA_MODE = (
+    OFF = 0,         { Not Digital Cinema }
+    CINEMA2K_24 = 1, { 2K Digital Cinema at 24 fps }
+    CINEMA2K_48 = 2, { 2K Digital Cinema at 48 fps }
+    CINEMA4K_24 = 3  { 4K Digital Cinema at 24 fps }
+  );
+  OPJ_CINEMA_MODE = CINEMA_MODE;
+
   { Progression order }
   PROG_ORDER = (
     PROG_UNKNOWN = -1, { place-holder }
@@ -81,8 +117,8 @@ type
     CLRSPC_UNKNOWN = -1, { place-holder }
     CLRSPC_SRGB = 1,     { sRGB }
     CLRSPC_GRAY = 2,     { grayscale }
-    CLRSPC_SYCC = 3,     { YUV }
-    CLRSCR_FORCE32);
+    CLRSPC_SYCC = 3      { YUV }
+    );
   OPJ_COLOR_SPACE = COLOR_SPACE;
 
   { Supported codec }
@@ -92,6 +128,15 @@ type
     CODEC_JPT = 1,      { JPT-stream (JPEG 2000, JPIP) : read only }
     CODEC_JP2 = 2);     { JPEG-2000 file format : read/write }
   OPJ_CODEC_FORMAT = CODEC_FORMAT;
+
+  { Limit decoding to certain portions of the codestream. }
+  LIMIT_DECODING = (
+    NO_LIMITATION = 0,         { No limitation for the decoding. The entire codestream will de decoded }
+    LIMIT_TO_MAIN_HEADER = 1,  { The decoding is limited to the Main Header }
+    DECODE_ALL_BUT_PACKETS = 2 { Decode everything except the JPEG 2000 packets }
+  );
+  OPJ_LIMIT_DECODING = LIMIT_DECODING;
+
 
 { ==========================================================
      event manager typedef definitions
@@ -115,14 +160,17 @@ type
 
   { Progression order changes }
   opj_poc = record
-    resno0: Integer;
-    compno0: Integer;
-    layno1: Integer;
-    resno1: Integer;
-    compno1: Integer;
-    prg: OPJ_PROG_ORDER;
+    resno0, compno0: Integer;
+    layno1, resno1, compno1: Integer;
+    layno0, precno0, precno1: Integer;
+    prg1, prg: OPJ_PROG_ORDER;
+    progorder: array[0..4] of Char;
     tile: Integer;
-    progorder: array[0..3] of Char;
+    tx0, tx1, ty0, ty1: Integer;
+    layS, resS, compS, prcS: Integer;
+    layE, resE, compE, prcE: Integer;
+    txS, txE, tyS, tyE, dx, dy: Integer;
+    lay_t, res_t, comp_t, prc_t, tx0_t, ty0_t: Integer;
   end;
   opj_poc_t = opj_poc;
 
@@ -155,42 +203,51 @@ type
     res_spec: Integer;
     prcw_init: array[0..J2K_MAXRLVLS - 1] of Integer;
     prch_init: array[0..J2K_MAXRLVLS - 1] of Integer;
-    infile: array[0..MAX_PATH - 1] of Char;
-    outfile: array[0..MAX_PATH - 1] of Char;
+    infile: array[0..OPJ_PATH_LEN - 1] of Char;
+    outfile: array[0..OPJ_PATH_LEN - 1] of Char;
     index_on: Integer;
-    index: array[0..MAX_PATH - 1] of Char;
+    index: array[0..OPJ_PATH_LEN - 1] of Char;
     image_offset_x0: Integer;
     image_offset_y0: Integer;
     subsampling_dx: Integer;
     subsampling_dy: Integer;
     decod_format: Integer;
     cod_format: Integer;
+    jpwl_epc_on: Bool;
+    jpwl_hprot_MH: Integer;
+    jpwl_hprot_TPH_tileno: array[0..JPWL_MAX_NO_TILESPECS - 1] of Integer;
+    jpwl_hprot_TPH: array[0..JPWL_MAX_NO_TILESPECS - 1] of Integer;
+    jpwl_pprot_tileno: array[0..JPWL_MAX_NO_PACKSPECS - 1] of Integer;
+    jpwl_pprot_packno: array[0..JPWL_MAX_NO_PACKSPECS - 1] of Integer;
+    jpwl_pprot: array[0..JPWL_MAX_NO_PACKSPECS - 1] of Integer;
+    jpwl_sens_size: Integer;
+    jpwl_sens_addr: Integer;
+    jpwl_sens_range: Integer;
+    jpwl_sens_MH: Integer;
+    jpwl_sens_TPH_tileno: array[0..JPWL_MAX_NO_TILESPECS - 1] of Integer;
+    jpwl_sens_TPH: array[0..JPWL_MAX_NO_TILESPECS - 1] of Integer;
+    cp_cinema: OPJ_CINEMA_MODE;
+    max_comp_size: Integer;
+    cp_rsiz: OPJ_RSIZ_CAPABILITIES;
+    tp_on: Byte;
+    tp_flag: Byte;
+    tcp_mct: Byte;
   end;
   opj_cparameters_t = opj_cparameters;
   popj_cparameters_t = ^opj_cparameters_t;
 
   { Decompression parameters }
   opj_dparameters = record
-    { Set the number of highest resolution levels to be discarded.
-      The image resolution is effectively divided by 2 to the power of the number of discarded levels.
-      The reduce factor is limited by the smallest total number of decomposition levels among tiles.
-      if != 0, then original dimension divided by 2^(reduce);
-      if == 0 or not used, image is decoded to the full resolution }
     cp_reduce: Integer;
-    { Set the maximum number of quality layers to decode.
-      If there are less quality layers than the specified number, all the quality layers are decoded.
-      if != 0, then only the first "layer" layers are decoded;
-      if == 0 or not used, all the quality layers are decoded }
     cp_layer: Integer;
-    { @name command line encoder parameters (not used inside the library) }
-    { input file name }
-    infile: array[0..MAX_PATH - 1] of Char;
-    { output file name }
-    outfile: array[0..MAX_PATH - 1] of Char;
-    { input file format 0: J2K, 1: JP2, 2: JPT }
+    infile: array[0..OPJ_PATH_LEN - 1] of Char;
+    outfile: array[0..OPJ_PATH_LEN - 1] of Char;
     decod_format: Integer;
-    { output file format 0: PGX, 1: PxM, 2: BMP }
     cod_format: Integer;
+    jpwl_correct: Bool;
+    jpwl_exp_comps: Integer;
+    jpwl_max_tiles: Integer;
+    cp_limit_decoding: OPJ_LIMIT_DECODING;
   end;
   opj_dparameters_t = opj_dparameters;
   popj_dparameters_t = ^opj_dparameters_t;
@@ -205,6 +262,7 @@ type
     codec_format: OPJ_CODEC_FORMAT; { selected codec }
     j2k_handle: Pointer;            { Pointer to the J2K codec }
     jp2_handle: Pointer;            { Pointer to the JP2 codec }
+    mj2_handle: Pointer;
   end;
   opj_common_struct_t = opj_common_struct;
   opj_common_ptr = ^opj_common_struct_t;
@@ -217,6 +275,7 @@ type
     codec_format: OPJ_CODEC_FORMAT;
     j2k_handle: Pointer;
     jp2_handle: Pointer;
+    mj2_handle: Pointer;
   end;
   opj_cinfo_t = opj_cinfo;
   popj_cinfo_t = ^opj_cinfo_t;
@@ -229,6 +288,7 @@ type
     codec_format: OPJ_CODEC_FORMAT;
     j2k_handle: Pointer;
     jp2_handle: Pointer;
+    mj2_handle: Pointer;
   end;
   opj_dinfo_t = opj_dinfo;
   popj_dinfo_t = ^opj_dinfo_t;
@@ -241,19 +301,19 @@ const
   { Stream open flags. }
   { The stream was opened for reading. }
   OPJ_STREAM_READ = $0001;
-  {* The stream was opened for writing.  }
+  { The stream was opened for writing. }
   OPJ_STREAM_WRITE = $0002;
 
 type
   { Byte input-output stream (CIO) }
   opj_cio = record
-    cinfo: opj_common_ptr; { codec context  }
-    openmode: Integer;     { open mode (read/write) either OPJ_STREAM_READ or OPJ_STREAM_WRITE  }
-    buffer: PChar;         { Pointer to the start of the buffer  }
-    length: Integer;       { buffer size in bytes  }
-    start: PChar;          { Pointer to the start of the stream  }
-    end_: PChar;           { Pointer to the end of the stream  }
-    bp: PChar;             { Pointer to the current position  }
+    cinfo: opj_common_ptr; { codec context }
+    openmode: Integer;     { open mode (read/write) either OPJ_STREAM_READ or OPJ_STREAM_WRITE }
+    buffer: PChar;         { Pointer to the start of the buffer }
+    length: Integer;       { buffer size in bytes }
+    start: PChar;          { Pointer to the start of the stream }
+    end_: PChar;           { Pointer to the end of the stream }
+    bp: PChar;             { Pointer to the current position }
   end;
   opj_cio_t = opj_cio;
   popj_cio_t = ^opj_cio_t;
@@ -315,6 +375,7 @@ type
 { ==========================================================
      openjpeg version
   ========================================================== }
+
 
 function opj_version: PChar; cdecl; external;
 
@@ -446,14 +507,11 @@ function opj_encode(cinfo: popj_cinfo_t; cio: popj_cio_t; image: popj_image_t;
 
 implementation
 
-uses
-  SysUtils, ImagingUtility;
-
 {$IF Defined(MSWINDOWS)}
-const
-  MSCRuntimeLib = 'msvcrt.dll';
 
-  {$IFDEF DCC}
+  {$IF Defined(DCC)}
+    { Delphi Win32 }
+    { First link object files created with C++ Builder.}
     {$L J2KObjects\w32bor_pi.obj}
     {$L J2KObjects\w32bor_openjpeg.obj}
     {$L J2KObjects\w32bor_j2k_lib.obj}
@@ -472,12 +530,17 @@ const
     {$L J2KObjects\w32bor_dwt.obj}
     {$L J2KObjects\w32bor_t2.obj}
     {$L J2KObjects\w32bor_mct.obj}
-
+   const
+     { MS C Runtime library needed for importing std C functions.}
+     MSCRuntimeLib = 'msvcrt.dll';
    var
-      __turboFloat: LongInt;
+      { Some unresolved external constants.}
+      __turboFloat: Integer;
       _max_dble: Double;
+      _streams: Pointer;
 
-    procedure opj_realloc; cdecl; external;
+    { Internal OpenJpeg functions external declarations.
+      Delphi yells 'unsatisfied external declaration' if they are not referenced here.}
     procedure mqc_create; cdecl; external;
     procedure raw_create; cdecl; external;
     procedure bio_create; cdecl; external;
@@ -494,7 +557,6 @@ const
     procedure j2k_destroy_compress; cdecl; external;
     procedure tgt_create; cdecl; external;
     procedure tgt_destroy; cdecl; external;
-    procedure mqc_setcurctx; cdecl; external;
     procedure mqc_bypass_enc; cdecl; external;
     procedure mqc_encode; cdecl; external;
     procedure mqc_decode; cdecl; external;
@@ -520,108 +582,18 @@ const
     procedure bio_numbytes; cdecl; external;
     procedure bio_destroy; cdecl; external;
     procedure bio_init_dec; cdecl; external;
-    procedure pi_create; cdecl; external;
+    procedure pi_create_encode; cdecl; external;
+    procedure pi_initialise_encode; cdecl; external;
+    procedure pi_create_decode; cdecl; external;
     procedure pi_next; cdecl; external;
     procedure pi_destroy; cdecl; external;
     procedure tgt_encode; cdecl; external;
     procedure tgt_decode; cdecl; external;
     procedure bio_inalign; cdecl; external;
-  {$ELSE}
-    {$L J2KObjects\w32gcc_openjpeg.o}
-    {$L J2KObjects\w32gcc_j2k_lib.o}
-    {$L J2KObjects\w32gcc_event.o}
-    {$L J2KObjects\w32gcc_cio.o}
-    {$L J2KObjects\w32gcc_image.o}
-    {$L J2KObjects\w32gcc_j2k.o}
-    {$L J2KObjects\w32gcc_jp2.o}
-    {$L J2KObjects\w32gcc_jpt.o}
-    {$L J2KObjects\w32gcc_mqc.o}
-    {$L J2KObjects\w32gcc_raw.o}
-    {$L J2KObjects\w32gcc_bio.o}
-    {$L J2KObjects\w32gcc_tgt.o}
-    {$L J2KObjects\w32gcc_tcd.o}
-    {$L J2KObjects\w32gcc_t1.o}
-    {$L J2KObjects\w32gcc_dwt.o}
-    {$L J2KObjects\w32gcc_pi.o}
-    {$L J2KObjects\w32gcc_t2.o}
-    {$L J2KObjects\w32gcc_mct.o}
-  {$ENDIF}
 
-function malloc(Size: Integer): Pointer; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  GetMem(Result, Size);
-end;
-
-procedure free(Ptr: Pointer); cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  FreeMem(Ptr);
-end;
-
-function realloc(Ptr: Pointer; Size: Integer): Pointer; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  ReallocMem(Ptr, Size);
-  Result := Ptr;
-end;
-
-function memset(S: Pointer; C, N: Integer): Pointer; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  FillMemoryByte(S, N, C);
-  Result := S;
-end;
-
-function memcpy(S1, S2: Pointer; N: Integer): Pointer; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
- Move(S2^, S1^, N);
- Result := S1;
-end;
-
-function strlen(S: PChar): Integer; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  Result := SysUtils.StrLen(S);
-end;
-
-function strcat(S1, S2: PChar): PChar; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  Result := SysUtils.StrCat(S1, S2);
-end;
-
-function strcpy(S1, S2: PChar): PChar; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  Result := SysUtils.StrCopy(S1, S2);
-end;
-
-function fabs(const Num: Double): Double; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  Result := Abs(Num);
-end;
-
-function floor(const X: Double): Double; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  Result := Trunc(X);
-  if Frac(X) < 0.0 then
-    Result := Result - 1.0;
-end;
-
-function ceil(const Num: Double): Double; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  Result := Trunc(Num);
-  if Frac(Num) > 0.0 then
-    Result := Result + 1;
-end;
-
-function pow(const Base, Exponent: Double): Double; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  if Exponent = 0.0 then
-    Result := 1.0
-  else if (Base = 0.0) and (Exponent > 0.0) then
-    Result := 0.0
-  else
-    Result := Exp(Exponent * Ln(Base));
-end;
-
-procedure _llmul; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-asm
-  // taken from Delphi's System.pas __llmul
+    procedure _llmul; cdecl;
+    asm
+        { from Delphi's System.pas __llmul }
         push  edx
         push  eax
 
@@ -641,137 +613,54 @@ asm
         pop   ecx
 
         ret     8
-end;
+    end;
 
+    { C library imports }
+    function malloc(size: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
+    function calloc(nelem, elsize: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
+    procedure free(ptr: Pointer); cdecl; external MSCRuntimeLib;
+    function realloc(ptr: Pointer; size: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
+    function memset(s: Pointer; c, n: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
+    function memcpy(s1, s2: Pointer; n: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
+    function floor(const x: Double): Double; cdecl; external MSCRuntimeLib;
+    function ceil(const num: Double): Double; cdecl; external MSCRuntimeLib;
+    function pow(const base, exponent: Double): Double; cdecl; external MSCRuntimeLib;
+    function printf(format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
+    function fprintf(f: Pointer; format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
+    function vsprintf(s, format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
+    function _ftol(x: Single): LongInt; cdecl; external MSCRuntimeLib;
+    function wcscpy(s1, s2: PWideChar): PWideChar; cdecl; external MSCRuntimeLib;
+    function strcpy(s1, s2: PChar): PChar; cdecl; external MSCRuntimeLib;
+    function strlen(s: PChar): Integer; cdecl; external MSCRuntimeLib;
+  {$ELSEIF Defined(FPC)}
+    { Free Pascal Win32 }
+    { Link OpenJpeg static library and C runtime library.}
+    {$linklib J2KObjects\libopenjpegwin32.a}
+    {$linklib J2KObjects\libcrtdll.a}
+  {$IFEND}
 
-procedure _allshr; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-asm
-  // taken from Delphi's System.pas __llshr
-        cmp cl, 32
-        jl  @__llshr@below32
-        cmp cl, 64
-        jl  @__llshr@below64
-        sar edx, 1fh
-        mov eax,edx
-        ret
-
-@__llshr@below64:
-        mov eax, edx
-        cdq
-        sar eax,cl
-        ret
-
-@__llshr@below32:
-        shrd  eax, edx, cl
-        sar edx, cl
-        ret
-end;
-
-{$IFDEF DCC}
-function sprintf(S, Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
-function printf(Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
-function fprintf(F: Pointer; Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
-function fopen(FileName, Mode: PChar): Pointer; cdecl; external MSCRuntimeLib;
-function fclose(F: Pointer): Integer; cdecl; external MSCRuntimeLib;
-function vsprintf(S, Format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
-function tolower(C: Integer): Integer; cdecl; external MSCRuntimeLib;
-function _ltolower(C: Integer): Integer;cdecl; external MSCRuntimeLib name 'tolower';
-function _ftol(X: Single): LongInt; cdecl; external MSCRuntimeLib;
-{$ELSE}
-
-function _fopen(FileName, Mode: PChar): Pointer; cdecl; external MSCRuntimeLib name 'fopen';
-function _fclose(F: Pointer): Integer; cdecl; external MSCRuntimeLib name 'fclose';
-
-function fopen(FileName, Mode: PChar): Pointer; cdecl; [Public];
-begin
-  Result := _fopen(FileName, Mode);
-end;
-
-function fclose(F: Pointer): Integer; cdecl; [Public];
-begin
-  Result := _fclose(F);
-end;
-
-procedure fprintf; cdecl; [Public];
-begin
-end;
-
-procedure vsprintf; cdecl; [Public];
-begin
-end;
-
-function fwrite(Buffer: Pointer; Size, Count: Integer; Stream: Pointer): Integer; cdecl; [Public];
-begin
-end;
-
-function fputc(C: Integer; Stream: Pointer): Integer; cdecl; [Public];
-begin
-end;
-
-function puts(S: PChar): Integer; cdecl; [Public];
-begin
-end;
-{$ENDIF}
-
-{$ELSEIF Defined(UNIX)}
+{$ELSEIF Defined(LINUX)}
   {$IF Defined(FPC)}
+    { Free Pascal Linux }
+    { Link C runtime library.}
     {$LINKLIB stdc++}
 
     {$IF Defined(CPU86)}
-
-      // Object files distributed with OpenJPEG-pas
-      // are for Linux 386. If you are running
-      // other platform compile OpenJPEG C sources and
-      // use your new object files.
-
-      {$L J2KObjects/lin386_openjpeg.o}
-      {$L J2KObjects/lin386_j2k_lib.o}
-      {$L J2KObjects/lin386_event.o}
-      {$L J2KObjects/lin386_cio.o}
-      {$L J2KObjects/lin386_image.o}
-      {$L J2KObjects/lin386_j2k.o}
-      {$L J2KObjects/lin386_jp2.o}
-      {$L J2KObjects/lin386_jpt.o}
-      {$L J2KObjects/lin386_mqc.o}
-      {$L J2KObjects/lin386_raw.o}
-      {$L J2KObjects/lin386_bio.o}
-      {$L J2KObjects/lin386_tgt.o}
-      {$L J2KObjects/lin386_tcd.o}
-      {$L J2KObjects/lin386_t1.o}
-      {$L J2KObjects/lin386_dwt.o}
-      {$L J2KObjects/lin386_pi.o}
-      {$L J2KObjects/lin386_t2.o}
-      {$L J2KObjects/lin386_mct.o}
+      { Free Pascal Linux x86 }
+      { Link OpenJpeg static library.}
+      {$linklib J2KObjects/libopenjpeglinx86.a}
+    {$ELSEIF Defined(CPUX86_64)}
+      { Free Pascal Linux x86_64 }
+      { Link OpenJpeg static library.}
+      {$linklib J2KObjects/libopenjpeglinx86_64.a}
     {$ELSE}
-      First compile OpenJPEG for your platform
-      and put object files here:
-
-      {$L J2KObjects/openjpeg.o}
-      {$L J2KObjects/j2k_lib.o}
-      {$L J2KObjects/event.o}
-      {$L J2KObjects/cio.o}
-      {$L J2KObjects/image.o}
-      {$L J2KObjects/j2k.o}
-      {$L J2KObjects/jp2.o}
-      {$L J2KObjects/jpt.o}
-      {$L J2KObjects/mqc.o}
-      {$L J2KObjects/raw.o}
-      {$L J2KObjects/bio.o}
-      {$L J2KObjects/tgt.o}
-      {$L J2KObjects/tcd.o}
-      {$L J2KObjects/t1.o}
-      {$L J2KObjects/dwt.o}
-      {$L J2KObjects/pi.o}
-      {$L J2KObjects/t2.o}
-      {$L J2KObjects/mct.o}
+      No support for this CPU architecture.
     {$IFEND}
-
   {$ELSE}
-    No JPEG2000 Support for this compiler
+    No support for this compiler
   {$IFEND}
-
 {$ELSE}
-  No JPEG2000 Support for this platform
+  No suppor for this OS
 {$IFEND}
 
 end.

@@ -59,6 +59,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source\"/>
+      <Libraries Value="..\..\..\Extras\Extensions\J2KObjects\"/>
       <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;..\..\..\Source\;..\..\..\Source\ZLib\;..\..\..\Source\JpegLib\;..\..\..\Extras\Extensions\;..\Common\"/>
     </SearchPaths>
     <Parsing>
@@ -76,7 +77,7 @@
       <Generate Value="Smaller"/>
       <Optimizations>
         <VariablesInRegisters Value="True"/>
-        <OptimizationLevel Value="2"/>
+        <OptimizationLevel Value="3"/>
       </Optimizations>
     </CodeGeneration>
     <Linking>

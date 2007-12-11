@@ -331,7 +331,7 @@ begin
   File Notes:
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
-    - screenshots now work in all OSs and ImagingComponents i sno longer needed
+    - screenshots now work in all OSs and ImagingComponents is no longer needed
 
   -- 0.17 Changes/Bug Fixes -----------------------------------
     - S key now saves screenshot to file

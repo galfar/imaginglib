@@ -1,7 +1,7 @@
 object AboutForm: TAboutForm
-  Left = 666
+  Left = 662
   Height = 288
-  Top = 316
+  Top = 331
   Width = 286
   HorzScrollBar.Page = 285
   VertScrollBar.Page = 287

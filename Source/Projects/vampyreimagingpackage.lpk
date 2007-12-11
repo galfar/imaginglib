@@ -124,6 +124,7 @@
       </Item1>
     </RequiredPkgs>
     <UsageOptions>
+      <LibraryPath Value="..\..\Extras\Extensions\"/>
       <ObjectPath Value="..\..\Extras\Extensions\"/>
       <UnitPath Value="$(PkgOutDir)\"/>
     </UsageOptions>

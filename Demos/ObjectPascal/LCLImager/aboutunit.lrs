@@ -1,8 +1,8 @@
 { This is an automatically generated lazarus resource file }
 
 LazarusResources.Add('TAboutForm','FORMDATA',[
-  'TPF0'#10'TAboutForm'#9'AboutForm'#4'Left'#3#154#2#6'Height'#3' '#1#3'Top'#3
-  +'<'#1#5'Width'#3#30#1#18'HorzScrollBar.Page'#3#29#1#18'VertScrollBar.Page'#3
+  'TPF0'#10'TAboutForm'#9'AboutForm'#4'Left'#3#150#2#6'Height'#3' '#1#3'Top'#3
+  +'K'#1#5'Width'#3#30#1#18'HorzScrollBar.Page'#3#29#1#18'VertScrollBar.Page'#3
   +#31#1#13'ActiveControl'#7#7'BitBtn1'#11'BorderIcons'#11#0#11'BorderStyle'#7#8
   +'bsSingle'#7'Caption'#6#5'About'#12'ClientHeight'#3' '#1#11'ClientWidth'#3#30
   +#1#5'Color'#7#8'clWindow'#21'Constraints.MaxHeight'#3' '#1#20'Constraints.Ma'

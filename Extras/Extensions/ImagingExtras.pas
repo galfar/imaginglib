@@ -41,8 +41,12 @@ unit ImagingExtras;
 {$DEFINE LINK_PCX}         // link support for PCX images
 {$DEFINE LINK_ELDER}       // link support for Elder Imagery images
 
-{$IF not (Defined(DELPHI) or (Defined(FPC) and Defined(CPU86) and not Defined(MSDOS)))}
-  // JPEG2000 only for Windows and for Linux/Unix with FPC
+{$IF not (Defined(DELPHI) or
+  (Defined(FPC) and not Defined(MSDOS) and
+  ((Defined(CPU86) and (Defined(LINUX) or Defined(WIN32)) or
+   (Defined(CPUX86_64) and Defined(UNIX)))))
+  )}
+  // JPEG2000 only for 32bit Windows and for 32bit/64bit Linux with FPC
   {$UNDEF LINK_JPEG2000}  
 {$IFEND}
 
@@ -97,6 +101,9 @@ uses
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.24.1 Changes/Bug Fixes ---------------------------------
+    - Allowed JPEG2000 for x86_64 CPUS in Linux
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Better IF conditional to disable JPEG2000 on unsupported platforms.
