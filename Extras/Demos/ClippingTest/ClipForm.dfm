@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 75
-  Top = 78
+  Left = 59
+  Top = 90
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Clipping Test'

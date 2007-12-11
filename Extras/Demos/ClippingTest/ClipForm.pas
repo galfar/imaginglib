@@ -16,7 +16,7 @@
   WinAPI's not).
 
   Demo shows usage of high level Imaging classes (TBaseImage->TSingleImage)
-  and VCL component support (TImagingBitmap).
+  and VCL component support (TImagingBitmap). Needs JVCL library to compile.
 
 }
 unit ClipForm;
