@@ -72,7 +72,7 @@
       <row>
         <td><b>Compilers (tested)</b></td>
         <td>Delphi 7/2006/2007 <b>W</b>
-        Kylix 3 <b>L</b>, Free Pascal 2.0.4 <b>WLBD</b> 2.1.5 <b>W</b></td>
+        Kylix 3 <b>L</b>, Free Pascal 2.2.0 <b>WLBD</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -196,11 +196,11 @@
       </row>
       <row>
         <td><b>Platforms (tested)</b></td>
-        <td><b>W</b>indows, <b>L</b>inux</td>
+        <td><b>W</b>indows, <b>L</b>inux, Free<b>B</b>SD</td>
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Lazarus 0.9.22 <b>WL</b> 0.9.23 <b>W</b></td>
+        <td>Lazarus 0.9.24 <b>WLB</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -265,7 +265,7 @@
       <row>
         <td><b>Compilers (tested)</b></td>
         <td>Delphi 7/2006/2007 <b>W</b>,
-        Kylix 3 <b>L</b>, Free Pascal 2.0.4 <b>WLBD</b> 2.1.5 <b>W</b></td>
+        Kylix 3 <b>L</b>, Free Pascal 2.2.0 <b>WLBD</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -278,7 +278,7 @@
      (as printed by demo if invalid input is given):
     </par>
     <code>
-Vampyre Image Converter (library version 0.24.0)
+Vampyre Image Converter (library version 0.24.2)
 by Marek Mauder
 
 Error: Input file not specified

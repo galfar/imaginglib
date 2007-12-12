@@ -14,6 +14,52 @@
       <link url="#legend">Changes Legend</link>.
     </par>
     
+    <!-- VERSION 00.24.2 -->
+    <section>
+      <mediumcap>Version 0.24.2 - 11th December 2007</mediumcap>
+      <notes>
+        For complete list of changes see <keyword>File Notes</keyword>
+        section at the end of each source file.
+      </notes>
+      <bulletlist>
+        <li>
+          <keyword>[*]</keyword>
+          Updated <b>OpenJpeg</b> library (JPEG 2000) to latest
+          revision and added Imaging JPEG support for 64bit Linux.
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          Fixed various user reported bugs in file format
+          support for <b>GIF</b> and <b>JPEG</b> images.
+        </li>
+        <li>
+          <keyword>[*/+]</keyword>
+          Compatibility changes and project files for new Pascal
+          compilers/IDEs: Lazarus 0.9.24 (LCL support update),
+          FPC 2.2, RAD Studio 2007 (project files).
+        </li>
+        <li>
+          <keyword>[D]</keyword>
+          LCL Imager demo updated - operation timing added. Supports
+          alpha blending with new Lazarus.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New features added to OpenGL texture builder: skip mipmap levels
+          and alternate pow2 texture resizing.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Pascal translation of Hq resampler with Imaging demo added
+          to Extras directory.
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          Some bugs in library fixed.
+        </li>
+      </bulletlist>
+    </section>
+    
     <!-- VERSION 00.24.0 -->
     <section>
       <mediumcap>Version 0.24.0 - 27th June 2007</mediumcap>

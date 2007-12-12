@@ -37,7 +37,7 @@ using namespace std;
 #define SAVE_IMAGES_TO_FILES
 
 LARGE_INTEGER PerfFrequency;
-float InvPerfFrequency;
+double InvPerfFrequency;
 
 const string SDataDir = "Data\\";
 const string SImageName = "Tigers";
@@ -92,7 +92,7 @@ int main(int argc, char ** argv)
   NewColor.Color = 0xFF00CCFF;
 
   QueryPerformanceFrequency(&PerfFrequency);
-  InvPerfFrequency = (float)1.0 / PerfFrequency.QuadPart;
+  InvPerfFrequency = (double)1.0 / PerfFrequency.QuadPart;
 
 #ifdef LOG_TO_FILE
   // if logging to file is defined new output file is created

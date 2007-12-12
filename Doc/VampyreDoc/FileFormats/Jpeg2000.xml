@@ -15,16 +15,15 @@
       Common file name extensions are <b>.jp2</b>, <b>.j2c</b>, and <b>.j2k</b> (for code stream only).
     </par>
     <par>
-      As of version 0.22 Imaging uses <b>OpenJPEG</b> library
-      compiled to object files and linked to Object Pascal program.
+      As of version 0.24.2 Imaging uses <b>OpenJPEG</b> library
+      compiled to object files (Delphi) or static libraries (FPC)
+      and linked to Object Pascal program.
       Therefore, JPEG 2000 support is not a part of core library
       (not native Pascal) now
       and is located in <keyword>Extras</keyword> package.
-      Currently Imaging supports JPEG 2000 on Windows
-      (for Delphi and FPC) and Linux/UNIX systems (FPC only - no Kylix support).
-      For Linux there are precompiled objects only for i386 architecture
-      so for 64bit Linux and UNIXes you have to compile OpenJPEG yourself
-      and supply resulting object files to Imaging.
+      Currently Imaging supports JPEG 2000 on Win32
+      (for Delphi and FPC) and Linux systems (FPC only - no Kylix support).
+      For Linux there are precompiled objects for x86 and x86_64 architectures.
     </par>
     <par>
       JPEG 2000

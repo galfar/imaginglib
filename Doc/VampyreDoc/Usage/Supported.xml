@@ -36,8 +36,8 @@
             should work too, older probably not)</td>
       </row>
       <row>
-        <td><keyword>Free Pascal 2.0.4 (Win32, Linux, FreeBSD, DOS),
-          Free Pascal 2.1.5 (Win64)</keyword></td>
+        <td><keyword>Free Pascal 2.2.4 (Win32/Win64, Linux, FreeBSD)
+          Free Pascal 2.0.4 (DOS)</keyword></td>
         <td>Tested and everything compiled successfully</td>
       </row>
       <row>

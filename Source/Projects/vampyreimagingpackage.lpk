@@ -124,7 +124,7 @@
       </Item1>
     </RequiredPkgs>
     <UsageOptions>
-      <LibraryPath Value="..\..\Extras\Extensions\"/>
+      <LibraryPath Value="..\..\Extras\Extensions\J2KObjects\"/>
       <ObjectPath Value="..\..\Extras\Extensions\"/>
       <UnitPath Value="$(PkgOutDir)\"/>
     </UsageOptions>

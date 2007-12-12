@@ -27,7 +27,7 @@
       <li>extend canvas class (more effects, blended drawing, drawing of various primitives)</li>
       <li>more fast canvas classes</li>
       <li>own file format?</li>
-      <li>more supported platforms (big endian)</li>
+      <li>more supported platforms (big endian?)</li>
     </bulletlist>
   </chapter>
 </doc>

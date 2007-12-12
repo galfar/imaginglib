@@ -507,7 +507,7 @@ function opj_encode(cinfo: popj_cinfo_t; cio: popj_cio_t; image: popj_image_t;
 
 implementation
 
-{$IF Defined(MSWINDOWS)}
+{$IF Defined(WIN32)}
 
   {$IF Defined(DCC)}
     { Delphi Win32 }
@@ -635,8 +635,8 @@ implementation
   {$ELSEIF Defined(FPC)}
     { Free Pascal Win32 }
     { Link OpenJpeg static library and C runtime library.}
-    {$linklib J2KObjects\libopenjpegwin32.a}
-    {$linklib J2KObjects\libcrtdll.a}
+    {$linklib libopenjpegwin32.a}
+    {$linklib libcrtdll.a}
   {$IFEND}
 
 {$ELSEIF Defined(LINUX)}
@@ -648,11 +648,11 @@ implementation
     {$IF Defined(CPU86)}
       { Free Pascal Linux x86 }
       { Link OpenJpeg static library.}
-      {$linklib J2KObjects/libopenjpeglinx86.a}
+      {$linklib libopenjpeglinx86.a}
     {$ELSEIF Defined(CPUX86_64)}
       { Free Pascal Linux x86_64 }
       { Link OpenJpeg static library.}
-      {$linklib J2KObjects/libopenjpeglinx86_64.a}
+      {$linklib libopenjpeglinx86_64.a}
     {$ELSE}
       No support for this CPU architecture.
     {$IFEND}

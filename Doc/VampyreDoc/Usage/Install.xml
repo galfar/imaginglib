@@ -50,6 +50,11 @@
         <td>Extras extensions source code (mainly new file formats)</td>
       </row>
       <row>
+        <td><keyword>(Imaging Root)\Extras\Extensions\J2KObjects</keyword></td>
+        <td>Dir with static libraries needed for FPC if you have
+          JPEG 2000 support enabled. Must be added to FPC library path (-Fl).</td>
+      </row>
+      <row>
         <td><keyword>(Imaging Root)\Extras\Extensions\LibTiff</keyword></td>
         <td>Needed if you enable <link url="../FileFormats/Tiff.xml">TIFF</link> support.</td>
       </row>
@@ -86,6 +91,8 @@
         Use <keyword>-FuUnitPath</keyword> parameter for all
         directories listed in the above table and <keyword>-FiIncludePath</keyword>
         only for <keyword>(Imaging_Root)\Source</keyword> directory.
+        Also library path must me added for JPEG2000
+        (Imaging Root\Extras\Extensions\J2KObjects) using <keyword>-FlLibPath</keyword>.
         Example: <keyword>fpc -FuD:\Imaging\Source -FuD:\Imaging\Source\JpegLib ... -FiD:\Imaging\Source</keyword>
       </li>
       <li>
