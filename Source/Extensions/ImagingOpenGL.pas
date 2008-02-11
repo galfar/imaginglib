@@ -33,7 +33,7 @@ unit ImagingOpenGL;
 {$I ImagingOptions.inc}
 
 { Define this symbol if you want to use dglOpenGL header.}
-{ $DEFINE USE_DGL_HEADERS}
+{$DEFINE USE_DGL_HEADERS}
 
 interface
 
@@ -55,6 +55,7 @@ type
     FloatTextures: Boolean;
     MaxAnisotropy: LongInt;
     MaxSimultaneousTextures: LongInt;
+    ClampToEdge: Boolean;
   end;
 
 { Returns texture capabilities of installed OpenGL driver.}
@@ -335,6 +336,8 @@ begin
     Caps.MaxSimultaneousTextures := 1;
   // get max texture size
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, @Caps.MaxTextureSize);
+  // Clamp texture to edge?
+  Caps.ClampToEdge := IsGLExtensionSupported('GL_EXT_texture_edge_clamp');
 
   Result := True;
 end;
@@ -837,6 +840,9 @@ initialization
     - use internal format of texture in CreateMultiImageFromGLTexture
       not only A8R8G8B8
     - support for cube and 3D maps
+
+  -- 0.24.3 Changes/Bug Fixes ---------------------------------
+    - Added some new texture caps detection.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
     - Added PasteNonPow2ImagesIntoPow2 option and related functionality.

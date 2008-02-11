@@ -56,6 +56,8 @@ type
   TBooleanArray = array[0..MaxInt - 1] of Boolean;
   PBooleanArray = ^TBooleanArray;
 
+  TDynIntegerArray = array of Integer;
+
   TWordRec = packed record
     case Integer of
       0: (WordValue: Word);
