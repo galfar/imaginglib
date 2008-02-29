@@ -153,6 +153,8 @@ function PosNoCase(const SubStr, S: string; Offset: LongInt = 1): LongInt; {$IFD
 function StrToken(var S: string; Sep: Char): string;
 { Same as StrToken but searches from the end of S string.}
 function StrTokenEnd(var S: string; Sep: Char): string;
+{ Returns string representation of integer number (with digit grouping).}
+function IntToStrFmt(const I: Int64): string;
 
 { Clamps integer value to range <Min, Max>}
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -760,6 +762,11 @@ begin
     Result := S;
     S := '';
   end;
+end;
+
+function IntToStrFmt(const I: Int64): string;
+begin
+  Result := Format('%.0n', [I * 1.0]);
 end;
 
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt;

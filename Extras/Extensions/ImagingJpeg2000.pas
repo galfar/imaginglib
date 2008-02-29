@@ -311,7 +311,6 @@ begin
     if (Info.ChannelCount = 3) and (image.color_space = CLRSPC_SYCC) then
     begin
       // Convert image from YCbCr colorspace to RGB if needed.
-      // Not exactly sure which channel is Y (OpenJpeg's fault - no "cdef" detection).
       Pix := Bits;
       if Info.BytesPerPixel = 3 then
       begin
@@ -357,13 +356,31 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
   Info: TImageFormatInfo;
-  I, Z, InvZ, Channel, ChannelSize, NumPixels: LongInt;
+  I, Z, InvZ, Channel, ChannelSize, NumPixels: Integer;
   Pix: PByte;
   image: popj_image_t;
   cio: popj_cio_t;
   cinfo: popj_cinfo_t;
   parameters: opj_cparameters_t;
   compparams: popj_image_cmptparm_array;
+  ColorSpace: OPJ_COLOR_SPACE;
+
+  function GetComponentType(Comp: Integer): OPJ_COMPONENT_TYPE;
+  begin
+     if Info.HasAlphaChannel and (Comp = Info.ChannelCount - 1) then
+       Result := COMPTYPE_OPACITY
+     else if Info.HasGrayChannel then
+       Result := COMPTYPE_Y
+     else if Comp = 2 then
+       Result := COMPTYPE_B
+     else if Comp = 1 then
+       Result := COMPTYPE_G
+     else if Comp = 0 then
+       Result := COMPTYPE_R
+     else
+       Result := COMPTYPE_UNKNOWN;
+  end;
+
 begin
   Result := False;
   image := nil;
@@ -389,10 +406,17 @@ begin
       bpp := (Info.BytesPerPixel div Info.ChannelCount) * 8;
       prec := bpp;
       sgnd := 0;
+      comp_type := GetComponentType(I);
       x0 := 0;
       y0 := 0;
     end;
-    image := opj_image_create(Info.ChannelCount, @compparams[0], CLRSPC_SRGB);
+
+    if Info.HasGrayChannel then
+      ColorSpace := CLRSPC_GRAY
+    else
+      ColorSpace := CLRSPC_SRGB;
+
+    image := opj_image_create(Info.ChannelCount, @compparams[0], ColorSpace);
     if image = nil then Exit;
     image.x1 := Width;
     image.y1 := Height;
@@ -425,7 +449,8 @@ begin
 
       {$IF Defined(FPC)}
         // Only lossless compression for images with alpha in FPC.
-        // OpenJPEG sets whole chanel to 128 somehow when compiled with GCC.
+        // OpenJPEG sets whole channel to 128 somehow when
+        // compiled with GCC.
         if Info.HasAlphaChannel then
           parameters.tcp_rates[0] := 0;
       {$IFEND}
@@ -434,7 +459,8 @@ begin
     opj_setup_encoder(cinfo, @parameters, image);
 
     // Fill component samples in data with values taken from
-    // image pixels
+    // image pixels.
+    // Components should be ordered like this: RGBA, YA, RGB, etc.
     for Channel := 0 to Info.ChannelCount - 1 do
     begin
       Z := Channel;
@@ -511,6 +537,11 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.24.3 Changes/Bug Fixes -----------------------------------
+    - Added handling of component types (CDEF Box), JP2 images with alpha
+      are now properly recognized by other applications.
+    - Fixed wrong color space when saving grayscale images
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Removed ifGray32 from supported formats, OpenJPEG crashes when saving them.

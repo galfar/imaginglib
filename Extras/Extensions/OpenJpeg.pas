@@ -56,7 +56,7 @@ unit OpenJpeg;
 interface
 
 const
-  OPENJPEG_VERSION = '1.2.0';
+  OPENJPEG_VERSION = '1.3.0';
 
 type
   Bool = ByteBool;
@@ -86,64 +86,71 @@ const
 
 type
   { Rsiz Capabilities }
-  RSIZ_CAPABILITIES = (
+  OPJ_RSIZ_CAPABILITIES = (
     STD_RSIZ = 0, { Standard JPEG2000 profile }
     CINEMA2K = 3, { Profile name for a 2K image }
     CINEMA4K = 4  { Profile name for a 4K image }
   );
-  OPJ_RSIZ_CAPABILITIES = RSIZ_CAPABILITIES;
 
   { Digital cinema operation mode }
-  CINEMA_MODE = (
+  OPJ_CINEMA_MODE = (
     OFF = 0,         { Not Digital Cinema }
     CINEMA2K_24 = 1, { 2K Digital Cinema at 24 fps }
     CINEMA2K_48 = 2, { 2K Digital Cinema at 48 fps }
     CINEMA4K_24 = 3  { 4K Digital Cinema at 24 fps }
   );
-  OPJ_CINEMA_MODE = CINEMA_MODE;
 
   { Progression order }
-  PROG_ORDER = (
+  OPJ_PROG_ORDER = (
     PROG_UNKNOWN = -1, { place-holder }
     LRCP = 0,          { layer-resolution-component-precinct order }
     RLCP = 1,          { resolution-layer-component-precinct order }
     RPCL = 2,          { resolution-precinct-component-layer order }
     PCRL = 3,          { precinct-component-resolution-layer order }
-    CPRL = 4);         { component-precinct-resolution-layer order }
-  OPJ_PROG_ORDER = PROG_ORDER;
+    CPRL = 4           { component-precinct-resolution-layer order }
+  );
 
   { Supported image color spaces }
-  COLOR_SPACE = (
+  OPJ_COLOR_SPACE = (
     CLRSPC_UNKNOWN = -1, { place-holder }
     CLRSPC_SRGB = 1,     { sRGB }
     CLRSPC_GRAY = 2,     { grayscale }
     CLRSPC_SYCC = 3      { YUV }
-    );
-  OPJ_COLOR_SPACE = COLOR_SPACE;
+  );
+
+  { Supported image component types }
+  OPJ_COMPONENT_TYPE = (
+    COMPTYPE_UNKNOWN = 0, { unknown component type, cdef box not present }
+    COMPTYPE_R = 1,       { red component of sRGB image }
+    COMPTYPE_G = 2,       { green component of sRGB image }
+    COMPTYPE_B = 3,       { blue component of sRGB image }
+    COMPTYPE_Y = 4,       { luminance component of YUV and grayscale images }
+    COMPTYPE_CB = 5,      { Cb component of YUV image }
+    COMPTYPE_CR = 6,      { Cr component of YUV image }
+    COMPTYPE_OPACITY = 7  { opacity/alpha channel }
+  );
 
   { Supported codec }
-  CODEC_FORMAT = (
+  OPJ_CODEC_FORMAT = (
     CODEC_UNKNOWN = -1, { place-holder }
     CODEC_J2K = 0,      { JPEG-2000 codestream : read/write }
     CODEC_JPT = 1,      { JPT-stream (JPEG 2000, JPIP) : read only }
-    CODEC_JP2 = 2);     { JPEG-2000 file format : read/write }
-  OPJ_CODEC_FORMAT = CODEC_FORMAT;
+    CODEC_JP2 = 2       { JPEG-2000 file format : read/write }
+  );
 
   { Limit decoding to certain portions of the codestream. }
-  LIMIT_DECODING = (
+  OPJ_LIMIT_DECODING = (
     NO_LIMITATION = 0,         { No limitation for the decoding. The entire codestream will de decoded }
     LIMIT_TO_MAIN_HEADER = 1,  { The decoding is limited to the Main Header }
     DECODE_ALL_BUT_PACKETS = 2 { Decode everything except the JPEG 2000 packets }
   );
-  OPJ_LIMIT_DECODING = LIMIT_DECODING;
-
 
 { ==========================================================
      event manager typedef definitions
   ========================================================== }
 
   { Callback function prototype for events }
-  opj_msg_callback = procedure(msg: PChar; client_data: Pointer); cdecl;
+  opj_msg_callback = procedure(msg: PAnsiChar; client_data: Pointer); cdecl;
   { Message handler object }
   opj_event_mgr = record
     error_handler: opj_msg_callback;   { Error message callback if available, NULL otherwise }
@@ -185,7 +192,7 @@ type
     cp_fixed_alloc: Integer;
     cp_fixed_quality: Integer;
     cp_matrice: PInteger;
-    cp_comment: PChar;
+    cp_comment: PAnsiChar;
     csty: Integer;
     prog_order: OPJ_PROG_ORDER;
     POC: array[0..31] of opj_poc_t;
@@ -309,11 +316,11 @@ type
   opj_cio = record
     cinfo: opj_common_ptr; { codec context }
     openmode: Integer;     { open mode (read/write) either OPJ_STREAM_READ or OPJ_STREAM_WRITE }
-    buffer: PChar;         { Pointer to the start of the buffer }
+    buffer: PAnsiChar;         { Pointer to the start of the buffer }
     length: Integer;       { buffer size in bytes }
-    start: PChar;          { Pointer to the start of the stream }
-    end_: PChar;           { Pointer to the end of the stream }
-    bp: PChar;             { Pointer to the current position }
+    start: PAnsiChar;          { Pointer to the start of the stream }
+    end_: PAnsiChar;           { Pointer to the end of the stream }
+    bp: PAnsiChar;             { Pointer to the current position }
   end;
   opj_cio_t = opj_cio;
   popj_cio_t = ^opj_cio_t;
@@ -335,6 +342,7 @@ type
     sgnd: Integer;          { signed (1) / unsigned (0)  }
     resno_decoded: Integer; { number of decoded resolution  }
     factor: Integer;        { number of division by 2 of the out image compared to the original size of image  }
+    comp_type: OPJ_COMPONENT_TYPE; { type of this component: color channel, opacity, ... }
     data: PIntegerArray;    { image component data  }
   end;
   opj_image_comp_t = opj_image_comp;
@@ -366,6 +374,7 @@ type
     prec: Integer; { precision  }
     bpp: Integer;  { image depth in bits  }
     sgnd: Integer; { signed (1) / unsigned (0)  }
+    comp_type: OPJ_COMPONENT_TYPE; { type of this component: color channel, opacity, ... }
   end;
   opj_image_cmptparm_t = opj_image_comptparm;
   popj_image_cmptparm_t = ^opj_image_cmptparm_t;
@@ -377,7 +386,7 @@ type
   ========================================================== }
 
 
-function opj_version: PChar; cdecl; external;
+function opj_version: PAnsiChar; cdecl; external;
 
 { ==========================================================
      image functions definitions
@@ -503,7 +512,7 @@ procedure opj_setup_encoder(cinfo: popj_cinfo_t; parameters: popj_cparameters_t;
   @param index Name of the index file if required, NULL otherwise
   @return Returns true if successful, returns false otherwise }
 function opj_encode(cinfo: popj_cinfo_t; cio: popj_cio_t; image: popj_image_t;
-  index: PChar): Bool; cdecl; external;
+  index: PAnsiChar): Bool; cdecl; external;
 
 implementation
 
@@ -512,24 +521,24 @@ implementation
   {$IF Defined(DCC)}
     { Delphi Win32 }
     { First link object files created with C++ Builder.}
-    {$L J2KObjects\w32bor_pi.obj}
-    {$L J2KObjects\w32bor_openjpeg.obj}
-    {$L J2KObjects\w32bor_j2k_lib.obj}
-    {$L J2KObjects\w32bor_event.obj}
-    {$L J2KObjects\w32bor_cio.obj}
-    {$L J2KObjects\w32bor_image.obj}
-    {$L J2KObjects\w32bor_j2k.obj}
-    {$L J2KObjects\w32bor_jp2.obj}
-    {$L J2KObjects\w32bor_jpt.obj}
-    {$L J2KObjects\w32bor_mqc.obj}
-    {$L J2KObjects\w32bor_raw.obj}
-    {$L J2KObjects\w32bor_bio.obj}
-    {$L J2KObjects\w32bor_tgt.obj}
-    {$L J2KObjects\w32bor_tcd.obj}
-    {$L J2KObjects\w32bor_t1.obj}
-    {$L J2KObjects\w32bor_dwt.obj}
-    {$L J2KObjects\w32bor_t2.obj}
-    {$L J2KObjects\w32bor_mct.obj}
+    {$L J2KObjects\pi.obj}
+    {$L J2KObjects\openjpeg.obj}
+    {$L J2KObjects\j2k_lib.obj}
+    {$L J2KObjects\event.obj}
+    {$L J2KObjects\cio.obj}
+    {$L J2KObjects\image.obj}
+    {$L J2KObjects\j2k.obj}
+    {$L J2KObjects\jp2.obj}
+    {$L J2KObjects\jpt.obj}
+    {$L J2KObjects\mqc.obj}
+    {$L J2KObjects\raw.obj}
+    {$L J2KObjects\bio.obj}
+    {$L J2KObjects\tgt.obj}
+    {$L J2KObjects\tcd.obj}
+    {$L J2KObjects\t1.obj}
+    {$L J2KObjects\dwt.obj}
+    {$L J2KObjects\t2.obj}
+    {$L J2KObjects\mct.obj}
    const
      { MS C Runtime library needed for importing std C functions.}
      MSCRuntimeLib = 'msvcrt.dll';
@@ -625,13 +634,14 @@ implementation
     function floor(const x: Double): Double; cdecl; external MSCRuntimeLib;
     function ceil(const num: Double): Double; cdecl; external MSCRuntimeLib;
     function pow(const base, exponent: Double): Double; cdecl; external MSCRuntimeLib;
-    function printf(format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
-    function fprintf(f: Pointer; format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
-    function vsprintf(s, format: PChar): Integer; cdecl; varargs; external MSCRuntimeLib;
+    function printf(format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib;
+    function fprintf(f: Pointer; format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib;
+    function vsprintf(s, format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib;
     function _ftol(x: Single): LongInt; cdecl; external MSCRuntimeLib;
     function wcscpy(s1, s2: PWideChar): PWideChar; cdecl; external MSCRuntimeLib;
-    function strcpy(s1, s2: PChar): PChar; cdecl; external MSCRuntimeLib;
-    function strlen(s: PChar): Integer; cdecl; external MSCRuntimeLib;
+    function strcpy(s1, s2: PAnsiChar): PAnsiChar; cdecl; external MSCRuntimeLib;
+    function strncpy(s1, s2: PAnsiChar; maxlen: Integer): PAnsiChar; cdecl; external MSCRuntimeLib;
+    function strlen(s: PAnsiChar): Integer; cdecl; external MSCRuntimeLib;
   {$ELSEIF Defined(FPC)}
     { Free Pascal Win32 }
     { Link OpenJpeg static library and C runtime library.}
