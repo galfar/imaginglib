@@ -446,14 +446,6 @@ begin
       NumPixels := Width * Height * Info.BytesPerPixel;
       TargetSize := (NumPixels * Rate) + 550 + (Info.ChannelCount - 1) * 142;
       parameters.tcp_rates[0] := 1.0 / (TargetSize / NumPixels);
-
-      {$IF Defined(FPC)}
-        // Only lossless compression for images with alpha in FPC.
-        // OpenJPEG sets whole channel to 128 somehow when
-        // compiled with GCC.
-        if Info.HasAlphaChannel then
-          parameters.tcp_rates[0] := 0;
-      {$IFEND}
     end;
     // Setup encoder
     opj_setup_encoder(cinfo, @parameters, image);
@@ -539,6 +531,8 @@ initialization
     - nothing now
 
   -- 0.24.3 Changes/Bug Fixes -----------------------------------
+    - Alpha channels are now saved properly in FPC (GCC optimization issue),
+      FPC lossy compression enabled again!
     - Added handling of component types (CDEF Box), JP2 images with alpha
       are now properly recognized by other applications.
     - Fixed wrong color space when saving grayscale images

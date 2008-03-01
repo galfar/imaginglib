@@ -31,12 +31,21 @@
  *)
 
 {
-  Translated to Object Pascal by Marek Mauder (http://galfar.vevb.net)
-  for Vampyre Imaging Library (http://imaginglib.sourceforge.net)
+  PasOpenJpeg
+  Free JPEG 2000 library for Delphi and Free Pascal
 
-  Current translation is based on OpenJpeg 1.2.0 SVN revision 484
+  Headers translated to Object Pascal and C code precompliled
+  by Marek Mauder (http://galfar.vevb.net)
+  for Vampyre Imaging Library (http://imaginglib.sourceforge.net).
 
-  
+  Supported compilers: Delphi, Free Pascal 2.0
+  Supported platforms (tested): Windows 32bit, Linux 32/64bit
+
+  OpenJpeg Homepage: http://www.openjpeg.org
+  PasOpenJpeg Homepage: http://galfar.vevb.net/openjpeg
+
+  Current Version: 1.0 (OpenJpeg 1.3.0 SVN revision 507 with my CDEF patch)
+
 }
 
 unit OpenJpeg;
@@ -62,6 +71,8 @@ type
   Bool = ByteBool;
   Char = AnsiChar;
 
+{ Constant Definitions }
+
 const
   { Maximum allowed size for filenames }
   OPJ_PATH_LEN = 4096;
@@ -80,12 +91,10 @@ const
   JPWL_MAXIMUM_HAMMING = 2;
   JPWL_MAXIMUM_EPB_ROOM = 65450;
 
-{ ==========================================================
-     enum definitions
-  ========================================================== }
+{ Enum Definitions }
 
 type
-  { Rsiz Capabilities }
+  { Rsiz capabilities }
   OPJ_RSIZ_CAPABILITIES = (
     STD_RSIZ = 0, { Standard JPEG2000 profile }
     CINEMA2K = 3, { Profile name for a 2K image }
@@ -145,9 +154,7 @@ type
     DECODE_ALL_BUT_PACKETS = 2 { Decode everything except the JPEG 2000 packets }
   );
 
-{ ==========================================================
-     event manager typedef definitions
-  ========================================================== }
+{ Event Manager Type Definitions }
 
   { Callback function prototype for events }
   opj_msg_callback = procedure(msg: PAnsiChar; client_data: Pointer); cdecl;
@@ -161,9 +168,7 @@ type
   popj_event_mgr_t = ^opj_event_mgr_t;
 
 
-{ ==========================================================
-     codec typedef definitions
-  ========================================================== }
+{ Codec Type Definitions }
 
   { Progression order changes }
   opj_poc = record
@@ -300,15 +305,13 @@ type
   opj_dinfo_t = opj_dinfo;
   popj_dinfo_t = ^opj_dinfo_t;
 
-{ ==========================================================
-     I/O stream typedef definitions
-  ========================================================== }
+{ I/O Stream Types Definitions }
 
 const
-  { Stream open flags. }
-  { The stream was opened for reading. }
+  { Stream open flags }
+  { The stream was opened for reading }
   OPJ_STREAM_READ = $0001;
-  { The stream was opened for writing. }
+  { The stream was opened for writing }
   OPJ_STREAM_WRITE = $0002;
 
 type
@@ -316,34 +319,32 @@ type
   opj_cio = record
     cinfo: opj_common_ptr; { codec context }
     openmode: Integer;     { open mode (read/write) either OPJ_STREAM_READ or OPJ_STREAM_WRITE }
-    buffer: PAnsiChar;         { Pointer to the start of the buffer }
+    buffer: PAnsiChar;     { Pointer to the start of the buffer }
     length: Integer;       { buffer size in bytes }
-    start: PAnsiChar;          { Pointer to the start of the stream }
-    end_: PAnsiChar;           { Pointer to the end of the stream }
-    bp: PAnsiChar;             { Pointer to the current position }
+    start: PAnsiChar;      { Pointer to the start of the stream }
+    end_: PAnsiChar;       { Pointer to the end of the stream }
+    bp: PAnsiChar;         { Pointer to the current position }
   end;
   opj_cio_t = opj_cio;
   popj_cio_t = ^opj_cio_t;
 
-{ ==========================================================
-     image typedef definitions
-  ========================================================== }
+{ Image Type Definitions }
 
   { Defines a single image component }
   opj_image_comp = record
-    dx: Integer;            { XRsiz: horizontal separation of a sample of ith component with respect to the reference grid  }
-    dy: Integer;            { YRsiz: vertical separation of a sample of ith component with respect to the reference grid  }
-    w: Integer;             { data width  }
-    h: Integer;             { data height  }
-    x0: Integer;            { x component offset compared to the whole image  }
-    y0: Integer;            { y component offset compared to the whole image  }
-    prec: Integer;          { precision  }
-    bpp: Integer;           { image depth in bits  }
-    sgnd: Integer;          { signed (1) / unsigned (0)  }
-    resno_decoded: Integer; { number of decoded resolution  }
-    factor: Integer;        { number of division by 2 of the out image compared to the original size of image  }
+    dx: Integer;            { XRsiz: horizontal separation of a sample of ith component with respect to the reference grid }
+    dy: Integer;            { YRsiz: vertical separation of a sample of ith component with respect to the reference grid }
+    w: Integer;             { data width }
+    h: Integer;             { data height }
+    x0: Integer;            { x component offset compared to the whole image }
+    y0: Integer;            { y component offset compared to the whole image }
+    prec: Integer;          { precision }
+    bpp: Integer;           { image depth in bits }
+    sgnd: Integer;          { signed (1) / unsigned (0) }
+    resno_decoded: Integer; { number of decoded resolution }
+    factor: Integer;        { number of division by 2 of the out image compared to the original size of image }
     comp_type: OPJ_COMPONENT_TYPE; { type of this component: color channel, opacity, ... }
-    data: PIntegerArray;    { image component data  }
+    data: PIntegerArray;    { image component data }
   end;
   opj_image_comp_t = opj_image_comp;
   popj_image_comp_t = ^opj_image_comp_t;
@@ -352,28 +353,28 @@ type
 
   { Defines image data and Characteristics }
   opj_image = record
-    x0: Integer;                  { XOsiz: horizontal offset from the origin of the reference grid to the left side of the image area  }
-    y0: Integer;                  { YOsiz: vertical offset from the origin of the reference grid to the top side of the image area  }
-    x1: Integer;                  { Xsiz: width of the reference grid  }
-    y1: Integer;                  { Ysiz: height of the reference grid  }
-    numcomps: Integer;            { number of components in the image  }
-    color_space: OPJ_COLOR_SPACE; { color space: sRGB, Greyscale or YUV  }
-    comps: popj_image_comp_array; { image components  }
+    x0: Integer;                  { XOsiz: horizontal offset from the origin of the reference grid to the left side of the image area }
+    y0: Integer;                  { YOsiz: vertical offset from the origin of the reference grid to the top side of the image area }
+    x1: Integer;                  { Xsiz: width of the reference grid }
+    y1: Integer;                  { Ysiz: height of the reference grid }
+    numcomps: Integer;            { number of components in the image }
+    color_space: OPJ_COLOR_SPACE; { color space: sRGB, Greyscale or YUV }
+    comps: popj_image_comp_array; { image components }
   end;
   opj_image_t = opj_image;
   popj_image_t = ^opj_image_t;
 
   { Component parameters structure used by the opj_image_create function }
   opj_image_comptparm = record
-    dx: Integer;   { XRsiz: horizontal separation of a sample of ith component with respect to the reference grid  }
-    dy: Integer;   { YRsiz: vertical separation of a sample of ith component with respect to the reference grid  }
-    w: Integer;    { data width  }
-    h: Integer;    { data height  }
-    x0: Integer;   { x component offset compared to the whole image  }
-    y0: Integer;   { y component offset compared to the whole image  }
-    prec: Integer; { precision  }
-    bpp: Integer;  { image depth in bits  }
-    sgnd: Integer; { signed (1) / unsigned (0)  }
+    dx: Integer;   { XRsiz: horizontal separation of a sample of ith component with respect to the reference grid }
+    dy: Integer;   { YRsiz: vertical separation of a sample of ith component with respect to the reference grid }
+    w: Integer;    { data width }
+    h: Integer;    { data height }
+    x0: Integer;   { x component offset compared to the whole image }
+    y0: Integer;   { y component offset compared to the whole image }
+    prec: Integer; { precision }
+    bpp: Integer;  { image depth in bits }
+    sgnd: Integer; { signed (1) / unsigned (0) }
     comp_type: OPJ_COMPONENT_TYPE; { type of this component: color channel, opacity, ... }
   end;
   opj_image_cmptparm_t = opj_image_comptparm;
@@ -381,16 +382,12 @@ type
   opj_image_cmptparm_array = array[0..255] of opj_image_cmptparm_t;
   popj_image_cmptparm_array = ^opj_image_cmptparm_array;
 
-{ ==========================================================
-     openjpeg version
-  ========================================================== }
-
+{ OpenJpeg Version Functions Definitions }
 
 function opj_version: PAnsiChar; cdecl; external;
 
-{ ==========================================================
-     image functions definitions
-  ========================================================== }
+{ Image Functions Definitions }
+
 { Create an image
   @param numcmpts number of components
   @param cmptparms components parameters
@@ -403,14 +400,13 @@ function opj_image_create(numcmpts: Integer; cmptparms: popj_image_cmptparm_t;
   @param image image to be destroyed }
 procedure opj_image_destroy(image: popj_image_t); cdecl; external;
 
-{ ==========================================================
-     stream functions definitions
-  ========================================================== }
+{ Stream Functions Definitions }
+
 { Open and allocate a memory stream for read / write.
-  On reading, the user must provide a buffer containing encoded data. The buffer will be
-  wrapped by the returned CIO handle.
-  On writing, buffer parameters must be set to 0: a buffer will be allocated by the library
-  to contain encoded data.
+  On reading, the user must provide a buffer containing encoded data. The buffer
+  will be wrapped by the returned CIO handle.
+  On writing, buffer parameters must be set to 0: a buffer will be allocated
+  by the library to contain encoded data.
   @param cinfo Codec context info
   @param buffer Reading: buffer address. Writing: NULL
   @param length Reading: buffer length. Writing: 0
@@ -432,16 +428,12 @@ function cio_tell(cio: popj_cio_t): Integer; cdecl; external;
   @param pos Position, in number of bytes, from the beginning of the stream }
 procedure cio_seek(cio: popj_cio_t; pos: Integer); cdecl; external;
 
-{ ==========================================================
-     event manager functions definitions
-  ========================================================== }
+{ Event Manager Functions Definitions }
 
 function opj_set_event_mgr(cinfo: opj_common_ptr; event_mgr: popj_event_mgr_t;
   context: Pointer): popj_event_mgr_t; cdecl; external;
 
-{ ==========================================================
-     codec functions definitions
-  ========================================================== }
+{ Codec Functions Definitions }
 
 { Creates a J2K/JPT/JP2 decompression structure
   @param format Decoder to select
@@ -520,7 +512,7 @@ implementation
 
   {$IF Defined(DCC)}
     { Delphi Win32 }
-    { First link object files created with C++ Builder.}
+    { Link object files created with C++ Builder.}
     {$L J2KObjects\pi.obj}
     {$L J2KObjects\openjpeg.obj}
     {$L J2KObjects\j2k_lib.obj}
