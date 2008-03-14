@@ -65,11 +65,10 @@ type
   protected
     FIdNumbers: TChar2;
     FSaveBinary: LongBool;
-    FMapInfo: TPortableMapInfo;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
-    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: LongInt): Boolean; override;
+    function SaveDataInternal(Handle: TImagingHandle; const Images: TDynImageDataArray;
+      Index: LongInt; var MapInfo: TPortableMapInfo): Boolean;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -203,6 +202,7 @@ var
   PixelFP: TColorFPRec;
   LineBuffer: array[0..LineBufferCapacity - 1] of Char;
   LineEnd, LinePos: LongInt;
+  MapInfo: TPortableMapInfo;
 
   procedure CheckBuffer;
   begin
@@ -284,34 +284,34 @@ var
     Result := False;
     with GetIO do
     begin
-      FillChar(FMapInfo, SizeOf(FMapInfo), 0);
+      FillChar(MapInfo, SizeOf(MapInfo), 0);
       Read(Handle, @Id, SizeOf(Id));
       if Id[1] in ['1'..'6'] then
       begin
         // Read header for PBM, PGM, and PPM files
-        FMapInfo.Width := ReadIntValue;
-        FMapInfo.Height := ReadIntValue;
+        MapInfo.Width := ReadIntValue;
+        MapInfo.Height := ReadIntValue;
         if Id[1] in ['1', '4'] then
         begin
-          FMapInfo.MaxVal := 1;
-          FMapInfo.BitCount := 1
+          MapInfo.MaxVal := 1;
+          MapInfo.BitCount := 1
         end
         else
         begin
           // Read channel max value, <=255 for 8bit images, >255 for 16bit images
           // but some programs think its max colors so put <=256 here
-          FMapInfo.MaxVal := ReadIntValue;
-          FMapInfo.BitCount := Iff(FMapInfo.MaxVal <= 256, 8, 16);
+          MapInfo.MaxVal := ReadIntValue;
+          MapInfo.BitCount := Iff(MapInfo.MaxVal <= 256, 8, 16);
         end;
 
-        FMapInfo.Depth := 1;
+        MapInfo.Depth := 1;
         case Id[1] of
-          '1', '4': FMapInfo.TupleType := ttBlackAndWhite;
-          '2', '5': FMapInfo.TupleType := ttGrayScale;
+          '1', '4': MapInfo.TupleType := ttBlackAndWhite;
+          '2', '5': MapInfo.TupleType := ttGrayScale;
           '3', '6':
             begin
-              FMapInfo.TupleType := ttRGB;
-              FMapInfo.Depth := 3;
+              MapInfo.TupleType := ttRGB;
+              MapInfo.Depth := 3;
             end;
         end;
       end
@@ -320,24 +320,24 @@ var
         // Read values from PAM header
         // WIDTH
         if (ReadString <> SPAMWidth) then Exit;
-        FMapInfo.Width := ReadIntValue;
+        MapInfo.Width := ReadIntValue;
         // HEIGHT
         if (ReadString <> SPAMheight) then Exit;
-        FMapInfo.Height := ReadIntValue;
+        MapInfo.Height := ReadIntValue;
         // DEPTH
         if (ReadString <> SPAMDepth) then Exit;
-        FMapInfo.Depth := ReadIntValue;
+        MapInfo.Depth := ReadIntValue;
         // MAXVAL
         if (ReadString <> SPAMMaxVal) then Exit;
-        FMapInfo.MaxVal := ReadIntValue;
-        FMapInfo.BitCount := Iff(FMapInfo.MaxVal <= 256, 8, 16);
+        MapInfo.MaxVal := ReadIntValue;
+        MapInfo.BitCount := Iff(MapInfo.MaxVal <= 256, 8, 16);
         // TUPLETYPE
         if (ReadString <> SPAMTupleType) then Exit;
         TupleTypeName := ReadString;
         for I := Low(TTupleType) to High(TTupleType) do
           if SameText(TupleTypeName, TupleTypeNames[I]) then
           begin
-            FMapInfo.TupleType := I;
+            MapInfo.TupleType := I;
             Break;
           end;
         // ENDHDR
@@ -346,33 +346,33 @@ var
       else if Id[1] in ['F', 'f'] then
       begin
         // Read header of PFM file
-        FMapInfo.Width := ReadIntValue;
-        FMapInfo.Height := ReadIntValue;
+        MapInfo.Width := ReadIntValue;
+        MapInfo.Height := ReadIntValue;
         OldSeparator := DecimalSeparator;
         DecimalSeparator := '.';
         Scale := StrToFloatDef(ReadString, 0);
         DecimalSeparator := OldSeparator;
-        FMapInfo.IsBigEndian := Scale > 0.0;
+        MapInfo.IsBigEndian := Scale > 0.0;
         if Id[1] = 'F' then
-          FMapInfo.TupleType := ttRGBFP
+          MapInfo.TupleType := ttRGBFP
         else
-          FMapInfo.TupleType := ttGrayScaleFP;
-        FMapInfo.Depth := Iff(FMapInfo.TupleType = ttRGBFP, 3, 1);
-        FMapInfo.BitCount := Iff(FMapInfo.TupleType = ttRGBFP, 96, 32);
+          MapInfo.TupleType := ttGrayScaleFP;
+        MapInfo.Depth := Iff(MapInfo.TupleType = ttRGBFP, 3, 1);
+        MapInfo.BitCount := Iff(MapInfo.TupleType = ttRGBFP, 96, 32);
       end;
 
       FixInputPos;
-      FMapInfo.Binary := (Id[1] in ['4', '5', '6', '7', 'F', 'f']);
+      MapInfo.Binary := (Id[1] in ['4', '5', '6', '7', 'F', 'f']);
       // Check if values found in header are valid
-      Result := (FMapInfo.Width > 0) and (FMapInfo.Height > 0) and
-        (FMapInfo.BitCount in [1, 8, 16, 32, 96]) and (FMapInfo.TupleType <> ttInvalid);
+      Result := (MapInfo.Width > 0) and (MapInfo.Height > 0) and
+        (MapInfo.BitCount in [1, 8, 16, 32, 96]) and (MapInfo.TupleType <> ttInvalid);
       // Now check if image has proper number of channels (PAM)
       if Result then
-        case FMapInfo.TupleType of
-          ttBlackAndWhite, ttGrayScale:           Result := FMapInfo.Depth = 1;
-          ttBlackAndWhiteAlpha, ttGrayScaleAlpha: Result := FMapInfo.Depth = 2;
-          ttRGB:      Result := FMapInfo.Depth = 3;
-          ttRGBAlpha: Result := FMapInfo.Depth = 4;
+        case MapInfo.TupleType of
+          ttBlackAndWhite, ttGrayScale:           Result := MapInfo.Depth = 1;
+          ttBlackAndWhiteAlpha, ttGrayScaleAlpha: Result := MapInfo.Depth = 2;
+          ttRGB:      Result := MapInfo.Depth = 3;
+          ttRGBAlpha: Result := MapInfo.Depth = 4;
         end;
     end;
   end;
@@ -388,24 +388,24 @@ begin
     // Try to parse file header
     if not ParseHeader then Exit;
     // Select appropriate data format based on values read from file header
-    case FMapInfo.TupleType of
+    case MapInfo.TupleType of
       ttBlackAndWhite:      Format := ifGray8;
       ttBlackAndWhiteAlpha: Format := ifA8Gray8;
-      ttGrayScale:          Format := IffFormat(FMapInfo.BitCount = 8, ifGray8, ifGray16);
-      ttGrayScaleAlpha:     Format := IffFormat(FMapInfo.BitCount = 8, ifA8Gray8, ifA16Gray16);
-      ttRGB:                Format := IffFormat(FMapInfo.BitCount = 8, ifR8G8B8, ifR16G16B16);
-      ttRGBAlpha:           Format := IffFormat(FMapInfo.BitCount = 8, ifA8R8G8B8, ifA16R16G16B16);
+      ttGrayScale:          Format := IffFormat(MapInfo.BitCount = 8, ifGray8, ifGray16);
+      ttGrayScaleAlpha:     Format := IffFormat(MapInfo.BitCount = 8, ifA8Gray8, ifA16Gray16);
+      ttRGB:                Format := IffFormat(MapInfo.BitCount = 8, ifR8G8B8, ifR16G16B16);
+      ttRGBAlpha:           Format := IffFormat(MapInfo.BitCount = 8, ifA8R8G8B8, ifA16R16G16B16);
       ttGrayScaleFP:        Format := ifR32F;
       ttRGBFP:              Format := ifA32B32G32R32F;
     end;
     // Exit if no matching data format was found
     if Format = ifUnknown then Exit;
 
-    NewImage(FMapInfo.Width, FMapInfo.Height, Format, Images[0]);
+    NewImage(MapInfo.Width, MapInfo.Height, Format, Images[0]);
     Info := GetFormatInfo(Format);
 
     // Now read pixels from file to dest image
-    if not FMapInfo.Binary then
+    if not MapInfo.Binary then
     begin
       Dest := Bits;
       for I := 0 to Width * Height - 1 do
@@ -414,7 +414,7 @@ begin
           ifGray8:
             begin
               Dest^ := ReadIntValue;
-              if FMapInfo.BitCount = 1 then
+              if MapInfo.BitCount = 1 then
                 // If source is 1bit mono image (where 0=white, 1=black)
                 // we must scale it to 8bits
                 Dest^ := 255 - Dest^ * 255;
@@ -440,9 +440,9 @@ begin
     end
     else
     begin
-      if FMapInfo.BitCount > 1 then
+      if MapInfo.BitCount > 1 then
       begin
-        if not (FMapInfo.TupleType in [ttGrayScaleFP, ttRGBFP]) then
+        if not (MapInfo.TupleType in [ttGrayScaleFP, ttRGBFP]) then
         begin
           // Just copy bytes from binary Portable Maps (non 1bit, non FP)
           Read(Handle, Bits, Size);
@@ -455,40 +455,40 @@ begin
           // I will stick with Photoshops behaviour here
           for I := 0 to Width * Height - 1 do
           begin
-            Read(Handle, @PixelFP, FMapInfo.BitCount shr 3);
-            if FMapInfo.TupleType = ttRGBFP then
+            Read(Handle, @PixelFP, MapInfo.BitCount shr 3);
+            if MapInfo.TupleType = ttRGBFP then
             with PColorFPRec(Dest)^ do
             begin
               A := 1.0;
               R := PixelFP.R;
               G := PixelFP.G;
               B := PixelFP.B;
-              if FMapInfo.IsBigEndian then
+              if MapInfo.IsBigEndian then
                 SwapEndianLongWord(PLongWord(Dest), 3);
             end
             else
             begin
               PSingle(Dest)^ := PixelFP.B;
-              if FMapInfo.IsBigEndian then
+              if MapInfo.IsBigEndian then
                 SwapEndianLongWord(PLongWord(Dest), 1);
             end;
             Inc(Dest, Info.BytesPerPixel);
           end;
         end;
 
-        if FMapInfo.TupleType in [ttBlackAndWhite, ttBlackAndWhiteAlpha] then
+        if MapInfo.TupleType in [ttBlackAndWhite, ttBlackAndWhiteAlpha] then
         begin
           // Black and white PAM files must be scaled to 8bits. Note that
           // in PAM files 1=white, 0=black (reverse of PBM)
-          for I := 0 to Width * Height * Iff(FMapInfo.TupleType = ttBlackAndWhiteAlpha, 2, 1) - 1 do
+          for I := 0 to Width * Height * Iff(MapInfo.TupleType = ttBlackAndWhiteAlpha, 2, 1) - 1 do
             PByteArray(Bits)[I] := PByteArray(Bits)[I] * 255;
         end;
-        if FMapInfo.TupleType in [ttRGB, ttRGBAlpha] then
+        if MapInfo.TupleType in [ttRGB, ttRGBAlpha] then
         begin
           // Swap channels of RGB/ARGB images. Binary RGB image files use BGR order.
           SwapChannels(Images[0], ChannelBlue, ChannelRed);
         end;
-        if FMapInfo.BitCount = 16 then
+        if MapInfo.BitCount = 16 then
         begin
           Dest := Bits;
           for I := 0 to Width * Height * Info.BytesPerPixel div SizeOf(Word) - 1 do
@@ -520,19 +520,19 @@ begin
 
     FixInputPos;
 
-    if (FMapInfo.MaxVal <> Pow2Int(FMapInfo.BitCount) - 1) and
-      (FMapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha, ttRGB, ttRGBAlpha]) then
+    if (MapInfo.MaxVal <> Pow2Int(MapInfo.BitCount) - 1) and
+      (MapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha, ttRGB, ttRGBAlpha]) then
     begin
       Dest := Bits;
       // Scale color values according to MaxVal we got from header
       // if necessary.
-      for I := 0 to Width * Height * Info.BytesPerPixel div (FMapInfo.BitCount shr 3) - 1 do
+      for I := 0 to Width * Height * Info.BytesPerPixel div (MapInfo.BitCount shr 3) - 1 do
       begin
-        if FMapInfo.BitCount = 8 then
-          Dest^ := Dest^ * 255 div FMapInfo.MaxVal
+        if MapInfo.BitCount = 8 then
+          Dest^ := Dest^ * 255 div MapInfo.MaxVal
         else
-          PWord(Dest)^ := PWord(Dest)^ * 65535 div FMapInfo.MaxVal;
-        Inc(Dest, FMapInfo.BitCount shr 3);
+          PWord(Dest)^ := PWord(Dest)^ * 65535 div MapInfo.MaxVal;
+        Inc(Dest, MapInfo.BitCount shr 3);
       end;
     end;
 
@@ -540,8 +540,8 @@ begin
   end;
 end;
 
-function TPortableMapFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer): Boolean;
+function TPortableMapFileFormat.SaveDataInternal(Handle: TImagingHandle;
+  const Images: TDynImageDataArray; Index: Integer; var MapInfo: TPortableMapInfo): Boolean;
 const
   LineDelimiter  = #10;
   PixelDelimiter = #32;
@@ -567,14 +567,14 @@ var
   var
     OldSeparator: Char;
   begin
-    WriteString('P' + FMapInfo.FormatId);
-    if not FMapInfo.HasPAMHeader then
+    WriteString('P' + MapInfo.FormatId);
+    if not MapInfo.HasPAMHeader then
     begin
       // Write header of PGM, PPM, and PFM files
       WriteString(IntToStr(ImageToSave.Width));
       WriteString(IntToStr(ImageToSave.Height));
-      case FMapInfo.TupleType of
-        ttGrayScale, ttRGB: WriteString(IntToStr(Pow2Int(FMapInfo.BitCount) - 1));
+      case MapInfo.TupleType of
+        ttGrayScale, ttRGB: WriteString(IntToStr(Pow2Int(MapInfo.BitCount) - 1));
         ttGrayScaleFP, ttRGBFP:
           begin
             OldSeparator := DecimalSeparator;
@@ -590,9 +590,9 @@ var
       // Write PAM file header
       WriteString(Format('%s %d', [SPAMWidth, ImageToSave.Width]));
       WriteString(Format('%s %d', [SPAMHeight, ImageToSave.Height]));
-      WriteString(Format('%s %d', [SPAMDepth, FMapInfo.Depth]));
-      WriteString(Format('%s %d', [SPAMMaxVal, Pow2Int(FMapInfo.BitCount) - 1]));
-      WriteString(Format('%s %s', [SPAMTupleType, TupleTypeNames[FMapInfo.TupleType]]));
+      WriteString(Format('%s %d', [SPAMDepth, MapInfo.Depth]));
+      WriteString(Format('%s %d', [SPAMMaxVal, Pow2Int(MapInfo.BitCount) - 1]));
+      WriteString(Format('%s %s', [SPAMTupleType, TupleTypeNames[MapInfo.TupleType]]));
       WriteString(SPAMEndHdr);
     end;
   end;
@@ -605,29 +605,29 @@ begin
     Info := GetFormatInfo(Format);
     // Fill values of MapInfo record that were not filled by
     // descendants in their SaveData methods
-    FMapInfo.BitCount := (Info.BytesPerPixel div Info.ChannelCount) * 8;
-    FMapInfo.Depth := Info.ChannelCount;
-    if FMapInfo.TupleType = ttInvalid then
+    MapInfo.BitCount := (Info.BytesPerPixel div Info.ChannelCount) * 8;
+    MapInfo.Depth := Info.ChannelCount;
+    if MapInfo.TupleType = ttInvalid then
     begin
       if Info.HasGrayChannel then
       begin
         if Info.HasAlphaChannel then
-          FMapInfo.TupleType := ttGrayScaleAlpha
+          MapInfo.TupleType := ttGrayScaleAlpha
         else
-          FMapInfo.TupleType := ttGrayScale;
+          MapInfo.TupleType := ttGrayScale;
       end
       else
       begin
         if Info.HasAlphaChannel then
-          FMapInfo.TupleType := ttRGBAlpha
+          MapInfo.TupleType := ttRGBAlpha
         else
-          FMapInfo.TupleType := ttRGB;
+          MapInfo.TupleType := ttRGB;
       end;
     end;
     // Write file header
     WriteHeader;
 
-    if not FMapInfo.Binary then
+    if not MapInfo.Binary then
     begin
       Src := Bits;
       LineLength := 0;
@@ -644,7 +644,7 @@ begin
             with PColor48Rec(Src)^ do
               WriteString(SysUtils.Format('%d %d %d', [R, G, B]), PixelDelimiter);
         end;
-        // Lines in text PNM images should have length <70 
+        // Lines in text PNM images should have length <70
         if LineLength > 65 then
         begin
           LineLength := 0;
@@ -656,12 +656,12 @@ begin
     else
     begin
       // Write binary images
-      if not (FMapInfo.TupleType in [ttGrayScaleFP, ttRGBFP]) then
+      if not (MapInfo.TupleType in [ttGrayScaleFP, ttRGBFP]) then
       begin
         // Save integer binary images
-        if  FMapInfo.BitCount = 8 then
+        if  MapInfo.BitCount = 8 then
         begin
-          if FMapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha] then
+          if MapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha] then
           begin
             // 8bit grayscale images can be written in one Write call
             Write(Handle, Bits, Size);
@@ -674,7 +674,7 @@ begin
             for I := 0 to Width * Height - 1 do
             with PColor32Rec(Src)^ do
             begin
-              if FMapInfo.TupleType = ttRGBAlpha then
+              if MapInfo.TupleType = ttRGBAlpha then
                 Pixel32.A := A;
               Pixel32.R := B;
               Pixel32.G := G;
@@ -688,7 +688,7 @@ begin
         begin
           // Images with 16bit channels: make sure that channel values are saved in big endian
           Src := Bits;
-          if FMapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha] then
+          if MapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha] then
           begin
             // 16bit grayscale image
             for I := 0 to Width * Height * Info.BytesPerPixel div SizeOf(Word) - 1 do
@@ -704,7 +704,7 @@ begin
             for I := 0 to Width * Height - 1 do
             with PColor64Rec(Src)^ do
             begin
-              if FMapInfo.TupleType = ttRGBAlpha then
+              if MapInfo.TupleType = ttRGBAlpha then
                 Pixel64.A := SwapEndianWord(A);
               Pixel64.R := SwapEndianWord(B);
               Pixel64.G := SwapEndianWord(G);
@@ -713,13 +713,13 @@ begin
               Inc(Src, Info.BytesPerPixel);
             end;
           end;
-        end; 
+        end;
       end
       else
       begin
         // Floating point images (no need to swap endian here - little
         // endian is specified in file header)
-        if FMapInfo.TupleType = ttGrayScaleFP then
+        if MapInfo.TupleType = ttGrayScaleFP then
         begin
           // Grayscale images can be written in one Write call
           Write(Handle, Bits, Size);
@@ -787,11 +787,13 @@ end;
 
 function TPGMFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer): Boolean;
+var
+  MapInfo: TPortableMapInfo;
 begin
-  FillChar(FMapInfo, SizeOf(FMapInfo), 0);
-  FMapInfo.FormatId := Iff(FSaveBinary, FIdNumbers[1], FIdNumbers[0]);
-  FMapInfo.Binary := FSaveBinary;
-  Result := inherited SaveData(Handle, Images, Index);
+  FillChar(MapInfo, SizeOf(MapInfo), 0);
+  MapInfo.FormatId := Iff(FSaveBinary, FIdNumbers[1], FIdNumbers[0]);
+  MapInfo.Binary := FSaveBinary;
+  Result := SaveDataInternal(Handle, Images, Index, MapInfo);
 end;
 
 procedure TPGMFileFormat.ConvertToSupported(var Image: TImageData;
@@ -831,11 +833,13 @@ end;
 
 function TPPMFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer): Boolean;
+var
+  MapInfo: TPortableMapInfo;
 begin
-  FillChar(FMapInfo, SizeOf(FMapInfo), 0);
-  FMapInfo.FormatId := Iff(FSaveBinary, FIdNumbers[1], FIdNumbers[0]);
-  FMapInfo.Binary := FSaveBinary;
-  Result := inherited SaveData(Handle, Images, Index);
+  FillChar(MapInfo, SizeOf(MapInfo), 0);
+  MapInfo.FormatId := Iff(FSaveBinary, FIdNumbers[1], FIdNumbers[0]);
+  MapInfo.Binary := FSaveBinary;
+  Result := SaveDataInternal(Handle, Images, Index, MapInfo);
 end;
 
 procedure TPPMFileFormat.ConvertToSupported(var Image: TImageData;
@@ -873,12 +877,14 @@ end;
 
 function TPAMFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer): Boolean;
+var
+  MapInfo: TPortableMapInfo;
 begin
-  FillChar(FMapInfo, SizeOf(FMapInfo), 0);
-  FMapInfo.FormatId := FIdNumbers[0];
-  FMapInfo.Binary := True;
-  FMapInfo.HasPAMHeader := True;
-  Result := inherited SaveData(Handle, Images, Index);
+  FillChar(MapInfo, SizeOf(MapInfo), 0);
+  MapInfo.FormatId := FIdNumbers[0];
+  MapInfo.Binary := True;
+  MapInfo.HasPAMHeader := True;
+  Result := SaveDataInternal(Handle, Images, Index, MapInfo);
 end;
 
 procedure TPAMFileFormat.ConvertToSupported(var Image: TImageData;
@@ -915,16 +921,17 @@ function TPFMFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer): Boolean;
 var
   Info: TImageFormatInfo;
+  MapInfo: TPortableMapInfo;
 begin
-  FillChar(FMapInfo, SizeOf(FMapInfo), 0);
+  FillChar(MapInfo, SizeOf(MapInfo), 0);
   Info := GetFormatInfo(Images[Index].Format);
   if (Info.ChannelCount > 1) or Info.IsIndexed then
-    FMapInfo.TupleType := ttRGBFP
+    MapInfo.TupleType := ttRGBFP
   else
-    FMapInfo.TupleType := ttGrayScaleFP;
-  FMapInfo.FormatId := Iff(FMapInfo.TupleType = ttGrayScaleFP, FIdNumbers[1], FIdNumbers[0]);
-  FMapInfo.Binary := True;
-  Result := inherited SaveData(Handle, Images, Index);
+    MapInfo.TupleType := ttGrayScaleFP;
+  MapInfo.FormatId := Iff(MapInfo.TupleType = ttGrayScaleFP, FIdNumbers[1], FIdNumbers[0]);
+  MapInfo.Binary := True;
+  Result := SaveDataInternal(Handle, Images, Index, MapInfo);
 end;
 
 procedure TPFMFileFormat.ConvertToSupported(var Image: TImageData;
@@ -948,6 +955,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.24.3 Changes/Bug Fixes -----------------------------------
+    - Changes for better thread safety.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Made modifications to ASCII PNM loading to be more "stream-safe". 

@@ -299,6 +299,7 @@ type
     GlobalPaletteEntries: LongInt;
     GlobalTransparency: Pointer;
     GlobalTransparencySize: LongInt;
+    destructor Destroy; override;
     procedure Clear;
     function GetLastFrame: TFrameInfo;
     function AddFrameInfo: TFrameInfo;
@@ -339,10 +340,6 @@ type
     procedure SetCustomIO(const CustomIO: TIOFunctions);
   end;
 {$ENDIF}  
-
-var
-  NGFileLoader: TNGFileLoader = nil;
-  NGFileSaver: TNGFileSaver = nil;
 
 { Helper routines }
 
@@ -454,6 +451,12 @@ begin
 end;
 
 { TNGFileHandler class implementation}
+
+destructor TNGFileHandler.Destroy;
+begin
+  Clear;
+  inherited Destroy;
+end;
 
 procedure TNGFileHandler.Clear;
 var
@@ -1865,8 +1868,11 @@ end;
 
 function TPNGFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+var
+  NGFileLoader: TNGFileLoader;
 begin
   Result := False;
+  NGFileLoader := TNGFileLoader.Create;
   try
     // Use NG file parser to load file
     if NGFileLoader.LoadFile(Handle) and (Length(NGFileLoader.Frames) > 0) then
@@ -1881,7 +1887,7 @@ begin
       Result := True;
     end;
   finally
-    NGFileLoader.Clear;
+    NGFileLoader.Free;
   end;
 end;
 
@@ -1890,21 +1896,25 @@ function TPNGFileFormat.SaveData(Handle: TImagingHandle;
 var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
+  NGFileSaver: TNGFileSaver;
 begin
   // Make image PNG compatible, store it in saver, and save it to file
   Result := MakeCompatible(Images[Index], ImageToSave, MustBeFreed);
   if Result then
-  with NGFileSaver do
-  try
-    FileType := ngPNG;
-    SetFileOptions(Self);
-    AddFrame(ImageToSave, False);
-    SaveFile(Handle);
-  finally
-    // Clear NG saver and compatible image
-    Clear;
-    if MustBeFreed then
-      FreeImage(ImageToSave);
+  begin
+    NGFileSaver := TNGFileSaver.Create;
+    with NGFileSaver do
+    try
+      FileType := ngPNG;
+      SetFileOptions(Self);
+      AddFrame(ImageToSave, False);
+      SaveFile(Handle);
+    finally
+      // Free NG saver and compatible image
+      NGFileSaver.Free;
+      if MustBeFreed then
+        FreeImage(ImageToSave);
+    end;
   end;
 end;
 
@@ -1932,9 +1942,11 @@ end;
 function TMNGFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
+  NGFileLoader: TNGFileLoader;
   I, Len: LongInt;
 begin
   Result := False;
+  NGFileLoader := TNGFileLoader.Create;
   try
     // Use NG file parser to load file
     if NGFileLoader.LoadFile(Handle) then
@@ -1965,13 +1977,14 @@ begin
       Result := True;
     end;
   finally
-    NGFileLoader.Clear;
+    NGFileLoader.Free;
   end;
 end;
 
 function TMNGFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
+  NGFileSaver: TNGFileSaver;
   I, LargestWidth, LargestHeight: LongInt;
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
@@ -1980,6 +1993,7 @@ begin
   LargestWidth := 0;
   LargestHeight := 0;
 
+  NGFileSaver := TNGFileSaver.Create;
   NGFileSaver.FileType := ngMNG;
   NGFileSaver.SetFileOptions(Self);
 
@@ -2016,7 +2030,7 @@ begin
     SaveFile(Handle);
     Result := True;
   finally
-    Clear;
+    NGFileSaver.Free;
   end;
 end;
 
@@ -2044,8 +2058,11 @@ end;
 
 function TJNGFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+var
+  NGFileLoader: TNGFileLoader;
 begin
   Result := False;
+  NGFileLoader := TNGFileLoader.Create;
   try
     // Use NG file parser to load file
     if NGFileLoader.LoadFile(Handle) and (Length(NGFileLoader.Frames) > 0) then
@@ -2060,54 +2077,57 @@ begin
       Result := True;
     end;
   finally
-    NGFileLoader.Clear;
+    NGFileLoader.Free;
   end;
 end;
 
 function TJNGFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
+  NGFileSaver: TNGFileSaver;
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
 begin
   // Make image JNG compatible, store it in saver, and save it to file
   Result := MakeCompatible(Images[Index], ImageToSave, MustBeFreed);
   if Result then
-  with NGFileSaver do
-  try
-    FileType := ngJNG;
-    SetFileOptions(Self);
-    AddFrame(ImageToSave, True);
-    SaveFile(Handle);
-  finally
-    // Clear NG saver and compatible image
-    Clear;
-    if MustBeFreed then
-      FreeImage(ImageToSave);
+  begin
+    NGFileSaver := TNGFileSaver.Create;
+    with NGFileSaver do
+    try
+      FileType := ngJNG;
+      SetFileOptions(Self);
+      AddFrame(ImageToSave, True);
+      SaveFile(Handle);
+    finally
+      // Free NG saver and compatible image
+      NGFileSaver.Free;
+      if MustBeFreed then
+        FreeImage(ImageToSave);
+    end;
   end;
 end;
 
 {$ENDIF}
 
 initialization
-  NGFileLoader := TNGFileLoader.Create;
-  NGFileSaver := TNGFileSaver.Create;
   RegisterImageFileFormat(TPNGFileFormat);
 {$IFDEF LINK_MNG}
   RegisterImageFileFormat(TMNGFileFormat);
 {$ENDIF}
 {$IFDEF LINK_JNG}
   RegisterImageFileFormat(TJNGFileFormat);
-{$ENDIF}  
+{$ENDIF}
 finalization
-  FreeAndNil(NGFileLoader);
-  FreeAndNil(NGFileSaver);
 
 {
   File Notes:
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.24.3 Changes/Bug Fixes ---------------------------------
+    - Changes for better thread safety.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added loading of global palettes and transparencies in MNG files
