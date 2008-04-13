@@ -3262,15 +3262,7 @@ finalization
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - make searching for the closest color in palette much faster - MapImageToPal
-    - investigate CopyPixel and ComparePixels inline problems - line 550
-    - add to low level interface function
-      CreateImageFromRawData(W, H, Bpp, Data, Align, Flipped, Endian, ...)
-      and CreateRawDataFromImage() - use these in BMP loading (align)
-      and PNG loading (endian)
-    - add loading of multi images from file sequence
-    - do not load all frames when only one is required, possible?
-      (LoadImageFromFile on MNG/DDS)
+    - nothing now
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - MakePaletteForImages now works correctly for indexed and special format images

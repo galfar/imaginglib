@@ -441,12 +441,7 @@ implementation
 
   -- TODOS ----------------------------------------------------
     - add lookup tables to pixel formats for fast conversions
-    - change TImageFormatInfo - add new fields that shoudl replace old chaos
-      like not knowing whether it is RGB without checking all other fields for False
-      (add something like FormatType = (ftIndexed, ftRGB, ftIntensity, ftCompressed,
-      ftFloatingPoint, ftRGBBitFields) and additional infos like HasAlphaChannel,
-      ChannelSize, ChannelCount, ...)
-
+    
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added ifBTC image format and SpecialNearestFormat field
       to TImageFormatInfo.

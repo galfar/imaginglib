@@ -38,7 +38,7 @@
   by Marek Mauder (http://galfar.vevb.net)
   for Vampyre Imaging Library (http://imaginglib.sourceforge.net).
 
-  Supported compilers: Delphi, Free Pascal 2.0
+  Supported compilers: Delphi, Free Pascal
   Supported platforms (tested): Windows 32bit, Linux 32/64bit
 
   OpenJpeg Homepage: http://www.openjpeg.org

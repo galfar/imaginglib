@@ -690,20 +690,26 @@ var
     end;
   end;
 
-  procedure CopyFrameTransparent(const Image, Frame: TImageData; Left, Top, TransIndex: Integer);
+  procedure CopyFrameTransparent(const Image, Frame: TImageData; Left, Top,
+    TransIndex: Integer; Disposal: TDisposalMethod);
   var
     X, Y: Integer;
     Src, Dst: PByte;
   begin
     Src := Frame.Bits;
 
-    // Copy all pixels from frame to log screen but ignore the transparent ones 
+    // Copy all pixels from frame to log screen but ignore the transparent ones
     for Y := 0 to Frame.Height - 1 do
     begin
       Dst := @PByteArray(Image.Bits)[(Top + Y) * Image.Width + Left];
       for X := 0 to Frame.Width - 1 do
       begin
-        if Src^ <> TransIndex then
+        // If disposal methos is undefined copy all pixels regardless of
+        // transparency (transparency of whole image will be determined by TranspIndex
+        // in image palette) - same effect as filling the image with trasp color
+        // instead of backround color beforehand.
+        // For other methods don't copy transparent pixels from frame to image.
+        if (Src^ <> TransIndex) or (Disposal = dmUndefined) then
           Dst^ := Src^;
         Inc(Src);
         Inc(Dst);
@@ -812,7 +818,8 @@ var
         Read(Handle, @BlockTerm, SizeOf(BlockTerm));
         // Now copy frame to logical screen with skipping of transparent pixels (if enabled)
         TransIndex := Iff(HasTransparency, GraphicExt.TransparentColorIndex, MaxInt);
-        CopyFrameTransparent(Images[Idx], Frame, ImageDesc.Left, ImageDesc.Top, TransIndex);
+        CopyFrameTransparent(Images[Idx], Frame, ImageDesc.Left, ImageDesc.Top,
+          TransIndex, Disposals[Idx]);
       finally
         FreeImage(Frame);
       end;
@@ -840,7 +847,6 @@ begin
         Read(Handle, @GlobalPal[I].G, SizeOf(GlobalPal[I].G));
         Read(Handle, @GlobalPal[I].B, SizeOf(GlobalPal[I].B));
       end;
-      GlobalPal[Header.BackgroundColorIndex].A := 0;
     end;
 
     // Read ID of the first block
@@ -972,6 +978,10 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.24.3 Changes/Bug Fixes ---------------------------------
+    - Better solution to transparency for some GIFs. Background not
+      transparent by default.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
     - Made backround color transparent by default (alpha = 0).
