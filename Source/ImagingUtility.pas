@@ -121,8 +121,10 @@ procedure FreeMemNil(var P); {$IFDEF USE_INLINE}inline;{$ENDIF}
 procedure FreeMem(P: Pointer); {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns current exception object. Do not call outside exception handler.}
 function GetExceptObject: Exception; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Returns time value with microsecond resolution. Use for some time counters.}
+{ Returns time value with microsecond resolution.}
 function GetTimeMicroseconds: Int64;
+{ Returns time value with milisecond resolution.}
+function GetTimeMilliseconds: Int64;
 
 { Returns file extension (without "." dot)}
 function GetFileExt(const FileName: string): string;
@@ -155,6 +157,8 @@ function StrToken(var S: string; Sep: Char): string;
 function StrTokenEnd(var S: string; Sep: Char): string;
 { Returns string representation of integer number (with digit grouping).}
 function IntToStrFmt(const I: Int64): string;
+{ Returns string representation of float number (with digit grouping).}
+function FloatToStrFmt(const F: Double; Precision: Integer = 2): string;
 
 { Clamps integer value to range <Min, Max>}
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -239,6 +243,7 @@ procedure SwapEndianWord(P: PWordArray; Count: LongInt); overload;
 function SwapEndianLongWord(Value: LongWord): LongWord; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Swaps byte order of multiple LongWord values.}
 procedure SwapEndianLongWord(P: PLongWord; Count: LongInt); overload;
+
 { Calculates CRC32 for the given data.}
 procedure CalcCrc32(var Crc: LongWord; Data: Pointer; Size: LongInt);
 { Fills given memory with given Byte value. Size is size of buffer in bytes.}
@@ -388,6 +393,11 @@ asm
   ADC    EDX, 0
 end;
 {$ENDIF}
+
+function GetTimeMilliseconds: Int64;
+begin
+  Result := GetTimeMicroseconds div 1000;
+end;
 
 function GetFileExt(const FileName: string): string;
 begin
@@ -767,6 +777,11 @@ end;
 function IntToStrFmt(const I: Int64): string;
 begin
   Result := Format('%.0n', [I * 1.0]);
+end;
+
+function FloatToStrFmt(const F: Double; Precision: Integer): string;
+begin
+  Result := Format('%.' + IntToStr(Precision) + 'n', [F]);
 end;
 
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt;
@@ -1537,6 +1552,10 @@ initialization
   -- TODOS ----------------------------------------------------
     - nothing now
 
+  -- 0.24.3 Changes/Bug Fixes -----------------------------------
+    - Added GetTimeMilliseconds function.
+    - Added IntToStrFmt and FloatToStrFmt helper functions.
+    
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added RectInRect and RectIntersects functions
     - Added some string utils: StrToken, StrTokenEnd, PosEx, PosNoCase. 

@@ -231,6 +231,8 @@ type
     procedure ExchangeImages(Index1, Index2: LongInt);
     { Deletes image at the given position in the image array.}
     procedure DeleteImage(Index: LongInt);
+    { Rearranges images so that the first image will become last and vice versa.}
+    procedure ReverseImages;
 
     { Converts all images to another image data format.}
     procedure ConvertImages(Format: TImageFormat);
@@ -886,6 +888,14 @@ begin
     Imaging.ResizeImage(FDataArray[I], NewWidth, NewHeight, Filter);
 end;
 
+procedure TMultiImage.ReverseImages;
+var
+  I: Integer;
+begin
+  for I := 0 to GetImageCount div 2 do
+    ExchangeImages(I, GetImageCount - 1 - I);
+end;
+
 procedure TMultiImage.LoadFromFile(const FileName: string);
 begin
   if GetImageCount = 0 then
@@ -930,6 +940,9 @@ end;
     - add SetPalette, create some pal wrapper first
     - put all low level stuff here like ReplaceColor etc, change
       CopyTo to Copy, and add overload Copy(SrcRect, DstX, DstY) ...
+
+  -- 0.24.3 Changes/Bug Fixes ---------------------------------
+    - Added TMultiImage.ReverseImages method.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added SwapChannels method to TBaseImage.

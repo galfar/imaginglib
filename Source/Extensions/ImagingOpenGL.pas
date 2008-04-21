@@ -49,13 +49,14 @@ uses
 type
   { Various texture capabilities of installed OpenGL driver.}
   TGLTextureCaps = record
-    MaxTextureSize: LongInt;
-    PowerOfTwo: Boolean;
-    DXTCompression: Boolean;
-    FloatTextures: Boolean;
-    MaxAnisotropy: LongInt;
-    MaxSimultaneousTextures: LongInt;
-    ClampToEdge: Boolean;
+    MaxTextureSize: LongInt;  // Max size of texture in pixels supported by HW
+    NonPowerOfTwo: Boolean;   // HW has full support for NPOT textures
+    DXTCompression: Boolean;  // HW supports S3TC/DXTC compressed textures
+    FloatTextures: Boolean;   // HW supports floating point textures
+    MaxAnisotropy: LongInt;   // Max anisotropy for aniso texture filtering
+    MaxSimultaneousTextures: LongInt; // Number of texture units
+    ClampToEdge: Boolean;     // GL_EXT_texture_edge_clamp
+    TextureLOD: Boolean;      // GL_SGIS_texture_lod
   end;
 
 { Returns texture capabilities of installed OpenGL driver.}
@@ -165,6 +166,14 @@ var
     image->texture process (usually only pow2/nonpow2 stuff and when you
     set custom Width & Height in CreateGLTextureFrom(Multi)Image).}
   PasteNonPow2ImagesIntoPow2: Boolean = False;
+  { Standard behaviur if GL_ARB_texture_non_power_of_two extension is not supported
+    is to rescale image to power of 2 dimensions. NPOT extension is exposed only
+    when HW has full support for NPOT textures but some cards
+    (ATI Radeons, some other maybe) have partial NPOT support. Namely Radeons
+    can use NPOT textures but not mipmapped. If you know what you are doing
+    you can disable NPOT support check so the image won't be rescaled to POT
+    by seting DisableNPOTSupportCheck to True.}
+  DisableNPOTSupportCheck: Boolean = False;
 
 implementation
 
@@ -312,32 +321,34 @@ end;
 
 function GetGLTextureCaps(var Caps: TGLTextureCaps): Boolean;
 begin
-  // check DXTC support and load extension functions if necesary
+  // Check DXTC support and load extension functions if necesary
   Caps.DXTCompression := IsGLExtensionSupported('GL_ARB_texture_compression') and
     IsGLExtensionSupported('GL_EXT_texture_compression_s3tc');
   if Caps.DXTCompression then
     glCompressedTexImage2D := GetGLProcAddress('glCompressedTexImage2D');
   Caps.DXTCompression := Caps.DXTCompression and (@glCompressedTexImage2D <> nil);
-  // check non power of 2 textures
-  Caps.PowerOfTwo := not IsGLExtensionSupported('GL_ARB_texture_non_power_of_two');
-  // check for floating point textures support
+  // Check non power of 2 textures
+  Caps.NonPowerOfTwo := IsGLExtensionSupported('GL_ARB_texture_non_power_of_two');
+  // Check for floating point textures support
   Caps.FloatTextures := IsGLExtensionSupported('GL_ARB_texture_float');
-  // get max texture size
+  // Get max texture size
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, @Caps.MaxTextureSize);
-  // get max anisotropy
+  // Get max anisotropy
   if IsGLExtensionSupported('GL_EXT_texture_filter_anisotropic') then
     glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, @Caps.MaxAnisotropy)
   else
     Caps.MaxAnisotropy := 0;
-  // get number of texture units
+  // Get number of texture units
   if IsGLExtensionSupported('GL_ARB_multitexture') then
     glGetIntegerv(GL_MAX_TEXTURE_UNITS, @Caps.MaxSimultaneousTextures)
   else
     Caps.MaxSimultaneousTextures := 1;
-  // get max texture size
+  // Get max texture size
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, @Caps.MaxTextureSize);
   // Clamp texture to edge?
   Caps.ClampToEdge := IsGLExtensionSupported('GL_EXT_texture_edge_clamp');
+  // Texture LOD extension?
+  Caps.TextureLOD := IsGLExtensionSupported('GL_SGIS_texture_lod');
 
   Result := True;
 end;
@@ -540,7 +551,7 @@ begin
     // First check desired size and modify it if necessary
     if Width <= 0 then Width := Images[MainLevelIndex].Width;
     if Height <= 0 then Height := Images[MainLevelIndex].Height;
-    if Caps.PowerOfTwo then
+    if not Caps.NonPowerOfTwo and not DisableNPOTSupportCheck then
     begin
       // If device supports only power of 2 texture sizes
       Width := NextPow2(Width);
@@ -842,6 +853,7 @@ initialization
     - support for cube and 3D maps
 
   -- 0.24.3 Changes/Bug Fixes ---------------------------------
+    - Added DisableNPOTSupportCheck option and related functionality.
     - Added some new texture caps detection.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------

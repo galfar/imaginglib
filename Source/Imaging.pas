@@ -1573,6 +1573,8 @@ function GenerateMipMaps(const Image: TImageData; Levels: LongInt;
   var MipMaps: TDynImageDataArray): Boolean;
 var
   Width, Height, I, Count: LongInt;
+  Info: TImageFormatInfo;
+  CompatibleCopy: TImageData;
 begin
   Result := False;
   if TestImage(Image) then
@@ -1585,6 +1587,20 @@ begin
     if (Levels <= 0) or (Levels > Count) then
       Levels := Count;
 
+    // If we have special format image we create copy to allow pixel access.
+    // This is also done in FillMipMapLevel which is called for each level
+    // but then the main big image would be converted to compatible
+    // for every level.
+    GetImageFormatInfo(Image.Format, Info);
+    if Info.IsSpecial then
+    begin
+      InitImage(CompatibleCopy);
+      CloneImage(Image, CompatibleCopy);
+      ConvertImage(CompatibleCopy, ifDefault);
+    end
+    else
+      CompatibleCopy := Image;
+
     FreeImagesInArray(MipMaps);
     SetLength(MipMaps, Levels);
     CloneImage(Image, MipMaps[0]);
@@ -1595,8 +1611,17 @@ begin
       Height := Height shr 1;
       if Width < 1 then Width := 1;
       if Height < 1 then Height := 1;
-      FillMipMapLevel(MipMaps[I - 1], Width, Height, MipMaps[I]);
+      FillMipMapLevel(CompatibleCopy, Width, Height, MipMaps[I]);
     end;
+
+    if CompatibleCopy.Format <> MipMaps[0].Format then
+    begin
+      // Must convert smaller levels to proper format
+      for I := 1 to High(MipMaps) do
+        ConvertImage(MipMaps[I], MipMaps[0].Format);
+      FreeImage(CompatibleCopy);
+    end;
+
     Result := True;
   except
     RaiseImaging(SErrorGenerateMipMaps, [Levels, ImageToStr(Image)]);
@@ -3263,6 +3288,12 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.24.3 Changes/Bug Fixes ---------------------------------
+    - GenerateMipMaps now generates all smaller levels from
+      original big image (better results when using more advanced filters).
+      Also conversion to compatible image format is now done here not
+      in FillMipMapLevel (that is called for every mipmap level).
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - MakePaletteForImages now works correctly for indexed and special format images
