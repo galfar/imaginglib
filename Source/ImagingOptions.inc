@@ -7,7 +7,7 @@
 
 { Source options. }
 
-{$DEFINE USE_INLINE}          // use function inlining for some functions
+{ $DEFINE USE_INLINE}          // use function inlining for some functions
                               // works in Free Pascal and Delphi 9+
 {$DEFINE USE_ASM}             // if defined, assembler versions of some
                               // functions will be used (only for x86)
@@ -212,11 +212,6 @@
   {$PACKENUM 4}            // Min enum size: 4 B
   {$CALLING REGISTER}      // default calling convention is register
   {$IFDEF CPU86}
-    {$IFNDEF DYN_LIBRARY}
-      {$SMARTLINK ON}      // smartlinking on, but not for dll/so -
-                           // nothing gets exported from library when it is on
-                           // in FPC 1.9.8
-    {$ENDIF}
     {$ASMMODE INTEL}       // intel assembler mode
   {$ENDIF}
 {$ENDIF}

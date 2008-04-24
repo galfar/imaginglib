@@ -57,6 +57,7 @@ type
     MaxSimultaneousTextures: LongInt; // Number of texture units
     ClampToEdge: Boolean;     // GL_EXT_texture_edge_clamp
     TextureLOD: Boolean;      // GL_SGIS_texture_lod
+    VertexTextureUnits: Integer; // Texture units accessible in vertex programs
   end;
 
 { Returns texture capabilities of installed OpenGL driver.}
@@ -343,6 +344,11 @@ begin
     glGetIntegerv(GL_MAX_TEXTURE_UNITS, @Caps.MaxSimultaneousTextures)
   else
     Caps.MaxSimultaneousTextures := 1;
+  // Get number of vertex texture units
+  if IsGLExtensionSupported('GL_ARB_vertex_shader') then
+    glGetIntegerv(GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, @Caps.VertexTextureUnits)
+  else
+    Caps.VertexTextureUnits := 1;
   // Get max texture size
   glGetIntegerv(GL_MAX_TEXTURE_SIZE, @Caps.MaxTextureSize);
   // Clamp texture to edge?

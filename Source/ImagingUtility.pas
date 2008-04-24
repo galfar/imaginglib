@@ -132,7 +132,7 @@ function GetFileExt(const FileName: string): string;
 function GetAppExe: string;
 { Returns directory where application's exceutable is located without
   path delimiter at the end.}
-function GetAppDir:string;
+function GetAppDir: string;
 { Returns True if FileName matches given Mask with optional case sensitivity.
   Mask can contain ? and * special characters: ? matches
   one character, * matches zero or more characters.}
@@ -432,7 +432,7 @@ begin
 {$ENDIF}
 end;
 
-function GetAppDir:string;
+function GetAppDir: string;
 begin
   Result := ExtractFileDir(GetAppExe);
 end;
