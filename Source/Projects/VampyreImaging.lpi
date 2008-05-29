@@ -5,8 +5,9 @@
     <Version Value="6"/>
     <General>
       <MainUnit Value="0"/>
+      <IconPath Value="./"/>
       <TargetFileExt Value=".exe"/>
-      <ActiveEditorIndexAtStart Value="0"/>
+      <ActiveEditorIndexAtStart Value="1"/>
     </General>
     <VersionInfo>
       <ProjectVersion Value=""/>
@@ -28,8 +29,8 @@
         <Filename Value="VampyreImaging.lpr"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="VampyreImaging"/>
-        <CursorPos X="15" Y="35"/>
-        <TopLine Value="25"/>
+        <CursorPos X="12" Y="34"/>
+        <TopLine Value="29"/>
         <EditorIndex Value="0"/>
         <UsageCount Value="20"/>
         <Loaded Value="True"/>
@@ -50,24 +51,18 @@
       </Unit2>
       <Unit3>
         <Filename Value="..\ImagingOptions.inc"/>
-        <CursorPos X="9" Y="180"/>
-        <TopLine Value="164"/>
+        <CursorPos X="1" Y="1"/>
+        <TopLine Value="137"/>
+        <EditorIndex Value="1"/>
         <UsageCount Value="10"/>
+        <Loaded Value="True"/>
       </Unit3>
     </Units>
-    <JumpHistory Count="3" HistoryIndex="2">
+    <JumpHistory Count="1" HistoryIndex="0">
       <Position1>
         <Filename Value="VampyreImaging.lpr"/>
-        <Caret Line="81" Column="16" TopLine="69"/>
+        <Caret Line="34" Column="12" TopLine="29"/>
       </Position1>
-      <Position2>
-        <Filename Value="VampyreImaging.lpr"/>
-        <Caret Line="29" Column="13" TopLine="23"/>
-      </Position2>
-      <Position3>
-        <Filename Value="VampyreImaging.lpr"/>
-        <Caret Line="38" Column="18" TopLine="23"/>
-      </Position3>
     </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>

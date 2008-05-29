@@ -58,7 +58,7 @@
       <Filename Value="..\..\Bin\LCLImager"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source\"/>
+      <IncludeFiles Value="..\..\..\Source\;..\..\Source\ZLib\;..\..\..\Source\JpegLib\"/>
       <Libraries Value="..\..\..\Extras\Extensions\J2KObjects\"/>
       <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\;..\..\..\Source\;..\..\..\Source\ZLib\;..\..\..\Source\JpegLib\;..\..\..\Extras\Extensions\;..\Common\"/>
     </SearchPaths>
@@ -70,7 +70,6 @@
       </SyntaxOptions>
     </Parsing>
     <CodeGeneration>
-      <SmartLinkUnit Value="True"/>
       <Checks>
         <IOChecks Value="True"/>
       </Checks>
@@ -85,7 +84,6 @@
         <UseLineInfoUnit Value="False"/>
         <StripSymbols Value="True"/>
       </Debugging>
-      <LinkSmart Value="True"/>
     </Linking>
     <Other>
       <CompilerPath Value="$(CompPath)"/>

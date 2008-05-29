@@ -322,9 +322,9 @@ begin
       end;
     end;
 
-    GetImageFormatInfo(Images[Idx].Format, Info);
-    // TIFF uses BGR order so we must swap it
-    if Info.ChannelCount > 1 then
+    // TIFF uses BGR order so we must swap it, but not images we got
+    // from TiffLib RGBA interface.
+    if (Photometric = PHOTOMETRIC_RGB) or (DataFormat = ifUnknown) then
       SwapChannels(Images[Idx], ChannelRed, ChannelBlue);
   end;
 
@@ -423,7 +423,7 @@ begin
 
       ScanLineSize := Width * Info.BytesPerPixel;
 
-      if Info.ChannelCount > 1 then
+      if Photometric = PHOTOMETRIC_RGB then
         SwapChannels(ImageToSave, ChannelRed, ChannelBlue);
       // Write image scanlines and then directory for current image
       for J := 0 to Height - 1 do
