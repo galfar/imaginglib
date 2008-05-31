@@ -375,7 +375,6 @@ var
   Dest: PByte;
   jc: TJpegContext;
   Info: TImageFormatInfo;
-  Format: TImageFormat;
   Col32: PColor32Rec;
 {$IFDEF RGBSWAPPED}
   I: LongInt;

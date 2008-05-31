@@ -203,6 +203,7 @@ var
   LineBuffer: array[0..LineBufferCapacity - 1] of Char;
   LineEnd, LinePos: LongInt;
   MapInfo: TPortableMapInfo;
+  LineBreak: string;
 
   procedure CheckBuffer;
   begin
@@ -262,7 +263,7 @@ var
       C := LineBuffer[LinePos];
       Inc(LinePos);
     until not (C in WhiteSpaces) or (LineEnd = 0);
-    // Dec pos, current is the beggining of the the string
+    // Dec pos, current is the begining of the the string
     Dec(LinePos);
 
     Result := S;
@@ -271,6 +272,22 @@ var
   function ReadIntValue: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
   begin
     Result := StrToInt(ReadString);
+  end;
+
+  procedure FindLineBreak;
+  var
+    C: Char;
+  begin
+    LineBreak := #10;
+    repeat
+      CheckBuffer;
+      C := LineBuffer[LinePos];
+      Inc(LinePos);
+
+      if C = #13 then
+        LineBreak := #13#10;
+
+    until C = #10;
   end;
 
   function ParseHeader: Boolean;
@@ -286,11 +303,14 @@ var
     begin
       FillChar(MapInfo, SizeOf(MapInfo), 0);
       Read(Handle, @Id, SizeOf(Id));
+      FindLineBreak;
+
       if Id[1] in ['1'..'6'] then
       begin
         // Read header for PBM, PGM, and PPM files
         MapInfo.Width := ReadIntValue;
         MapInfo.Height := ReadIntValue;
+
         if Id[1] in ['1', '4'] then
         begin
           MapInfo.MaxVal := 1;
@@ -363,6 +383,15 @@ var
 
       FixInputPos;
       MapInfo.Binary := (Id[1] in ['4', '5', '6', '7', 'F', 'f']);
+
+      if MapInfo.Binary  and not (Id[1] in ['F', 'f']) then
+      begin
+        // Mimic the behaviour of Photoshop and other editors/viewers:
+        // If linenreaks in file are DOS CR/LF 16bit binary values are
+        // little endian, Unix LF only linebreak indicates big endian.
+        MapInfo.IsBigEndian := LineBreak = #10;
+      end;
+
       // Check if values found in header are valid
       Result := (MapInfo.Width > 0) and (MapInfo.Height > 0) and
         (MapInfo.BitCount in [1, 8, 16, 32, 96]) and (MapInfo.TupleType <> ttInvalid);
@@ -455,7 +484,7 @@ begin
           // I will stick with Photoshops behaviour here
           for I := 0 to Width * Height - 1 do
           begin
-            Read(Handle, @PixelFP, MapInfo.BitCount shr 3);
+            Read(Handle, @PixelFP, MapInfo.BitCount div 8);
             if MapInfo.TupleType = ttRGBFP then
             with PColorFPRec(Dest)^ do
             begin
@@ -482,21 +511,16 @@ begin
           // in PAM files 1=white, 0=black (reverse of PBM)
           for I := 0 to Width * Height * Iff(MapInfo.TupleType = ttBlackAndWhiteAlpha, 2, 1) - 1 do
             PByteArray(Bits)[I] := PByteArray(Bits)[I] * 255;
-        end;
-        if MapInfo.TupleType in [ttRGB, ttRGBAlpha] then
+        end
+        else if MapInfo.TupleType in [ttRGB, ttRGBAlpha] then
         begin
           // Swap channels of RGB/ARGB images. Binary RGB image files use BGR order.
           SwapChannels(Images[0], ChannelBlue, ChannelRed);
         end;
-        if MapInfo.BitCount = 16 then
-        begin
-          Dest := Bits;
-          for I := 0 to Width * Height * Info.BytesPerPixel div SizeOf(Word) - 1 do
-          begin
-            PWord(Dest)^ := SwapEndianWord(PWord(Dest)^);
-            Inc(Dest, SizeOf(Word));
-          end;
-        end;
+
+        // Swap byte order if needed
+        if (MapInfo.BitCount = 16) and MapInfo.IsBigEndian then
+          SwapEndianWord(Bits, Width * Height * Info.BytesPerPixel div SizeOf(Word));
       end
       else
       begin
@@ -543,6 +567,9 @@ end;
 function TPortableMapFileFormat.SaveDataInternal(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer; var MapInfo: TPortableMapInfo): Boolean;
 const
+  // Use Unix linebreak, for many viewers/editors it means that
+  // 16bit samples are stored as big endian - so we need to swap byte order
+  // before saving
   LineDelimiter  = #10;
   PixelDelimiter = #32;
 var
@@ -957,6 +984,7 @@ initialization
     - nothing now
 
   -- 0.24.3 Changes/Bug Fixes -----------------------------------
+    - Improved compatibility of 16bit/component image loading. 
     - Changes for better thread safety.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------

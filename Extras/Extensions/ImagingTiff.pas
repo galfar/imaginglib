@@ -483,6 +483,10 @@ initialization
   -- TODOS ----------------------------------------------------
     - nothing now
 
+  -- 0.24.3 Changes/Bug Fixes ---------------------------------
+    - Fixed bug in loading and saving of 2 channel images - Imaging
+      tried to swap R and B channels here.
+
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added TIFF loading and saving.
     - Unit created and initial code added.
