@@ -76,6 +76,15 @@ type
     sfGaussian, sfSpline, sfLanczos, sfMitchell, sfCatmullRom);
   { Type of custom sampling function}
   TFilterFunction = function(Value: Single): Single;
+const
+  { Default resampling filter used for bicubic resizing.}
+  DefaultCubicFilter = sfCatmullRom;
+var
+  { Built-in filter functions.}
+  SamplingFilterFunctions: array[TSamplingFilter] of TFilterFunction;
+  { Default radii of built-in filter functions.}
+  SamplingFilterRadii: array[TSamplingFilter] of Single;
+
 { Stretches rectangle in source image to rectangle in destination image
   with resampling. One of built-in resampling filters defined by
   Filter is used. Set WrapEdges to True for seamlessly tileable images.
@@ -103,7 +112,7 @@ procedure FillMipMapLevel(const BiggerLevel: TImageData; Width, Height: LongInt;
   var SmallerLevel: TImageData);
 
 
-{ Various helper format support functions }
+{ Various helper & support functions }
 
 { Copies Src pixel to Dest pixel. It is faster than System.Move procedure.}
 procedure CopyPixel(Src, Dest: Pointer; BytesPerPixel: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -162,6 +171,20 @@ function FloatToHalf(Float: Single): THalfFloat;
 function ColorHalfToFloat(ColorHF: TColorHFRec): TColorFPRec; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Converts single-precision floating point color to half float color.}
 function ColorFloatToHalf(ColorFP: TColorFPRec): TColorHFRec; {$IFDEF USE_INLINE}inline;{$ENDIF}
+
+type
+  TPointRec = record
+    Pos: LongInt;
+    Weight: Single;
+  end;
+  TCluster = array of TPointRec;
+  TMappingTable = array of TCluster;
+
+{ Helper function for resampling.}
+function BuildMappingTable(DstLow, DstHigh, SrcLow, SrcHigh, SrcImageWidth: LongInt;
+  Filter: TFilterFunction; Radius: Single; WrapEdges: Boolean): TMappingTable;
+{ Helper function for resampling.}
+procedure FindExtremes(const Map: TMappingTable; var MinPos, MaxPos: LongInt);
 
 
 { Pixel readers/writers for different image formats }
@@ -275,6 +298,22 @@ procedure IndexToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal: PPalette32);
 
 
+{ Color constructor functions }
+
+{ Constructs TColor24Rec color.}
+function Color24(R, G, B: Byte): TColor24Rec; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Constructs TColor32Rec color.}
+function Color32(A, R, G, B: Byte): TColor32Rec; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Constructs TColor48Rec color.}
+function Color48(R, G, B: Word): TColor48Rec; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Constructs TColor64Rec color.}
+function Color64(A, R, G, B: Word): TColor64Rec; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Constructs TColorFPRec color.}
+function ColorFP(A, R, G, B: Single): TColorFPRec; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Constructs TColorHFRec color.}
+function ColorHF(A, R, G, B: THalfFloat): TColorHFRec; {$IFDEF USE_INLINE}inline;{$ENDIF}
+
+
 { Special formats conversion functions }
 
 { Converts image to/from/between special image formats (dxtc, ...).}
@@ -284,6 +323,14 @@ procedure ConvertSpecial(var Image: TImageData; SrcInfo,
 
 { Inits all image format information. Called internally on startup.}
 procedure InitImageFormats(var Infos: TImageFormatInfoArray);
+
+const
+  // Grayscale conversion channel weights
+  GrayConv: TColorFPRec = (B: 0.114; G: 0.587; R: 0.299; A: 0.0);
+
+  // Contants for converting integer colors to floating point
+  OneDiv8Bit: Single = 1.0 / 255.0;
+  OneDiv16Bit: Single = 1.0 / 65535.0;
 
 implementation
 
@@ -316,14 +363,6 @@ procedure SetPixelFPChannel8Bit(Bits: Pointer; Info: PImageFormatInfo; Palette: 
 
 function GetPixelFPFloat32(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32): TColorFPRec; forward;
 procedure SetPixelFPFloat32(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32; const Color: TColorFPRec); forward;
-
-
-const
-  // grayscale conversion channel weights
-  GrayConv: TColorFPRec = (B: 0.114; G: 0.587; R: 0.299; A: 0.0);
-  // contants for converting integer colors to floating point
-  OneDiv8Bit: Single = 1.0 / 255.0;
-  OneDiv16Bit: Single = 1.0 / 65535.0;
 
 var
   PFR3G3B2: TPixelFormatInfo;
@@ -759,6 +798,26 @@ var
     CheckDimensions: CheckDXTDimensions;
     SpecialNearestFormat: ifGray8);
 
+  ATI1NInfo: TImageFormatInfo = (
+    Format: ifATI1N;
+    Name: 'ATI1N';
+    ChannelCount: 1;
+    HasAlphaChannel: False;
+    IsSpecial: True;
+    GetPixelsSize: GetDXTPixelsSize;
+    CheckDimensions: CheckDXTDimensions;
+    SpecialNearestFormat: ifGray8);
+
+  ATI2NInfo: TImageFormatInfo = (
+    Format: ifATI2N;
+    Name: 'ATI2N';
+    ChannelCount: 2;
+    HasAlphaChannel: False;
+    IsSpecial: True;
+    GetPixelsSize: GetDXTPixelsSize;
+    CheckDimensions: CheckDXTDimensions;
+    SpecialNearestFormat: ifA8R8G8B8);
+
 {$WARNINGS ON}
 
 function PixelFormat(ABitCount, RBitCount, GBitCount, BBitCount: Byte): TPixelFormatInfo; forward;
@@ -804,6 +863,8 @@ begin
   Infos[ifDXT3] := @DXT3Info;
   Infos[ifDXT5] := @DXT5Info;
   Infos[ifBTC] :=  @BTCInfo;
+  Infos[ifATI1N] := @ATI1NInfo;
+  Infos[ifATI2N] := @ATI2NInfo;
 
   PFR3G3B2 := PixelFormat(0, 3, 3, 2);
   PFX5R1G1B1 := PixelFormat(0, 1, 1, 1);
@@ -905,6 +966,57 @@ begin
      B := (Color and BBitMask shl BShift) * 255 div BRecDiv;
     end;
 end;
+
+
+{ Color constructor functions }
+
+
+function Color24(R, G, B: Byte): TColor24Rec;
+begin
+  Result.R := R;
+  Result.G := G;
+  Result.B := B;
+end;
+
+function Color32(A, R, G, B: Byte): TColor32Rec;
+begin
+  Result.A := A;
+  Result.R := R;
+  Result.G := G;
+  Result.B := B;
+end;
+
+function Color48(R, G, B: Word): TColor48Rec;
+begin
+  Result.R := R;
+  Result.G := G;
+  Result.B := B;
+end;
+
+function Color64(A, R, G, B: Word): TColor64Rec;
+begin
+  Result.A := A;
+  Result.R := R;
+  Result.G := G;
+  Result.B := B;
+end;
+
+function ColorFP(A, R, G, B: Single): TColorFPRec;
+begin
+  Result.A := A;
+  Result.R := R;
+  Result.G := G;
+  Result.B := B;
+end;
+
+function ColorHF(A, R, G, B: THalfFloat): TColorHFRec;
+begin
+  Result.A := A;
+  Result.R := R;
+  Result.G := G;
+  Result.B := B;
+end;
+
 
 { Additional image manipulation functions (usually used internally by Imaging unit) }
 
@@ -1439,37 +1551,21 @@ begin
     Result := 0.0;
 end;
 
-const
-  // Some built-in filter functions adn their default radii
-  FilterFunctions: array[TSamplingFilter] of TFilterFunction = (
-    FilterNearest, FilterLinear, FilterCosine, FilterHermite, FilterQuadratic,
-    FilterGaussian, FilterSpline, FilterLanczos, FilterMitchell, FilterCatmullRom);
-  FilterRadii: array[TSamplingFilter] of Single = (
-    1.0, 1.0, 1.0, 1.0, 1.5,
-    1.25, 2.0, 3.0, 2.0, 2.0);
-
 procedure StretchResample(const SrcImage: TImageData; SrcX, SrcY, SrcWidth,
   SrcHeight: LongInt; var DstImage: TImageData; DstX, DstY, DstWidth,
   DstHeight: LongInt; Filter: TSamplingFilter; WrapEdges: Boolean);
 begin
   // Calls the other function with filter function and radius defined by Filter
   StretchResample(SrcImage, SrcX, SrcY, SrcWidth, SrcHeight, DstImage, DstX, DstY,
-    DstWidth, DstHeight, FilterFunctions[Filter], FilterRadii[Filter]);
+    DstWidth, DstHeight, SamplingFilterFunctions[Filter], SamplingFilterRadii[Filter],
+    WrapEdges);
 end;
-
-{ The following resampling code is modified and extended code from Graphics32
-  library by Alex A. Denisov.}
-type
-  TPointRec = record
-    Pos: LongInt;
-    Weight: Single;
-  end;
-  TCluster = array of TPointRec;
-  TMappingTable = array of TCluster;
 
 var
   FullEdge: Boolean = True;
 
+{ The following resampling code is modified and extended code from Graphics32
+  library by Alex A. Denisov.}
 function BuildMappingTable(DstLow, DstHigh, SrcLow, SrcHigh, SrcImageWidth: LongInt;
   Filter: TFilterFunction; Radius: Single; WrapEdges: Boolean): TMappingTable;
 var
@@ -1595,6 +1691,25 @@ begin
   end;
 end;
 
+procedure FindExtremes(const Map: TMappingTable; var MinPos, MaxPos: LongInt);
+var
+  I, J: LongInt;
+begin
+  if Length(Map) > 0 then
+  begin
+    MinPos := Map[0][0].Pos;
+    MaxPos := MinPos;
+    for I := 0 to Length(Map) - 1 do
+      for J := 0 to Length(Map[I]) - 1 do
+      begin
+        if MinPos > Map[I][J].Pos then
+          MinPos := Map[I][J].Pos;
+        if MaxPos < Map[I][J].Pos then
+          MaxPos := Map[I][J].Pos;
+      end;
+  end;
+end;
+
 procedure StretchResample(const SrcImage: TImageData; SrcX, SrcY, SrcWidth,
   SrcHeight: LongInt; var DstImage: TImageData; DstX, DstY, DstWidth,
   DstHeight: LongInt; Filter: TFilterFunction; Radius: Single; WrapEdges: Boolean);
@@ -1614,26 +1729,6 @@ var
   BytesPerChannel: LongInt;
   ChannelValueMax, InvChannelValueMax: Single;
   UseOptimizedVersion: Boolean;
-
-  procedure FindExtremes(const Map: TMappingTable; var MinPos, MaxPos: LongInt);
-  var
-    I, J: LongInt;
-  begin
-    if Length(Map) > 0 then
-    begin
-      MinPos := Map[0][0].Pos;
-      MaxPos := MinPos;
-      for I := 0 to Length(Map) - 1 do
-        for J := 0 to Length(Map[I]) - 1 do
-        begin
-          if MinPos > Map[I][J].Pos then
-            MinPos := Map[I][J].Pos;
-          if MaxPos < Map[I][J].Pos then
-            MaxPos := Map[I][J].Pos;
-        end;
-    end;
-  end;
-
 begin
   GetImageFormatInfo(SrcImage.Format, Info);
   Assert(SrcImage.Format = DstImage.Format);
@@ -3234,6 +3329,31 @@ begin
   end;
 end;
 
+procedure GetInterpolatedAlphas(var AlphaBlock: TDXTAlphaBlockInt);
+begin
+  with AlphaBlock do
+  if Alphas[0] > Alphas[1] then
+  begin
+    // Interpolation of six alphas
+    Alphas[2] := (6 * Alphas[0] + 1 * Alphas[1] + 3) div 7;
+    Alphas[3] := (5 * Alphas[0] + 2 * Alphas[1] + 3) div 7;
+    Alphas[4] := (4 * Alphas[0] + 3 * Alphas[1] + 3) div 7;
+    Alphas[5] := (3 * Alphas[0] + 4 * Alphas[1] + 3) div 7;
+    Alphas[6] := (2 * Alphas[0] + 5 * Alphas[1] + 3) div 7;
+    Alphas[7] := (1 * Alphas[0] + 6 * Alphas[1] + 3) div 7;
+  end
+  else
+  begin
+    // Interpolation of four alphas, two alphas are set directly
+    Alphas[2] := (4 * Alphas[0] + 1 * Alphas[1] + 2) div 5;
+    Alphas[3] := (3 * Alphas[0] + 2 * Alphas[1] + 2) div 5;
+    Alphas[4] := (2 * Alphas[0] + 3 * Alphas[1] + 2) div 5;
+    Alphas[5] := (1 * Alphas[0] + 4 * Alphas[1] + 2) div 5;
+    Alphas[6] := 0;
+    Alphas[7] := $FF;
+  end;
+end;
+
 procedure DecodeDXT5(SrcBits, DestBits: PByte; Width, Height: LongInt);
 var
   Sel, X, Y, I, J, K: LongInt;
@@ -3264,27 +3384,7 @@ begin
       AMask[0] := PLongWord(@AlphaBlock.Alphas[2])^ and $00FFFFFF;
       AMask[1] := PLongWord(@AlphaBlock.Alphas[5])^ and $00FFFFFF;
       // alpha interpolation between two endpoint alphas
-      with AlphaBlock do
-        if Alphas[0] > Alphas[1] then
-        begin
-          // interpolation of six alphas
-          Alphas[2] := (6 * Alphas[0] + 1 * Alphas[1] + 3) div 7;
-          Alphas[3] := (5 * Alphas[0] + 2 * Alphas[1] + 3) div 7;
-          Alphas[4] := (4 * Alphas[0] + 3 * Alphas[1] + 3) div 7;
-          Alphas[5] := (3 * Alphas[0] + 4 * Alphas[1] + 3) div 7;
-          Alphas[6] := (2 * Alphas[0] + 5 * Alphas[1] + 3) div 7;
-          Alphas[7] := (1 * Alphas[0] + 6 * Alphas[1] + 3) div 7;
-        end
-        else
-        begin
-          // interpolation of four alphas, two alphas are set directly
-          Alphas[2] := (4 * Alphas[0] + 1 * Alphas[1] + 2) div 5;
-          Alphas[3] := (3 * Alphas[0] + 2 * Alphas[1] + 2) div 5;
-          Alphas[4] := (2 * Alphas[0] + 3 * Alphas[1] + 2) div 5;
-          Alphas[5] := (1 * Alphas[0] + 4 * Alphas[1] + 2) div 5;
-          Alphas[6] := 0;
-          Alphas[7] := $FF;
-        end;
+      GetInterpolatedAlphas(AlphaBlock);
 
       // we distribute the dxt block colors and alphas
       // across the 4x4 block of the destination image
@@ -3307,7 +3407,7 @@ begin
 end;
 
 procedure GetBlock(var Block: TPixelBlock; SrcBits: Pointer; XPos, YPos,
-  Width, Height: LongInt); 
+  Width, Height: LongInt);
 var
   X, Y, I: LongInt;
   Src: PColor32Rec;
@@ -3637,7 +3737,71 @@ begin
     end;
 end;
 
-procedure DecodeBTC(SrcBits, DestBits: PByte; Width, Height: LongInt);
+procedure GetOneChannelBlock(var Block: TPixelBlock; SrcBits: Pointer; XPos, YPos,
+  Width, Height, BytesPP, ChannelIdx: Integer);
+var
+  X, Y, I: Integer;
+  Src: PByte;
+begin
+  I := 0;
+  // 4x4 pixel block is filled with information about every pixel in the block,
+  // but only one channel value is stored in Alpha field
+  for Y := 0 to 3 do
+    for X := 0 to 3 do
+    begin
+      Src := @PByteArray(SrcBits)[(YPos * 4 + Y) * Width * BytesPP +
+        (XPos * 4 + X) * BytesPP + ChannelIdx];
+      Block[I].Alpha := Src^;
+      Inc(I);
+    end;
+end;
+
+procedure EncodeATI1N(SrcBits: Pointer; DestBits: PByte; Width, Height: Integer);
+var
+  X, Y: Integer;
+  AlphaBlock: TDXTAlphaBlockInt;
+  Pixels: TPixelBlock;
+begin
+  for Y := 0 to Height div 4 - 1 do
+    for X := 0 to Width div 4 - 1 do
+    begin
+      // Encode one channel
+      GetOneChannelBlock(Pixels, SrcBits, X, Y, Width, Height, 1, 0);
+      GetAlphaEndPoints(Pixels, AlphaBlock.Alphas[1], AlphaBlock.Alphas[0]);
+      GetAlphaMask(AlphaBlock.Alphas[0], AlphaBlock.Alphas[1], Pixels,
+        PByteArray(@AlphaBlock.Alphas[2]));
+      PDXTAlphaBlockInt(DestBits)^ := AlphaBlock;
+      Inc(DestBits, SizeOf(AlphaBlock));
+    end;
+end;
+
+procedure EncodeATI2N(SrcBits: Pointer; DestBits: PByte; Width, Height: Integer);
+var
+  X, Y: Integer;
+  AlphaBlock: TDXTAlphaBlockInt;
+  Pixels: TPixelBlock;
+begin
+  for Y := 0 to Height div 4 - 1 do
+    for X := 0 to Width div 4 - 1 do
+    begin
+      // Encode Red/X channel
+      GetOneChannelBlock(Pixels, SrcBits, X, Y, Width, Height, 4, ChannelRed);
+      GetAlphaEndPoints(Pixels, AlphaBlock.Alphas[1], AlphaBlock.Alphas[0]);
+      GetAlphaMask(AlphaBlock.Alphas[0], AlphaBlock.Alphas[1], Pixels,
+        PByteArray(@AlphaBlock.Alphas[2]));
+      PDXTAlphaBlockInt(DestBits)^ := AlphaBlock;
+      Inc(DestBits, SizeOf(AlphaBlock));
+      // Encode Green/Y channel
+      GetOneChannelBlock(Pixels, SrcBits, X, Y, Width, Height, 4, ChannelGreen);
+      GetAlphaEndPoints(Pixels, AlphaBlock.Alphas[1], AlphaBlock.Alphas[0]);
+      GetAlphaMask(AlphaBlock.Alphas[0], AlphaBlock.Alphas[1], Pixels,
+        PByteArray(@AlphaBlock.Alphas[2]));
+      PDXTAlphaBlockInt(DestBits)^ := AlphaBlock;
+      Inc(DestBits, SizeOf(AlphaBlock));
+    end;
+end;
+
+procedure DecodeBTC(SrcBits, DestBits: PByte; Width, Height: Integer);
 var
   X, Y, I, J, K: Integer;
   Block: TBTCBlock;
@@ -3665,6 +3829,78 @@ begin
     end;
 end;
 
+procedure DecodeATI1N(SrcBits, DestBits: PByte; Width, Height: Integer);
+var
+  X, Y, I, J: Integer;
+  AlphaBlock: TDXTAlphaBlockInt;
+  AMask: array[0..1] of LongWord;
+begin
+  for Y := 0 to Height div 4 - 1 do
+    for X := 0 to Width div 4 - 1 do
+    begin
+      AlphaBlock := PDXTAlphaBlockInt(SrcBits)^;
+      Inc(SrcBits, SizeOf(AlphaBlock));
+      // 6 bit alpha mask is copied into two long words for
+      // easier usage
+      AMask[0] := PLongWord(@AlphaBlock.Alphas[2])^ and $00FFFFFF;
+      AMask[1] := PLongWord(@AlphaBlock.Alphas[5])^ and $00FFFFFF;
+      // alpha interpolation between two endpoint alphas
+      GetInterpolatedAlphas(AlphaBlock);
+
+      // we distribute the dxt block alphas
+      // across the 4x4 block of the destination image
+      for J := 0 to 3 do
+       for I := 0 to 3 do
+       begin
+         PByteArray(DestBits)[(Y shl 2 + J) * Width + (X shl 2 + I)] :=
+           AlphaBlock.Alphas[AMask[J shr 1] and 7];
+         AMask[J shr 1] := AMask[J shr 1] shr 3;
+       end;
+  end;
+end;
+
+procedure DecodeATI2N(SrcBits, DestBits: PByte; Width, Height: Integer);
+var
+  X, Y, I, J: Integer;
+  Color: TColor32Rec;
+  AlphaBlock1, AlphaBlock2: TDXTAlphaBlockInt;
+  AMask1: array[0..1] of LongWord;
+  AMask2: array[0..1] of LongWord;
+begin
+  for Y := 0 to Height div 4 - 1 do
+    for X := 0 to Width div 4 - 1 do
+    begin
+      // Read the first alpha block and get masks
+      AlphaBlock1 := PDXTAlphaBlockInt(SrcBits)^;
+      Inc(SrcBits, SizeOf(AlphaBlock1));
+      AMask1[0] := PLongWord(@AlphaBlock1.Alphas[2])^ and $00FFFFFF;
+      AMask1[1] := PLongWord(@AlphaBlock1.Alphas[5])^ and $00FFFFFF;
+      // Read the secind alpha block and get masks
+      AlphaBlock2 := PDXTAlphaBlockInt(SrcBits)^;
+      Inc(SrcBits, SizeOf(AlphaBlock2));
+      AMask2[0] := PLongWord(@AlphaBlock2.Alphas[2])^ and $00FFFFFF;
+      AMask2[1] := PLongWord(@AlphaBlock2.Alphas[5])^ and $00FFFFFF;
+      // alpha interpolation between two endpoint alphas
+      GetInterpolatedAlphas(AlphaBlock1);
+      GetInterpolatedAlphas(AlphaBlock2);
+
+      Color.A := $FF;
+      Color.B := 0;
+
+      // Distribute alpha block values across 4x4 pixel block,
+      // first alpha block represents Red channel, second is Green. 
+      for J := 0 to 3 do
+       for I := 0 to 3 do
+       begin
+         Color.R := AlphaBlock1.Alphas[AMask1[J shr 1] and 7];
+         Color.G := AlphaBlock2.Alphas[AMask2[J shr 1] and 7];
+         PColor32RecArray(DestBits)[(Y shl 2 + J) * Width + (X shl 2 + I)] := Color;
+         AMask1[J shr 1] := AMask1[J shr 1] shr 3;
+         AMask2[J shr 1] := AMask2[J shr 1] shr 3;
+       end;
+  end;
+end;
+
 procedure SpecialToUnSpecial(const SrcImage: TImageData; DestBits: Pointer;
   SrcInfo, DstInfo: PImageFormatInfo);
 begin
@@ -3673,6 +3909,8 @@ begin
     ifDXT3: DecodeDXT3(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
     ifDXT5: DecodeDXT5(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
     ifBTC:  DecodeBTC (SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
+    ifATI1N: DecodeATI1N(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
+    ifATI2N: DecodeATI2N(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
   end;
 end;
 
@@ -3684,6 +3922,8 @@ begin
     ifDXT3: EncodeDXT3(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
     ifDXT5: EncodeDXT5(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
     ifBTC:  EncodeBTC (SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
+    ifATI1N: EncodeATI1N(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
+    ifATI2N: EncodeATI2N(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
   end;
 end;
 
@@ -3740,7 +3980,7 @@ begin
   // multiples of four
   CheckDXTDimensions(Format, Width, Height);
   Result := Width * Height;
-  if Format = ifDXT1 then
+  if Format in [ifDXT1, ifATI1N] then
     Result := Result div 2;
 end;
 
@@ -3908,12 +4148,43 @@ begin
   end;
 end;
 
+initialization
+  // Initialize default sampling filter function pointers and radii
+  SamplingFilterFunctions[sfNearest]    := FilterNearest;
+  SamplingFilterFunctions[sfLinear]     := FilterLinear;
+  SamplingFilterFunctions[sfCosine]     := FilterCosine;
+  SamplingFilterFunctions[sfHermite]    := FilterHermite;
+  SamplingFilterFunctions[sfQuadratic]  := FilterQuadratic;
+  SamplingFilterFunctions[sfGaussian]   := FilterGaussian;
+  SamplingFilterFunctions[sfSpline]     := FilterSpline;
+  SamplingFilterFunctions[sfLanczos]    := FilterLanczos;
+  SamplingFilterFunctions[sfMitchell]   := FilterMitchell;
+  SamplingFilterFunctions[sfCatmullRom] := FilterCatmullRom;
+  SamplingFilterRadii[sfNearest]    := 1.0;
+  SamplingFilterRadii[sfLinear]     := 1.0;
+  SamplingFilterRadii[sfCosine]     := 1.0;
+  SamplingFilterRadii[sfHermite]    := 1.0;
+  SamplingFilterRadii[sfQuadratic]  := 1.5;
+  SamplingFilterRadii[sfGaussian]   := 1.25;
+  SamplingFilterRadii[sfSpline]     := 2.0;
+  SamplingFilterRadii[sfLanczos]    := 3.0;
+  SamplingFilterRadii[sfMitchell]   := 2.0;
+  SamplingFilterRadii[sfCatmullRom] := 2.0;
+
 {
   File Notes:
 
   -- TODOS ----------------------------------------------------
     - nothing now
     - rewrite StretchRect for 8bit channels to use integer math?
+
+  -- 0.25.0 Changes/Bug Fixes -----------------------------------
+    - Made some resampling stuff public so that it can be used in canvas class.
+    - Added some color constructors.
+
+  -- 0.24.3 Changes/Bug Fixes -----------------------------------
+    - Some refactorings a changes to DXT based formats.
+    - Added ifATI1N and ifATI2N image data formats support structures and functions.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added ifBTC image format support structures and functions.

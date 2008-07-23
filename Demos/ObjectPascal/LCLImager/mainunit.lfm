@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 313
+  Left = 257
   Height = 512
-  Top = 196
+  Top = 247
   Width = 768
   HorzScrollBar.Page = 767
   VertScrollBar.Page = 491
@@ -281,7 +281,7 @@ object MainForm: TMainForm
       end
     end
     object MenuItem36: TMenuItem
-      Caption = 'Effects'
+      Caption = 'Linear Filters'
       object MenuItem37: TMenuItem
         Caption = 'Gaussian Blur'
         OnClick = MenuItem37Click
@@ -344,9 +344,67 @@ object MainForm: TMainForm
         Caption = 'Glow'
         OnClick = MenuItem45Click
       end
+    end
+    object MenuItem63: TMenuItem
+      Caption = 'Nonlinear Filters'
+      object MenuItem64: TMenuItem
+        Caption = 'Median 3x3'
+        OnClick = MenuItem64Click
+      end
+      object MenuItem65: TMenuItem
+        Caption = 'Median 5x5'
+        OnClick = MenuItem65Click
+      end
+      object MenuItem66: TMenuItem
+        Caption = 'Min 3x3'
+        OnClick = MenuItem66Click
+      end
+      object MenuItem67: TMenuItem
+        Caption = 'Min 5x5'
+        OnClick = MenuItem67Click
+      end
+      object MenuItem68: TMenuItem
+        Caption = 'Max 3x3'
+        OnClick = MenuItem68Click
+      end
+      object MenuItem69: TMenuItem
+        Caption = 'Max 5x5'
+        OnClick = MenuItem69Click
+      end
+    end
+    object MenuItem55: TMenuItem
+      Caption = 'Point Transforms'
+      object MenuItem56: TMenuItem
+        Caption = 'Invert Colors'
+        OnClick = MenuItem56Click
+      end
       object MenuItem47: TMenuItem
-        Caption = 'Negative'
+        Caption = '+ Contrast'
         OnClick = MenuItem47Click
+      end
+      object MenuItem57: TMenuItem
+        Caption = '- Contrast'
+        OnClick = MenuItem57Click
+      end
+      object MenuItem58: TMenuItem
+        Caption = '+ Brightness'
+        OnClick = MenuItem58Click
+      end
+      object MenuItem59: TMenuItem
+        Caption = '- Brightness'
+        OnClick = MenuItem59Click
+      end
+      object MenuItem60: TMenuItem
+        Caption = '+ Gamma'
+        OnClick = MenuItem60Click
+      end
+      object MenuItem61: TMenuItem
+        Caption = '- Gamma'
+        OnClick = MenuItem61Click
+      end
+      object MenuItem62: TMenuItem
+        Caption = 'Tresholding'
+        OnClick = MenuItem62Click
       end
     end
     object MenuItem9: TMenuItem

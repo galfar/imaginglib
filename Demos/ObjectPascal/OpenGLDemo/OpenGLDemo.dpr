@@ -20,6 +20,9 @@ program OpenGLDemo;
 
 {$R OpenGLDemo.res}
 
+{ Define this symbol if you want to use dglOpenGL header.}
+{$DEFINE USE_DGL_HEADERS}
+
 uses
 {$IFDEF MSWINDOWS}
   Windows,
@@ -29,8 +32,11 @@ uses
   Imaging,
   ImagingUtility,
   sdl,
-  gl,
-  glext,
+{$IFDEF USE_DGL_HEADERS}
+  dglOpenGL,
+{$ELSE}
+  gl, glext,
+{$ENDIF}
   ImagingOpenGL,
   DemoUtils;
 
@@ -42,8 +48,8 @@ const
   SOutScreenFile = 'GLScreen.png';
   SOutSpriteFile = 'GLSprite.dds';
   SIconFile = 'Icon.bmp';
-  DisplayWidth = 640;
-  DisplayHeight = 480;
+  DisplayWidth = 800;
+  DisplayHeight = 600;
   CubeSize = 200.0;
 
 var
@@ -55,8 +61,8 @@ var
   Event : TSDL_Event;
   Running: Boolean = True;
   Frames: LongInt = 0;
-  FPS: LongInt = 0;
-  LastTime: LongInt = 0;
+  FPS, Elapsed: Single;
+  CurrTime, FrameTime, LastTime: Cardinal;
   Angle: Single = 0.0;
   TextureCaps: TGLTextureCaps;
 {$IFDEF MSWINDOWS}
@@ -92,7 +98,7 @@ end;
 
 procedure UpdateCaption;
 begin
-  SDL_WM_SetCaption(PChar(Format(SWindowTitle + ' FPS: %d',
+  SDL_WM_SetCaption(PChar(Format(SWindowTitle + ' FPS: %.1f',
     [Imaging.GetVersionStr, GetFormatName(SpriteFormat), FPS])), SWindowIconTitle);
 end;
 
@@ -146,6 +152,12 @@ begin
     SetWindowPos(WindowHandle, 0, (GetSystemMetrics(SM_CXSCREEN) - DisplayWidth) div 2,
       (GetSystemMetrics(SM_CYSCREEN) - DisplayHeight - 20) div 2, 0, 0, SWP_NOSIZE or SWP_NOZORDER);
   end;
+{$ENDIF}
+
+{$IFDEF USE_DGL_HEADERS}
+  dglOpenGL.InitOpenGL;
+  dglOpenGL.ReadExtensions;
+  dglOpenGL.ReadImplementationProperties;
 {$ENDIF}
   ImagingOpenGL.GetGLTextureCaps(TextureCaps);
   // Disable some GL states
@@ -220,7 +232,7 @@ begin
     glTexCoord2f(0.0, 0.0); glVertex3f(CubeSize, 0.0, CubeSize);
   glEnd;
 
-  Angle := Angle + 0.025;
+  Angle := Angle + 50 * Elapsed;
   SDL_GL_SwapBuffers;
 end;
 
@@ -277,6 +289,8 @@ begin
   // Initialize surfaces and enter main loop
   Initialize;
   LastTime := SDL_GetTicks;
+  FrameTime := LastTime;
+
   while Running do
   begin
     while SDL_PollEvent(@Event) = 1 do
@@ -310,15 +324,18 @@ begin
       end;
     end;
 
+    CurrTime := SDL_GetTicks;
+    Elapsed := (CurrTime - LastTime) / 1000;
+    LastTime := CurrTime;
+    Inc(Frames);
     // Calculate FPS
-    if LongInt(SDL_GetTicks) - LastTime > 1000 then
+    if CurrTime - FrameTime > 1000 then
     begin
-      FPS := Frames;
+      FPS := Frames / (CurrTime - FrameTime) * 1000;
       UpdateCaption;
       Frames := 0;
-      LastTime := SDL_GetTicks;
+      FrameTime := CurrTime;
     end;
-    Inc(Frames);
 
     // Renders background and sprites to the window
     Present;
@@ -329,6 +346,10 @@ begin
 
 {
   File Notes:
+
+  -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Changes in timing.
+    - Can use dglOpenGL headers now.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - screenshots now work in all OSs and ImagingComponents is no longer needed

@@ -47,6 +47,7 @@ type
     MaxWidth: LongInt;
     MaxHeight: LongInt;
     DXTCompression: Boolean;
+    ATI3DcCompression: Boolean;
     MaxAnisotropy: LongInt;
     MaxSimultaneousTextures: LongInt;
   end;
@@ -149,6 +150,12 @@ function CreateD3DSurfaceFromImage(const Image: TImageData; Surface: IDirect3DSu
   Surface must be lockable for function to work.}
 function CreateImageFromD3DSurface(Surface: IDirect3DSurface9; var Image: TImageData): Boolean;
 
+const
+  D3DFMT_ATI1 = TD3DFormat(Byte('A') or (Byte('T') shl 8) or (Byte('I') shl 16) or
+    (Byte('1') shl 24));
+  D3DFMT_ATI2 = TD3DFormat(Byte('A') or (Byte('T') shl 8) or (Byte('I') shl 16) or
+    (Byte('2') shl 24));
+
 implementation
 
 const
@@ -175,6 +182,11 @@ begin
     else
       Caps.MaxAnisotropy := 0;
     Caps.MaxSimultaneousTextures := D3DCaps.MaxSimultaneousTextures;
+    // Texture format caps
+    Caps.DXTCompression := IsD3DFormatSupported(Device, D3DFMT_DXT1) and
+      IsD3DFormatSupported(Device, D3DFMT_DXT3) and IsD3DFormatSupported(Device, D3DFMT_DXT5);
+    Caps.ATI3DcCompression := IsD3DFormatSupported(Device, D3DFMT_ATI1) and
+      IsD3DFormatSupported(Device, D3DFMT_ATI2);
   end;
 end;
 
@@ -257,6 +269,8 @@ begin
     ifDXT1: Result := D3DFMT_DXT1;
     ifDXT3: Result := D3DFMT_DXT3;
     ifDXT5: Result := D3DFMT_DXT5;
+    ifATI1N: Result := D3DFMT_ATI1;
+    ifATI2N: Result := D3DFMT_ATI2;
   end;
 end;
 
@@ -294,6 +308,8 @@ begin
     D3DFMT_DXT1:          Result := ifDXT1;
     D3DFMT_DXT3:          Result := ifDXT3;
     D3DFMT_DXT5:          Result := ifDXT5;
+    D3DFMT_ATI1:          Result := ifATI1N;
+    D3DFMT_ATI2:          Result := ifATI2N;
   end;
 end;
 
@@ -745,6 +761,10 @@ end;
 
   -- TODOS ----------------------------------------------------
     - support for cube and volume maps
+
+  -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Added support for 3Dc compressed texture formats.
+    - Added detection of 3Dc support to texture caps.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Added CreatedWidth and CreatedHeight parameters to most

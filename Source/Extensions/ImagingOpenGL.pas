@@ -52,6 +52,8 @@ type
     MaxTextureSize: LongInt;  // Max size of texture in pixels supported by HW
     NonPowerOfTwo: Boolean;   // HW has full support for NPOT textures
     DXTCompression: Boolean;  // HW supports S3TC/DXTC compressed textures
+    ATI3DcCompression: Boolean; // HW supports ATI 3Dc compressed textures (ATI2N)
+    LATCCompression: Boolean; // HW supports LATC/RGTC compressed textures (ATI1N+ATI2N)
     FloatTextures: Boolean;   // HW supports floating point textures
     MaxAnisotropy: LongInt;   // Max anisotropy for aniso texture filtering
     MaxSimultaneousTextures: LongInt; // Number of texture units
@@ -74,7 +76,7 @@ function IsGLExtensionSupported(const Extension: string): Boolean;
   supported by hardware using GetGLTextureCaps, ImageFormatToGL does not
   check this.}
 function ImageFormatToGL(Format: TImageFormat; var GLFormat: GLenum;
-  var GLType: GLenum; var GLInternal: GLint): Boolean;
+  var GLType: GLenum; var GLInternal: GLint; const Caps: TGLTextureCaps): Boolean;
 
 { All GL textures created by Imaging functions have default parameters set -
   that means that no glTexParameter calls are made so default filtering,
@@ -250,6 +252,11 @@ const
   GL_COMPRESSED_RGBA_S3TC_DXT1_EXT  = $83F1;
   GL_COMPRESSED_RGBA_S3TC_DXT3_EXT  = $83F2;
   GL_COMPRESSED_RGBA_S3TC_DXT5_EXT  = $83F3;
+  GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI          = $8837;
+  GL_COMPRESSED_LUMINANCE_LATC1_EXT              = $8C70;
+  GL_COMPRESSED_SIGNED_LUMINANCE_LATC1_EXT       = $8C71;
+  GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT        = $8C72;
+  GL_COMPRESSED_SIGNED_LUMINANCE_ALPHA_LATC2_EXT = $8C73;
 
   // various GL extension constants
   GL_MAX_TEXTURE_UNITS              = $84E2;
@@ -328,6 +335,10 @@ begin
   if Caps.DXTCompression then
     glCompressedTexImage2D := GetGLProcAddress('glCompressedTexImage2D');
   Caps.DXTCompression := Caps.DXTCompression and (@glCompressedTexImage2D <> nil);
+  Caps.ATI3DcCompression := Caps.DXTCompression and
+    IsGLExtensionSupported('GL_ATI_texture_compression_3dc');
+  Caps.LATCCompression := Caps.DXTCompression and
+    IsGLExtensionSupported('GL_EXT_texture_compression_latc');
   // Check non power of 2 textures
   Caps.NonPowerOfTwo := IsGLExtensionSupported('GL_ARB_texture_non_power_of_two');
   // Check for floating point textures support
@@ -360,7 +371,7 @@ begin
 end;
 
 function ImageFormatToGL(Format: TImageFormat; var GLFormat: GLenum;
-  var GLType: GLenum; var GLInternal: GLint): Boolean;
+  var GLType: GLenum; var GLInternal: GLint; const Caps: TGLTextureCaps): Boolean;
 begin
   GLFormat := 0;
   GLType := 0;
@@ -457,6 +468,13 @@ begin
     ifDXT1: GLInternal := GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
     ifDXT3: GLInternal := GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
     ifDXT5: GLInternal := GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+    ifATI1N: GLInternal := GL_COMPRESSED_LUMINANCE_LATC1_EXT;
+    ifATI2N:
+      begin
+        GLInternal := GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT;
+        if not Caps.LATCCompression and Caps.ATI3DcCompression then
+          GLInternal := GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI;
+      end;
   end;
   Result := GLInternal <> 0;
 end;
@@ -520,7 +538,7 @@ function CreateGLTextureFromMultiImage(const Images: TDynImageDataArray;
   Width, Height: LongInt; MipMaps: Boolean; MainLevelIndex: LongInt; OverrideFormat: TImageFormat;
   CreatedWidth, CreatedHeight: PLongInt): GLuint;
 const
-  CompressedFormats: TImageFormats = [ifDXT1, ifDXT3, ifDXT5];
+  BlockCompressedFormats: TImageFormats = [ifDXT1, ifDXT3, ifDXT5, ifATI1N, ifATI2N];
 var
   I, MipLevels, PossibleLevels, ExistingLevels, CurrentWidth, CurrentHeight: LongInt;
   Caps: TGLTextureCaps;
@@ -584,23 +602,27 @@ begin
     else
       Desired := OverrideFormat;
 
-    // Check if the hardware supports floating point and compressed textures  
+    // Check if the hardware supports floating point and compressed textures
     GetImageFormatInfo(Desired, Info);
     if Info.IsFloatingPoint and not Caps.FloatTextures then
       Desired := ifA8R8G8B8;
     if (Desired in [ifDXT1, ifDXT3, ifDXT5]) and not Caps.DXTCompression then
       Desired := ifA8R8G8B8;
+    if (Desired = ifATI1N)  and not Caps.LATCCompression then
+      Desired := ifGray8;
+    if (Desired = ifATI2N) and not (Caps.ATI3DcCompression or Caps.LATCCompression) then
+      Desired := ifA8Gray8;
 
     // Try to find GL format equivalent to image format and if it is not
     // found use one of default formats
-    if not ImageFormatToGL(Desired, GLFormat, GLType, GLInternal) then
+    if not ImageFormatToGL(Desired, GLFormat, GLType, GLInternal, Caps) then
     begin
       GetImageFormatInfo(Desired, Info);
       if Info.HasGrayChannel then
         ConvTo := ifGray8
       else
         ConvTo := ifA8R8G8B8;
-      if not ImageFormatToGL(ConvTo, GLFormat, GLType, GLInternal) then
+      if not ImageFormatToGL(ConvTo, GLFormat, GLType, GLInternal, Caps) then
         Exit;
     end
     else
@@ -638,7 +660,7 @@ begin
         // Check if input image for this mipmap level has the right
         // size and format
         NeedsConvert := not (Images[I].Format = ConvTo);
-        if ConvTo in CompressedFormats then
+        if ConvTo in BlockCompressedFormats then
         begin
           // Input images in DXTC will have min dimensions of 4, but we need
           // current Width and Height to be lesser (for glCompressedTexImage2D)
@@ -679,7 +701,7 @@ begin
         FillMipMapLevel(LevelsArray[I - 1], CurrentWidth, CurrentHeight, LevelsArray[I]);
       end;
 
-      if ConvTo in CompressedFormats then
+      if ConvTo in BlockCompressedFormats then
       begin
         // Note: GL DXTC texture snaller than 4x4 must have width and height
         // as expected for non-DXTC texture (like 1x1 -  we cannot
@@ -857,6 +879,10 @@ initialization
     - use internal format of texture in CreateMultiImageFromGLTexture
       not only A8R8G8B8
     - support for cube and 3D maps
+
+  -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Added 3Dc compressed texture formats support.
+    - Added detection of 3Dc formats to texture caps.
 
   -- 0.24.3 Changes/Bug Fixes ---------------------------------
     - Added DisableNPOTSupportCheck option and related functionality.

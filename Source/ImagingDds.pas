@@ -114,6 +114,10 @@ const
     (Byte('3') shl 24));
   FOURCC_DXT5 = LongWord(Byte('D') or (Byte('X') shl 8) or (Byte('T') shl 16) or
     (Byte('5') shl 24));
+  FOURCC_ATI1 = LongWord(Byte('A') or (Byte('T') shl 8) or (Byte('I') shl 16) or
+    (Byte('1') shl 24));
+  FOURCC_ATI2 = LongWord(Byte('A') or (Byte('T') shl 8) or (Byte('I') shl 16) or
+    (Byte('2') shl 24));
 
   { Some D3DFORMAT values used in DDS files as FourCC value.}
   D3DFMT_A16B16G16R16  = 36;

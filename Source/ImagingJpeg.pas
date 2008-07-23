@@ -46,7 +46,7 @@ unit ImagingJpeg;
 { Automatically use FPC's PasJpeg when compiling with Lazarus.}
 
 {$IFDEF LCL}
-  { $UNDEF IMJPEGLIB}
+  {$UNDEF IMJPEGLIB}
   {$DEFINE PASJPEG}
 {$ENDIF}
 
@@ -65,7 +65,7 @@ uses
 
 {$IF Defined(FPC) and Defined(PASJPEG)}
   { When using FPC's pasjpeg in FPC the channel order is BGR instead of RGB}
-  { $DEFINE RGBSWAPPED} // not needed now apparently
+  {$DEFINE RGBSWAPPED}
 {$IFEND}
 
 type
@@ -377,7 +377,6 @@ var
   Info: TImageFormatInfo;
   Col32: PColor32Rec;
 {$IFDEF RGBSWAPPED}
-  I: LongInt;
   Pix: PColor24Rec;
 {$ENDIF}
 begin
@@ -554,6 +553,9 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    -- FPC's PasJpeg wasn't really used in last version, fixed.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
     - Fixed loading of CMYK jpeg images. Could cause heap corruption

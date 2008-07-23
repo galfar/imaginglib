@@ -1396,8 +1396,7 @@ procedure ClipCopyBounds(var SrcX, SrcY, Width, Height, DstX, DstY: LongInt; Src
     begin
       Diff := DstClipMin - DstPos;
       Size := Size - Diff;
-      if DstPos < SrcPos then
-        SrcPos := SrcPos + Diff;
+      SrcPos := SrcPos + Diff;
       DstPos := DstClipMin;
     end;
     if SrcPos < 0 then
@@ -1552,6 +1551,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.25.0 Changes/Bug Fixes -----------------------------------
+    - Fixed error in ClipCopyBounds which was causing ... bad clipping!
 
   -- 0.24.3 Changes/Bug Fixes -----------------------------------
     - Added GetTimeMilliseconds function.

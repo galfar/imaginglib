@@ -824,9 +824,14 @@ end;
   var
     P: TPoint;
   begin
+    // If you get compilation errors here with new Lazarus (rev 14368+)
+    // uncomment commented code and comment the active code below:
+
+    //P := TGtkDeviceContext(Dest).Offset;
     P := GetDCOffset(TDeviceContext(Dest));
     Inc(DstX, P.X);
     Inc(DstY, P.Y);
+    //gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
     gdk_draw_rgb_32_image(TDeviceContext(Dest).Drawable, TDeviceContext(Dest).GC,
       DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
       @PLongWordArray(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);

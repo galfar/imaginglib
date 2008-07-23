@@ -30,6 +30,8 @@ uses
   Imaging,
   ImagingClasses,
   ImagingComponents,
+  ImagingCanvases,
+  ImagingFormats,
   ImagingUtility;
 
 type
@@ -45,6 +47,8 @@ type
     Button3: TButton;
     Button4: TButton;
     ClipDst: TJvMovableBevel;
+    Button5: TButton;
+    Button6: TButton;
     procedure BtnLoadImagesClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -52,14 +56,16 @@ type
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
     procedure Button4Click(Sender: TObject);
+    procedure Button5Click(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
   public
     SrcImage, DstImage: TSingleImage;
     SrcBitmap, DstBitmap: TImagingBitmap;
-    procedure DoTest(Stretch: Boolean);
+    procedure DoTest(Stretch, CanvasDraw: Boolean);
   end;
 
 const
-  DefaultSrc = 'Tigers.bmp';
+  DefaultSrc = 'Vezyr.png';
   DefaultDst = 'Tigers.jpg';
   ForceFormat = ifA8R8G8B8;
 
@@ -138,20 +144,31 @@ end;
 
 procedure TMainForm.Button3Click(Sender: TObject);
 begin
-  DoTest(False);
+  DoTest(False, False);
 end;
 
 procedure TMainForm.Button4Click(Sender: TObject);
 begin
-  DoTest(True);
+  DoTest(True, False);
 end;
 
-procedure TMainForm.DoTest(Stretch: Boolean);
+procedure TMainForm.Button5Click(Sender: TObject);
+begin
+  DoTest(False, True);
+end;
+
+procedure TMainForm.Button6Click(Sender: TObject);
+begin
+  DoTest(True, True);
+end;
+
+procedure TMainForm.DoTest(Stretch, CanvasDraw: Boolean);
 var
   Result: TSingleImage;
   SrcBounds, DstBounds, DstClip: TRect;
   SrcBmp, DstBmp: TImagingBitmap;
   Rgn: HRGN;
+  SrcCanvas, DestCanvas: TImagingCanvas;
 begin
   // First use Imaging to copy/stretch images ----------------
 
@@ -164,23 +181,53 @@ begin
   DstClip := Rect(ClipDst.Left - ImageDst.Left, ClipDst.Top - ImageDst.Top,
     ClipDst.Left - ImageDst.Left + ClipDst.Width, ClipDst.Top - ImageDst.Top + ClipDst.Height);
 
-  if Stretch then
+  if not CanvasDraw then
   begin
-    // Clips rects for stretching
-    ImagingUtility.ClipStretchBounds(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
-      DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, SrcImage.Width, SrcImage.Height, DstClip);
-    // Call image's stretch method
-    SrcImage.StretchTo(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
-      Result, DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, rfBicubic);
+    if Stretch then
+    begin
+      // Clips rects for stretching
+      ImagingUtility.ClipStretchBounds(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
+        DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, SrcImage.Width, SrcImage.Height, DstClip);
+      // Call image's stretch method
+      SrcImage.StretchTo(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
+        Result, DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, rfBicubic);
+    end
+    else
+    begin
+      // Clips rects for copying
+      ImagingUtility.ClipCopyBounds(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
+        DstBounds.Left, DstBounds.Top, SrcImage.Width, SrcImage.Height, DstClip);
+      // Call image's copy method
+      SrcImage.CopyTo(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
+        Result, DstBounds.Left, DstBounds.Top);
+    end;
   end
   else
   begin
-    // Clips rects for copying
-    ImagingUtility.ClipCopyBounds(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
-      DstBounds.Left, DstBounds.Top, SrcImage.Width, SrcImage.Height, DstClip);
-    // Call image's copy method
-    SrcImage.CopyTo(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
-      Result, DstBounds.Left, DstBounds.Top);
+    SrcCanvas := TImagingCanvas.CreateForImage(SrcImage);
+    DestCanvas := TImagingCanvas.CreateForImage(Result);
+
+    if Stretch then
+    begin
+      // Clips rects for stretching
+      ImagingUtility.ClipStretchBounds(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
+        DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, SrcImage.Width, SrcImage.Height, DstClip);
+      // Call stretch method
+      SrcCanvas.StretchDrawAlpha(Rect(SrcBounds.Left, SrcBounds.Top, SrcBounds.Left + SrcBounds.Right, SrcBounds.Top + SrcBounds.Bottom),
+        DestCanvas, Rect(DstBounds.Left, DstBounds.Top, DstBounds.Left + DstBounds.Right, DstBounds.Top + DstBounds.Bottom), rfBicubic);
+    end
+    else
+    begin
+      // Clips rects for copying
+      ImagingUtility.ClipCopyBounds(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
+        DstBounds.Left, DstBounds.Top, SrcImage.Width, SrcImage.Height, DstClip);
+      // Call draw method
+      SrcCanvas.DrawAlpha(Rect(SrcBounds.Left, SrcBounds.Top, SrcBounds.Left + SrcBounds.Right, SrcBounds.Top + SrcBounds.Bottom),
+        DestCanvas, DstBounds.Left, DstBounds.Top);
+    end;
+
+    SrcCanvas.Free;
+    DestCanvas.Free;
   end;
 
   // Assign Imaging result to TImage on Result form
@@ -193,6 +240,12 @@ begin
   SrcBmp.Assign(SrcImage);
   DstBmp := TImagingBitmap.Create;
   DstBmp.Assign(DstImage);
+
+  // Get fresh bounds
+  SrcBounds := Rect(SelSrc.Left - ImageSrc.Left, SelSrc.Top - ImageSrc.Top,
+    SelSrc.Width, SelSrc.Height);
+  DstBounds := Rect(SelDst.Left - ImageDst.Left, SelDst.Top - ImageDst.Top,
+    SelDst.Width, SelDst.Height);
 
   // Now create and set clipping region
   Rgn := CreateRectRgn(DstClip.Left, DstClip.Top, DstClip.Right, DstClip.Bottom);

@@ -1,9 +1,9 @@
 { This is an automatically generated lazarus resource file }
 
 LazarusResources.Add('TMainForm','FORMDATA',[
-  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3'9'#1#6'Height'#3#0#2#3'Top'#3#196#0
-  +#5'Width'#3#0#3#18'HorzScrollBar.Page'#3#255#2#18'VertScrollBar.Page'#3#235#1
-  +#7'Caption'#6')LCL Imager (Vampyre Imaging Library Demo)'#12'ClientHeight'#3
+  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3#1#1#6'Height'#3#0#2#3'Top'#3#247#0#5
+  +'Width'#3#0#3#18'HorzScrollBar.Page'#3#255#2#18'VertScrollBar.Page'#3#235#1#7
+  +'Caption'#6')LCL Imager (Vampyre Imaging Library Demo)'#12'ClientHeight'#3
   +#236#1#11'ClientWidth'#3#0#3#21'Constraints.MinHeight'#3#240#0#20'Constraint'
   +'s.MinWidth'#3'@'#1#9'Icon.Data'#10':'#12#0#0'6'#12#0#0'BM6'#12#0#0#0#0#0#0
   +'6'#0#0#0'('#0#0#0' '#0#0#0' '#0#0#0#1#0#24#0#0#0#0#0#0#12#0#0'd'#0#0#0'd'#0
@@ -218,47 +218,64 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'MenuItem20'#7'Caption'#6#21'Set Used Colors To 16'#7'OnClick'#7#15'MenuItem'
   +'20Click'#0#0#9'TMenuItem'#10'MenuItem33'#7'Caption'#6#20'Set Used Colors To'
   +' 2'#7'OnClick'#7#15'MenuItem33Click'#0#0#0#9'TMenuItem'#10'MenuItem36'#7'Ca'
-  +'ption'#6#7'Effects'#0#9'TMenuItem'#10'MenuItem37'#7'Caption'#6#13'Gaussian '
-  +'Blur'#7'OnClick'#7#15'MenuItem37Click'#0#0#9'TMenuItem'#10'MenuItem38'#7'Ca'
-  +'ption'#6#18'Gaussian Blur More'#7'OnClick'#7#15'MenuItem38Click'#0#0#9'TMen'
-  +'uItem'#10'MenuItem39'#7'Caption'#6#7'Sharpen'#7'OnClick'#7#15'MenuItem39Cli'
-  +'ck'#0#0#9'TMenuItem'#10'MenuItem40'#7'Caption'#6#12'Sharpen More'#7'OnClick'
-  +#7#15'MenuItem40Click'#0#0#9'TMenuItem'#10'MenuItem41'#7'Caption'#6#17'Edge '
-  +'Detect (LoG)'#7'OnClick'#7#15'MenuItem41Click'#0#0#9'TMenuItem'#10'MenuItem'
-  +'42'#7'Caption'#6#22'Edge Detect Horizontal'#0#9'TMenuItem'#10'MenuItem49'#7
-  +'Caption'#6#5'Sobel'#7'OnClick'#7#15'MenuItem42Click'#0#0#9'TMenuItem'#10'Me'
-  +'nuItem50'#7'Caption'#6#7'Prewitt'#7'OnClick'#7#15'MenuItem50Click'#0#0#9'TM'
-  +'enuItem'#10'MenuItem51'#7'Caption'#6#5'Kirsh'#7'OnClick'#7#15'MenuItem51Cli'
-  +'ck'#0#0#0#9'TMenuItem'#10'MenuItem43'#7'Caption'#6#20'Edge Detect Vertical'
-  +#0#9'TMenuItem'#10'MenuItem52'#7'Caption'#6#5'Sobel'#7'OnClick'#7#15'MenuIte'
-  +'m43Click'#0#0#9'TMenuItem'#10'MenuItem53'#7'Caption'#6#7'Prewitt'#7'OnClick'
-  +#7#15'MenuItem53Click'#0#0#9'TMenuItem'#10'MenuItem54'#7'Caption'#6#5'Kirsh'
-  +#7'OnClick'#7#15'MenuItem54Click'#0#0#0#9'TMenuItem'#10'MenuItem48'#7'Captio'
-  +'n'#6#12'Edge Enhance'#7'OnClick'#7#15'MenuItem48Click'#0#0#9'TMenuItem'#10
-  +'MenuItem46'#7'Caption'#6#6'Emboss'#7'OnClick'#7#15'MenuItem46Click'#0#0#9'T'
-  +'MenuItem'#10'MenuItem45'#7'Caption'#6#4'Glow'#7'OnClick'#7#15'MenuItem45Cli'
-  +'ck'#0#0#9'TMenuItem'#10'MenuItem47'#7'Caption'#6#8'Negative'#7'OnClick'#7#15
-  +'MenuItem47Click'#0#0#0#9'TMenuItem'#9'MenuItem9'#7'Caption'#6#4'Help'#0#9'T'
-  +'MenuItem'#10'MenuItem10'#7'Caption'#6#5'About'#7'OnClick'#7#15'MenuItem10Cl'
-  +'ick'#0#0#0#0#18'TOpenPictureDialog'#5'OpenD'#5'Title'#6#18'Open existing fi'
-  +'le'#6'Filter'#6#255'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.'
-  +'jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.pn'
-  +'g;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png'
-  +';*.xpm;*.bmp|DirectDraw Surface (*.dds)|*.dds|True'#11'FilterIndex'#2#0#7'O'
-  +'ptions'#11#15'ofFileMustExist'#14'ofEnableSizing'#12'ofViewDetail'#13'ofAut'
-  +'oPreview'#0#4'left'#3#152#0#3'top'#2'('#0#0#11'TActionList'#11'ActionList1'
-  +#4'left'#2'p'#3'top'#2'S'#0#7'TAction'#18'ActViewFitToWindow'#7'Caption'#6#13
-  +'Fit To Window'#18'DisableIfNoHandler'#9#9'OnExecute'#7#25'ActViewFitToWindo'
-  +'wExecute'#0#0#7'TAction'#15'ActViewRealSize'#7'Caption'#6#9'Real Size'#7'Ch'
-  +'ecked'#9#18'DisableIfNoHandler'#9#9'OnExecute'#7#22'ActViewRealSizeExecute'
-  +#0#0#7'TAction'#11'ActViewInfo'#7'Caption'#6#10'Image Info'#18'DisableIfNoHa'
-  +'ndler'#9#9'OnExecute'#7#18'ActViewInfoExecute'#0#0#0#18'TSavePictureDialog'
-  +#5'SaveD'#5'Title'#6#12'Save file as'#10'DefaultExt'#6#4'.png'#6'Filter'#6
-  +#255'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;'
-  +'*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*'
-  +'.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|Dir'
-  ,'ectDraw Surface (*.dds)|*.dds|True'#11'FilterIndex'#2#0#7'Options'#11#17'of'
-  +'OverwritePrompt'#14'ofHideReadOnly'#20'ofExtensionDifferent'#15'ofPathMustE'
-  +'xist'#14'ofEnableSizing'#12'ofViewDetail'#13'ofAutoPreview'#0#4'left'#3#152
-  +#0#3'top'#2'S'#0#0#0
+  +'ption'#6#14'Linear Filters'#0#9'TMenuItem'#10'MenuItem37'#7'Caption'#6#13'G'
+  +'aussian Blur'#7'OnClick'#7#15'MenuItem37Click'#0#0#9'TMenuItem'#10'MenuItem'
+  +'38'#7'Caption'#6#18'Gaussian Blur More'#7'OnClick'#7#15'MenuItem38Click'#0#0
+  +#9'TMenuItem'#10'MenuItem39'#7'Caption'#6#7'Sharpen'#7'OnClick'#7#15'MenuIte'
+  +'m39Click'#0#0#9'TMenuItem'#10'MenuItem40'#7'Caption'#6#12'Sharpen More'#7'O'
+  +'nClick'#7#15'MenuItem40Click'#0#0#9'TMenuItem'#10'MenuItem41'#7'Caption'#6
+  +#17'Edge Detect (LoG)'#7'OnClick'#7#15'MenuItem41Click'#0#0#9'TMenuItem'#10
+  +'MenuItem42'#7'Caption'#6#22'Edge Detect Horizontal'#0#9'TMenuItem'#10'MenuI'
+  +'tem49'#7'Caption'#6#5'Sobel'#7'OnClick'#7#15'MenuItem42Click'#0#0#9'TMenuIt'
+  +'em'#10'MenuItem50'#7'Caption'#6#7'Prewitt'#7'OnClick'#7#15'MenuItem50Click'
+  +#0#0#9'TMenuItem'#10'MenuItem51'#7'Caption'#6#5'Kirsh'#7'OnClick'#7#15'MenuI'
+  +'tem51Click'#0#0#0#9'TMenuItem'#10'MenuItem43'#7'Caption'#6#20'Edge Detect V'
+  +'ertical'#0#9'TMenuItem'#10'MenuItem52'#7'Caption'#6#5'Sobel'#7'OnClick'#7#15
+  +'MenuItem43Click'#0#0#9'TMenuItem'#10'MenuItem53'#7'Caption'#6#7'Prewitt'#7
+  +'OnClick'#7#15'MenuItem53Click'#0#0#9'TMenuItem'#10'MenuItem54'#7'Caption'#6
+  +#5'Kirsh'#7'OnClick'#7#15'MenuItem54Click'#0#0#0#9'TMenuItem'#10'MenuItem48'
+  +#7'Caption'#6#12'Edge Enhance'#7'OnClick'#7#15'MenuItem48Click'#0#0#9'TMenuI'
+  +'tem'#10'MenuItem46'#7'Caption'#6#6'Emboss'#7'OnClick'#7#15'MenuItem46Click'
+  +#0#0#9'TMenuItem'#10'MenuItem45'#7'Caption'#6#4'Glow'#7'OnClick'#7#15'MenuIt'
+  +'em45Click'#0#0#0#9'TMenuItem'#10'MenuItem63'#7'Caption'#6#17'Nonlinear Filt'
+  +'ers'#0#9'TMenuItem'#10'MenuItem64'#7'Caption'#6#10'Median 3x3'#7'OnClick'#7
+  +#15'MenuItem64Click'#0#0#9'TMenuItem'#10'MenuItem65'#7'Caption'#6#10'Median '
+  +'5x5'#7'OnClick'#7#15'MenuItem65Click'#0#0#9'TMenuItem'#10'MenuItem66'#7'Cap'
+  +'tion'#6#7'Min 3x3'#7'OnClick'#7#15'MenuItem66Click'#0#0#9'TMenuItem'#10'Men'
+  +'uItem67'#7'Caption'#6#7'Min 5x5'#7'OnClick'#7#15'MenuItem67Click'#0#0#9'TMe'
+  +'nuItem'#10'MenuItem68'#7'Caption'#6#7'Max 3x3'#7'OnClick'#7#15'MenuItem68Cl'
+  +'ick'#0#0#9'TMenuItem'#10'MenuItem69'#7'Caption'#6#7'Max 5x5'#7'OnClick'#7#15
+  +'MenuItem69Click'#0#0#0#9'TMenuItem'#10'MenuItem55'#7'Caption'#6#16'Point Tr'
+  +'ansforms'#0#9'TMenuItem'#10'MenuItem56'#7'Caption'#6#13'Invert Colors'#7'On'
+  +'Click'#7#15'MenuItem56Click'#0#0#9'TMenuItem'#10'MenuItem47'#7'Caption'#6#10
+  +'+ Contrast'#7'OnClick'#7#15'MenuItem47Click'#0#0#9'TMenuItem'#10'MenuItem57'
+  +#7'Caption'#6#10'- Contrast'#7'OnClick'#7#15'MenuItem57Click'#0#0#9'TMenuIte'
+  +'m'#10'MenuItem58'#7'Caption'#6#12'+ Brightness'#7'OnClick'#7#15'MenuItem58C'
+  +'lick'#0#0#9'TMenuItem'#10'MenuItem59'#7'Caption'#6#12'- Brightness'#7'OnCli'
+  +'ck'#7#15'MenuItem59Click'#0#0#9'TMenuItem'#10'MenuItem60'#7'Caption'#6#7'+ '
+  +'Gamma'#7'OnClick'#7#15'MenuItem60Click'#0#0#9'TMenuItem'#10'MenuItem61'#7'C'
+  +'aption'#6#7'- Gamma'#7'OnClick'#7#15'MenuItem61Click'#0#0#9'TMenuItem'#10'M'
+  +'enuItem62'#7'Caption'#6#11'Tresholding'#7'OnClick'#7#15'MenuItem62Click'#0#0
+  +#0#9'TMenuItem'#9'MenuItem9'#7'Caption'#6#4'Help'#0#9'TMenuItem'#10'MenuItem'
+  ,'10'#7'Caption'#6#5'About'#7'OnClick'#7#15'MenuItem10Click'#0#0#0#0#18'TOpen'
+  +'PictureDialog'#5'OpenD'#5'Title'#6#18'Open existing file'#6'Filter'#6#255'G'
+  +'raphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico'
+  +';*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;'
+  +'*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDr'
+  +'aw Surface (*.dds)|*.dds|True'#11'FilterIndex'#2#0#7'Options'#11#15'ofFileM'
+  +'ustExist'#14'ofEnableSizing'#12'ofViewDetail'#13'ofAutoPreview'#0#4'left'#3
+  +#152#0#3'top'#2'('#0#0#11'TActionList'#11'ActionList1'#4'left'#2'p'#3'top'#2
+  +'S'#0#7'TAction'#18'ActViewFitToWindow'#7'Caption'#6#13'Fit To Window'#18'Di'
+  +'sableIfNoHandler'#9#9'OnExecute'#7#25'ActViewFitToWindowExecute'#0#0#7'TAct'
+  +'ion'#15'ActViewRealSize'#7'Caption'#6#9'Real Size'#7'Checked'#9#18'DisableI'
+  +'fNoHandler'#9#9'OnExecute'#7#22'ActViewRealSizeExecute'#0#0#7'TAction'#11'A'
+  +'ctViewInfo'#7'Caption'#6#10'Image Info'#18'DisableIfNoHandler'#9#9'OnExecut'
+  +'e'#7#18'ActViewInfoExecute'#0#0#0#18'TSavePictureDialog'#5'SaveD'#5'Title'#6
+  +#12'Save file as'#10'DefaultExt'#6#4'.png'#6'Filter'#6#255'Graphic (*.dds;*.'
+  +'tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.p'
+  +'bm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.d'
+  +'ib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDraw Surface (*.dd'
+  +'s)|*.dds|True'#11'FilterIndex'#2#0#7'Options'#11#17'ofOverwritePrompt'#14'o'
+  +'fHideReadOnly'#20'ofExtensionDifferent'#15'ofPathMustExist'#14'ofEnableSizi'
+  +'ng'#12'ofViewDetail'#13'ofAutoPreview'#0#4'left'#3#152#0#3'top'#2'S'#0#0#0
 ]);

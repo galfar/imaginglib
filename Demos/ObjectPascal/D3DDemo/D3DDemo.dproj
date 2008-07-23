@@ -14,10 +14,10 @@
     <DCC_StrictVarStrings>False</DCC_StrictVarStrings>
     <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
     <DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
-    <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;</DCC_UnitSearchPath>
-    <DCC_ResourcePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;</DCC_ResourcePath>
-    <DCC_ObjPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;</DCC_ObjPath>
-    <DCC_IncludePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;</DCC_IncludePath>
+    <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common</DCC_UnitSearchPath>
+    <DCC_ResourcePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common</DCC_ResourcePath>
+    <DCC_ObjPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common</DCC_ObjPath>
+    <DCC_IncludePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common</DCC_IncludePath>
     <DCC_Define>RELEASE</DCC_Define>
     <DCC_Optimize>False</DCC_Optimize>
     <DCC_GenerateStackFrames>True</DCC_GenerateStackFrames>
@@ -32,8 +32,6 @@
     <DCC_ObjPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common</DCC_ObjPath>
     <DCC_IncludePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common</DCC_IncludePath>
     <DCC_Define>DEBUG</DCC_Define>
-    <DCC_Optimize>False</DCC_Optimize>
-    <DCC_GenerateStackFrames>True</DCC_GenerateStackFrames>
   </PropertyGroup>
   <ProjectExtensions>
     <Borland.Personality>Delphi.Personality</Borland.Personality>

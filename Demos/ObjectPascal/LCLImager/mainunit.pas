@@ -46,6 +46,10 @@ type
     mtResize200Nearest, mtResize200Linear, mtResize200Cubic,
     mtSwapRB, mtSwapRG, mtSwapGB, mtReduce1024,
     mtReduce256, mtReduce64, mtReduce16, mtReduce2);
+  TPointTransform = (ptInvert, ptIncContrast, ptDecContrast, ptIncBrightness,
+    ptDecBrightness, ptIncGamma, ptDecGamma, ptTreshold);
+  TNonLinearFilter = (nfMedian, nfMin, nfMax);
+    
 
   { TMainForm }
   TMainForm = class(TForm)
@@ -102,6 +106,21 @@ type
     MenuItem52: TMenuItem;
     MenuItem53: TMenuItem;
     MenuItem54: TMenuItem;
+    MenuItem55: TMenuItem;
+    MenuItem56: TMenuItem;
+    MenuItem57: TMenuItem;
+    MenuItem58: TMenuItem;
+    MenuItem59: TMenuItem;
+    MenuItem60: TMenuItem;
+    MenuItem61: TMenuItem;
+    MenuItem62: TMenuItem;
+    MenuItem63: TMenuItem;
+    MenuItem64: TMenuItem;
+    MenuItem65: TMenuItem;
+    MenuItem66: TMenuItem;
+    MenuItem67: TMenuItem;
+    MenuItem68: TMenuItem;
+    MenuItem69: TMenuItem;
     MenuItemActSubImage: TMenuItem;
     MenuItem34: TMenuItem;
     MenuItem35: TMenuItem;
@@ -158,7 +177,20 @@ type
     procedure MenuItem51Click(Sender: TObject);
     procedure MenuItem53Click(Sender: TObject);
     procedure MenuItem54Click(Sender: TObject);
+    procedure MenuItem56Click(Sender: TObject);
+    procedure MenuItem57Click(Sender: TObject);
+    procedure MenuItem58Click(Sender: TObject);
+    procedure MenuItem59Click(Sender: TObject);
     procedure MenuItem5Click(Sender: TObject);
+    procedure MenuItem60Click(Sender: TObject);
+    procedure MenuItem61Click(Sender: TObject);
+    procedure MenuItem62Click(Sender: TObject);
+    procedure MenuItem64Click(Sender: TObject);
+    procedure MenuItem65Click(Sender: TObject);
+    procedure MenuItem66Click(Sender: TObject);
+    procedure MenuItem67Click(Sender: TObject);
+    procedure MenuItem68Click(Sender: TObject);
+    procedure MenuItem69Click(Sender: TObject);
     procedure MenuItem7Click(Sender: TObject);
     procedure FormatChangeClick(Sender: TObject);
   private
@@ -172,7 +204,9 @@ type
     procedure UpdateView;
     function CheckCanvasFormat: Boolean;
     procedure ApplyConvolution(Kernel: Pointer; Size: LongInt; NeedsBlur: Boolean);
+    procedure ApplyPointTransform(Transform: TPointTransform);
     procedure ApplyManipulation(ManipType: TManipulationType);
+    procedure ApplyNonLinear(FilterType: TNonLinearFilter; FilterSize: Integer);
     procedure MeasureTime(const Msg: string; const OldTime: Int64);
   public
 
@@ -335,7 +369,7 @@ end;
 
 procedure TMainForm.MenuItem47Click(Sender: TObject);
 begin
-  ApplyConvolution(@FilterNegative3x3, 3, False);
+  ApplyPointTransform(ptIncContrast);
 end;
 
 procedure TMainForm.MenuItem48Click(Sender: TObject);
@@ -361,6 +395,26 @@ end;
 procedure TMainForm.MenuItem54Click(Sender: TObject);
 begin
   ApplyConvolution(@FilterKirshVert3x3, 3, True);
+end;
+
+procedure TMainForm.MenuItem56Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptInvert);
+end;
+
+procedure TMainForm.MenuItem57Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptDecContrast);
+end;
+
+procedure TMainForm.MenuItem58Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptIncBrightness);
+end;
+
+procedure TMainForm.MenuItem59Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptDecBrightness);
 end;
 
 procedure TMainForm.MenuItem34Click(Sender: TObject);
@@ -397,6 +451,51 @@ begin
       FImageCanvas.ApplyConvolution5x5(TConvolutionFilter5x5(Kernel^));
       
     MeasureTime('Image convolved in:', T);
+    UpdateView;
+  end;
+end;
+
+procedure TMainForm.ApplyPointTransform(Transform: TPointTransform);
+var
+  T: Int64;
+begin
+  if CheckCanvasFormat then
+  begin
+    FImageCanvas.CreateForImage(FImage);
+    T := GetTimeMicroseconds;
+
+    case Transform of
+      ptInvert:        FImageCanvas.InvertColors;
+      ptIncContrast:   FImageCanvas.ModifyContrastBrightness(20, 0);
+      ptDecContrast:   FImageCanvas.ModifyContrastBrightness(-20, 0);
+      ptIncBrightness: FImageCanvas.ModifyContrastBrightness(0, 20);
+      ptDecBrightness: FImageCanvas.ModifyContrastBrightness(0, -20);
+      ptIncGamma:      FImageCanvas.GammaCorection(1.2, 1.2, 1.2);
+      ptDecGamma:      FImageCanvas.GammaCorection(0.8, 0.8, 0.8);
+      ptTreshold:      FImageCanvas.Treshold(0.5, 0.5, 0.5);
+    end;
+
+    MeasureTime('Point transform done in:', T);
+    UpdateView;
+  end;
+end;
+
+procedure TMainForm.ApplyNonLinear(FilterType: TNonLinearFilter; FilterSize: Integer);
+var
+  T: Int64;
+begin
+  if CheckCanvasFormat then
+  begin
+    FImageCanvas.CreateForImage(FImage);
+    T := GetTimeMicroseconds;
+
+    case FilterType of
+      nfMedian: FImageCanvas.ApplyMedianFilter(FilterSize);
+      nfMin:    FImageCanvas.ApplyMinFilter(FilterSize);
+      nfMax:    FImageCanvas.ApplyMaxFilter(FilterSize);
+    end;
+
+    MeasureTime('Point transform done in:', T);
     UpdateView;
   end;
 end;
@@ -536,6 +635,51 @@ begin
   end;
 end;
 
+procedure TMainForm.MenuItem60Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptIncGamma);
+end;
+
+procedure TMainForm.MenuItem61Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptDecGamma);
+end;
+
+procedure TMainForm.MenuItem62Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptTreshold);
+end;
+
+procedure TMainForm.MenuItem64Click(Sender: TObject);
+begin
+  ApplyNonLinear(nfMedian, 3);
+end;
+
+procedure TMainForm.MenuItem65Click(Sender: TObject);
+begin
+  ApplyNonLinear(nfMedian, 5);
+end;
+
+procedure TMainForm.MenuItem66Click(Sender: TObject);
+begin
+  ApplyNonLinear(nfMin, 3);
+end;
+
+procedure TMainForm.MenuItem67Click(Sender: TObject);
+begin
+  ApplyNonLinear(nfMin, 5);
+end;
+
+procedure TMainForm.MenuItem68Click(Sender: TObject);
+begin
+  ApplyNonLinear(nfMax, 3);
+end;
+
+procedure TMainForm.MenuItem69Click(Sender: TObject);
+begin
+  ApplyNonLinear(nfMax, 5);
+end;
+
 procedure TMainForm.MenuItem7Click(Sender: TObject);
 begin
   Close;
@@ -595,6 +739,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - add more canvas stuff when it will be avaiable
+
+  -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Added point transforms and non-linear filters.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
     - Added status bar which shows times taken by some oprations.

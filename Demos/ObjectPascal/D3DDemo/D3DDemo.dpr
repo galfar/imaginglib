@@ -57,8 +57,8 @@ const
   SOutScreenFile = 'D3DScreen.png';
   SOutSpriteFile = 'D3DSprite.dds';
   SIconFile = 'Icon.bmp';
-  DisplayWidth = 640;
-  DisplayHeight = 480;
+  DisplayWidth = 800;
+  DisplayHeight = 600;
   SpriteWidth = 256.0;
   SpriteHeight = 192.0;
   FVF_VERTEX = D3DFVF_XYZRHW or D3DFVF_TEX2;

@@ -1,10 +1,10 @@
 object MainForm: TMainForm
-  Left = 59
-  Top = 90
+  Left = 108
+  Top = 118
   BorderIcons = [biSystemMenu]
   BorderStyle = bsSingle
   Caption = 'Clipping Test'
-  ClientHeight = 637
+  ClientHeight = 652
   ClientWidth = 1036
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -82,7 +82,7 @@ object MainForm: TMainForm
     Left = 0
     Top = 497
     Width = 1036
-    Height = 140
+    Height = 155
     Align = alClient
     TabOrder = 1
     object Button1: TButton
@@ -120,6 +120,24 @@ object MainForm: TMainForm
       Caption = 'StretchRect Test'
       TabOrder = 3
       OnClick = Button4Click
+    end
+    object Button5: TButton
+      Left = 344
+      Top = 127
+      Width = 145
+      Height = 25
+      Caption = 'Canvas.Draw Test'
+      TabOrder = 4
+      OnClick = Button5Click
+    end
+    object Button6: TButton
+      Left = 512
+      Top = 127
+      Width = 145
+      Height = 25
+      Caption = 'Canvas.StretchDraw Test'
+      TabOrder = 5
+      OnClick = Button6Click
     end
   end
 end
