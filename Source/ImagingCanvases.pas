@@ -62,8 +62,10 @@ const
   pcDkGray  = $FF808080;
 
   MaxPenWidth = 256;
+
 type
   EImagingCanvasError = class(EImagingError);
+  EImagingCanvasBlendingError = class(EImagingError);
 
   { Fill mode used when drawing filled objects on canvas.}
   TFillMode = (
@@ -147,6 +149,7 @@ type
     procedure SetFillColor32(const Value: TColor32); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetFillColorFP(const Value: TColorFPRec); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetClipRect(const Value: TRect);
+    procedure CheckBeforeBlending(SrcFactor, DestFactor: TBlendingFactor; DestCanvas: TImagingCanvas);
   protected
     FPData: PImageData;
     FClipRect: TRect;
@@ -715,9 +718,9 @@ end;
 function TransformTreshold(const Pixel: TColorFPRec; R, G, B: Single): TColorFPRec;
 begin
   Result.A := Pixel.A;
-  Result.R := IffFloat(Result.R >= R, 1.0, 0.0);
-  Result.G := IffFloat(Result.G >= G, 1.0, 0.0);
-  Result.B := IffFloat(Result.B >= B, 1.0, 0.0);
+  Result.R := IffFloat(Pixel.R >= R, 1.0, 0.0);
+  Result.G := IffFloat(Pixel.G >= G, 1.0, 0.0);
+  Result.B := IffFloat(Pixel.B >= B, 1.0, 0.0);
 end;
 
 { TImagingCanvas class implementation }
@@ -820,6 +823,17 @@ begin
   SwapMin(FClipRect.Left, FClipRect.Right);
   SwapMin(FClipRect.Top, FClipRect.Bottom);
   IntersectRect(FClipRect, FClipRect, Rect(0, 0, FPData.Width, FPData.Height));
+end;
+
+procedure TImagingCanvas.CheckBeforeBlending(SrcFactor,
+  DestFactor: TBlendingFactor; DestCanvas: TImagingCanvas);
+begin
+  if SrcFactor in [bfSrcColor, bfOneMinusSrcColor] then
+    raise EImagingCanvasBlendingError.Create('Invalid source blending factor. Check the documentation for TBlendingFactor.');
+  if DestFactor in [bfDstColor, bfOneMinusDstColor] then
+    raise EImagingCanvasBlendingError.Create('Invalid destination blending factor. Check the documentation for TBlendingFactor.');
+  if DestCanvas.FormatInfo.IsIndexed then
+    raise EImagingCanvasBlendingError.Create('Blending destination canvas cannot be in indexed mode.');
 end;
 
 function TImagingCanvas.GetPixelPointer(X, Y: LongInt): Pointer;
@@ -1073,6 +1087,7 @@ var
 begin
   if (FFillMode <> fmClear) and IntersectRect(DstRect, Rect, FClipRect) then
   begin
+    CheckBeforeBlending(SrcFactor, DestFactor, Self);
     for Y := DstRect.Top to DstRect.Bottom - 1 do
     begin
       Line := @PByteArray(FPData.Bits)[(Y * FPData.Width + DstRect.Left) * FFormatInfo.BytesPerPixel];
@@ -1168,6 +1183,7 @@ var
   PSrc: TColorFPRec;
   SrcPointer, DestPointer: PByte;
 begin
+  CheckBeforeBlending(SrcFactor, DestFactor, DestCanvas);
   SrcX := SrcRect.Left;
   SrcY := SrcRect.Top;
   Width := SrcRect.Right - SrcRect.Left;
@@ -1234,6 +1250,7 @@ var
   FilterFunction: TFilterFunction;
   Radius: Single;
 begin
+  CheckBeforeBlending(SrcFactor, DestFactor, DestCanvas);
   SrcX := SrcRect.Left;
   SrcY := SrcRect.Top;
   SrcWidth := SrcRect.Right - SrcRect.Left;
@@ -1270,7 +1287,8 @@ begin
       for Y := 0 to Length(ClusterY) - 1 do
       begin
         Weight := ClusterY[Y].Weight;
-        SrcPix := FFormatInfo.GetPixelFP(@PByteArray(FPData.Bits)[(ClusterY[Y].Pos * FPData.Width + X) * SrcBpp], @FFormatInfo, nil);
+        SrcPix := FFormatInfo.GetPixelFP(@PByteArray(FPData.Bits)[(ClusterY[Y].Pos * FPData.Width + X) * SrcBpp],
+          @FFormatInfo, FPData.Palette);
         AccumB := AccumB + SrcPix.B * Weight;
         AccumG := AccumG + SrcPix.G * Weight;
         AccumR := AccumR + SrcPix.R * Weight;
@@ -1369,11 +1387,11 @@ begin
 
         for J := 0 to KernelSize - 1 do
         begin
-          PosY := ClampInt(Y + J - SizeDiv2, FClipRect.Top, FClipRect.Bottom);
+          PosY := ClampInt(Y + J - SizeDiv2, FClipRect.Top, FClipRect.Bottom - 1);
 
           for I := 0 to KernelSize - 1 do
           begin
-            PosX := ClampInt(X + I - SizeDiv2, FClipRect.Left, FClipRect.Right);
+            PosX := ClampInt(X + I - SizeDiv2, FClipRect.Left, FClipRect.Right - 1);
             SrcPointer := @PByteArray(TempImage.Bits)[PosY * WidthBytes + PosX * Bpp];
 
             // Get pixels from neighbourhood of current pixel and add their
@@ -1444,11 +1462,11 @@ begin
       begin
         for J := 0 to FilterSize - 1 do
         begin
-          PosY := ClampInt(Y + J - SizeDiv2, FClipRect.Top, FClipRect.Bottom);
+          PosY := ClampInt(Y + J - SizeDiv2, FClipRect.Top, FClipRect.Bottom - 1);
 
           for I := 0 to FilterSize - 1 do
           begin
-            PosX := ClampInt(X + I - SizeDiv2, FClipRect.Left, FClipRect.Right);
+            PosX := ClampInt(X + I - SizeDiv2, FClipRect.Left, FClipRect.Right - 1);
             SrcPointer := @PByteArray(TempImage.Bits)[PosY * WidthBytes + PosX * Bpp];
 
             // Get pixels from neighbourhood of current pixel and store them
@@ -1601,6 +1619,7 @@ finalization
     - add channel write/read masks (like apply conv only on Red channel,...)
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Fixed error that could cause AV in linear and nonlinear filters.
     - Added blended rect filling function FillRectBlend.
     - Added drawing function with blending (DrawAlpha, StretchDrawAlpha,
         StretchDrawAdd, DrawBlend, StretchDrawBlend, ...)

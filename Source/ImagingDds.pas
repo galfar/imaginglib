@@ -102,7 +102,7 @@ const
   DDSSupportedFormats: TImageFormats = [ifR8G8B8, ifA8R8G8B8, ifX8R8G8B8,
     ifA1R5G5B5, ifA4R4G4B4, ifX1R5G5B5, ifX4R4G4B4, ifR5G6B5, ifA16B16G16R16,
     ifR32F, ifA32B32G32R32F, ifR16F, ifA16B16G16R16F, ifR3G3B2, ifGray8, ifA8Gray8,
-    ifGray16, ifDXT1, ifDXT3, ifDXT5];
+    ifGray16, ifDXT1, ifDXT3, ifDXT5, ifATI1N, ifATI2N];
 
 const
   { Four character codes.}
@@ -354,6 +354,8 @@ begin
         FOURCC_DXT1: SrcFormat := ifDXT1;
         FOURCC_DXT3: SrcFormat := ifDXT3;
         FOURCC_DXT5: SrcFormat := ifDXT5;
+        FOURCC_ATI1: SrcFormat := ifATI1N;
+        FOURCC_ATI2: SrcFormat := ifATI2N;
       end;
     end
     else if (Flags and DDPF_RGB) = DDPF_RGB then
@@ -667,6 +669,8 @@ begin
         ifDXT1:          Desc.PixelFormat.FourCC := FOURCC_DXT1;
         ifDXT3:          Desc.PixelFormat.FourCC := FOURCC_DXT3;
         ifDXT5:          Desc.PixelFormat.FourCC := FOURCC_DXT5;
+        ifATI1N:         Desc.PixelFormat.FourCC := FOURCC_ATI1;
+        ifATI2N:         Desc.PixelFormat.FourCC := FOURCC_ATI2;
       end;
     end
     else if FmtInfo.HasGrayChannel then
@@ -818,6 +822,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Added support for 3Dc ATI1/2 formats.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Saved DDS with mipmaps now correctly defineds COMPLEX flag.

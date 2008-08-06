@@ -74,6 +74,7 @@ type
     BtnLast: TSpeedButton;
     BtnSave: TButton;
     SaveDialog: TSavePictureDialog;
+    CheckFilter: TCheckBox;
     procedure PaintBoxPaint(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -84,11 +85,21 @@ type
     procedure BtnFirstClick(Sender: TObject);
     procedure BtnLastClick(Sender: TObject);
     procedure BtnSaveClick(Sender: TObject);
+    procedure ViewPanelResize(Sender: TObject);
+    procedure CheckFilterClick(Sender: TObject);
   private
-    FImage: ImagingClasses.TMultiImage; // Class that hold multiple images (load from MNG or DDS files for instance)
+    // Class that holds multiple images (loaded from MNG or DDS files for instance)
+    FImage: ImagingClasses.TMultiImage;
+    // Canvas for drawing on loaded images
+    FImageCanvas: ImagingCanvases.TImagingCanvas;
+    // Image background
+    FBack: ImagingClasses.TSingleImage;
+    // Canvas for background image
+    FBackCanvas: ImagingCanvases.TImagingCanvas;
     FFileName: string;
     FLastTime: LongInt;
     FOriginalFormats: array of TImageFormat;
+    FSupported: Boolean;
   public
     procedure SetSupported;
     procedure SetUnsupported;
@@ -97,7 +108,7 @@ type
   end;
 
 const
-  FillColor = $00FFFFA6;
+  FillColor = $FFA6FFFF;
   CheckersDensity = 8;
   SUnsupportedFormat = 'Selected item format not supported';
 
@@ -131,9 +142,16 @@ begin
       // Store original data formats for later use
       SetLength(FOriginalFormats, FImage.ImageCount);
       for I := 0 to FImage.ImageCount - 1 do
-        FOriginalFormats[I] := FImage.Images[I].Format;
-      // Convert images to 32bit ARGB format for easier drawing later
-      FImage.ConvertImages(ifA8R8G8B8);
+      begin
+        FImage.ActiveImage := I;
+        FOriginalFormats[I] := FImage.Format;
+        // Convert image to 32bit ARGB format if current format is not supported
+        // by canvas class
+        if not (FImage.Format in TImagingCanvas.GetSupportedFormats) then
+          FImage.Format := ifA8R8G8B8;
+      end;
+      // Activate first image and update UI
+      FImage.ActiveImage := 0;
       SetSupported;
       PaintBox.Repaint;
     except
@@ -159,11 +177,12 @@ begin
   BtnFirst.Enabled := True;
   BtnLast.Enabled := True;
   BtnSave.Enabled := True;
+  CheckFilter.Enabled := True;
+  FSupported := True;
 end;
 
 procedure TMainForm.SetUnsupported;
 var
-  ImgCanvas: ImagingCanvases.TImagingCanvas;
   X, Y, Step: LongInt;
 begin
   // Set info texts to 'unsupported' and create default image to show
@@ -177,24 +196,22 @@ begin
   BtnFirst.Enabled := False;
   BtnLast.Enabled := False;
   BtnSave.Enabled := False;
+  CheckFilter.Enabled := False;
+  FSupported := False;
 
   if Assigned(FImage) then
   begin
     FImage.CreateFromParams(CheckersDensity, CheckersDensity, ifA8R8G8B8, 1);
-
-    // Create canvas for image and draw checker board
-    ImgCanvas := ImagingCanvases.FindBestCanvasForImage(FImage).CreateForImage(FImage);
+    FImageCanvas.CreateForImage(FImage);
 
     Step := FImage.Width div CheckersDensity;
     for Y := 0 to CheckersDensity - 1 do
       for X := 0 to CheckersDensity - 1 do
       begin
-        ImgCanvas.FillColor32 := IffUnsigned((Odd(X) and not Odd(Y)) or (not Odd(X) and Odd(Y)),
+        FImageCanvas.FillColor32 := IffUnsigned((Odd(X) and not Odd(Y)) or (not Odd(X) and Odd(Y)),
           pcWhite, pcBlack);
-        ImgCanvas.FillRect(Rect(X * Step, Y * Step, (X + 1) * Step, (Y + 1) * Step));
+        FImageCanvas.FillRect(Rect(X * Step, Y * Step, (X + 1) * Step, (Y + 1) * Step));
       end;
-
-    ImgCanvas.Free;
   end;
   // Paint current image
   PaintBox.Repaint;
@@ -220,6 +237,11 @@ begin
       Imaging.GetFilterIndexExtension(SaveDialog.FilterIndex, False));
     FImage.SaveMultiToFile(CopyPath);
   end;
+end;
+
+procedure TMainForm.CheckFilterClick(Sender: TObject);
+begin
+  PaintBox.Repaint;
 end;
 
 procedure TMainForm.BtnFirstClick(Sender: TObject);
@@ -266,39 +288,64 @@ begin
   end;
 end;
 
+procedure TMainForm.ViewPanelResize(Sender: TObject);
+begin
+  // Resize background image to fit the paint box
+  FBack.Resize(PaintBox.ClientWidth, PaintBox.ClientHeight, rfNearest);
+  // Update back canvas state after resizing of associated image
+  FBackCanvas.UpdateCanvasState;
+end;
+
 procedure TMainForm.FormDestroy(Sender: TObject);
 begin
   FImage.Free;
+  FImageCanvas.Free;
+  FBack.Free;
+  FBackCanvas.Free;
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
 begin
   Caption := Caption + ' version ' + Imaging.GetVersionStr;
   FImage := TMultiImage.Create;
+  FImageCanvas := TImagingCanvas.Create;
+  FBack := TSingleImage.CreateFromParams(128, 128, ifA8R8G8B8);
+  FBackCanvas := TImagingCanvas.CreateForImage(FBack);
   SetUnsupported;
 end;
 
 procedure TMainForm.PaintBoxPaint(Sender: TObject);
 var
   R: TRect;
+  Filter: TResizeFilter;
 begin
+  // Fill background with default color
   FillDefault;
-  if (FImage.Width > 0) and (FImage.Height > 0) and (FImage.Format = ifA8R8G8B8) then
-  begin
-    // Scale image to fit the paint box
-    R := ImagingUtility.ScaleRectToRect(FImage.BoundsRect, PaintBox.ClientRect);
-    // Draw image to canvas (without conversion) using OS drawing functions.
-    // Note that DisplayImage only supports images in ifA8R8G8B8 format so
-    // if you have image in different format you must convert it or
-    // create standard TBitmap by calling ImagingComponents.ConvertImageToBitmap
-    ImagingComponents.DisplayImage(PaintBox.Canvas, R, FImage);
-  end;
+
+  // Determine which stretching filter to use
+  if FSupported and CheckFilter.Checked then
+    Filter := rfBicubic
+  else
+    Filter := rfNearest;
+  // Scale image to fit the paint box
+  R := ImagingUtility.ScaleRectToRect(FImage.BoundsRect, PaintBox.ClientRect);
+  // Create canvas for current image frame
+  FImageCanvas.CreateForImage(FImage);
+  // Stretch image over background canvas
+  FImageCanvas.StretchDrawAlpha(FImage.BoundsRect, FBackCanvas, R, Filter);
+
+  // Draw image to canvas (without conversion) using OS drawing functions.
+  // Note that DisplayImage only supports images in ifA8R8G8B8 format so
+  // if you have image in different format you must convert it or
+  // create standard TBitmap by calling ImagingComponents.ConvertImageToBitmap
+  ImagingComponents.DisplayImage(PaintBox.Canvas, PaintBox.BoundsRect, FBack);
 end;
 
 procedure TMainForm.FillDefault;
 begin
-  PaintBox.Canvas.Brush.Color := FillColor;
-  PaintBox.Canvas.FillRect(PaintBox.ClientRect);
+  // Fill background canvas with default color
+  FBackCanvas.FillColor32 := FillColor;
+  FBackCanvas.FillRect(Rect(0, 0, FBack.Width, FBack.Height));
 end;
 
 {
@@ -306,6 +353,9 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Added alpha blended drawing with optional filtered stretching.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
     - Added Save Image Copy button and related stuff.

@@ -172,6 +172,9 @@ function ColorHalfToFloat(ColorHF: TColorHFRec): TColorFPRec; {$IFDEF USE_INLINE
 { Converts single-precision floating point color to half float color.}
 function ColorFloatToHalf(ColorFP: TColorFPRec): TColorHFRec; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
+{ Makes image PalEntries x 1 big where each pixel has color of one pal entry.}
+procedure VisualizePalette(Pal: PPalette32; Entries: Integer; out PalImage: TImageData);
+
 type
   TPointRec = record
     Pos: LongInt;
@@ -194,7 +197,7 @@ procedure ChannelGetSrcPixel(Src: PByte; SrcInfo: PImageFormatInfo;
   var Pix: TColor64Rec);
 { Sets pixel of image in any ARGB format. Channel values must be scaled to 16 bits.}
 procedure ChannelSetDstPixel(Dst: PByte; DstInfo: PImageFormatInfo;
-  const Pix: TColor64Rec); 
+  const Pix: TColor64Rec);
 
 { Returns pixel of image in any grayscale format. Gray value is scaled to 64 bits
   and alpha to 16 bits.}
@@ -1296,13 +1299,18 @@ procedure ReduceColorsMedianCut(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
   begin
     FillChar(DstPal^, SizeOf(TColor32Rec) * MaxColors, $FF);
     for I := 0 to MaxColors - 1 do
+    begin
+      if I < Boxes then
       with Box[I].Represented do
-        begin
-          DstPal[I].A := A;
-          DstPal[I].R := R;
-          DstPal[I].G := G;
-          DstPal[I].B := B;
-        end;
+      begin
+        DstPal[I].A := A;
+        DstPal[I].R := R;
+        DstPal[I].G := G;
+        DstPal[I].B := B;
+      end
+      else
+        DstPal[I].Color := $FF000000;
+    end;
   end;
 
   function MapColor(const Col: TColor32Rec) : LongInt;
@@ -2330,6 +2338,21 @@ begin
   Result.R := FloatToHalf(ColorFP.R);
   Result.G := FloatToHalf(ColorFP.G);
   Result.B := FloatToHalf(ColorFP.B);
+end;
+
+procedure VisualizePalette(Pal: PPalette32; Entries: Integer; out PalImage: TImageData);
+var
+  I: Integer;
+  Pix: PColor32;
+begin
+  InitImage(PalImage);
+  NewImage(Entries, 1, ifA8R8G8B8, PalImage);
+  Pix := PalImage.Bits;
+  for I := 0 to Entries - 1 do
+  begin
+    Pix^ := Pal[I].Color;
+    Inc(Pix);
+  end;       
 end;
 
 
@@ -3902,9 +3925,9 @@ begin
 end;
 
 procedure SpecialToUnSpecial(const SrcImage: TImageData; DestBits: Pointer;
-  SrcInfo, DstInfo: PImageFormatInfo);
+  SpecialFormat: TImageFormat);
 begin
-  case SrcInfo.Format of
+  case SpecialFormat of
     ifDXT1: DecodeDXT1(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
     ifDXT3: DecodeDXT3(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
     ifDXT5: DecodeDXT5(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
@@ -3914,10 +3937,10 @@ begin
   end;
 end;
 
-procedure UnSpecialToSpecial(const DestImage: TImageData; SrcBits: Pointer;
-  SrcInfo, DstInfo: PImageFormatInfo);
+procedure UnSpecialToSpecial(SrcBits: Pointer; const DestImage: TImageData;
+  SpecialFormat: TImageFormat);
 begin
-  case DstInfo.Format of
+  case SpecialFormat of
     ifDXT1: EncodeDXT1(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
     ifDXT3: EncodeDXT3(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
     ifDXT5: EncodeDXT5(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
@@ -3931,35 +3954,58 @@ procedure ConvertSpecial(var Image: TImageData;
   SrcInfo, DstInfo: PImageFormatInfo);
 var
   WorkImage: TImageData;
-  Width, Height: LongInt;
-begin
-  // first convert image to default non-special format
-  if SrcInfo.IsSpecial then
+
+  procedure CheckSize(var Img: TImageData; Info: PImageFormatInfo);
+  var
+    Width, Height: Integer;
   begin
+    Width := Img.Width;
+    Height := Img.Height;
+    DstInfo.CheckDimensions(Info.Format, Width, Height);
+    ResizeImage(Img, Width, Height, rfNearest);
+  end;
+
+begin
+  if SrcInfo.IsSpecial and DstInfo.IsSpecial then
+  begin
+    // Convert source to nearest 'normal' format
     InitImage(WorkImage);
     NewImage(Image.Width, Image.Height, SrcInfo.SpecialNearestFormat, WorkImage);
-    SpecialToUnSpecial(Image, WorkImage.Bits, SrcInfo, DstInfo);
+    SpecialToUnSpecial(Image, WorkImage.Bits, SrcInfo.Format);
     FreeImage(Image);
-    Image := WorkImage;
+    // Make sure output of SpecialToUnSpecial is the same as input of
+    // UnSpecialToSpecial
+    if SrcInfo.SpecialNearestFormat <> DstInfo.SpecialNearestFormat then
+      ConvertImage(WorkImage, DstInfo.SpecialNearestFormat);
+    // Convert work image to dest special format
+    CheckSize(WorkImage, DstInfo);
+    NewImage(WorkImage.Width, WorkImage.Height, DstInfo.Format, Image);
+    UnSpecialToSpecial(WorkImage.Bits, Image, DstInfo.Format);
+    FreeImage(WorkImage);
   end
-  else
-    ConvertImage(Image, DstInfo.SpecialNearestFormat);
-  // we have now image in default non-special format and
-  // if dest format is special we will convert to this special format
-  if DstInfo.IsSpecial then
+  else if SrcInfo.IsSpecial and not DstInfo.IsSpecial then
   begin
-    Width := Image.Width;
-    Height := Image.Height;
-    DstInfo.CheckDimensions(DstInfo.Format, Width, Height);
+    // Convert source to nearest 'normal' format
     InitImage(WorkImage);
-    NewImage(Width, Height, DstInfo.Format, WorkImage);
-    ResizeImage(Image, Width, Height, rfNearest);
-    UnSpecialToSpecial(WorkImage, Image.Bits, SrcInfo, DstInfo);
+    NewImage(Image.Width, Image.Height, SrcInfo.SpecialNearestFormat, WorkImage);
+    SpecialToUnSpecial(Image, WorkImage.Bits, SrcInfo.Format);
     FreeImage(Image);
+    // Now convert to dest format
+    ConvertImage(WorkImage, DstInfo.Format);
     Image := WorkImage;
   end
-  else
-    ConvertImage(Image, DstInfo.Format);
+  else if not SrcInfo.IsSpecial and DstInfo.IsSpecial then
+  begin
+    // Convert source to nearest format
+    WorkImage := Image;
+    ConvertImage(WorkImage, DstInfo.SpecialNearestFormat);
+    // Now convert from nearest to dest
+    CheckSize(WorkImage, DstInfo);
+    InitImage(Image);
+    NewImage(WorkImage.Width, WorkImage.Height, DstInfo.Format, Image);
+    UnSpecialToSpecial(WorkImage.Bits, Image, DstInfo.Format);
+    FreeImage(WorkImage);
+  end;
 end;
 
 function GetStdPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
@@ -4181,6 +4227,9 @@ initialization
   -- 0.25.0 Changes/Bug Fixes -----------------------------------
     - Made some resampling stuff public so that it can be used in canvas class.
     - Added some color constructors.
+    - Added VisualizePalette helper function.
+    - Fixed ConvertSpecial, not very readable before and error when
+      converting special->special.
 
   -- 0.24.3 Changes/Bug Fixes -----------------------------------
     - Some refactorings a changes to DXT based formats.

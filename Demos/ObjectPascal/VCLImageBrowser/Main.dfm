@@ -1,6 +1,6 @@
 object MainForm: TMainForm
-  Left = 255
-  Top = 123
+  Left = 107
+  Top = 66
   Caption = 'Vampyre Imaging Library Demo - VCL Image Browser'
   ClientHeight = 600
   ClientWidth = 800
@@ -375,6 +375,18 @@ object MainForm: TMainForm
         TabOrder = 0
         OnClick = BtnSaveClick
       end
+      object CheckFilter: TCheckBox
+        Left = 464
+        Top = 39
+        Width = 121
+        Height = 17
+        Anchors = [akTop, akRight]
+        Caption = 'Bicubic filtering'
+        Checked = True
+        State = cbChecked
+        TabOrder = 1
+        OnClick = CheckFilterClick
+      end
     end
     object ViewPanel: TPanel
       Left = 0
@@ -385,6 +397,7 @@ object MainForm: TMainForm
       BevelOuter = bvNone
       Color = 16777126
       TabOrder = 1
+      OnResize = ViewPanelResize
       object PaintBox: TPaintBox
         Left = 0
         Top = 0

@@ -484,7 +484,7 @@ begin
           FPalSize := 1 shl BI.BitCount;
         Read(Handle, Palette, FPalSize * SizeOf(TColor32Rec));
       end;
-      for I := 0 to FPalSize - 1 do
+      for I := 0 to Info.PaletteEntries - 1 do
         Palette[I].A := $FF;
     end;
 
@@ -801,6 +801,10 @@ initialization
   -- TODOS ----------------------------------------------------
     - nothing now
     - Add option to choose to save V3 or V4 headers. 
+
+  -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Fixed problem with indexed BMP loading - some pal entries
+      could end up with alpha=0. 
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Now saves bitmaps as bottom-up for better compatibility
