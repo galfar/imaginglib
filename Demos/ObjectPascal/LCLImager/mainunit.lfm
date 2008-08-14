@@ -407,6 +407,25 @@ object MainForm: TMainForm
         OnClick = MenuItem62Click
       end
     end
+    object MenuItem70: TMenuItem
+      Caption = 'Binary Morphology'
+      object MenuItem71: TMenuItem
+        Caption = 'Erode'
+        OnClick = MenuItem71Click
+      end
+      object MenuItem72: TMenuItem
+        Caption = 'Dilate'
+        OnClick = MenuItem72Click
+      end
+      object MenuItem73: TMenuItem
+        Caption = 'Open'
+        OnClick = MenuItem73Click
+      end
+      object MenuItem74: TMenuItem
+        Caption = 'Close'
+        OnClick = MenuItem74Click
+      end
+    end
     object MenuItem9: TMenuItem
       Caption = 'Help'
       object MenuItem10: TMenuItem

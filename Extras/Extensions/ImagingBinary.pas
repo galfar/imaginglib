@@ -26,7 +26,9 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ Unit with operations on binary images.}
+{ Unit with operations on binary images. Binary images in Imaging are
+  ifGray8 images where pixels with value 0 are considerend off, an pixels > 0
+  are on.}
 unit ImagingBinary;
 
 {$I ImagingOptions.inc}
@@ -43,7 +45,8 @@ type
     moDilate  // Dilatation
   );
 
-  { Structuring element for morphology operations.}
+  { Structuring element for morphology operations. Use ones and
+   zeroes to define your struct elements.}
   TStructElement = array of array of Byte;
 
 { Thresholding using Otsu's method (which chooses the threshold
@@ -52,9 +55,10 @@ type
   computed threshold level. Otherwise computed threshold is stored in Threshold
   and Image is not modified (if you're just interesting in gloabal threshold level).}
 procedure OtsuThresholding(var Image: TImageData; Threshold: PInteger = nil);
-
+{ Applies basic morphology operators (Erode/Dilate) on Image using given structuring element
+  Strel. You can do composite operations (Open/Close) by calling this function
+  twice each time with different operator.}
 procedure Morphology(var Image: TImageData; const Strel: TStructElement; Op: TMorphologyOp);
-
 
 implementation
 
@@ -189,7 +193,7 @@ begin
           else
             PixVal := 0;
 
-          if (Strel[X, Y] = 1) and (PixVal > 0) then
+          if (Strel[X, Y] > 0) and (PixVal > 0) then
             Inc(PixCount);
         end;
       end;

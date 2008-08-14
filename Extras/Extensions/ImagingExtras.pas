@@ -36,9 +36,10 @@ unit ImagingExtras;
 {$I ImagingOptions.inc}
 
 {$DEFINE LINK_JPEG2000}    // link support for JPEG2000 images
-{ $DEFINE LINK_TIFF}        // link support for TIFF images - disabled by default!
+{$DEFINE LINK_TIFF}        // link support for TIFF images - disabled by default!
 {$DEFINE LINK_PSD}         // link support for PSD images
 {$DEFINE LINK_PCX}         // link support for PCX images
+{$DEFINE LINK_XPM}         // link support for XPM images
 {$DEFINE LINK_ELDER}       // link support for Elder Imagery images
 
 {$IF not (Defined(DELPHI) or
@@ -90,6 +91,9 @@ uses
 {$ENDIF}
 {$IFDEF LINK_PCX}
   ImagingPcx,
+{$ENDIF}
+{$IFDEF LINK_XPM}
+  ImagingXpm,
 {$ENDIF}
 {$IFDEF LINK_ELDER}
   ElderImagery,

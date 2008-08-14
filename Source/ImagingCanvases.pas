@@ -288,8 +288,8 @@ type
     procedure GammaCorection(Red, Green, Blue: Single);
     { Inverts colors of all image pixels, makes negative image.}
     procedure InvertColors;
-    { Simple single level tresholding with treshold value for each color channel.}
-    procedure Treshold(Red, Green, Blue: Single);
+    { Simple single level thresholding with threshold level for each color channel.}
+    procedure Threshold(Red, Green, Blue: Single);
 
     { Color used when drawing lines, frames, and outlines of objects.}
     property PenColor32: TColor32 read FPenColor32 write SetPenColor32;
@@ -715,7 +715,7 @@ begin
   Result.B := 1.0 - Pixel.B;
 end;
 
-function TransformTreshold(const Pixel: TColorFPRec; R, G, B: Single): TColorFPRec;
+function TransformThreshold(const Pixel: TColorFPRec; R, G, B: Single): TColorFPRec;
 begin
   Result.A := Pixel.A;
   Result.R := IffFloat(Pixel.R >= R, 1.0, 0.0);
@@ -1546,9 +1546,9 @@ begin
   PointTransform(TransformInvert, 0, 0, 0);
 end;
 
-procedure TImagingCanvas.Treshold(Red, Green, Blue: Single);
+procedure TImagingCanvas.Threshold(Red, Green, Blue: Single);
 begin
-  PointTransform(TransformTreshold, Red, Green, Blue);
+  PointTransform(TransformThreshold, Red, Green, Blue);
 end;
 
 class function TImagingCanvas.GetSupportedFormats: TImageFormats;
@@ -1611,12 +1611,10 @@ finalization
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - more more more ... 
+    - more more more ...
     - implement pen width everywhere
     - add blending (*image and object drawing)
-    - add image drawing
     - more objects (arc, polygon)
-    - add channel write/read masks (like apply conv only on Red channel,...)
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
     - Fixed error that could cause AV in linear and nonlinear filters.

@@ -256,26 +256,32 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'Gamma'#7'OnClick'#7#15'MenuItem60Click'#0#0#9'TMenuItem'#10'MenuItem61'#7'C'
   +'aption'#6#7'- Gamma'#7'OnClick'#7#15'MenuItem61Click'#0#0#9'TMenuItem'#10'M'
   +'enuItem62'#7'Caption'#6#11'Tresholding'#7'OnClick'#7#15'MenuItem62Click'#0#0
-  +#0#9'TMenuItem'#9'MenuItem9'#7'Caption'#6#4'Help'#0#9'TMenuItem'#10'MenuItem'
-  ,'10'#7'Caption'#6#5'About'#7'OnClick'#7#15'MenuItem10Click'#0#0#0#0#18'TOpen'
-  +'PictureDialog'#5'OpenD'#5'Title'#6#18'Open existing file'#6'Filter'#6#255'G'
-  +'raphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico'
-  +';*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;'
-  +'*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDr'
-  +'aw Surface (*.dds)|*.dds|True'#11'FilterIndex'#2#0#7'Options'#11#15'ofFileM'
-  +'ustExist'#14'ofEnableSizing'#12'ofViewDetail'#13'ofAutoPreview'#0#4'left'#3
-  +#152#0#3'top'#2'('#0#0#11'TActionList'#11'ActionList1'#4'left'#2'p'#3'top'#2
-  +'S'#0#7'TAction'#18'ActViewFitToWindow'#7'Caption'#6#13'Fit To Window'#18'Di'
-  +'sableIfNoHandler'#9#9'OnExecute'#7#25'ActViewFitToWindowExecute'#0#0#7'TAct'
-  +'ion'#15'ActViewRealSize'#7'Caption'#6#9'Real Size'#7'Checked'#9#18'DisableI'
-  +'fNoHandler'#9#9'OnExecute'#7#22'ActViewRealSizeExecute'#0#0#7'TAction'#11'A'
-  +'ctViewInfo'#7'Caption'#6#10'Image Info'#18'DisableIfNoHandler'#9#9'OnExecut'
-  +'e'#7#18'ActViewInfoExecute'#0#0#0#18'TSavePictureDialog'#5'SaveD'#5'Title'#6
-  +#12'Save file as'#10'DefaultExt'#6#4'.png'#6'Filter'#6#255'Graphic (*.dds;*.'
-  +'tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.p'
-  +'bm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.d'
-  +'ib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDraw Surface (*.dd'
-  +'s)|*.dds|True'#11'FilterIndex'#2#0#7'Options'#11#17'ofOverwritePrompt'#14'o'
-  +'fHideReadOnly'#20'ofExtensionDifferent'#15'ofPathMustExist'#14'ofEnableSizi'
-  +'ng'#12'ofViewDetail'#13'ofAutoPreview'#0#4'left'#3#152#0#3'top'#2'S'#0#0#0
+  +#0#9'TMenuItem'#10'MenuItem70'#7'Caption'#6#17'Binary Morphology'#0#9'TMenuI'
+  ,'tem'#10'MenuItem71'#7'Caption'#6#5'Erode'#7'OnClick'#7#15'MenuItem71Click'#0
+  +#0#9'TMenuItem'#10'MenuItem72'#7'Caption'#6#6'Dilate'#7'OnClick'#7#15'MenuIt'
+  +'em72Click'#0#0#9'TMenuItem'#10'MenuItem73'#7'Caption'#6#4'Open'#7'OnClick'#7
+  +#15'MenuItem73Click'#0#0#9'TMenuItem'#10'MenuItem74'#7'Caption'#6#5'Close'#7
+  +'OnClick'#7#15'MenuItem74Click'#0#0#0#9'TMenuItem'#9'MenuItem9'#7'Caption'#6
+  +#4'Help'#0#9'TMenuItem'#10'MenuItem10'#7'Caption'#6#5'About'#7'OnClick'#7#15
+  +'MenuItem10Click'#0#0#0#0#18'TOpenPictureDialog'#5'OpenD'#5'Title'#6#18'Open'
+  +' existing file'#6'Filter'#6#255'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.j'
+  +'if;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dd'
+  +'s;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm'
+  +';*.pbm;*.png;*.xpm;*.bmp|DirectDraw Surface (*.dds)|*.dds|True'#11'FilterIn'
+  +'dex'#2#0#7'Options'#11#15'ofFileMustExist'#14'ofEnableSizing'#12'ofViewDeta'
+  +'il'#13'ofAutoPreview'#0#4'left'#3#152#0#3'top'#2'('#0#0#11'TActionList'#11
+  +'ActionList1'#4'left'#2'p'#3'top'#2'S'#0#7'TAction'#18'ActViewFitToWindow'#7
+  +'Caption'#6#13'Fit To Window'#18'DisableIfNoHandler'#9#9'OnExecute'#7#25'Act'
+  +'ViewFitToWindowExecute'#0#0#7'TAction'#15'ActViewRealSize'#7'Caption'#6#9'R'
+  +'eal Size'#7'Checked'#9#18'DisableIfNoHandler'#9#9'OnExecute'#7#22'ActViewRe'
+  +'alSizeExecute'#0#0#7'TAction'#11'ActViewInfo'#7'Caption'#6#10'Image Info'#18
+  +'DisableIfNoHandler'#9#9'OnExecute'#7#18'ActViewInfoExecute'#0#0#0#18'TSaveP'
+  +'ictureDialog'#5'SaveD'#5'Title'#6#12'Save file as'#10'DefaultExt'#6#4'.png'
+  +#6'Filter'#6#255'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;'
+  +'*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.'
+  +'jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.x'
+  +'pm;*.bmp|DirectDraw Surface (*.dds)|*.dds|True'#11'FilterIndex'#2#0#7'Optio'
+  +'ns'#11#17'ofOverwritePrompt'#14'ofHideReadOnly'#20'ofExtensionDifferent'#15
+  +'ofPathMustExist'#14'ofEnableSizing'#12'ofViewDetail'#13'ofAutoPreview'#0#4
+  +'left'#3#152#0#3'top'#2'S'#0#0#0
 ]);

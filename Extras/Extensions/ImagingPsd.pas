@@ -69,6 +69,8 @@ const
 
 const
   SPSDMagic = '8BPS';
+  CompressionNone = 0;
+  CompressionRLE  = 1;
 
 type
   {$MINENUMSIZE 2}
@@ -261,7 +263,7 @@ begin
     Read(Handle, @Compression, SizeOf(Compression));
     Compression := SwapEndianWord(Compression);
 
-    if Compression = 1 then
+    if Compression = CompressionRLE then
     begin
       // RLE compressed PSDs (most) have first lengths of compressed scanlines
       // for each channel stored
@@ -316,7 +318,7 @@ begin
         begin
           for Y := 0 to Height - 1 do
           begin
-            if Compression = 1 then
+            if Compression = CompressionRLE then
             begin
               // Read RLE line and decompress it
               PackedSize := RLELineSizes[I * Height + Y];
@@ -356,7 +358,7 @@ begin
         begin
           // Skip current color channel, not needed for image loading - just to
           // get stream's position to the and of PSD
-          if Compression = 1 then
+          if Compression = CompressionRLE then
           begin
             for Y := 0 to Height - 1 do
               Seek(Handle, RLELineSizes[I * Height + Y], smFromCurrent);
@@ -471,12 +473,13 @@ begin
       end;
       Write(Handle, @RawPal, SizeOf(RawPal));
     end;
-    // Write resource and layer block sizes
+    // Write empty resource and layer block sizes
     LongVal := 0;
     Write(Handle, @LongVal, SizeOf(LongVal));
     Write(Handle, @LongVal, SizeOf(LongVal));
+
     // Set compression off
-    WordVal := 0;
+    WordVal := SwapEndianWord(CompressionNone);
     Write(Handle, @WordVal, SizeOf(WordVal));
 
     ChannelPixelSize := Info.BytesPerPixel div Info.ChannelCount;

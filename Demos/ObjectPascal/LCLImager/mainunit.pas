@@ -37,6 +37,7 @@ uses
   ImagingClasses,
   ImagingComponents,
   ImagingCanvases,
+  ImagingBinary,
   ImagingUtility;
 
 type
@@ -47,8 +48,9 @@ type
     mtSwapRB, mtSwapRG, mtSwapGB, mtReduce1024,
     mtReduce256, mtReduce64, mtReduce16, mtReduce2);
   TPointTransform = (ptInvert, ptIncContrast, ptDecContrast, ptIncBrightness,
-    ptDecBrightness, ptIncGamma, ptDecGamma, ptTreshold);
+    ptDecBrightness, ptIncGamma, ptDecGamma, ptThreshold);
   TNonLinearFilter = (nfMedian, nfMin, nfMax);
+  TMorphology = (mpErode, mpDilate, mpOpen, mpClose);
     
 
   { TMainForm }
@@ -121,6 +123,11 @@ type
     MenuItem67: TMenuItem;
     MenuItem68: TMenuItem;
     MenuItem69: TMenuItem;
+    MenuItem70: TMenuItem;
+    MenuItem71: TMenuItem;
+    MenuItem72: TMenuItem;
+    MenuItem73: TMenuItem;
+    MenuItem74: TMenuItem;
     MenuItemActSubImage: TMenuItem;
     MenuItem34: TMenuItem;
     MenuItem35: TMenuItem;
@@ -191,6 +198,10 @@ type
     procedure MenuItem67Click(Sender: TObject);
     procedure MenuItem68Click(Sender: TObject);
     procedure MenuItem69Click(Sender: TObject);
+    procedure MenuItem71Click(Sender: TObject);
+    procedure MenuItem72Click(Sender: TObject);
+    procedure MenuItem73Click(Sender: TObject);
+    procedure MenuItem74Click(Sender: TObject);
     procedure MenuItem7Click(Sender: TObject);
     procedure FormatChangeClick(Sender: TObject);
   private
@@ -207,6 +218,7 @@ type
     procedure ApplyPointTransform(Transform: TPointTransform);
     procedure ApplyManipulation(ManipType: TManipulationType);
     procedure ApplyNonLinear(FilterType: TNonLinearFilter; FilterSize: Integer);
+    procedure ApplyMorphology(MorphOp: TMorphology);
     procedure MeasureTime(const Msg: string; const OldTime: Int64);
   public
 
@@ -472,7 +484,7 @@ begin
       ptDecBrightness: FImageCanvas.ModifyContrastBrightness(0, -20);
       ptIncGamma:      FImageCanvas.GammaCorection(1.2, 1.2, 1.2);
       ptDecGamma:      FImageCanvas.GammaCorection(0.8, 0.8, 0.8);
-      ptTreshold:      FImageCanvas.Treshold(0.5, 0.5, 0.5);
+      ptThreshold:      FImageCanvas.Threshold(0.5, 0.5, 0.5);
     end;
 
     MeasureTime('Point transform done in:', T);
@@ -498,6 +510,43 @@ begin
     MeasureTime('Point transform done in:', T);
     UpdateView;
   end;
+end;
+
+procedure TMainForm.ApplyMorphology(MorphOp: TMorphology);
+var
+  T: Int64;
+  Strel: TStructElement;
+begin
+  T := GetTimeMicroseconds;
+  OtsuThresholding(FImage.ImageDataPointer^);
+  
+  SetLength(Strel, 3, 3);
+  Strel[0, 0] := 0;
+  Strel[1, 0] := 1;
+  Strel[2, 0] := 0;
+  Strel[0, 1] := 1;
+  Strel[1, 1] := 1;
+  Strel[2, 1] := 1;
+  Strel[0, 2] := 0;
+  Strel[1, 2] := 1;
+  Strel[2, 2] := 0;
+
+  case MorphOp of
+    mpErode:   Morphology(FImage.ImageDataPointer^, Strel, moErode);
+    mpDilate:  Morphology(FImage.ImageDataPointer^, Strel, moDilate);
+    mpOpen:
+      begin
+        Morphology(FImage.ImageDataPointer^, Strel, moErode);
+        Morphology(FImage.ImageDataPointer^, Strel, moDilate);
+      end;
+    mpClose:
+      begin
+        Morphology(FImage.ImageDataPointer^, Strel, moDilate);
+        Morphology(FImage.ImageDataPointer^, Strel, moErode);
+      end;
+  end;
+  MeasureTime('Morphology operation applied in:', T);
+  UpdateView;
 end;
 
 procedure TMainForm.ApplyManipulation(ManipType: TManipulationType);
@@ -647,7 +696,7 @@ end;
 
 procedure TMainForm.MenuItem62Click(Sender: TObject);
 begin
-  ApplyPointTransform(ptTreshold);
+  ApplyPointTransform(ptThreshold);
 end;
 
 procedure TMainForm.MenuItem64Click(Sender: TObject);
@@ -678,6 +727,26 @@ end;
 procedure TMainForm.MenuItem69Click(Sender: TObject);
 begin
   ApplyNonLinear(nfMax, 5);
+end;
+
+procedure TMainForm.MenuItem71Click(Sender: TObject);
+begin
+  ApplyMorphology(mpErode);
+end;
+
+procedure TMainForm.MenuItem72Click(Sender: TObject);
+begin
+  ApplyMorphology(mpDilate);
+end;
+
+procedure TMainForm.MenuItem73Click(Sender: TObject);
+begin
+  ApplyMorphology(mpOpen);
+end;
+
+procedure TMainForm.MenuItem74Click(Sender: TObject);
+begin
+  ApplyMorphology(mpClose);
 end;
 
 procedure TMainForm.MenuItem7Click(Sender: TObject);
@@ -741,6 +810,7 @@ initialization
     - add more canvas stuff when it will be avaiable
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Added binary morphology operations.
     - Added point transforms and non-linear filters.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
