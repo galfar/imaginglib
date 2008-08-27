@@ -37,7 +37,7 @@
 "/>
     <License Value="MPL/LGLP
 "/>
-    <Version Minor="24" Release="2"/>
+    <Version Minor="26"/>
     <Files Count="19">
       <Item1>
         <Filename Value="..\Imaging.pas"/>

@@ -5,6 +5,8 @@ set ROOTDIR=..
 set EXTS=*.dcu *.ppu *.a *.dpu *.o *.rst *.bak *.bk? *.~* *.*~ *.or *.obj
 set EXTS=%EXTS% *.tgs *.tgw *.identcache *.local
 
+del /q /f %ROOTDIR%\Demos\Bin\_BenchOut.* 2>nul 1>nul
+
 call :DELINTREE %ROOTDIR%\Bin
 call :DELINTREE %ROOTDIR%\Demos 
 call :DELINTREE %ROOTDIR%\Scripts 

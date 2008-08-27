@@ -6,7 +6,7 @@ set DEMOPATH=%ROOTDIR%\Demos\ObjectPascal
 set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZLib -Fu%ROOTDIR%\Extras\Extensions -Fu%DEMOPATH%\Common
 set INCLUDE=-Fi%ROOTDIR%\Source 
 set OUTPUT=-FE%ROOTDIR%\Demos\Bin
-set OPTIONS=-Sgi -O2p3 -Xs
+set OPTIONS=-Sgi -O2 -Xs
 set TARGET=-Tgo32v2
 
 set DEMOSBUILD=0

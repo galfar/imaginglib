@@ -8,7 +8,7 @@ set UNITS=%UNITS% -Fu%ROOTDIR%\Source\Extensions -Fu%ROOTDIR%\Extras\Extensions
 set INCLUDE=-Fi%ROOTDIR%\Source 
 set LIBS=-Fl%ROOTDIR%\Extras\Extensions\J2KObjects
 set OUTPUT=-oVampyreImaging.dll -FE%ROOTDIR%\Bin
-set OPTIONS=-Sgi -O2p3 -Xs
+set OPTIONS=-Sgi -O2 -Xs
 
 set TARGET=-Twin32
 

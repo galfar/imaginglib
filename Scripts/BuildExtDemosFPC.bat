@@ -13,7 +13,7 @@ set UNITS=%UNITS% -Fu%ROOTDIR%\Source\Extensions -Fu%ROOTDIR%\Extras\Extensions 
 set INCLUDE=-Fi%ROOTDIR%\Source -Fi"%SDLDIR%" -Fi"%OPENGLDIR%" -Fi"%D3DDIR%"
 set LIBS=-Fl%ROOTDIR%\Extras\Extensions\J2KObjects
 set OUTPUT=-FE%ROOTDIR%\Demos\Bin
-set OPTIONS=-Sgi -O2p3 -Xs
+set OPTIONS=-Sgi -O2 -Xs
 set TARGET=-Twin32
 
 set DEMOSBUILD=0

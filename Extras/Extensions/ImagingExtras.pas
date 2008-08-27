@@ -36,7 +36,7 @@ unit ImagingExtras;
 {$I ImagingOptions.inc}
 
 {$DEFINE LINK_JPEG2000}    // link support for JPEG2000 images
-{$DEFINE LINK_TIFF}        // link support for TIFF images - disabled by default!
+{ $DEFINE LINK_TIFF}        // link support for TIFF images - disabled by default!
 {$DEFINE LINK_PSD}         // link support for PSD images
 {$DEFINE LINK_PCX}         // link support for PCX images
 {$DEFINE LINK_XPM}         // link support for XPM images
