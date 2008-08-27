@@ -1,5 +1,5 @@
 {
-  $Id: ImagingXpm.pas 100 2007-06-28 21:09:52Z galfar $
+  $Id$
   Vampyre Imaging Library
   by Marek Mauder
   http://imaginglib.sourceforge.net

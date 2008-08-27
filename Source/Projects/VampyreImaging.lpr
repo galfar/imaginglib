@@ -1,5 +1,5 @@
 {
-  $Id: VampyreImaging.dpr 71 2007-03-08 00:10:10Z galfar $
+  $Id$
   Vampyre Imaging Library
   by Marek Mauder
   http://imaginglib.sourceforge.net

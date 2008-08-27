@@ -1,5 +1,5 @@
 {
-  $Id: ImagingBinary.pas 120 2008-02-29 23:40:16Z galfar $
+  $Id$
   Vampyre Imaging Library
   by Marek Mauder 
   http://imaginglib.sourceforge.net
