@@ -46,6 +46,11 @@
       
       
       
+      
+      
+      
+      
+      
       <Excluded_Packages Name="D:\Projects\Libs\Imaging\Bin\VampyreImagingPackageBDS.bpl">Vampyre Imaging Library Package</Excluded_Packages>
       <Excluded_Packages Name="$(BDS)\bin\bcboffice2k100.bpl">CodeGear C++Builder Office 2000 Servers Package</Excluded_Packages>
       <Excluded_Packages Name="$(BDS)\bin\bcbofficexp100.bpl">CodeGear C++Builder Office XP Servers Package</Excluded_Packages>

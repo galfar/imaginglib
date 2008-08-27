@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   SDL Demo (ObjectPascal, low level/SDL extension, Win32/Linux)
-  tested in Delphi 7/10, Kylix 3, Free Pascal 2.0.4 (Win32/Linux)
+  tested in Delphi 7/10, Kylix 3, Free Pascal 2.2.2 (Win32/Linux)
   written by Marek Mauder
 
   Demo that shows how to create SDL surfaces from Imaging's

@@ -37,7 +37,7 @@ const
   { Current Major version of Imaging.}
   ImagingVersionMajor = 0;
   { Current Minor version of Imaging.}
-  ImagingVersionMinor = 25;
+  ImagingVersionMinor = 26;
   { Current patch of Imaging.}
   ImagingVersionPatch = 0;
 
@@ -137,6 +137,11 @@ const
     Allowed values are 0 (store as text - very! large files) and 1 (save binary).
     Default value is 1.}
   ImagingPPMSaveBinary         = 51;
+  { Boolean option that specifies whether GIF images with more frames
+    are animated by Imaging (according to frame disposal methods) or just
+    raw frames are loaded and sent to user (if you want to animate GIF yourself).
+    Default value is 1.}
+  ImagingGIFLoadAnimated       = 56;
 
 
   { This option is used when reducing number of colors used in
@@ -441,7 +446,10 @@ implementation
 
   -- TODOS ----------------------------------------------------
     - add lookup tables to pixel formats for fast conversions
-    
+
+  -- 0.24.3 Changes/Bug Fixes ---------------------------------
+    - Added ifATI1N and ifATI2N image data formats.
+
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added ifBTC image format and SpecialNearestFormat field
       to TImageFormatInfo.

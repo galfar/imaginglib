@@ -479,7 +479,7 @@ begin
     Write(Handle, @LongVal, SizeOf(LongVal));
 
     // Set compression off
-    WordVal := SwapEndianWord(CompressionNone);
+    WordVal := Swap(CompressionNone);
     Write(Handle, @WordVal, SizeOf(WordVal));
 
     ChannelPixelSize := Info.BytesPerPixel div Info.ChannelCount;

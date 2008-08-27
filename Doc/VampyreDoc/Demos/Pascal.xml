@@ -72,7 +72,7 @@
       <row>
         <td><b>Compilers (tested)</b></td>
         <td>Delphi 7/2006/2007 <b>W</b>
-        Kylix 3 <b>L</b>, Free Pascal 2.2.0 <b>WLBD</b></td>
+        Free Pascal 2.2.2 <b>WLBD</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -139,7 +139,7 @@
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2006/2007 <b>W</b></td>
+        <td>Delphi 7/2007 <b>W</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -160,9 +160,17 @@
     <par>
       When supported file is selected in shell tree view it is loaded to
       <ref>TMultiImage</ref> and converted to <icode>ifA8R8G8B8</icode>
-      data format. Active subimage is then drawn <icode>TPainBox</icode> component's
+      data format.
+      Active subimage is then drawn
+      (with alpha blending if there is a alpha channel present -
+      methods of <ref>TImagingCanvas</ref> are used) on background
+      image (filled with back color).
+      Final blended image is then drawn into
+      <icode>TPainBox</icode> component's
       client area using <ref>DisplayImage</ref> procedure (direct bit copy, no need to
       convert Imaging's data to <icode>TGraphic</icode>).
+      Image is rescaled to fit the whole display area and
+      there is optional bicubic filtering (nearest neighbor is used when disabled).
     </par>
     <image url="imgbrowser.jpg"/>
 
@@ -227,8 +235,16 @@
       to different image data formats supported by Imaging. <keyword>Manipulate</keyword>
       menu allows you to enlarge/shrink/flip/mirror/swap channels/reduce colors
       of the current image.
-      <keyword>Effects</keyword> menu allows you to apply various effects to the
-      image (provided by <ref>TImagingCanvas</ref>).
+      <keyword>Linear Filters</keyword> menu allows you to apply various linear filters
+      to the image like bluring, sharpening,
+      or edge detection.
+      <keyword>Nonlinear Filters</keyword> menu allows you to apply nonlinear filters
+      like median or maximum.
+      Using operations in <keyword>Point Transforms</keyword> menu you can
+      adjust image contrast, brightness, or gamma.
+      Filters and point transforms are provided by <ref>TImagingCanvas</ref>.
+      <keyword>Binary Morphology</keyword> menu provides image segmentation
+      functions using basic morphology operators (unit <ref>ImagingBinary</ref>).
     </par>
     <image url="lclimager.png"/>
     
@@ -265,7 +281,7 @@
       <row>
         <td><b>Compilers (tested)</b></td>
         <td>Delphi 7/2006/2007 <b>W</b>,
-        Kylix 3 <b>L</b>, Free Pascal 2.2.0 <b>WLBD</b></td>
+        Free Pascal 2.2.2 <b>WLBD</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -278,7 +294,7 @@
      (as printed by demo if invalid input is given):
     </par>
     <code>
-Vampyre Image Converter (library version 0.24.2)
+Vampyre Image Converter (library version 0.26.0)
 by Marek Mauder
 
 Error: Input file not specified
@@ -311,14 +327,14 @@ VampConvert [-op=arg] [..] -infile=file.ext [..] [-outfile=file.ext] [-op=arg]
        argument: angle in degrees, multiple of 90
 
  Supported file formats (INPUT):
-bmp jpg png mng jng gif dds tga jp2 tif psd pcx bsi cif img dagtexture pbm pgm p
-pm pam pfm
+bmp jpg png mng jng gif dds tga pbm pgm ppm pam pfm jp2 psd pcx xpm bsi cif img
+dagtexture
   Supported file formats (OUTPUT):
-bmp jpg png mng jng gif dds tga jp2 tif psd cif img pgm ppm pam pfm
+bmp jpg png mng jng gif dds tga pgm ppm pam pfm jp2 psd cif img
   Supported data formats: Index8 Gray8 A8Gray8 Gray16 Gray32 Gray64 A16Gray16 X5
 R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
 8 R16G16B16 A16R16G16B16 B16G16R16 A16B16G16R16 R32F A32R32G32B32F A32B32G32R32F
- R16F A16R16G16B16F A16B16G16R16F DXT1 DXT3 DXT5 BTC
+ R16F A16R16G16B16F A16B16G16R16F DXT1 DXT3 DXT5 BTC ATI1N ATI2N
     </code>
 
     <note>
@@ -362,7 +378,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2006/2007 <b>W</b>, Kylix 3 <b>L</b>, FPC 2.0.4 <b>WL</b></td>
+        <td>Delphi 7/2007 <b>W</b>FPC 2.2.2 <b>WL</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -419,7 +435,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2006/2007 <b>W</b>, FPC 2.0.4 <b>W</b></td>
+        <td>Delphi 7/2007 <b>W</b>, FPC 2.0.4 <b>W</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -475,7 +491,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2006/2007 <b>W</b>, Kylix 3 <b>L</b>, FPC 2.0.4 <b>WL</b></td>
+        <td>Delphi 7/2007 <b>W</b>, FPC 2.2.2 <b>WL</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>

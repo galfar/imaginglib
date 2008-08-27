@@ -36,13 +36,17 @@
             should work too, older probably not)</td>
       </row>
       <row>
-        <td><keyword>Free Pascal 2.2.4 (Win32/Win64, Linux, FreeBSD)
-          Free Pascal 2.0.4 (DOS)</keyword></td>
+        <td><keyword>Free Pascal 2.2.2 (Win32/Win64, Linux, FreeBSD, DOS)</keyword></td>
+        <td>Tested and everything compiled successfully</td>
+      </row>
+      <row>
+        <td><keyword>Lazarus 0.9.24 (Win32/Win64, Linux, FreeBSD)</keyword></td>
         <td>Tested and everything compiled successfully</td>
       </row>
       <row>
         <td><keyword>Kylix 3 (Linux)</keyword></td>
-        <td>Tested and everything compiled successfully</td>
+        <td>Tested and everything compiled successfully (previous library versions,
+            Kylix is not tested anymore)</td>
       </row>
       <row>
         <td><keyword>C++ Builder 6/2006 (Win32)</keyword></td>

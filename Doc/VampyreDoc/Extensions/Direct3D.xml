@@ -18,6 +18,8 @@
       It is implemented in <ref>ImagingDirect3D9.pas</ref> unit located
       in <keyword>(ImagingRoot)\Source\Extensions</keyword> directory.
       To use it simply add this unit to <icode>uses</icode> list of your program.
+      Currently only 2D textures are supported, DXTC/S3TC and 3Dc compressed, and
+      floating point textures are created if supported by hardware.
     </par>
 
     <par>

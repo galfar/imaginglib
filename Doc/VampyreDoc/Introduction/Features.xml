@@ -30,6 +30,7 @@
         <li> <b>TIFF</b></li>
         <li> <b>PSD</b></li>
         <li> <b>PCX</b></li>
+        <li> <b>XPM</b></li>
         <li> and more</li>
       </blist>
     </li>
@@ -40,7 +41,7 @@
         <li> indexed formats</li>
         <li> grayscale formats</li>
         <li> floating point formats (<b>IEEE754</b> and <b>half</b> precision)</li>
-        <li> compressed formats like <b>DXT1</b>/<b>3</b>/<b>5</b></li>
+        <li> compressed formats like <b>DXT1</b>/<b>3</b>/<b>5</b>, <b>3Dc</b>, and <b>BTC</b></li>
        </blist>
     </li>
     <li>
@@ -56,10 +57,11 @@
       Extensions for creating <b>OpenGL</b>, <b>Direct3D</b>, and <b>SDL</b> textures/surfaces.
     </li>
     <li>
-      <b>VCL</b>, <b>CLX</b>, and <b>LCL</b> graphic classes and functions.
+      <b>VCL</b>, <b>CLX</b> and <b>LCL</b> graphic classes and functions.
     </li>
     <li>
-      Drawing, effects, and filters.
+      Image drawing with blending, linear and nonlinear filters, point transforms,
+      binary morphology, drawing lines, ellipses, rectangles, etc.
     </li>
     <li>
       Support for mipmaps, multiimages, direct access to image data,

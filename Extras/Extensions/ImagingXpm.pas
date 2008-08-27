@@ -61,7 +61,9 @@ const
   SXPMId = '/* XPM */';
   WhiteSpaces = [#9, #10, #13, #32];
 
-{ TXPMFileFormat implementation}
+{
+  TXPMFileFormat implementation
+}
 
 constructor TXPMFileFormat.Create;
 begin

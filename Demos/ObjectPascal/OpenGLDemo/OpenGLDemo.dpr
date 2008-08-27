@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   OpenGL Demo (ObjectPascal, low level/OpenGL extension, Win32/Linux)
-  tested in Delphi 7/10, Free Pascal 2.0.4 (Win32/Linux)
+  tested in Delphi 7/10, Free Pascal 2.2.2 (Win32/Linux)
   written by Marek Mauder
 
   Demo that shows how to create OpenGL textures from files

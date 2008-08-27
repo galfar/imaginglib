@@ -24,11 +24,11 @@
         <b>TGA</b>, <b>DDS</b>, <b>MNG</b>, <b>JNG</b>,
         <b>JPEG2000</b>, <b>PSD</b>, <b>TIFF</b>, <b>PGM</b>,
         <b>PPM</b>, <b>PAM</b>, <b>PFM</b>
-      (loading only) <b>PCX</b>, and <b>PBM</b>.
+      (loading only) <b>PCX</b>, <b>XPM</b>, and <b>PBM</b>.
       Many internal image data formats are supported:
       8/16/24/32/48/64 bit <b>RGB</b> and <b>ARGB</b> formats, indexed formats,
       grayscale formats, half/single precision <b>floating point</b> formats,
-      and compressed formats  <b>DXT1/3/5</b> and <b>BTC</b>.
+      and compressed formats  <b>DXT1/3/5</b>, <b>3Dc</b>, and <b>BTC</b>.
     </par>
   </chapter>
 </doc>

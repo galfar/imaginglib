@@ -313,7 +313,20 @@
         <td>Image in this format is compressed with BTC compression
         (block truncation coding, grayscale, 2bits per pixel).</td>
       </row>
+      <row>
+        <td><icode>ifATI1N</icode></td>
+        <td>Image in this format is compressed using 3Dc+ compression
+        (one channel, 4bits per pixel).</td>
+      </row>
+      <row>
+        <td><icode>ifATI2N</icode></td>
+        <td>Image in this format is compressed using original 3Dc compression
+        (two channels, 8bits per pixel).</td>
+      </row>
     </table>
+
+    <note>There maybe some legal issues when using DXTC/S3TC compression
+      (3Dc probably too as it is "subset" of DXT5) as S3 holds patent to this.</note>
 
   </chapter>
 </doc>

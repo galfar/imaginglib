@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   Vampyre Image Converter (ObjectPascal, low level, Win32/Linux/DOS)
-  tested in Delphi 7/10, Free Pascal 2.0.4 (Win32/Linux/DOS)
+  tested in Delphi 7/10, Free Pascal 2.2.2 (Win32/Linux/DOS)
   written by Marek Mauder
 
   Image Converter is command line tool for converting images between

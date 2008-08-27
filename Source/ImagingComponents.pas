@@ -114,6 +114,7 @@ type
     { Returns file extensions of this graphic class.}
     class function GetFileExtensions: string; override;
     { Returns default MIME type of this graphic class.}
+    //function GetMimeType: string; override;  // uncomment for Laz 0.9.25 if you get error here
     function GetDefaultMimeType: string; override;
   {$ENDIF}
     { Default (the most common) file extension of this graphic class.}
@@ -150,6 +151,7 @@ type
     procedure SaveToStream(Stream: TStream); override;
     class function GetFileFormat: TImageFileFormat; override;
   {$IFDEF COMPONENT_SET_LCL}
+    //function GetMimeType: string; override;  // uncomment for Laz 0.9.25 if you get error here
     function GetDefaultMimeType: string; override;
   {$ENDIF}
     { See ImagingJpegQuality option for details.}
@@ -231,6 +233,7 @@ type
     procedure SaveToStream(Stream: TStream); override;
     class function GetFileFormat: TImageFileFormat; override;
   {$IFDEF COMPONENT_SET_LCL}
+    //function GetMimeType: string; override;  // uncomment for Laz 0.9.25 if you get error here
     function GetDefaultMimeType: string; override;
   {$ENDIF}
     { See ImagingMNGLossyCompression option for details.}
@@ -724,7 +727,7 @@ begin
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   // Get raw image from bitmap (mask handle must be 0 or expect violations)
-  { If you get complitation error here upgrade to Lazarus 0.9.24+ }
+  //if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, nil) then // uncommnet for Laz 0.9.25 if you get error here
   if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, Classes.Rect(0, 0, Data.Width, Data.Height)) then
   begin
     LineLazBytes := GetBytesPerLine(Data.Width, RawImage.Description.BitsPerPixel,
@@ -1017,6 +1020,7 @@ begin
   Result := StringReplace(GetFileFormat.Extensions.CommaText, ',', ';', [rfReplaceAll]);
 end;
 
+//function TImagingGraphicForSave.GetMimeType: string;  // uncomment for Laz 0.9.25 if you get error here
 function TImagingGraphicForSave.GetDefaultMimeType: string;
 begin
   Result := 'image/' + FDefaultFileExt;
@@ -1064,6 +1068,7 @@ begin
 end;
 
 {$IFDEF COMPONENT_SET_LCL}
+//function TImagingJpeg.GetMimeType: string;  // uncomment for Laz 0.9.25 if you get error here
 function TImagingJpeg.GetDefaultMimeType: string;
 begin
   Result := 'image/jpeg';
@@ -1196,6 +1201,7 @@ begin
 end;
 
 {$IFDEF COMPONENT_SET_LCL}
+//function TImagingMNG.GetMimeType: string;  // uncomment for Laz 0.9.25 if you get error here
 function TImagingMNG.GetDefaultMimeType: string;
 begin
   Result := 'video/mng';

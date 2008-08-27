@@ -10,22 +10,27 @@
       (practically create new library - no compatibility with current version)
       of library in
       future to make it more compact and easier to use and extend.
-      First working version of this new design will be 0.30 (Imaging 0.3x branch in SVN)
-      and first release will be version 0.40 (sometime in 2008).
-      Few more versions based on old design should be released before that
-      (although current 0.24 is probably last major one).
+    </par>
+    <par>
+      Since I don't have that much free time these days I cannot say when
+      new library will be ready.
+      First working version of this new design will be 0.30 (Imaging 0.3x branch in SVN).
+    </par>
+    <par>
+      Current 0.2x branch will still be updated from time to time
+      by minor release (like 0.24.2) or even larger release with more
+      new functionality (like 0.26.0).
     </par>
     
     <par>Here is a list of some of the features I want to include in future
     Imaging releases:</par>
     <bulletlist>
-      <li>new library</li>
+      <li>new library core</li>
       <li>native Pascal TIFF support</li>
       <li>register your own data formats</li>
       <li>native Pascal JPEG2000 support</li>
       <li>more texture related functions</li>
-      <li>extend canvas class (more effects, blended drawing, drawing of various primitives)</li>
-      <li>more fast canvas classes</li>
+      <li>extend canvas class (more effects, drawing of various primitives)</li>
       <li>own file format?</li>
       <li>more supported platforms (big endian?)</li>
     </bulletlist>

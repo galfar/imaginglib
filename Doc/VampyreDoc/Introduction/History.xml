@@ -14,6 +14,65 @@
       <link url="#legend">Changes Legend</link>.
     </par>
     
+    <!-- VERSION 00.26.0 -->
+    <section>
+      <mediumcap>Version 0.26.0 - 27th August 2008</mediumcap>
+      <notes>
+        For complete list of changes see <keyword>File Notes</keyword>
+        section at the end of each source file.
+      </notes>
+      <bulletlist>
+        <li>
+          <keyword>[+]</keyword>
+          New data formats using 3Dc compression added: <icode>ifATI1N</icode>
+          and <icode>ifATI2N</icode>.
+          <b>DDS</b> file format updated to be able to load and save
+          images in this format.
+          <b>OpenGL</b> and <b>Direct3D</b> extensions were updated
+          to allow creating textures in these formats.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Canvas class was extended with many new methods and effects.
+          They include image drawing with blending (custom blending factors),
+          filtered image stretching, nonlinear filters (min, max, median),
+          point transforms (contrast, brightness, gamma, threshold), and blended
+          rectangle filling.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New unit <ref>ImagingBinary.pas</ref> was added to <keyword>Extras</keyword>
+          extensions with morphologic operations on binary images.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>XPM</b> file format loader was added to <keyword>Extras</keyword>
+          extensions.
+        </li>
+        <li>
+          <keyword>[E]</keyword>
+          <b>LCL Imager</b> and <b>Image Browser</b> demos were extended
+          with new functionality provided by canvas class (blending, filters,
+          morphology, etc.).
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Updated <b>OpenJpeg</b> library (JPEG 2000) to version with
+          my CDEF patch that saves JP2 files with alpha properly.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Changed some file format loaders/savers to be more thread safe
+          so more images can be loaded concurrently..
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          Many bugs in library fixed (<b>GIF</b>, <b>BMP</b>, and <b>PNM</b> loaders,
+          ConvertSpecial, linear filters, ...).
+        </li>
+      </bulletlist>
+    </section>
+    
     <!-- VERSION 00.24.2 -->
     <section>
       <mediumcap>Version 0.24.2 - 11th December 2007</mediumcap>

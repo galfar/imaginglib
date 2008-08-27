@@ -12,6 +12,8 @@
       supported compilers and platforms etc.
     </par>
 
+    <note>C++ and .NET demos are no longer maintained.</note>
+
     <linklist>
       <title>In This Section</title>
       <lslink url="Pascal.xml">Object Pascal Demos</lslink>

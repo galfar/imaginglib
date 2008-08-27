@@ -53,7 +53,7 @@ type
   to minimize the intraclass variance of the black and white pixels!).
   If Threshold is nil Image is automatically converted to binary using
   computed threshold level. Otherwise computed threshold is stored in Threshold
-  and Image is not modified (if you're just interesting in gloabal threshold level).}
+  and Image is not modified (if you're just interesting in global threshold level).}
 procedure OtsuThresholding(var Image: TImageData; Threshold: PInteger = nil);
 { Applies basic morphology operators (Erode/Dilate) on Image using given structuring element
   Strel. You can do composite operations (Open/Close) by calling this function

@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   Benchmark (ObjectPascal, low level, Win32/Linux/DOS)
-  tested in Delphi 7/10, Kylix 3, Free Pascal 2.0.4 (Win32/Linux/DOS)
+  tested in Delphi 7/10, Kylix 3, Free Pascal 2.2.2 (Win32/Linux/DOS)
   written by Marek Mauder
 
   Simple program which measures time taken by the main Imaging functions

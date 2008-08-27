@@ -64,7 +64,6 @@
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <D2Extensions Value="False"/>
         <IncludeAssertionCode Value="True"/>
         <UseAnsiStrings Value="True"/>
       </SyntaxOptions>
@@ -73,7 +72,6 @@
       <Checks>
         <IOChecks Value="True"/>
       </Checks>
-      <Generate Value="Smaller"/>
       <Optimizations>
         <VariablesInRegisters Value="True"/>
         <OptimizationLevel Value="3"/>
