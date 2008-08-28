@@ -61,6 +61,12 @@ const
   SXPMId = '/* XPM */';
   WhiteSpaces = [#9, #10, #13, #32];
 
+type
+  TColorHolder = class
+  public
+    Color: TColor32;
+  end;
+
 {
   TXPMFileFormat implementation
 }
@@ -187,9 +193,11 @@ var
     I: Integer;
     S, ColType, ColStr, Code: string;
     Color: TColor32;
+    Holder: TColorHolder;
   begin
     for I := 0 to NumColors - 1 do
     begin
+      Holder := TColorHolder.Create;
       // Parse pixel code and color
       S := Contents[Line + I];
       Code := Copy(S, 1, Cpp);
@@ -205,7 +213,8 @@ var
       else
         Color := NamedToColor(ColStr);
       // Store code and color in table for later lookup
-      PalLookup.AddObject(Code, TObject(Color));
+      Holder.Color := Color;
+      PalLookup.AddObject(Code, Holder);
     end;
     Inc(Line, NumColors);
   end;
@@ -225,7 +234,7 @@ var
         // Read code and look up color in the palette
         Code := Copy(S, X * Cpp + 1, Cpp);
         if PalLookup.Find(Code, Idx) then
-          Pix^ := TColor32(PalLookup.Objects[Idx])
+          Pix^ := TColorHolder(PalLookup.Objects[Idx]).Color
         else
           Pix^ := pcClear;
 
@@ -266,6 +275,8 @@ begin
     ParsePixels;
 
     Contents.Free;
+    for I := 0 to PalLookup.Count - 1 do
+      PalLookup.Objects[I].Free;
     PalLookup.Free;
     Result := True;
   end;

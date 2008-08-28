@@ -1,7 +1,7 @@
 { This is an automatically generated lazarus resource file }
 
 LazarusResources.Add('TMainForm','FORMDATA',[
-  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3#1#1#6'Height'#3#0#2#3'Top'#3#247#0#5
+  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3'r'#1#6'Height'#3#0#2#3'Top'#3#2#1#5
   +'Width'#3#0#3#18'HorzScrollBar.Page'#3#255#2#18'VertScrollBar.Page'#3#235#1#7
   +'Caption'#6')LCL Imager (Vampyre Imaging Library Demo)'#12'ClientHeight'#3
   +#236#1#11'ClientWidth'#3#0#3#21'Constraints.MinHeight'#3#240#0#20'Constraint'

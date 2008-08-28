@@ -11,6 +11,7 @@
       <lslink url="Low/Low.xml">Low Level Interface</lslink>
       <lslink url="High/High.xml">High Level Interface</lslink>
       <lslink url="Components/ProcComp.xml">VCL/CLX/LCL Classes</lslink>
+      <lslink url="Canvas.xml">Canvas Class Tips</lslink>
     </linklist>
     
   </chapter>

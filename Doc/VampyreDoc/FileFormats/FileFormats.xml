@@ -36,7 +36,7 @@
       <lslink url="Psd.xml">PSD Photoshop Document File Format</lslink>
       <lslink url="Tiff.xml">TIFF Tagged Image File Format</lslink>
       <lslink url="Pcx.xml">PCX ZSoft PaintBrush File Format</lslink>
-      <lslink url="Xmp.xml">X Window Pixmap File Format</lslink>
+      <lslink url="Xpm.xml">X Window Pixmap File Format</lslink>
       <lslink url="ElderImagery.xml">Elder Imagery Extension</lslink>
     </linklist>
     
