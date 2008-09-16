@@ -58,7 +58,7 @@ type
 
   TDynIntegerArray = array of Integer;
   TDynBooleanArray = array of Boolean;
-
+  
   TWordRec = packed record
     case Integer of
       0: (WordValue: Word);

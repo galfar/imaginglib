@@ -75,7 +75,7 @@ type
 
   { Pen mode used when drawing lines, object outlines, and similar on canvas.}
   TPenMode = (
-    pmSolid,  // Draws solid lines using current pen color. 
+    pmSolid,  // Draws solid lines using current pen color.
     pmClear   // No drawing done
   );
 
@@ -290,6 +290,11 @@ type
     procedure InvertColors;
     { Simple single level thresholding with threshold level for each color channel.}
     procedure Threshold(Red, Green, Blue: Single);
+    { Adjusts the color levels of the image by scaling the
+      colors falling between specified white and black points to full [0,1] range.
+      The black point specifies the darkest color in the image, white point
+      specifies the lightest color, and mid point is gamma aplied to image.}
+    procedure AdjustColorLevels(BlackPoint, WhitePoint: Single; MidPoint: Single = 1.0);
 
     { Color used when drawing lines, frames, and outlines of objects.}
     property PenColor32: TColor32 read FPenColor32 write SetPenColor32;
@@ -691,7 +696,7 @@ begin
   end;
 end;
 
-function TransformContrastBrightness(const Pixel: TColorFPRec; C, B, Ignore: Single): TColorFPRec;
+function TransformContrastBrightness(const Pixel: TColorFPRec; C, B, P3: Single): TColorFPRec;
 begin
   Result.A := Pixel.A;
   Result.R := Pixel.R * C + B;
@@ -707,7 +712,7 @@ begin
   Result.B := Power(Pixel.B, 1.0 / B);
 end;
 
-function TransformInvert(const Pixel: TColorFPRec; A, B, C: Single): TColorFPRec;
+function TransformInvert(const Pixel: TColorFPRec; P1, P2, P3: Single): TColorFPRec;
 begin
   Result.A := Pixel.A;
   Result.R := 1.0 - Pixel.R;
@@ -722,6 +727,17 @@ begin
   Result.G := IffFloat(Pixel.G >= G, 1.0, 0.0);
   Result.B := IffFloat(Pixel.B >= B, 1.0, 0.0);
 end;
+
+function TransformLevels(const Pixel: TColorFPRec; BlackPoint, MidPoint, WhitePoint: Single): TColorFPRec;
+var
+  P: Single;
+begin
+  Result.A := Pixel.A;
+  Result.R := Power((Pixel.R - BlackPoint) / (WhitePoint - BlackPoint), 1.0 / MidPoint);
+  Result.G := Power((Pixel.G - BlackPoint) / (WhitePoint - BlackPoint), 1.0 / MidPoint);
+  Result.B := Power((Pixel.B - BlackPoint) / (WhitePoint - BlackPoint), 1.0 / MidPoint);
+end;
+
 
 { TImagingCanvas class implementation }
 
@@ -1533,7 +1549,7 @@ end;
 procedure TImagingCanvas.ModifyContrastBrightness(Contrast, Brightness: Single);
 begin
   PointTransform(TransformContrastBrightness, 1.0 + Contrast / 100,
-    Brightness / 100, 0.0);
+    Brightness / 100, 0);
 end;
 
 procedure TImagingCanvas.GammaCorection(Red, Green, Blue: Single);
@@ -1549,6 +1565,11 @@ end;
 procedure TImagingCanvas.Threshold(Red, Green, Blue: Single);
 begin
   PointTransform(TransformThreshold, Red, Green, Blue);
+end;
+
+procedure TImagingCanvas.AdjustColorLevels(BlackPoint, WhitePoint, MidPoint: Single);
+begin
+  PointTransform(TransformLevels, BlackPoint, MidPoint, WhitePoint);
 end;
 
 class function TImagingCanvas.GetSupportedFormats: TImageFormats;
@@ -1615,6 +1636,9 @@ finalization
     - implement pen width everywhere
     - add blending (*image and object drawing)
     - more objects (arc, polygon)
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Added TImagingCanvas.AdjustColorLevels method.
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
     - Fixed error that could cause AV in linear and nonlinear filters.
