@@ -98,10 +98,11 @@ type
    end;
   PFloatHelper = ^TFloatHelper;
 
-  TChar2 = array[0..1] of Char;
-  TChar3 = array[0..2] of Char;
-  TChar4 = array[0..3] of Char;
-  TChar8 = array[0..7] of Char;
+  TChar2 = array[0..1] of AnsiChar;
+  TChar3 = array[0..2] of AnsiChar;
+  TChar4 = array[0..3] of AnsiChar;
+  TChar8 = array[0..7] of AnsiChar;
+  TChar16 = array[0..15] of AnsiChar;
 
   { Options for BuildFileList function:
     flFullNames - file names in result will have full path names
@@ -114,7 +115,7 @@ type
 
 
 { Frees class instance and sets its reference to nil.}
-procedure FreeAndNil(var Obj); 
+procedure FreeAndNil(var Obj);
 { Frees pointer and sets it to nil.}
 procedure FreeMemNil(var P); {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Replacement of standard System.FreeMem procedure which checks if P is nil
@@ -494,7 +495,7 @@ var
       end;
     end;  
 
-    while (MaskPos <= MaskLen) and (Mask[MaskPos] in ['?', '*']) do
+    while (MaskPos <= MaskLen) and CharInSet(Mask[MaskPos], ['?', '*']) do
       Inc(MaskPos);
     if (MaskPos <= MaskLen) or (KeyPos <= KeyLen) then
     begin

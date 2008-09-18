@@ -46,7 +46,7 @@ type
   TPortableMapInfo = record
     Width: LongInt;
     Height: LongInt;
-    FormatId: Char;
+    FormatId: AnsiChar;
     MaxVal: LongInt;
     BitCount: LongInt;
     Depth: LongInt;
@@ -200,7 +200,7 @@ var
   MonoData: Pointer;
   Info: TImageFormatInfo;
   PixelFP: TColorFPRec;
-  LineBuffer: array[0..LineBufferCapacity - 1] of Char;
+  LineBuffer: array[0..LineBufferCapacity - 1] of AnsiChar;
   LineEnd, LinePos: LongInt;
   MapInfo: TPortableMapInfo;
   LineBreak: string;
@@ -228,7 +228,7 @@ var
   function ReadString: string;
   var
     S: AnsiString;
-    C: Char;
+    C: AnsiChar;
   begin
     // First skip all whitespace chars
     SetLength(S, 1);
@@ -266,7 +266,7 @@ var
     // Dec pos, current is the begining of the the string
     Dec(LinePos);
 
-    Result := S;
+    Result := string(S);
   end;
 
   function ReadIntValue: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -276,7 +276,7 @@ var
 
   procedure FindLineBreak;
   var
-    C: Char;
+    C: AnsiChar;
   begin
     LineBreak := #10;
     repeat
@@ -818,7 +818,10 @@ var
   MapInfo: TPortableMapInfo;
 begin
   FillChar(MapInfo, SizeOf(MapInfo), 0);
-  MapInfo.FormatId := Iff(FSaveBinary, FIdNumbers[1], FIdNumbers[0]);
+  if FSaveBinary then
+    MapInfo.FormatId := FIdNumbers[1]
+  else
+    MapInfo.FormatId := FIdNumbers[0];
   MapInfo.Binary := FSaveBinary;
   Result := SaveDataInternal(Handle, Images, Index, MapInfo);
 end;
@@ -864,7 +867,10 @@ var
   MapInfo: TPortableMapInfo;
 begin
   FillChar(MapInfo, SizeOf(MapInfo), 0);
-  MapInfo.FormatId := Iff(FSaveBinary, FIdNumbers[1], FIdNumbers[0]);
+  if FSaveBinary then
+    MapInfo.FormatId := FIdNumbers[1]
+  else
+    MapInfo.FormatId := FIdNumbers[0];
   MapInfo.Binary := FSaveBinary;
   Result := SaveDataInternal(Handle, Images, Index, MapInfo);
 end;
@@ -952,11 +958,17 @@ var
 begin
   FillChar(MapInfo, SizeOf(MapInfo), 0);
   Info := GetFormatInfo(Images[Index].Format);
+
   if (Info.ChannelCount > 1) or Info.IsIndexed then
     MapInfo.TupleType := ttRGBFP
   else
     MapInfo.TupleType := ttGrayScaleFP;
-  MapInfo.FormatId := Iff(MapInfo.TupleType = ttGrayScaleFP, FIdNumbers[1], FIdNumbers[0]);
+
+  if MapInfo.TupleType = ttGrayScaleFP then
+    MapInfo.FormatId := FIdNumbers[1]
+  else
+    MapInfo.FormatId := FIdNumbers[0];
+
   MapInfo.Binary := True;
   Result := SaveDataInternal(Handle, Images, Index, MapInfo);
 end;

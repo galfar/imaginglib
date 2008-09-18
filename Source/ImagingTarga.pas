@@ -89,11 +89,11 @@ type
 
   { Footer at the end of TGA file.}
   TTargaFooter = packed record
-    ExtOff: LongWord;                 // Extension Area Offset
-    DevDirOff: LongWord;              // Developer Directory Offset
-    Signature: array[0..15] of Char;  // TRUEVISION-XFILE
-    Reserved: Byte;                   // ASCII period '.'
-    NullChar: Byte;                   // 0
+    ExtOff: LongWord;             // Extension Area Offset
+    DevDirOff: LongWord;          // Developer Directory Offset
+    Signature: TChar16;           // TRUEVISION-XFILE
+    Reserved: Byte;               // ASCII period '.'
+    NullChar: Byte;               // 0
   end;
 
 

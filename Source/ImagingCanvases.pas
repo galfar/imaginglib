@@ -729,8 +729,6 @@ begin
 end;
 
 function TransformLevels(const Pixel: TColorFPRec; BlackPoint, MidPoint, WhitePoint: Single): TColorFPRec;
-var
-  P: Single;
 begin
   Result.A := Pixel.A;
   Result.R := Power((Pixel.R - BlackPoint) / (WhitePoint - BlackPoint), 1.0 / MidPoint);

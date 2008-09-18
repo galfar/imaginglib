@@ -79,7 +79,7 @@ type
 
   { Additional header of BSI textures.}
   TTextureBSIHeader = packed record
-    Name: array[0..8] of Char;
+    Name: array[0..8] of AnsiChar;
     ImageSize: LongInt;
   end;
 

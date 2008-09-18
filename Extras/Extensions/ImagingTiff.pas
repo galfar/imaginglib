@@ -174,7 +174,6 @@ var
   DataFormat: TImageFormat;
   CanAccessScanlines: Boolean;
   Red, Green, Blue: PWordRecArray;
-  Info: TImageFormatInfo;
 begin
   Result := False;
   LibTiffDelphiSetErrorHandler(TIFFErrorHandler);

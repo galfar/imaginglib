@@ -91,7 +91,7 @@ var
 
   procedure SkipWhiteSpace(var Line: string);
   begin
-    while (Length(Line) > 0) and (Line[1] in WhiteSpaces) do
+    while (Length(Line) > 0) and CharInSet(Line[1], WhiteSpaces) do
       Delete(Line, 1, 1);
   end;
 
@@ -99,7 +99,7 @@ var
   begin
     Result := '';
     SkipWhiteSpace(Line);
-    while (Length(Line) > 0) and not (Line[1] in WhiteSpaces) do
+    while (Length(Line) > 0) and CharInSet(Line[1], WhiteSpaces) do
     begin
       SetLength(Result, Length(Result) + 1);
       Result[Length(Result)] := Line[1];
@@ -284,7 +284,7 @@ end;
 
 function TXPMFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
 var
-  Id: array[0..8] of Char;
+  Id: array[0..8] of AnsiChar;
   ReadCount: Integer;
 begin
   Result := False;

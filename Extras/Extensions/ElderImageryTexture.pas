@@ -50,7 +50,7 @@ type
   private
     FLastTextureName: string;
     { Deletes non-valid chars from texture name.}
-    function RepairName(const S: string): string;
+    function RepairName(const S: array of AnsiChar): string;
   protected
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
@@ -70,8 +70,8 @@ const
 type
   { Main texture header.}
   TTexHeader = packed record
-    ImgCount: Word;                // Number of images in texture
-    TexName: array[0..23] of Char; // Name of texture
+    ImgCount: Word;                    // Number of images in texture
+    TexName: array[0..23] of AnsiChar; // Name of texture
   end;
 
   { Offset list for texture.}
@@ -120,13 +120,13 @@ begin
   AddMasks(STextureMasks);
 end;
 
-function TTextureFileFormat.RepairName(const S: string): string;
+function TTextureFileFormat.RepairName(const S: array of AnsiChar): string;
 var
   I: LongInt;
   First: Boolean;
 begin
   I := 1;
-  Result := S;
+  Result := string(S);
   First := False;
   while I <= Length(Result) do
   begin

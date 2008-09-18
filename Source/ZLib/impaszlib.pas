@@ -376,23 +376,23 @@ const
 
 
   {$IFDEF DEBUG}
-  procedure Assert(cond : boolean; msg : string);
+  procedure Assert(cond : boolean; msg : AnsiString);
   {$ENDIF}
 
-  procedure Trace(x : string);
-  procedure Tracev(x : string);
-  procedure Tracevv(x : string);
-  procedure Tracevvv(x : string);
-  procedure Tracec(c : boolean; x : string);
-  procedure Tracecv(c : boolean; x : string);
+  procedure Trace(x : AnsiString);
+  procedure Tracev(x : AnsiString);
+  procedure Tracevv(x : AnsiString);
+  procedure Tracevvv(x : AnsiString);
+  procedure Tracec(c : boolean; x : AnsiString);
+  procedure Tracecv(c : boolean; x : AnsiString);
 
-function zlibVersion : string;
+function zlibVersion : AnsiString;
 { The application can compare zlibVersion and ZLIB_VERSION for consistency.
   If the first character differs, the library code actually used is
   not compatible with the zlib.h header file used by the application.
   This check is automatically made by deflateInit and inflateInit. }
 
-function zError(err : int) : string;
+function zError(err : int) : AnsiString;
 function ZALLOC (var strm : z_stream; items : uInt; size : uInt) : voidpf;
 procedure ZFREE (var strm : z_stream; ptr : voidpf);
 procedure TRY_FREE (var strm : z_stream; ptr : voidpf);
@@ -416,9 +416,9 @@ const
 const
   z_verbose : int = 1;
 
-function deflateInit_(var Stream: z_stream; Level: LongInt; const Version: string;
+function deflateInit_(var Stream: z_stream; Level: LongInt; const Version: AnsiString;
   Stream_size: LongInt): LongInt;
-function inflateInit_(var Stream: z_stream; const Version: string;
+function inflateInit_(var Stream: z_stream; const Version: AnsiString;
   Stream_size: Longint): LongInt;
   
 {$IFDEF DEBUG}
@@ -430,29 +430,29 @@ implementation
 uses
   imzdeflate, imzinflate;
 
-function deflateInit_(var Stream: z_stream; Level: LongInt; const Version: string;
+function deflateInit_(var Stream: z_stream; Level: LongInt; const Version: AnsiString;
   Stream_size: LongInt): LongInt;
 begin
   Result := imzdeflate.deflateInit_(@Stream, Level, Version, Stream_size);
 end;
 
-function inflateInit_(var Stream: z_stream; const Version: string;
+function inflateInit_(var Stream: z_stream; const Version: AnsiString;
   Stream_size: Longint): LongInt;
 begin
   Result := imzinflate.inflateInit_(@Stream, Version, Stream_size);
 end;
 
-function zError(err : int) : string;
+function zError(err : int) : AnsiString;
 begin
   zError := z_errmsg[Z_NEED_DICT-err];
 end;
 
-function zlibVersion : string;
+function zlibVersion : AnsiString;
 begin
   zlibVersion := ZLIB_VERSION;
 end;
 
-procedure z_error (m : string);
+procedure z_error (m : AnsiString);
 begin
   WriteLn(output, m);
   Write('Zlib - Halt...');
@@ -460,42 +460,42 @@ begin
   Halt(1);
 end;
 
-procedure Assert(cond : boolean; msg : string);
+procedure Assert(cond : boolean; msg : AnsiString);
 begin
   if not cond then
     z_error(msg);
 end;
 
-procedure Trace(x : string);
+procedure Trace(x : AnsiString);
 begin
   WriteLn(x);
 end;
 
-procedure Tracev(x : string);
+procedure Tracev(x : AnsiString);
 begin
  if (z_verbose>0) then
    WriteLn(x);
 end;
 
-procedure Tracevv(x : string);
+procedure Tracevv(x : AnsiString);
 begin
   if (z_verbose>1) then
     WriteLn(x);
 end;
 
-procedure Tracevvv(x : string);
+procedure Tracevvv(x : AnsiString);
 begin
   if (z_verbose>2) then
     WriteLn(x);
 end;
 
-procedure Tracec(c : boolean; x : string);
+procedure Tracec(c : boolean; x : AnsiString);
 begin
   if (z_verbose>0) and (c) then
     WriteLn(x);
 end;
 
-procedure Tracecv(c : boolean; x : string);
+procedure Tracecv(c : boolean; x : AnsiString);
 begin
   if (z_verbose>1) and c then
     WriteLn(x);
