@@ -157,6 +157,9 @@ function PosNoCase(const SubStr, S: string; Offset: LongInt = 1): LongInt; {$IFD
 function StrToken(var S: string; Sep: Char): string;
 { Same as StrToken but searches from the end of S string.}
 function StrTokenEnd(var S: string; Sep: Char): string;
+{ Fills instance of TStrings with tokens from string S where tokens are separated by
+  one of Seps characters.}
+procedure StrTokensToList(const S: string; Sep: Char; Tokens: TStrings);
 { Returns string representation of integer number (with digit grouping).}
 function IntToStrFmt(const I: Int64): string;
 { Returns string representation of float number (with digit grouping).}
@@ -495,7 +498,7 @@ var
       end;
     end;  
 
-    while (MaskPos <= MaskLen) and CharInSet(Mask[MaskPos], ['?', '*']) do
+    while (MaskPos <= MaskLen) and (Mask[MaskPos] in ['?', '*']) do
       Inc(MaskPos);
     if (MaskPos <= MaskLen) or (KeyPos <= KeyLen) then
     begin
@@ -773,6 +776,19 @@ begin
   begin
     Result := S;
     S := '';
+  end;
+end;
+
+procedure StrTokensToList(const S: string; Sep: Char; Tokens: TStrings);
+var
+  Token, Str: string;
+begin
+  Tokens.Clear;
+  Str := S;
+  while Str <> '' do
+  begin
+    Token := StrToken(Str, Sep);
+    Tokens.Add(Token);
   end;
 end;
 
@@ -1552,6 +1568,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.1 Changes/Bug Fixes -----------------------------------  
+    - Added StrTokensToList function.
 
   -- 0.25.0 Changes/Bug Fixes -----------------------------------
     - Fixed error in ClipCopyBounds which was causing ... bad clipping!

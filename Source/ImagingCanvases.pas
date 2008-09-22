@@ -293,7 +293,8 @@ type
     { Adjusts the color levels of the image by scaling the
       colors falling between specified white and black points to full [0,1] range.
       The black point specifies the darkest color in the image, white point
-      specifies the lightest color, and mid point is gamma aplied to image.}
+      specifies the lightest color, and mid point is gamma aplied to image.
+      Black and white point must be in range [0,1].}
     procedure AdjustColorLevels(BlackPoint, WhitePoint: Single; MidPoint: Single = 1.0);
 
     { Color used when drawing lines, frames, and outlines of objects.}

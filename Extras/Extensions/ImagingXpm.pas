@@ -91,7 +91,7 @@ var
 
   procedure SkipWhiteSpace(var Line: string);
   begin
-    while (Length(Line) > 0) and CharInSet(Line[1], WhiteSpaces) do
+    while (Length(Line) > 0) and (Line[1] in WhiteSpaces) do
       Delete(Line, 1, 1);
   end;
 
@@ -99,7 +99,7 @@ var
   begin
     Result := '';
     SkipWhiteSpace(Line);
-    while (Length(Line) > 0) and CharInSet(Line[1], WhiteSpaces) do
+    while (Length(Line) > 0) and (Line[1] in WhiteSpaces) do
     begin
       SetLength(Result, Length(Result) + 1);
       Result[Length(Result)] := Line[1];
