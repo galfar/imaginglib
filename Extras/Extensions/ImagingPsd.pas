@@ -525,6 +525,7 @@ begin
 
     Result := True;
   finally
+    FreeMem(LineBuffer);
     if MustBeFreed then
       FreeImage(ImageToSave);
   end;
@@ -572,6 +573,9 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Fixed memory leak in SaveData.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Saving implemented.

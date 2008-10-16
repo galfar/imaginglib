@@ -39,6 +39,7 @@
         <Filename Value="mainunit.pas"/>
         <ComponentName Value="MainForm"/>
         <IsPartOfProject Value="True"/>
+        <ResourceBaseClass Value="Form"/>
         <ResourceFilename Value="mainunit.lrs"/>
         <UnitName Value="MainUnit"/>
       </Unit1>
@@ -46,13 +47,14 @@
         <Filename Value="aboutunit.pas"/>
         <ComponentName Value="AboutForm"/>
         <IsPartOfProject Value="True"/>
+        <ResourceBaseClass Value="Form"/>
         <ResourceFilename Value="aboutunit.lrs"/>
         <UnitName Value="AboutUnit"/>
       </Unit2>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
-    <Version Value="5"/>
+    <Version Value="8"/>
     <PathDelim Value="\"/>
     <Target>
       <Filename Value="..\..\Bin\LCLImager"/>

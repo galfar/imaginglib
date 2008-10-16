@@ -71,6 +71,8 @@ type
     procedure ReadDataFromStream(Stream: TStream); virtual;
     procedure AssignTo(Dest: TPersistent); override;
   public
+    constructor Create; override;
+
     { Loads new image from the stream. It can load all image
       file formats supported by Imaging (and enabled of course)
       even though it is called by descendant class capable of
@@ -114,8 +116,7 @@ type
     { Returns file extensions of this graphic class.}
     class function GetFileExtensions: string; override;
     { Returns default MIME type of this graphic class.}
-    //function GetMimeType: string; override;  // uncomment for Laz 0.9.25 if you get error here
-    function GetDefaultMimeType: string; override;
+    function GetMimeType: string; override;
   {$ENDIF}
     { Default (the most common) file extension of this graphic class.}
     property DefaultFileExt: string read FDefaultFileExt;
@@ -151,8 +152,7 @@ type
     procedure SaveToStream(Stream: TStream); override;
     class function GetFileFormat: TImageFileFormat; override;
   {$IFDEF COMPONENT_SET_LCL}
-    //function GetMimeType: string; override;  // uncomment for Laz 0.9.25 if you get error here
-    function GetDefaultMimeType: string; override;
+    function GetMimeType: string; override;
   {$ENDIF}
     { See ImagingJpegQuality option for details.}
     property Quality: LongInt read FQuality write FQuality;
@@ -233,8 +233,7 @@ type
     procedure SaveToStream(Stream: TStream); override;
     class function GetFileFormat: TImageFileFormat; override;
   {$IFDEF COMPONENT_SET_LCL}
-    //function GetMimeType: string; override;  // uncomment for Laz 0.9.25 if you get error here
-    function GetDefaultMimeType: string; override;
+    function GetMimeType: string; override;
   {$ENDIF}
     { See ImagingMNGLossyCompression option for details.}
     property LossyCompression: Boolean read FLossyCompression write FLossyCompression;
@@ -650,7 +649,6 @@ begin
   // trough RawImage api and cannot be changed to mirror some Imaging format
   // (so formats with no coresponding Imaging format cannot be saved now).
 
-  { If you get complitation error here upgrade to Lazarus 0.9.24+ }
   if RawImage_DescriptionFromBitmap(Bitmap.Handle, RawImage.Description) then
     case RawImage.Description.BitsPerPixel of
       8: Format := ifIndex8;
@@ -727,8 +725,7 @@ begin
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   // Get raw image from bitmap (mask handle must be 0 or expect violations)
-  //if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, nil) then // uncommnet for Laz 0.9.25 if you get error here
-  if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, Classes.Rect(0, 0, Data.Width, Data.Height)) then
+  if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, nil) then
   begin
     LineLazBytes := GetBytesPerLine(Data.Width, RawImage.Description.BitsPerPixel,
       RawImage.Description.LineEnd);
@@ -911,6 +908,12 @@ end;
 
 { TImagingGraphic class implementation }
 
+constructor TImagingGraphic.Create;
+begin
+  inherited Create;
+  PixelFormat := pf24Bit;
+end;
+
 procedure TImagingGraphic.LoadFromStream(Stream: TStream);
 begin
   ReadDataFromStream(Stream);
@@ -1020,8 +1023,7 @@ begin
   Result := StringReplace(GetFileFormat.Extensions.CommaText, ',', ';', [rfReplaceAll]);
 end;
 
-//function TImagingGraphicForSave.GetMimeType: string;  // uncomment for Laz 0.9.25 if you get error here
-function TImagingGraphicForSave.GetDefaultMimeType: string;
+function TImagingGraphicForSave.GetMimeType: string;
 begin
   Result := 'image/' + FDefaultFileExt;
 end;
@@ -1068,8 +1070,7 @@ begin
 end;
 
 {$IFDEF COMPONENT_SET_LCL}
-//function TImagingJpeg.GetMimeType: string;  // uncomment for Laz 0.9.25 if you get error here
-function TImagingJpeg.GetDefaultMimeType: string;
+function TImagingJpeg.GetMimeType: string;
 begin
   Result := 'image/jpeg';
 end;
@@ -1201,8 +1202,7 @@ begin
 end;
 
 {$IFDEF COMPONENT_SET_LCL}
-//function TImagingMNG.GetMimeType: string;  // uncomment for Laz 0.9.25 if you get error here
-function TImagingMNG.GetDefaultMimeType: string;
+function TImagingMNG.GetMimeType: string;
 begin
   Result := 'video/mng';
 end;
@@ -1264,6 +1264,9 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Lazarus 0.9.26 compatibility changes.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
     - Fixed wrong IFDEF causing that Imaging wouldn't compile in Lazarus

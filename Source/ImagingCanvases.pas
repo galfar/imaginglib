@@ -729,12 +729,12 @@ begin
   Result.B := IffFloat(Pixel.B >= B, 1.0, 0.0);
 end;
 
-function TransformLevels(const Pixel: TColorFPRec; BlackPoint, MidPoint, WhitePoint: Single): TColorFPRec;
+function TransformLevels(const Pixel: TColorFPRec; BlackPoint, WhitePoint, Exp: Single): TColorFPRec;
 begin
   Result.A := Pixel.A;
-  Result.R := Power((Pixel.R - BlackPoint) / (WhitePoint - BlackPoint), 1.0 / MidPoint);
-  Result.G := Power((Pixel.G - BlackPoint) / (WhitePoint - BlackPoint), 1.0 / MidPoint);
-  Result.B := Power((Pixel.B - BlackPoint) / (WhitePoint - BlackPoint), 1.0 / MidPoint);
+  Result.R := Power((Pixel.R - BlackPoint) / (WhitePoint - BlackPoint), Exp);
+  Result.G := Power((Pixel.G - BlackPoint) / (WhitePoint - BlackPoint), Exp);
+  Result.B := Power((Pixel.B - BlackPoint) / (WhitePoint - BlackPoint), Exp);
 end;
 
 
@@ -1568,7 +1568,7 @@ end;
 
 procedure TImagingCanvas.AdjustColorLevels(BlackPoint, WhitePoint, MidPoint: Single);
 begin
-  PointTransform(TransformLevels, BlackPoint, MidPoint, WhitePoint);
+  PointTransform(TransformLevels, BlackPoint, WhitePoint, 1.0 / MidPoint);
 end;
 
 class function TImagingCanvas.GetSupportedFormats: TImageFormats;
