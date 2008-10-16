@@ -109,15 +109,6 @@
 					<Source>
 						<Source Name="MainSource">ImgBrowser.dpr</Source>
 					</Source>
-					<Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bAn\dclsmp100.bpl">File c:\program files\codegear\rad studio\5.0\bAn\dclsmp100.bpl not found</Excluded_Packages>
-						<Excluded_Packages Name="C:\Program Files\Raize\CS4\Bin\VCL\CodeSiteLoggingVcl_Design100.bpl">File C:\Program Files\Raize\CS4\Bin\VCL\CodeSiteLoggingVcl_Design100.bpl not found</Excluded_Packages>
-						<Excluded_Packages Name="C:\Program Files\Raize\CS4\Bin\VCL\CodeSiteDBToolsVcl_Design105.bpl">File C:\Program Files\Raize\CS4\Bin\VCL\CodeSiteDBToolsVcl_Design105.bpl not found</Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bin\bcboffice2k100.bpl">CodeGear C++Builder Office 2000 Servers Package</Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bin\bcbofficexp100.bpl">CodeGear C++Builder Office XP Servers Package</Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k100.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
-						<Excluded_Packages Name="$(BDS)\bin\dclofficexp100.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
-					</Excluded_Packages>
 				</Delphi.Personality>
 			</BorlandProject>
 			<ProjectFileVersion>12</ProjectFileVersion>
