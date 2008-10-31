@@ -43,22 +43,22 @@ unit ImagingJpeg;
 {$DEFINE IMJPEGLIB}
 { $DEFINE PASJPEG}
 
-{ Automatically use FPC's PasJpeg when compiling with Lazarus.}
-
-{$IFDEF LCL}
+{ Automatically use FPC's PasJpeg when compiling with Lazarus. But not when
+  WINDOWS is defined. See http://galfar.vevb.net/imaging/smf/index.php/topic,90.0.html}
+{$IF Defined(LCL) and not Defined(WINDOWS)}
   {$UNDEF IMJPEGLIB}
   {$DEFINE PASJPEG}
-{$ENDIF}
+{$IFEND}
 
 interface
 
 uses
   SysUtils, ImagingTypes, Imaging, ImagingColors,
 {$IF Defined(IMJPEGLIB)}
-  imjpeglib, imjmorecfg, imjcomapi, imjdapimin,
+  imjpeglib, imjmorecfg, imjcomapi, imjdapimin, imjdeferr,
   imjdapistd, imjcapimin, imjcapistd, imjdmarker, imjcparam,
 {$ELSEIF Defined(PASJPEG)}
-  jpeglib, jmorecfg, jcomapi, jdapimin,
+  jpeglib, jmorecfg, jcomapi, jdapimin, jdeferr,
   jdapistd, jcapimin, jcapistd, jdmarker, jcparam,
 {$IFEND}
   ImagingUtility;
@@ -114,6 +114,9 @@ const
   EXIFSignature: TChar4 = 'Exif';
   BufferSize = 16384;
 
+resourcestring
+  SJpegError = 'JPEG Error: %d';
+
 type
   TJpegContext = record
     case Byte of
@@ -145,6 +148,8 @@ var
 
 procedure JpegError(CurInfo: j_common_ptr);
 begin
+  raise EImagingError.CreateFmt(SJPEGError + ' (%s)',
+    [CurInfo^.err^.msg_code, jpeg_std_message_table[J_MESSAGE_CODE(CurInfo^.err^.msg_code)]]);
 end;
 
 procedure EmitMessage(CurInfo: j_common_ptr; msg_level: Integer);
@@ -221,7 +226,7 @@ begin
       FillInputBuffer(cinfo);
     end;
     Src.Pub.next_input_byte := @PByteArray(Src.Pub.next_input_byte)[num_bytes];
-//    Inc(LongInt(Src.Pub.next_input_byte), num_bytes);
+    //Inc(LongInt(Src.Pub.next_input_byte), num_bytes);
     Dec(Src.Pub.bytes_in_buffer, num_bytes);
   end;
 end;
@@ -332,12 +337,12 @@ begin
   jc.common.err := @JpegErrorRec;
   jpeg_CreateCompress(@jc.c, JPEG_LIB_VERSION, sizeof(jc.c));
   JpegStdioDest(jc.c, Handle);
+  if Saver.FGrayScale then
+    jc.c.in_color_space := JCS_GRAYSCALE
+  else
+    jc.c.in_color_space := JCS_YCbCr;
   jpeg_set_defaults(@jc.c);
   jpeg_set_quality(@jc.c, Saver.FQuality, True);
-  if Saver.FGrayScale then
-    jpeg_set_colorspace(@jc.c, JCS_GRAYSCALE)
-  else
-    jpeg_set_colorspace(@jc.c, JCS_YCbCr);
   if Saver.FProgressive then
     jpeg_simple_progression(@jc.c);
 end;
@@ -390,6 +395,8 @@ begin
       JCS_GRAYSCALE: Format := ifGray8;
       JCS_RGB:       Format := ifR8G8B8;
       JCS_CMYK:      Format := ifA8R8G8B8;
+    else
+      Exit;
     end;
     NewImage(jc.d.image_width, jc.d.image_height, Format, Images[0]);
     jpeg_start_decompress(@jc.d);
@@ -554,8 +561,13 @@ initialization
  -- TODOS ----------------------------------------------------
     - nothing now
 
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Fixed wrong color space setting in InitCompressor.
+    - Fixed problem with progressive Jpegs in FPC (modified JpegLib,
+      can't use FPC's PasJpeg in Windows).
+
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
-    -- FPC's PasJpeg wasn't really used in last version, fixed.
+    - FPC's PasJpeg wasn't really used in last version, fixed.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
     - Fixed loading of CMYK jpeg images. Could cause heap corruption

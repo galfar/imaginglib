@@ -48,7 +48,7 @@ type
     mtSwapRB, mtSwapRG, mtSwapGB, mtReduce1024,
     mtReduce256, mtReduce64, mtReduce16, mtReduce2);
   TPointTransform = (ptInvert, ptIncContrast, ptDecContrast, ptIncBrightness,
-    ptDecBrightness, ptIncGamma, ptDecGamma, ptThreshold);
+    ptDecBrightness, ptIncGamma, ptDecGamma, ptThreshold, ptLevelsLow, ptLevelsHigh);
   TNonLinearFilter = (nfMedian, nfMin, nfMax);
   TMorphology = (mpErode, mpDilate, mpOpen, mpClose);
     
@@ -128,6 +128,8 @@ type
     MenuItem72: TMenuItem;
     MenuItem73: TMenuItem;
     MenuItem74: TMenuItem;
+    MenuItem75: TMenuItem;
+    MenuItem76: TMenuItem;
     MenuItemActSubImage: TMenuItem;
     MenuItem34: TMenuItem;
     MenuItem35: TMenuItem;
@@ -202,6 +204,8 @@ type
     procedure MenuItem72Click(Sender: TObject);
     procedure MenuItem73Click(Sender: TObject);
     procedure MenuItem74Click(Sender: TObject);
+    procedure MenuItem75Click(Sender: TObject);
+    procedure MenuItem76Click(Sender: TObject);
     procedure MenuItem7Click(Sender: TObject);
     procedure FormatChangeClick(Sender: TObject);
   private
@@ -484,7 +488,9 @@ begin
       ptDecBrightness: FImageCanvas.ModifyContrastBrightness(0, -20);
       ptIncGamma:      FImageCanvas.GammaCorection(1.2, 1.2, 1.2);
       ptDecGamma:      FImageCanvas.GammaCorection(0.8, 0.8, 0.8);
-      ptThreshold:      FImageCanvas.Threshold(0.5, 0.5, 0.5);
+      ptThreshold:     FImageCanvas.Threshold(0.5, 0.5, 0.5);
+      ptLevelsLow:     FImageCanvas.AdjustColorLevels(0.0, 0.5, 1.0);
+      ptLevelsHigh:    FImageCanvas.AdjustColorLevels(0.35, 1.0, 0.9);
     end;
 
     MeasureTime('Point transform done in:', T);
@@ -749,6 +755,16 @@ begin
   ApplyMorphology(mpClose);
 end;
 
+procedure TMainForm.MenuItem75Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptLevelsLow);
+end;
+
+procedure TMainForm.MenuItem76Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptLevelsHigh);
+end;
+
 procedure TMainForm.MenuItem7Click(Sender: TObject);
 begin
   Close;
@@ -764,8 +780,8 @@ begin
     FImage.LoadMultiFromFile(FileName);
     MeasureTime(Format('File %s opened in:', [ExtractFileName(FileName)]), T);
   except
+    MessageDlg(GetExceptObject.Message, mtError, [mbOK], 0);
     FImage.CreateFromParams(32, 32, ifA8R8G8B8, 1);
-    MessageDlg('Error when loading file: ' + FileName, mtError, [mbOK], 0);
   end;
   SelectSubimage(0);
 end;
@@ -779,7 +795,7 @@ begin
     FImage.SaveMultiToFile(FileName);
     MeasureTime(Format('File %s saved in:', [ExtractFileName(FileName)]), T);
   except
-    MessageDlg('Error when saving file: ' + FileName, mtError, [mbOK], 0);
+    MessageDlg(GetExceptObject.Message, mtError, [mbOK], 0);
   end;
 end;
 
@@ -808,6 +824,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - add more canvas stuff when it will be avaiable
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Added Canvas.AdjustColorLevels example.
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
     - Added binary morphology operations.

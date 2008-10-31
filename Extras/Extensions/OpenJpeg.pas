@@ -536,8 +536,8 @@ implementation
      MSCRuntimeLib = 'msvcrt.dll';
    var
       { Some unresolved external constants.}
-      __turboFloat: Integer;
-      _max_dble: Double;
+      __turboFloat: LongBool = False;
+      _max_dble: Double = 1.7e308;
       _streams: Pointer;
 
     { Internal OpenJpeg functions external declarations.

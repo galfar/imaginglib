@@ -34,7 +34,7 @@ uses
 {$IFDEF VER70}
 {$ifndef NO_GETENV}
    Dos,                 	{ DOS unit should declare getenv() }
-                                { function GetEnv(name : string) : string; }
+                               { function GetEnv(name : string) : string; }
 {$endif}
    imjmemdos;                     { import the system-dependent declarations }
 {$ELSE}
@@ -492,6 +492,7 @@ begin
   { Calculate max # of rows allowed in one allocation chunk }
   ltemp := (MAX_ALLOC_CHUNK-SIZEOF(large_pool_hdr)) div
 	  (long(blocksperrow) * SIZEOF(JBLOCK));
+
   if (ltemp <= 0) then
     ERREXIT(cinfo, JERR_WIDTH_OVERFLOW);
   if (ltemp < long(numrows)) then

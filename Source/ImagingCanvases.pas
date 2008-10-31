@@ -732,9 +732,18 @@ end;
 function TransformLevels(const Pixel: TColorFPRec; BlackPoint, WhitePoint, Exp: Single): TColorFPRec;
 begin
   Result.A := Pixel.A;
-  Result.R := Power((Pixel.R - BlackPoint) / (WhitePoint - BlackPoint), Exp);
-  Result.G := Power((Pixel.G - BlackPoint) / (WhitePoint - BlackPoint), Exp);
-  Result.B := Power((Pixel.B - BlackPoint) / (WhitePoint - BlackPoint), Exp);
+  if Pixel.R > BlackPoint then
+    Result.R := Power((Pixel.R - BlackPoint) / (WhitePoint - BlackPoint), Exp)
+  else
+    Result.R := 0.0;
+  if Pixel.G > BlackPoint then
+    Result.G := Power((Pixel.G - BlackPoint) / (WhitePoint - BlackPoint), Exp)
+  else
+    Result.G := 0.0;
+  if Pixel.B > BlackPoint then
+    Result.B := Power((Pixel.B - BlackPoint) / (WhitePoint - BlackPoint), Exp)
+  else
+    Result.B := 0.0;
 end;
 
 
@@ -1637,6 +1646,8 @@ finalization
     - more objects (arc, polygon)
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Fixed "Invalid FP operation" in AdjustColorLevels in FPC compiled exes
+      (thanks to Carlos González).
     - Added TImagingCanvas.AdjustColorLevels method.
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
