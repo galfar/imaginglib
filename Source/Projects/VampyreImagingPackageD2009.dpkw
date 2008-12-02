@@ -1,4 +1,4 @@
-package VampyreImagingPackageD2009;
+package VampyreImagingPackageCRS;
 
 {$R *.res}
 {$ALIGN 8}

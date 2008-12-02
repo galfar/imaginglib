@@ -94,7 +94,7 @@ OutputDir=..\..\Bin
 UnitOutputDir=
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\Source;..\Source\JpegLib;..\Source\ZLib;
+SearchPath=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls
 Conditionals=
 DebugSourceDirs=
@@ -109,7 +109,7 @@ DebugCWD=
 IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
-MinorVer=24
+MinorVer=26
 Release=2
 Build=0
 Debug=0
@@ -122,7 +122,7 @@ CodePage=1252
 [Version Info Keys]
 CompanyName=http://imaginglib.sourceforge.net
 FileDescription=Image loading, saving and manipulation library
-FileVersion=0.24.2.0
+FileVersion=0.26.2.0
 InternalName=VampyreImaging.dll
 LegalCopyright=
 LegalTrademarks=
@@ -134,7 +134,7 @@ Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
 Count=1
-Item0=..\Source;..\Source\JpegLib;..\Source\ZLib;
+Item0=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;
 [HistoryLists\hlOutputDirectorry]
 Count=1
 Item0=..\..\Bin
