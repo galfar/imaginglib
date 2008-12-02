@@ -98,8 +98,8 @@ end;
 
 procedure UpdateCaption;
 begin
-  SDL_WM_SetCaption(PChar(Format(SWindowTitle + ' FPS: %.1f',
-    [Imaging.GetVersionStr, GetFormatName(SpriteFormat), FPS])), SWindowIconTitle);
+  SDL_WM_SetCaption(PAnsiChar(AnsiString(Format(SWindowTitle + ' FPS: %.1f',
+    [Imaging.GetVersionStr, GetFormatName(SpriteFormat), FPS]))), SWindowIconTitle);
 end;
 
 procedure CreateSpriteTexture(Format: TImageFormat);
@@ -140,12 +140,12 @@ end;
 procedure Initialize;
 {$IFDEF MSWINDOWS}
 var
-  Caption, Icon: PChar;
+  Caption, Icon: PAnsiChar;
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
   SDL_WM_GetCaption(Caption, Icon);
-  WindowHandle := FindWindow('SDL_app', Caption);
+  WindowHandle := FindWindowA('SDL_app', Caption);
   if WindowHandle <> 0 then
   begin
     // Place window to the center of the screen
@@ -269,9 +269,9 @@ begin
   if (SDL_Init(SDL_INIT_VIDEO) < 0) then
     MessageOutAndHalt('SDL initialization failed: %s', [SDL_GetError]);
 
-  SDL_WM_SetCaption(PChar(Format(SWindowTitle, [Imaging.GetVersionStr,
-    GetFormatName(SpriteFormat)])), SWindowIconTitle);
-  SDL_WM_SetIcon(SDL_LoadBMP(PChar(GetDataDir + PathDelim + SIconFile)), 0);
+  SDL_WM_SetCaption(PAnsiChar(AnsiString(Format(SWindowTitle, [Imaging.GetVersionStr,
+    GetFormatName(SpriteFormat)]))), SWindowIconTitle);
+  SDL_WM_SetIcon(SDL_LoadBMP(PAnsiChar(AnsiString(GetDataDir + PathDelim + SIconFile))), 0);
 
   // Set GL attributes using SDL
   SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
@@ -346,6 +346,9 @@ begin
 
 {
   File Notes:
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Delphi 2009 compatibility pchar/string changes.
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
     - Changes in timing.

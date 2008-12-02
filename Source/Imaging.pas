@@ -534,28 +534,28 @@ procedure RaiseImaging(const Msg: string; const Args: array of const);
 implementation
 
 uses
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
   ImagingBitmap,
 {$ENDIF}
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
   ImagingJpeg,
 {$ENDIF}
-{$IF Defined(LINK_PNG) or Defined(LINK_MNG) or Defined(LINK_JNG)}
+{$IF not Defined(DONT_LINK_PNG) or not Defined(DONT_LINK_MNG) or not Defined(DONT_LINK_JNG)}
   ImagingNetworkGraphics,
 {$IFEND}
-{$IFDEF LINK_GIF}
+{$IFNDEF DONT_LINK_GIF}
   ImagingGif,
 {$ENDIF}
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
   ImagingDds,
 {$ENDIF}
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
   ImagingTarga,
 {$ENDIF}
-{$IFDEF LINK_PNM}
+{$IFNDEF DONT_LINK_PNM}
   ImagingPortableMaps,
 {$ENDIF}
-{$IFDEF LINK_EXTRAS}
+{$IFNDEF DONT_LINK_EXTRAS}
   ImagingExtras,
 {$ENDIF}
   ImagingFormats, ImagingUtility, ImagingIO;
@@ -608,6 +608,7 @@ resourcestring
   SErrorReplaceColor = 'Error while replacing colors in rectangle X:%d Y:%d W:%d H:%d of image %s';
   SErrorRotateImage = 'Error while rotating image %s by %d degrees';
   SErrorStretchRect = 'Error while stretching rect from image %s to image %s.';
+  SErrorEmptyStream = 'Input stream has no data. Check Position property.';
 
 const
   // initial size of array with options information
@@ -996,6 +997,8 @@ var
   I: LongInt;
 begin
   Assert(Stream <> nil);
+  if Stream.Size - Stream.Position = 0 then
+    RaiseImaging(SErrorEmptyStream, []);
   Result := False;
   Format := FindImageFileFormatByExt(DetermineStreamFormat(Stream));
   if Format <> nil then
@@ -1057,6 +1060,8 @@ var
   Format: TImageFileFormat;
 begin
   Assert(Stream <> nil);
+  if Stream.Size - Stream.Position = 0 then
+    RaiseImaging(SErrorEmptyStream, []);
   Result := False;
   Format := FindImageFileFormatByExt(DetermineStreamFormat(Stream));
   if Format <> nil then
@@ -3288,6 +3293,11 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Added position/size checks to LoadFromStream functions.
+    - Changed conditional compilation in impl. uses section to reflect changes
+      in LINK symbols.
 
   -- 0.24.3 Changes/Bug Fixes ---------------------------------
     - GenerateMipMaps now generates all smaller levels from

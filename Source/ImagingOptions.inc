@@ -15,23 +15,24 @@
                               // checking, stack frames, assertions, and
                               // other debugging options will be turned on
 
-{ File format support linking options. Undefine formats which you don't want
-  to be registred automatically. }
+{ File format support linking options.
+  Define formats which you don't want to be registred automatically.
+  Default: all formats are registered, no symbols defined.}
 
-{$DEFINE LINK_JPEG}        // link support for Jpeg images
-{$DEFINE LINK_PNG}         // link support for PNG images
-{$DEFINE LINK_TARGA}       // link support for Targa images
-{$DEFINE LINK_BITMAP}      // link support for Windows Bitmap images
-{$DEFINE LINK_DDS}         // link support for DDS images
-{$DEFINE LINK_GIF}         // link support for GIF images
-{$DEFINE LINK_MNG}         // link support for MNG images
-{$DEFINE LINK_JNG}         // link support for JNG images
-{$DEFINE LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
+{ $DEFINE DONT_LINK_JPEG}        // link support for Jpeg images
+{ $DEFINE DONT_LINK_PNG}         // link support for PNG images
+{ $DEFINE DONT_LINK_TARGA}       // link support for Targa images
+{ $DEFINE DONT_LINK_BITMAP}      // link support for Windows Bitmap images
+{ $DEFINE DONT_LINK_DDS}         // link support for DDS images
+{ $DEFINE DONT_LINK_GIF}         // link support for GIF images
+{ $DEFINE DONT_LINK_MNG}         // link support for MNG images
+{ $DEFINE DONT_LINK_JNG}         // link support for JNG images
+{ $DEFINE DONT_LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
 
-{$DEFINE LINK_EXTRAS}      // link support for file formats defined in
-                           // Extras package. Exactly which formats will be
-                           // registered depends on settings in
-                           // ImagingExtras.pas unit.
+{ $DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
+                             // Extras package. Exactly which formats will be
+                             // registered depends on settings in
+                             // ImagingExtras.pas unit.
 
 { Component set used in ImagignComponents.pas unit. You usually don't need
   to be concerned with this - proper component library is selected automatically
@@ -95,7 +96,7 @@
     {$OPTIMIZATION OFF}
     {$STACKFRAMES ON}
     {$LOCALSYMBOLS ON}
-    { $DEFINE MEMCHECK}
+    {$DEFINE MEMCHECK}
   {$ENDIF}
   {$IFDEF FPC}
     {$S+}

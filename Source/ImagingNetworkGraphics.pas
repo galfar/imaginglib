@@ -105,7 +105,7 @@ type
     constructor Create; override;
   end;
 
-{$IFDEF LINK_MNG}
+{$IFNDEF DONT_LINK_MNG}
   { Class for loading Multiple Network Graphics files.
     This format has complex animation capabilities but Imaging only
     extracts frames. Individual frames are stored as standard PNG or JNG
@@ -130,7 +130,7 @@ type
   end;
 {$ENDIF}  
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
   { Class for loading JPEG Network Graphics Images.
     Loads all types of this image format (all images in jng test suite)
     and saves all types except 12 bit JPEGs.
@@ -158,7 +158,7 @@ type
 
 implementation
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
 uses
   ImagingJpeg, ImagingIO;
 {$ENDIF}
@@ -310,7 +310,7 @@ type
   public
     function LoadFile(Handle: TImagingHandle): Boolean;
     procedure LoadImageFromPNGFrame(const IHDR: TIHDR; IDATStream: TMemoryStream; var Image: TImageData);
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
     procedure LoadImageFromJNGFrame(const JHDR: TJHDR; IDATStream, JDATStream, JDAAStream: TMemoryStream; var Image: TImageData);
 {$ENDIF}
     procedure ApplyFrameSettings(Frame: TFrameInfo; var Image: TImageData);
@@ -326,13 +326,13 @@ type
     function SaveFile(Handle: TImagingHandle): Boolean;
     procedure AddFrame(const Image: TImageData; IsJNG: Boolean);
     procedure StoreImageToPNGFrame(const IHDR: TIHDR; Bits: Pointer; FmtInfo: TImageFormatInfo; IDATStream: TMemoryStream);
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
     procedure StoreImageToJNGFrame(const JHDR: TJHDR; const Image: TImageData; IDATStream, JDATStream, JDAAStream: TMemoryStream);
 {$ENDIF}
     procedure SetFileOptions(FileFormat: TNetworkGraphicsFileFormat);
   end;
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
   TCustomIOJpegFileFormat = class(TJpegFileFormat)
   protected
     FCustomIO: TIOFunctions;
@@ -414,7 +414,7 @@ begin
     Shift4[X and 1];
 end;
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
 
 { TCustomIOJpegFileFormat class implementation }
 
@@ -985,7 +985,7 @@ begin
   end;
 end;
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
 
 procedure TNGFileLoader.LoadImageFromJNGFrame(const JHDR: TJHDR; IDATStream,
   JDATStream, JDAAStream: TMemoryStream; var Image: TImageData);
@@ -1392,7 +1392,7 @@ begin
   end;
 end;
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
 
 procedure TNGFileSaver.StoreImageToJNGFrame(const JHDR: TJHDR;
   const Image: TImageData; IDATStream, JDATStream,
@@ -1553,7 +1553,7 @@ begin
 
     if IsJNG then
     begin
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
       // Fill JNG header
       JHDR.Width := Image.Width;
       JHDR.Height := Image.Height;
@@ -1918,7 +1918,7 @@ begin
   end;
 end;
 
-{$IFDEF LINK_MNG}
+{$IFNDEF DONT_LINK_MNG}
 
 { TMNGFileFormat class implementation }
 
@@ -2036,7 +2036,7 @@ end;
 
 {$ENDIF}
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
 
 { TJNGFileFormat class implementation }
 
@@ -2112,10 +2112,10 @@ end;
 
 initialization
   RegisterImageFileFormat(TPNGFileFormat);
-{$IFDEF LINK_MNG}
+{$IFNDEF DONT_LINK_MNG}
   RegisterImageFileFormat(TMNGFileFormat);
 {$ENDIF}
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
   RegisterImageFileFormat(TJNGFileFormat);
 {$ENDIF}
 finalization
@@ -2125,6 +2125,10 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Changed file format conditional compilation to reflect changes
+      in LINK symbols.
 
   -- 0.24.3 Changes/Bug Fixes ---------------------------------
     - Changes for better thread safety.

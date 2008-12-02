@@ -47,6 +47,7 @@ type
     transparency.}
   TGIFFileFormat = class(TImageFileFormat)
   private
+    FLoadAnimated: LongBool;
     function InterlaceStep(Y, Height: Integer; var Pass: Integer): Integer;
     procedure LZWDecompress(Stream: TStream; Handle: TImagingHandle;
       Width, Height: Integer; Interlaced: Boolean; Data: Pointer);
@@ -70,6 +71,7 @@ const
   SGIFFormatName = 'Graphics Interchange Format';
   SGIFMasks      = '*.gif';
   GIFSupportedFormats: TImageFormats = [ifIndex8];
+  GIFDefaultLoadAnimated = True;
 
 type
   TGIFVersion = (gv87, gv89);
@@ -206,8 +208,10 @@ begin
   FCanSave := True;
   FIsMultiImageFormat := True;
   FSupportedFormats := GIFSupportedFormats;
+  FLoadAnimated := GIFDefaultLoadAnimated;
 
   AddMasks(SGIFMasks);
+  RegisterOption(ImagingGIFLoadAnimated, @FLoadAnimated);
 end;
 
 function TGIFFileFormat.InterlaceStep(Y, Height: Integer; var Pass: Integer): Integer;

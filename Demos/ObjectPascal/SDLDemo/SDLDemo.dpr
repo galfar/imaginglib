@@ -54,8 +54,8 @@ var
   Frames: LongInt = 0;
   LastTime: LongInt = 0;
 const
-  DisplayWidth = 640;
-  DisplayHeight = 480;
+  DisplayWidth = 800;
+  DisplayHeight = 600;
   SIconFile = 'Icon.bmp';
   SBackImageFile = 'Tigers.jpg';
   SSpriteImageFile = 'Vezyr.png';
@@ -129,13 +129,13 @@ var
   Image: TImageData;
   Surface: PSDL_Surface;
 {$IFDEF MSWINDOWS}
-  Caption, Icon: PChar;
+  Caption, Icon: PAnsiChar;
   WindowHandle: THandle;
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
   SDL_WM_GetCaption(Caption, Icon);
-  WindowHandle := FindWindow('SDL_app', Caption);
+  WindowHandle := FindWindowA('SDL_app', Caption);
   if WindowHandle <> 0 then
   // Place window to the center of the screen
     SetWindowPos(WindowHandle, 0, (GetSystemMetrics(SM_CXSCREEN) - DisplayWidth) div 2,
@@ -208,7 +208,7 @@ begin
   else
     Flags := Flags or SDL_SWSURFACE;
 
-  SDL_WM_SetCaption(PChar(Format(SWindowTitle, [Imaging.GetVersionStr])), SWindowIconTitle);
+  SDL_WM_SetCaption(PAnsiChar(AnsiString(Format(SWindowTitle, [Imaging.GetVersionStr]))), SWindowIconTitle);
   SDL_WM_SetIcon(LoadSDLSurfaceFromFile(GetDataDir + PathDelim + SIconFile), 0);
 
   // Initialize video mode
@@ -272,8 +272,8 @@ begin
     // Calculate FPS
     if LongInt(SDL_GetTicks) - LastTime > 1000 then
     begin
-      SDL_WM_SetCaption(PChar(Format(SWindowTitle + ' FPS: %d',
-        [Imaging.GetVersionStr, Frames])), SWindowIconTitle);
+      SDL_WM_SetCaption(PAnsiChar(AnsiString(Format(SWindowTitle + ' FPS: %d',
+        [Imaging.GetVersionStr, Frames]))), SWindowIconTitle);
       Frames := 0;
       LastTime := SDL_GetTicks;
     end;
@@ -285,4 +285,17 @@ begin
   // Frees all surfaces and images
   Finalize;
   SDL_Quit;
+
+{
+  File Notes:
+
+  -- TODOS ----------------------------------------------------
+    - nothing now
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Changed resolution to 800x600.
+    - Delphi 2009 compatibility pchar/string changes.
+
+}
+
 end.

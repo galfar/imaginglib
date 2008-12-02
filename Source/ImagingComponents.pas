@@ -124,7 +124,7 @@ type
 
   TImagingGraphicForSaveClass = class of TImagingGraphicForSave;
 
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
   { TImagingGraphic descendant for loading/saving Windows bitmaps.
     VCL/CLX/LCL all have native support for bitmaps so you might
     want to disable this class (although you can save bitmaps with
@@ -141,7 +141,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
   { TImagingGraphic descendant for loading/saving JPEG images.}
   TImagingJpeg = class(TImagingGraphicForSave)
   protected
@@ -161,7 +161,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_PNG}
+{$IFNDEF DONT_LINK_PNG}
   { TImagingGraphic descendant for loading/saving PNG images.}
   TImagingPNG = class(TImagingGraphicForSave)
   protected
@@ -178,7 +178,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_GIF}
+{$IFNDEF DONT_LINK_GIF}
   { TImagingGraphic descendant for loading/saving GIF images.}
   TImagingGIF = class(TImagingGraphicForSave)
   public
@@ -186,7 +186,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
   { TImagingGraphic descendant for loading/saving Targa images.}
   TImagingTarga = class(TImagingGraphicForSave)
   protected
@@ -200,7 +200,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
   { Compresssion type used when saving DDS files by TImagingDds.}
   TDDSCompresion = (dcNone, dcDXT1, dcDXT3, dcDXT5);
 
@@ -218,7 +218,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_MNG}
+{$IFNDEF DONT_LINK_MNG}
   { TImagingGraphic descendant for loading/saving MNG images.}
   TImagingMNG = class(TImagingGraphicForSave)
   protected
@@ -250,7 +250,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
   { TImagingGraphic descendant for loading/saving JNG images.}
   TImagingJNG = class(TImagingGraphicForSave)
   protected
@@ -334,22 +334,22 @@ uses
     GDK, GTK, GTKDef, GTKProc,
   {$ENDIF}
 {$IFEND}
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
   ImagingBitmap,
 {$ENDIF}
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
   ImagingJpeg,
 {$ENDIF}
-{$IFDEF LINK_GIF}
+{$IFNDEF DONT_LINK_GIF}
   ImagingGif,
 {$ENDIF}
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
   ImagingTarga,
 {$ENDIF}
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
   ImagingDds,
 {$ENDIF}
-{$IF Defined(LINK_PNG) or Defined(LINK_MNG) or Defined(LINK_JNG)}
+{$IF not Defined(DONT_LINK_PNG) or not Defined(DONT_LINK_MNG) or not Defined(DONT_LINK_JNG)}
   ImagingNetworkGraphics,
 {$IFEND}
   ImagingUtility;
@@ -388,27 +388,27 @@ begin
     RegisterFileFormatAllInOne(Imaging.GetFileFormatAtIndex(I));
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingGraphic);{$ENDIF}
 
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
   RegisterFileFormat(TImagingTarga);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingTarga);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
   RegisterFileFormat(TImagingDDS);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingDDS);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
   RegisterFileFormat(TImagingJNG);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingJNG);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_MNG}
+{$IFNDEF DONT_LINK_MNG}
   RegisterFileFormat(TImagingMNG);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingMNG);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_GIF}
+{$IFNDEF DONT_LINK_GIF}
   RegisterFileFormat(TImagingGIF);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingGIF);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_PNG}
+{$IFNDEF DONT_LINK_PNG}
   {$IFDEF COMPONENT_SET_LCL}
     // Unregister Lazarus´ default PNG loader which crashes on some PNG files
     TPicture.UnregisterGraphicClass(TPortableNetworkGraphic);
@@ -416,11 +416,11 @@ begin
   RegisterFileFormat(TImagingPNG);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingPNG);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
   RegisterFileFormat(TImagingJpeg);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingJpeg);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
   RegisterFileFormat(TImagingBitmap);
   {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingBitmap);{$ENDIF}
 {$ENDIF}   
@@ -429,27 +429,27 @@ end;
 { Unregisters types from VCL/CLX/LCL.}
 procedure UnRegisterTypes;
 begin
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
   TPicture.UnregisterGraphicClass(TImagingBitmap);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingBitmap);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
   TPicture.UnregisterGraphicClass(TImagingJpeg);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingJpeg);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_PNG}
+{$IFNDEF DONT_LINK_PNG}
   TPicture.UnregisterGraphicClass(TImagingPNG);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingPNG);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_GIF}
+{$IFNDEF DONT_LINK_GIF}
   TPicture.UnregisterGraphicClass(TImagingGIF);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingGIF);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
   TPicture.UnregisterGraphicClass(TImagingTarga);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingTarga);{$ENDIF}
 {$ENDIF}
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
   TPicture.UnregisterGraphicClass(TImagingDDS);
   {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingDDS);{$ENDIF}
 {$ENDIF}
@@ -1029,7 +1029,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
 
 { TImagingBitmap class implementation }
 
@@ -1053,7 +1053,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
 
 { TImagingJpeg class implementation }
 
@@ -1087,7 +1087,7 @@ end;
 
 {$ENDIF}
 
-{$IFDEF LINK_PNG}
+{$IFNDEF DONT_LINK_PNG}
 
 { TImagingPNG class implementation }
 
@@ -1113,7 +1113,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_GIF}
+{$IFNDEF DONT_LINK_GIF}
 
 { TImagingGIF class implementation}
 
@@ -1124,7 +1124,7 @@ end;
 
 {$ENDIF}
 
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
 
 { TImagingTarga class implementation }
 
@@ -1148,7 +1148,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
 
 { TImagingDDS class implementation }
 
@@ -1181,7 +1181,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_MNG}
+{$IFNDEF DONT_LINK_MNG}
 
 { TImagingMNG class implementation }
 
@@ -1222,7 +1222,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
 
 { TImagingJNG class implementation }
 
@@ -1266,6 +1266,8 @@ finalization
     - nothing now
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Changed file format conditional compilation to reflect changes
+      in LINK symbols.
     - Lazarus 0.9.26 compatibility changes.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
