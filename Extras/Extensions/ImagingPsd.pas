@@ -1,7 +1,7 @@
 {
   $Id$
   Vampyre Imaging Library
-  by Marek Mauder 
+  by Marek Mauder
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -47,6 +47,7 @@ type
     Also no layer information is loaded.}
   TPSDFileFormat = class(TImageFileFormat)
   protected
+    FSaveAsLayer: LongBool;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
@@ -60,12 +61,16 @@ type
 
 implementation
 
+uses
+  ImagingExtras;
+
 const
   SPSDFormatName = 'Photoshop Image';
   SPSDMasks      = '*.psd,*.pdd';
   PSDSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8,
     ifR8G8B8, ifA8R8G8B8, ifGray16, ifA16Gray16, ifR16G16B16, ifA16R16G16B16,
     ifR32F, ifA32R32G32B32F];
+  PSDDefaultSaveAsLayer = True;
 
 const
   SPSDMagic = '8BPS';
@@ -98,6 +103,11 @@ type
     Mode: TPSDColorMode;           // Color mode
   end;
 
+  TPSDChannelInfo = packed record
+    ChannelID: Word;               // 0 = Red, 1 = Green, 2 = Blue etc., -1 = Transparency mask, -2 = User mask
+    Size: LongWord;                // Size of channel data.
+  end;
+
 procedure SwapHeader(var Header: TPSDHeader);
 begin
   Header.Version := SwapEndianWord(Header.Version);
@@ -121,6 +131,9 @@ begin
   FIsMultiImageFormat := False;
   FSupportedFormats := PSDSupportedFormats;
   AddMasks(SPSDMasks);
+
+  FSaveAsLayer := PSDDefaultSaveAsLayer;
+  RegisterOption(ImagingPSDSaveAsLayer, @FSaveAsLayer);
 end;
 
 function TPSDFileFormat.LoadData(Handle: TImagingHandle;
@@ -245,7 +258,7 @@ begin
         Palette[I].R := RawPal[I + 0];
         Palette[I].G := RawPal[I + 256];
         Palette[I].B := RawPal[I + 512];
-      end; 
+      end;
     end
     else
       Seek(Handle, ByteCount, smFromCurrent);
@@ -254,9 +267,10 @@ begin
     Read(Handle, @ByteCount, SizeOf(ByteCount));
     ByteCount := SwapEndianLongWord(ByteCount);
     Seek(Handle, ByteCount, smFromCurrent);
-    // Skip Layer and Mask Information Block
+    // Now there is Layer and Mask Information Block
     Read(Handle, @ByteCount, SizeOf(ByteCount));
     ByteCount := SwapEndianLongWord(ByteCount);
+    // Skip Layer and Mask Information Block
     Seek(Handle, ByteCount, smFromCurrent);
 
     // Read compression flag
@@ -357,7 +371,7 @@ begin
         else
         begin
           // Skip current color channel, not needed for image loading - just to
-          // get stream's position to the and of PSD
+          // get stream's position to the end of PSD
           if Compression = CompressionRLE then
           begin
             for Y := 0 to Height - 1 do
@@ -426,22 +440,191 @@ end;
 
 function TPSDFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
+type
+  TURect = packed record
+    Top, Left, Bottom, Right: LongWord;
+  end;
+const
+  BlendMode: TChar8 = '8BIMnorm';
+  LayerOptions: array[0..3] of Byte = (255, 0, 1, 0);
+  LayerName: array[0..7] of AnsiChar = #7'Layer 0';
 var
   MustBeFreed: Boolean;
   ImageToSave: TImageData;
   Info: TImageFormatInfo;
   Header: TPSDHeader;
-  I, X, Y, CurrChannel, LineSize, ChannelPixelSize, WidthBytes: LongInt;
+  I, CurrChannel, ChannelPixelSize: LongInt;
+  LayerBlockOffset, SaveOffset, ChannelInfoOffset: Integer;
+  ChannelInfo: TPSDChannelInfo;
+  R: TURect;
   LongVal: LongWord;
-  WordVal: Word;
+  WordVal, LayerCount: Word;
   RawPal: array[0..767] of Byte;
-  LineBuffer: PByte;
+  ChannelDataSizes: array of Integer;
+
+  function PackLine(Src, Dest: PByteArray; Length: Integer): Integer;
+  var
+    I, Remaining: Integer;
+  begin
+    Remaining := Length;
+    Result := 0;
+    while Remaining > 0 do
+    begin
+      I := 0;
+      // Look for characters same as the first
+      while (I < 128) and (Remaining - I > 0) and (Src[0] = Src[I]) do
+        Inc(I);
+
+      if I > 2 then
+      begin
+        Dest[0] := Byte(-(I - 1));
+        Dest[1] := Src[0];
+        Dest := PByteArray(@Dest[2]);
+
+        Src := PByteArray(@Src[I]);
+        Dec(Remaining, I);
+        Inc(Result, 2);
+      end
+      else
+      begin
+        // Look for different characters
+        I := 0;
+        while (I < 128) and (Remaining - (I + 1) > 0) and
+          ((Src[I] <> Src[I + 1]) or (Remaining - (I + 2) <= 0) or
+          (Src[I] <> Src[I + 2])) do
+        begin
+          Inc(I);
+        end;
+        // If there's only 1 remaining, the previous WHILE doesn't catch it
+        if Remaining = 1 then
+          I := 1;
+
+        if I > 0 then
+        begin
+          // Some distinct ones found
+          Dest[0] := I - 1;
+          Move(Src[0], Dest[1], I);
+          Dest := PByteArray(@Dest[1 + I]);
+          Src := PByteArray(@Src[I]);
+          Dec(Remaining, I);
+          Inc(Result, I + 1);
+        end;
+      end;
+    end;
+  end;
+
+  procedure WriteChannelData(SeparateChannelStorage: Boolean);
+  var
+    I, X, Y, LineSize, WidthBytes, RLETableOffset, CurrentOffset, RLELineSize: Integer;
+    LineBuffer, RLEBuffer: PByteArray;
+    RLELengths: array of Word;
+  begin
+    LineSize := ImageToSave.Width * ChannelPixelSize;
+    WidthBytes := ImageToSave.Width * Info.BytesPerPixel;
+    GetMem(LineBuffer, LineSize);
+    GetMem(RLEBuffer, LineSize * 3);
+    SetLength(RLELengths, ImageToSave.Height * Info.ChannelCount);
+    RLETableOffset := 0;
+
+    if not SeparateChannelStorage then
+    begin
+      // This is for storing background merged image. There's only one
+      // complession flag and one RLE lenghts table for all channels
+      WordVal := Swap(CompressionRLE);
+      GetIO.Write(Handle, @WordVal, SizeOf(WordVal));
+      RLETableOffset := GetIO.Tell(Handle);
+      GetIO.Write(Handle, @RLELengths[0], SizeOf(Word) * ImageToSave.Height * Info.ChannelCount);
+    end;
+
+    for I := 0 to Info.ChannelCount - 1 do
+    begin
+      if SeparateChannelStorage then
+      begin
+        // Layer image data has compression flag and RLE lenghts table
+        // independent for each channel
+        WordVal := Swap(CompressionRLE);
+        GetIO.Write(Handle, @WordVal, SizeOf(WordVal));
+        RLETableOffset := GetIO.Tell(Handle);
+        GetIO.Write(Handle, @RLELengths[0], SizeOf(Word) * ImageToSave.Height);
+        ChannelDataSizes[I] := 0;
+      end;
+
+      // Now determine which color channel we are going to write to file.
+      if Info.HasAlphaChannel then
+      begin
+        if I = Info.ChannelCount - 1 then
+          CurrChannel := I
+        else
+          CurrChannel := Info.ChannelCount - 2 - I;
+      end
+      else
+        CurrChannel := Info.ChannelCount - 1 - I;
+
+      for Y := 0 to ImageToSave.Height - 1 do
+      begin
+        if Info.ChannelCount > 1 then
+        begin
+          // Copy each pixel fragment to its right place in destination image
+          for X := 0 to ImageToSave.Width - 1 do
+          begin
+            Move(PByteArray(ImageToSave.Bits)[Y * WidthBytes + X * Info.BytesPerPixel + CurrChannel * ChannelPixelSize],
+              PByteArray(LineBuffer)[X * ChannelPixelSize], ChannelPixelSize);
+          end;
+        end
+        else
+          Move(PByteArray(ImageToSave.Bits)[Y * LineSize], LineBuffer^, LineSize);
+
+        // Write current channel line to file (swap endian if needed first)
+        if ChannelPixelSize = 4 then
+          SwapEndianLongWord(PLongWord(LineBuffer), ImageToSave.Width)
+        else if ChannelPixelSize = 2 then
+          SwapEndianWord(PWordArray(LineBuffer), ImageToSave.Width);
+
+        // Compress and write line
+        RLELineSize := PackLine(LineBuffer, RLEBuffer, LineSize);
+        {RLELineSize := 7;
+        RLEBuffer[0] := 129; RLEBuffer[1] := 255; RLEBuffer[2] := 131; RLEBuffer[3] := 100;
+        RLEBuffer[4] := 1; RLEBuffer[5] := 0; RLEBuffer[6] := 255;}
+
+        if SeparateChannelStorage then
+          Inc(ChannelDataSizes[I], RLELineSize);
+
+        RLELengths[ImageToSave.Height * I + Y] := SwapEndianWord(RLELineSize);
+
+        GetIO.Write(Handle, RLEBuffer, RLELineSize);
+      end;
+
+      if SeparateChannelStorage then
+      begin
+        // Update channel RLE lengths
+        CurrentOffset := GetIO.Tell(Handle);
+        GetIO.Seek(Handle, RLETableOffset, smFromBeginning);
+        GetIO.Write(Handle, @RLELengths[ImageToSave.Height * I], SizeOf(Word) * ImageToSave.Height);
+        GetIO.Seek(Handle, CurrentOffset, smFromBeginning);
+      end;
+    end;
+
+    if not SeparateChannelStorage then
+    begin
+      // Update channel RLE lengths
+      CurrentOffset := GetIO.Tell(Handle);
+      GetIO.Seek(Handle, RLETableOffset, smFromBeginning);
+      GetIO.Write(Handle, @RLELengths[0], SizeOf(Word) * ImageToSave.Height * Info.ChannelCount);
+      GetIO.Seek(Handle, CurrentOffset, smFromBeginning);
+    end;
+
+    FreeMem(LineBuffer);
+    FreeMem(RLEBuffer);
+  end;
+
 begin
   Result := False;
   if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with GetIO, ImageToSave do
   try
     Info := GetFormatInfo(Format);
+    ChannelPixelSize := Info.BytesPerPixel div Info.ChannelCount;
+
     // Fill header with proper info and save it
     FillChar(Header, SizeOf(Header), 0);
     Header.Signature := SPSDMagic;
@@ -473,59 +656,74 @@ begin
       end;
       Write(Handle, @RawPal, SizeOf(RawPal));
     end;
+
     // Write empty resource and layer block sizes
     LongVal := 0;
     Write(Handle, @LongVal, SizeOf(LongVal));
+    LayerBlockOffset := Tell(Handle);
     Write(Handle, @LongVal, SizeOf(LongVal));
 
-    // Set compression off
-    WordVal := Swap(CompressionNone);
-    Write(Handle, @WordVal, SizeOf(WordVal));
-
-    ChannelPixelSize := Info.BytesPerPixel div Info.ChannelCount;
-    LineSize := Width * ChannelPixelSize;
-    WidthBytes := Width * Info.BytesPerPixel;
-    GetMem(LineBuffer, LineSize);
-
-    for I := 0 to Info.ChannelCount - 1 do
+    if FSaveAsLayer then
     begin
-      // Now determine which color channel we are going to write to file.
-      if Info.HasAlphaChannel then
-      begin
-        if I = Info.ChannelCount - 1 then
-          CurrChannel := I
-        else
-          CurrChannel := Info.ChannelCount - 2 - I;
-      end
-      else
-        CurrChannel := Info.ChannelCount - 1 - I;
+      LayerCount := SwapEndianWord(Iff(Info.HasAlphaChannel, Word(-1), 1)); // Must be -1 to get transparency in Photoshop
+      R.Top := 0;
+      R.Left := 0;
+      R.Bottom := SwapEndianLongWord(Height);
+      R.Right := SwapEndianLongWord(Width);
+      WordVal := Swap(Info.ChannelCount);
+      Write(Handle, @LongVal, SizeOf(LongVal));        // Layer section size, empty now
+      Write(Handle, @LayerCount, SizeOf(LayerCount));  // Layer count
+      Write(Handle, @R, SizeOf(R));                    // Bounds rect
+      Write(Handle, @WordVal, SizeOf(WordVal));        // Channeel count
 
-      for Y := 0 to Height - 1 do
-      begin
-        if Info.ChannelCount > 1 then
-        begin
-          // Copy each pixel fragment to its right place in destination image
-          for X := 0 to Width - 1 do
-          begin
-            Move(PByteArray(Bits)[Y * WidthBytes + X * Info.BytesPerPixel + CurrChannel * ChannelPixelSize],
-              PByteArray(LineBuffer)[X * ChannelPixelSize], ChannelPixelSize);
-          end;
-        end
-        else
-          Move(PByteArray(Bits)[Y * LineSize], LineBuffer^, LineSize);
+      ChannelInfoOffset := Tell(Handle);
+      SetLength(ChannelDataSizes, Info.ChannelCount);  // Empty channel infos
+      FillChar(ChannelInfo, SizeOf(ChannelInfo), 0);
+      for I := 0 to Info.ChannelCount - 1 do
+        Write(Handle, @ChannelInfo, SizeOf(ChannelInfo));
 
-        // Write current channel line to file (swap endian if needed first)
-        if ChannelPixelSize = 4 then
-          SwapEndianLongWord(PLongWord(LineBuffer), Width)
-        else if ChannelPixelSize = 2 then
-          SwapEndianWord(PWordArray(LineBuffer), Width);
-        Write(Handle, LineBuffer, LineSize);
+      Write(Handle, @BlendMode, SizeOf(BlendMode));    // Blend mode = normal
+      Write(Handle, @LayerOptions, SizeOf(LayerOptions)); // Predefined options
+      LongVal := SwapEndianLongWord(16);               // Extra data size (4 (mask size) + 4 (ranges size) + 8 (name))
+      Write(Handle, @LongVal, SizeOf(LongVal));
+      LongVal := 0;
+      Write(Handle, @LongVal, SizeOf(LongVal));        // Mask size = 0
+      LongVal := 0;
+      Write(Handle, @LongVal, SizeOf(LongVal));        // Blend ranges size
+      Write(Handle, @LayerName, SizeOf(LayerName));    // Layer name
+
+      WriteChannelData(True);                          // Write Layer image data
+
+      Write(Handle, @LongVal, SizeOf(LongVal));        // Global mask info size = 0
+
+      SaveOffset := Tell(Handle);
+      Seek(Handle, LayerBlockOffset, smFromBeginning);
+
+      // Update layer and mask section sizes
+      LongVal := SwapEndianLongWord(SaveOffset - LayerBlockOffset - 4);
+      Write(Handle, @LongVal, SizeOf(LongVal));
+      LongVal := SwapEndianLongWord(SaveOffset - LayerBlockOffset - 8);
+      Write(Handle, @LongVal, SizeOf(LongVal));
+
+      // Update layer channel info
+      Seek(Handle, ChannelInfoOffset, smFromBeginning);
+      for I := 0 to Info.ChannelCount - 1 do
+      begin
+        ChannelInfo.ChannelID := SwapEndianWord(I);
+        if (I = Info.ChannelCount - 1) and Info.HasAlphaChannel then
+          ChannelInfo.ChannelID := SwapEndianWord(Word(-1));
+        ChannelInfo.Size := SwapEndianLongWord(ChannelDataSizes[I] + 2 + Height * 2); // datasize + comp. flag + RLE table
+        Write(Handle, @ChannelInfo, SizeOf(ChannelInfo));
       end;
+
+      Seek(Handle, SaveOffset, smFromBeginning);
     end;
+
+    // Write background merged image
+    WriteChannelData(False);
 
     Result := True;
   finally
-    FreeMem(LineBuffer);
     if MustBeFreed then
       FreeImage(ImageToSave);
   end;
@@ -575,6 +773,10 @@ initialization
     - nothing now
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - PSDs are now saved with RLE compression.
+    - Mask layer saving added to SaveData for images with alpha
+      (shows proper transparency when opened in Photoshop). Can be
+      enabled/disabled using option 
     - Fixed memory leak in SaveData.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------

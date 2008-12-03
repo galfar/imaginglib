@@ -35,12 +35,12 @@ unit ImagingExtras;
 
 {$I ImagingOptions.inc}
 
-{$DEFINE LINK_JPEG2000}    // link support for JPEG2000 images
-{ $DEFINE LINK_TIFF}        // link support for TIFF images - disabled by default!
-{$DEFINE LINK_PSD}         // link support for PSD images
-{$DEFINE LINK_PCX}         // link support for PCX images
-{$DEFINE LINK_XPM}         // link support for XPM images
-{$DEFINE LINK_ELDER}       // link support for Elder Imagery images
+{ $DEFINE DONT_LINK_JPEG2000}    // link support for JPEG2000 images
+{$DEFINE DONT_LINK_TIFF}         // link support for TIFF images - disabled by default!
+{ $DEFINE DONT_LINK_PSD}         // link support for PSD images
+{ $DEFINE DONT_LINK_PCX}         // link support for PCX images
+{ $DEFINE DONT_LINK_XPM}         // link support for XPM images
+{$DEFINE DONT_LINK_ELDER}        // link support for Elder Imagery images
 
 {$IF not (Defined(DELPHI) or
   (Defined(FPC) and not Defined(MSDOS) and
@@ -48,11 +48,11 @@ unit ImagingExtras;
    (Defined(CPUX86_64) and Defined(UNIX)))))
   )}
   // JPEG2000 only for 32bit Windows and for 32bit/64bit Linux with FPC
-  {$UNDEF LINK_JPEG2000}  
+  {$DEFINE DONT_LINK_JPEG2000}
 {$IFEND}
 
 {$IF not Defined(DELPHI)}
-  {$UNDEF LINK_TIFF} // Only for Delphi now 
+  {$DEFINE DONT_LINK_TIFF} // Only for Delphi now
 {$IFEND}
 
 interface
@@ -67,8 +67,8 @@ const
     as code stream. Default value is False (0).}
   ImagingJpeg2000CodeStreamOnly      = 56;
   { Specifies JPEG 2000 image compression type. If True (1), saved JPEG 2000 files
-  will be losslessly compressed. Otherwise lossy compression is used.
-  Default value is False (0).}
+    will be losslessly compressed. Otherwise lossy compression is used.
+    Default value is False (0).}
   ImagingJpeg2000LosslessCompression = 57;
   { Specifies compression scheme used when saving TIFF images. Supported values
     are 0 (Uncompressed), 1 (LZW), 2 (PackBits RLE), 3 (Deflate - ZLib), 4 (JPEG).
@@ -76,26 +76,33 @@ const
     JPEG compression - these images will be saved with default compression if
     JPEG is set.}
   ImagingTiffCompression             = 65;
+  { If enabled image data is saved as layer of PSD file. This is required
+    to get proper transparency when opened in Photoshop for images with
+    alpha data (will be opened with one layer, RGB color channels, and transparency).
+    If you don't need this Photoshop compatibility turn this option off as you'll get
+    smaller file (will be opened in PS as background raster with RGBA channels).
+    Default value is True (1). }
+  ImagingPSDSaveAsLayer              = 70;
 
 implementation
 
 uses
-{$IFDEF LINK_JPEG2000}
+{$IFNDEF DONT_LINK_JPEG2000}
   ImagingJpeg2000,
 {$ENDIF}
-{$IFDEF LINK_TIFF}
+{$IFNDEF DONT_LINK_TIFF}
   ImagingTiff,
 {$ENDIF}
-{$IFDEF LINK_PSD}
+{$IFNDEF DONT_LINK_PSD}
   ImagingPsd,
 {$ENDIF}
-{$IFDEF LINK_PCX}
+{$IFNDEF DONT_LINK_PCX}
   ImagingPcx,
 {$ENDIF}
-{$IFDEF LINK_XPM}
+{$IFNDEF DONT_LINK_XPM}
   ImagingXpm,
 {$ENDIF}
-{$IFDEF LINK_ELDER}
+{$IFNDEF DONT_LINK_ELDER}
   ElderImagery,
 {$ENDIF}
   Imaging;
@@ -105,6 +112,10 @@ uses
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - ElderImagery formats are disabled by default.
+    - Changed _LINK_ symbols according to changes in ImagingOptions.inc.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
     - Allowed JPEG2000 for x86_64 CPUS in Linux
