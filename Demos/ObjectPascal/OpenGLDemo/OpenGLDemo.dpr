@@ -22,6 +22,7 @@ program OpenGLDemo;
 
 { Define this symbol if you want to use dglOpenGL header.}
 {$DEFINE USE_DGL_HEADERS}
+{ $DEFINE USE_GLSCENE_HEADERS}
 
 uses
 {$IFDEF MSWINDOWS}
@@ -34,9 +35,11 @@ uses
   sdl,
 {$IFDEF USE_DGL_HEADERS}
   dglOpenGL,
+{$ELSEIF USE_GLSCENE_HEADERS}
+  OpenGL1x,
 {$ELSE}
   gl, glext,
-{$ENDIF}
+{$IFEND}
   ImagingOpenGL,
   DemoUtils;
 
@@ -348,6 +351,7 @@ begin
   File Notes:
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Added support for GLScene's OpenGL header.
     - Delphi 2009 compatibility pchar/string changes.
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------

@@ -124,7 +124,7 @@ type
     FStrmPos: Integer;
     FOnProgress: TNotifyEvent;
     FZRec: TZStreamRec;
-    FBuffer: array [Word] of Char;
+    FBuffer: array [Word] of Byte;
   protected
     procedure Progress(Sender: TObject); dynamic;
     property OnProgress: TNotifyEvent read FOnProgress write FOnProgress;
@@ -228,7 +228,7 @@ type
 implementation
 
 const
-  ZErrorMessages: array[0..9] of PChar = (
+  ZErrorMessages: array[0..9] of PAnsiChar = (
     'need dictionary',        // Z_NEED_DICT      (2)
     'stream end',             // Z_STREAM_END     (1)
     '',                       // Z_OK             (0)
@@ -491,7 +491,7 @@ end;
 function TDecompressionStream.Seek(Offset: Longint; Origin: Word): Longint;
 var
   I: Integer;
-  Buf: array [0..4095] of Char;
+  Buf: array [0..4095] of Byte;
 begin
   if (Offset = 0) and (Origin = soFromBeginning) then
   begin

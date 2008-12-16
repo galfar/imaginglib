@@ -74,8 +74,8 @@ const
 
 const
   SPSDMagic = '8BPS';
-  CompressionNone = 0;
-  CompressionRLE  = 1;
+  CompressionNone: Word = 0;
+  CompressionRLE: Word  = 1;
 
 type
   {$MINENUMSIZE 2}
@@ -446,7 +446,7 @@ type
   end;
 const
   BlendMode: TChar8 = '8BIMnorm';
-  LayerOptions: array[0..3] of Byte = (255, 0, 1, 0);
+  LayerOptions: array[0..3] of Byte = (255, 0, 0, 0);
   LayerName: array[0..7] of AnsiChar = #7'Layer 0';
 var
   MustBeFreed: Boolean;
@@ -515,9 +515,10 @@ var
 
   procedure WriteChannelData(SeparateChannelStorage: Boolean);
   var
-    I, X, Y, LineSize, WidthBytes, RLETableOffset, CurrentOffset, RLELineSize: Integer;
+    I, X, Y, LineSize, WidthBytes, RLETableOffset, CurrentOffset, WrittenLineSize: Integer;
     LineBuffer, RLEBuffer: PByteArray;
     RLELengths: array of Word;
+    Compression: Word;
   begin
     LineSize := ImageToSave.Width * ChannelPixelSize;
     WidthBytes := ImageToSave.Width * Info.BytesPerPixel;
@@ -525,15 +526,20 @@ var
     GetMem(RLEBuffer, LineSize * 3);
     SetLength(RLELengths, ImageToSave.Height * Info.ChannelCount);
     RLETableOffset := 0;
+    // No compression for FP32, Photoshop won't open them
+    Compression := Iff(Info.IsFloatingPoint, CompressionNone, CompressionRLE);
 
     if not SeparateChannelStorage then
     begin
       // This is for storing background merged image. There's only one
       // complession flag and one RLE lenghts table for all channels
-      WordVal := Swap(CompressionRLE);
+      WordVal := Swap(Compression);
       GetIO.Write(Handle, @WordVal, SizeOf(WordVal));
-      RLETableOffset := GetIO.Tell(Handle);
-      GetIO.Write(Handle, @RLELengths[0], SizeOf(Word) * ImageToSave.Height * Info.ChannelCount);
+      if Compression = CompressionRLE then
+      begin
+        RLETableOffset := GetIO.Tell(Handle);
+        GetIO.Write(Handle, @RLELengths[0], SizeOf(Word) * ImageToSave.Height * Info.ChannelCount);
+      end;
     end;
 
     for I := 0 to Info.ChannelCount - 1 do
@@ -544,9 +550,12 @@ var
         // independent for each channel
         WordVal := Swap(CompressionRLE);
         GetIO.Write(Handle, @WordVal, SizeOf(WordVal));
-        RLETableOffset := GetIO.Tell(Handle);
-        GetIO.Write(Handle, @RLELengths[0], SizeOf(Word) * ImageToSave.Height);
-        ChannelDataSizes[I] := 0;
+        if Compression = CompressionRLE then
+        begin
+          RLETableOffset := GetIO.Tell(Handle);
+          GetIO.Write(Handle, @RLELengths[0], SizeOf(Word) * ImageToSave.Height);
+          ChannelDataSizes[I] := 0;
+        end;
       end;
 
       // Now determine which color channel we are going to write to file.
@@ -580,31 +589,38 @@ var
         else if ChannelPixelSize = 2 then
           SwapEndianWord(PWordArray(LineBuffer), ImageToSave.Width);
 
-        // Compress and write line
-        RLELineSize := PackLine(LineBuffer, RLEBuffer, LineSize);
-        {RLELineSize := 7;
-        RLEBuffer[0] := 129; RLEBuffer[1] := 255; RLEBuffer[2] := 131; RLEBuffer[3] := 100;
-        RLEBuffer[4] := 1; RLEBuffer[5] := 0; RLEBuffer[6] := 255;}
+        if Compression = CompressionRLE then
+        begin
+          // Compress and write line
+          WrittenLineSize := PackLine(LineBuffer, RLEBuffer, LineSize);
+          {RLELineSize := 7;
+          RLEBuffer[0] := 129; RLEBuffer[1] := 255; RLEBuffer[2] := 131; RLEBuffer[3] := 100;
+          RLEBuffer[4] := 1; RLEBuffer[5] := 0; RLEBuffer[6] := 255;}
+          RLELengths[ImageToSave.Height * I + Y] := SwapEndianWord(WrittenLineSize);
+          GetIO.Write(Handle, RLEBuffer, WrittenLineSize);
+        end
+        else
+        begin
+          WrittenLineSize := LineSize;
+          GetIO.Write(Handle, LineBuffer, WrittenLineSize);
+        end;
 
         if SeparateChannelStorage then
-          Inc(ChannelDataSizes[I], RLELineSize);
-
-        RLELengths[ImageToSave.Height * I + Y] := SwapEndianWord(RLELineSize);
-
-        GetIO.Write(Handle, RLEBuffer, RLELineSize);
+          Inc(ChannelDataSizes[I], WrittenLineSize);
       end;
 
-      if SeparateChannelStorage then
+      if SeparateChannelStorage and (Compression = CompressionRLE) then
       begin
         // Update channel RLE lengths
         CurrentOffset := GetIO.Tell(Handle);
         GetIO.Seek(Handle, RLETableOffset, smFromBeginning);
         GetIO.Write(Handle, @RLELengths[ImageToSave.Height * I], SizeOf(Word) * ImageToSave.Height);
         GetIO.Seek(Handle, CurrentOffset, smFromBeginning);
+        Inc(ChannelDataSizes[I], SizeOf(Word) * ImageToSave.Height);
       end;
     end;
 
-    if not SeparateChannelStorage then
+    if not SeparateChannelStorage and (Compression = CompressionRLE) then
     begin
       // Update channel RLE lengths
       CurrentOffset := GetIO.Tell(Handle);
@@ -663,7 +679,7 @@ begin
     LayerBlockOffset := Tell(Handle);
     Write(Handle, @LongVal, SizeOf(LongVal));
 
-    if FSaveAsLayer then
+    if FSaveAsLayer and (ChannelPixelSize < 4) then  // No Layers for FP32 images
     begin
       LayerCount := SwapEndianWord(Iff(Info.HasAlphaChannel, Word(-1), 1)); // Must be -1 to get transparency in Photoshop
       R.Top := 0;
@@ -711,8 +727,8 @@ begin
       begin
         ChannelInfo.ChannelID := SwapEndianWord(I);
         if (I = Info.ChannelCount - 1) and Info.HasAlphaChannel then
-          ChannelInfo.ChannelID := SwapEndianWord(Word(-1));
-        ChannelInfo.Size := SwapEndianLongWord(ChannelDataSizes[I] + 2 + Height * 2); // datasize + comp. flag + RLE table
+          ChannelInfo.ChannelID := Swap(Word(-1));
+        ChannelInfo.Size := SwapEndianLongWord(ChannelDataSizes[I] + 2); // datasize (incl RLE table) + comp. flag
         Write(Handle, @ChannelInfo, SizeOf(ChannelInfo));
       end;
 

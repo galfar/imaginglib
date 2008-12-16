@@ -34,6 +34,7 @@ unit ImagingOpenGL;
 
 { Define this symbol if you want to use dglOpenGL header.}
 {$DEFINE USE_DGL_HEADERS}
+{ $DEFINE USE_GLSCENE_HEADERS}
 
 interface
 
@@ -41,9 +42,11 @@ uses
   SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats,
 {$IFDEF USE_DGL_HEADERS}
   dglOpenGL,
+{$ELSEIF USE_GLSCENE_HEADERS}
+  OpenGL1x,
 {$ELSE}
   gl, glext,
-{$ENDIF}
+{$IFEND}
  ImagingUtility;
 
 type
@@ -277,6 +280,10 @@ const
   GL_UNSIGNED_INT_8_8_8_8_REV       = $8367;
   GL_UNSIGNED_INT_2_10_10_10_REV    = $8368;
   GL_HALF_FLOAT_ARB                 = $140B;
+
+  // Other GL constants
+  GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS = $8B4C;
+
 
 {$IFDEF MSWINDOWS}
   GLLibName = 'opengl32.dll';
@@ -879,6 +886,9 @@ initialization
     - use internal format of texture in CreateMultiImageFromGLTexture
       not only A8R8G8B8
     - support for cube and 3D maps
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Added support for GLScene's OpenGL header.
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
     - Added 3Dc compressed texture formats support.

@@ -172,7 +172,7 @@ begin
         c^.sub.lit := t^.base;
        {$IFDEF DEBUG}
         if (t^.base >= $20) and (t^.base < $7f) then
-          Tracevv('inflate:         literal '+char(t^.base))
+          Tracevv('inflate:         literal '+AnsiChar(t^.base))
         else
           Tracevv('inflate:         literal '+IntToStr(t^.base));
         {$ENDIF}          

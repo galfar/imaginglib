@@ -26,13 +26,22 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ This unit contains VCL/CLX/LCL TGraphic descendant which uses Imaging library
+{ This unit contains VCL/LCL TGraphic descendant which uses Imaging library
   for saving and loading.}
 unit ImagingComponents;
 
 {$I ImagingOptions.inc}
 
 interface
+
+{$IFDEF LCL}
+  {$DEFINE COMPONENT_SET_LCL}
+{$ENDIF}
+
+{$IF not Defined(COMPONENT_SET_LCL) and not Defined(COMPONENT_SET_VCL)}
+// If no component sets should be used just include empty unit.
+implementation
+{$ELSE}
 
 uses
   SysUtils, Types, Classes,
@@ -41,10 +50,6 @@ uses
 {$ENDIF}
 {$IFDEF COMPONENT_SET_VCL}
   Graphics,
-{$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  Qt,
-  QGraphics,
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   InterfaceBase,
@@ -327,12 +332,12 @@ procedure DisplayImageDataOnDC(DC: HDC; const DstRect: TRect; const ImageData: T
 implementation
 
 uses
-{$IF Defined(UNIX) and Defined(COMPONENT_SET_LCL)}
-  {$IFDEF LCLGTK2}
+{$IF Defined(LCL)}
+  {$IF Defined(LCLGTK2)}
     GLib2, GDK2, GTK2, GTKDef, GTKProc,
-  {$ELSE}
+  {$ELSEIF Defined(LCLGTK)}
     GDK, GTK, GTKDef, GTKProc,
-  {$ENDIF}
+  {$IFEND}
 {$IFEND}
 {$IFNDEF DONT_LINK_BITMAP}
   ImagingBitmap,
@@ -358,9 +363,10 @@ resourcestring
   SBadFormatDataToBitmap = 'Cannot find compatible bitmap format for image %s';
   SBadFormatBitmapToData = 'Cannot find compatible data format for bitmap %p';
   SBadFormatDisplay = 'Unsupported image format passed';
+  SUnsupportedLCLWidgetSet = 'This function is not implemented for current LCL widget set';
   SImagingGraphicName = 'Imaging Graphic AllInOne';
 
-{ Registers types to VCL/CLX/LCL.}
+{ Registers types to VCL/LCL.}
 procedure RegisterTypes;
 var
   I: LongInt;
@@ -386,27 +392,27 @@ var
 begin
   for I := Imaging.GetFileFormatCount - 1 downto 0 do
     RegisterFileFormatAllInOne(Imaging.GetFileFormatAtIndex(I));
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingGraphic);{$ENDIF}
+  Classes.RegisterClass(TImagingGraphic);
 
 {$IFNDEF DONT_LINK_TARGA}
   RegisterFileFormat(TImagingTarga);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingTarga);{$ENDIF}
+  Classes.RegisterClass(TImagingTarga);
 {$ENDIF}
 {$IFNDEF DONT_LINK_DDS}
   RegisterFileFormat(TImagingDDS);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingDDS);{$ENDIF}
+  Classes.RegisterClass(TImagingDDS);
 {$ENDIF}
 {$IFNDEF DONT_LINK_JNG}
   RegisterFileFormat(TImagingJNG);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingJNG);{$ENDIF}
+  Classes.RegisterClass(TImagingJNG);
 {$ENDIF}
 {$IFNDEF DONT_LINK_MNG}
   RegisterFileFormat(TImagingMNG);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingMNG);{$ENDIF}
+  Classes.RegisterClass(TImagingMNG);
 {$ENDIF}
 {$IFNDEF DONT_LINK_GIF}
   RegisterFileFormat(TImagingGIF);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingGIF);{$ENDIF}
+  Classes.RegisterClass(TImagingGIF);
 {$ENDIF}
 {$IFNDEF DONT_LINK_PNG}
   {$IFDEF COMPONENT_SET_LCL}
@@ -414,59 +420,57 @@ begin
     TPicture.UnregisterGraphicClass(TPortableNetworkGraphic);
   {$ENDIF}
   RegisterFileFormat(TImagingPNG);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingPNG);{$ENDIF}
+  Classes.RegisterClass(TImagingPNG);
 {$ENDIF}
 {$IFNDEF DONT_LINK_JPEG}
   RegisterFileFormat(TImagingJpeg);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingJpeg);{$ENDIF}
+  Classes.RegisterClass(TImagingJpeg);
 {$ENDIF}
 {$IFNDEF DONT_LINK_BITMAP}
   RegisterFileFormat(TImagingBitmap);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingBitmap);{$ENDIF}
+  Classes.RegisterClass(TImagingBitmap);
 {$ENDIF}   
 end;
 
-{ Unregisters types from VCL/CLX/LCL.}
+{ Unregisters types from VCL/LCL.}
 procedure UnRegisterTypes;
 begin
 {$IFNDEF DONT_LINK_BITMAP}
   TPicture.UnregisterGraphicClass(TImagingBitmap);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingBitmap);{$ENDIF}
+  Classes.UnRegisterClass(TImagingBitmap);
 {$ENDIF}
 {$IFNDEF DONT_LINK_JPEG}
   TPicture.UnregisterGraphicClass(TImagingJpeg);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingJpeg);{$ENDIF}
+  Classes.UnRegisterClass(TImagingJpeg);
 {$ENDIF}
 {$IFNDEF DONT_LINK_PNG}
   TPicture.UnregisterGraphicClass(TImagingPNG);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingPNG);{$ENDIF}
+  Classes.UnRegisterClass(TImagingPNG);
 {$ENDIF}
 {$IFNDEF DONT_LINK_GIF}
   TPicture.UnregisterGraphicClass(TImagingGIF);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingGIF);{$ENDIF}
+  Classes.UnRegisterClass(TImagingGIF);
 {$ENDIF}
 {$IFNDEF DONT_LINK_TARGA}
   TPicture.UnregisterGraphicClass(TImagingTarga);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingTarga);{$ENDIF}
+  Classes.UnRegisterClass(TImagingTarga);
 {$ENDIF}
 {$IFNDEF DONT_LINK_DDS}
   TPicture.UnregisterGraphicClass(TImagingDDS);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingDDS);{$ENDIF}
+  Classes.UnRegisterClass(TImagingDDS);
 {$ENDIF}
   TPicture.UnregisterGraphicClass(TImagingGraphic);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingGraphic);{$ENDIF}
+  Classes.UnRegisterClass(TImagingGraphic);
 end;
 
 function DataFormatToPixelFormat(Format: TImageFormat): TPixelFormat;
 begin
   case Format of
-{$IFNDEF COMPONENT_SET_LCL}
+{$IFDEF COMPONENT_SET_VCL}
     ifIndex8: Result := pf8bit;
-{$ENDIF}
-{$IF (not Defined(COMPONENT_SET_CLX)) and (not Defined(COMPONENT_SET_LCL))}
     ifR5G6B5: Result := pf16bit;
     ifR8G8B8: Result := pf24bit;
-{$IFEND}
+{$ENDIF}
     ifA8R8G8B8,
     ifX8R8G8B8: Result := pf32bit;
   else
@@ -478,11 +482,9 @@ function PixelFormatToDataFormat(Format: TPixelFormat): TImageFormat;
 begin
   case Format of
     pf8bit: Result := ifIndex8;
-{$IFNDEF COMPONENT_SET_CLX}
     pf15bit: Result := ifA1R5G5B5;
     pf16bit: Result := ifR5G6B5;
     pf24bit: Result := ifR8G8B8;
-{$ENDIF}
     pf32bit: Result := ifA8R8G8B8;
   else
     Result := ifUnknown;
@@ -497,9 +499,6 @@ var
   WorkData: TImageData;
 {$IFDEF COMPONENT_SET_VCL}
   LogPalette: TMaxLogPalette;
-{$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  ColorTable: PPalette32;
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   RawImage: TRawImage;
@@ -516,19 +515,16 @@ begin
     if Info.IsFloatingPoint or Info.HasAlphaChannel or Info.IsSpecial then
       Imaging.ConvertImage(WorkData, ifA8R8G8B8)
     else
-{$IFNDEF COMPONENT_SET_LCL}
+{$IFDEF COMPONENT_SET_VCL}
       if Info.IsIndexed or Info.HasGrayChannel then
         Imaging.ConvertImage(WorkData, ifIndex8)
+      else if Info.UsePixelFormat then
+        Imaging.ConvertImage(WorkData, ifR5G6B5)
       else
-{$ENDIF}
-{$IF (not Defined(COMPONENT_SET_CLX)) and (not Defined(COMPONENT_SET_LCL))}
-        if Info.UsePixelFormat then
-          Imaging.ConvertImage(WorkData, ifR5G6B5)
-        else
-          Imaging.ConvertImage(WorkData, ifR8G8B8);
+        Imaging.ConvertImage(WorkData, ifR8G8B8);
 {$ELSE}
         Imaging.ConvertImage(WorkData, ifA8R8G8B8);
-{$IFEND}
+{$ENDIF}
 
     PF := DataFormatToPixelFormat(WorkData.Format);
     GetImageFormatInfo(WorkData.Format, Info);
@@ -560,27 +556,6 @@ begin
       palPalEntry[I].peBlue := WorkData.Palette[I].B;
     end;
     Bitmap.Palette := CreatePalette(PLogPalette(@LogPalette)^);
-  end;
-  // Copy scanlines
-  for I := 0 to WorkData.Height - 1 do
-    Move(PByteArray(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
-{$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  Bitmap.Width := WorkData.Width;
-  Bitmap.Height := WorkData.Height;
-  Bitmap.PixelFormat := PF;
-
-  if (PF = pf8bit) and (WorkData.Palette <> nil) then
-  begin
-    // Copy palette
-    ColorTable := Bitmap.ColorTable;
-    for I := 0 to Info.PaletteEntries - 1 do
-    with ColorTable[I] do
-    begin
-      R := WorkData.Palette[I].R;
-      G := WorkData.Palette[I].G;
-      B := WorkData.Palette[I].B;
-    end;
   end;
   // Copy scanlines
   for I := 0 to WorkData.Height - 1 do
@@ -632,9 +607,6 @@ var
 {$IFDEF COMPONENT_SET_VCL}
   Colors: Word;
   LogPalette: TMaxLogPalette;
-{$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  ColorTable: PPalette32;
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   RawImage: TRawImage;
@@ -705,24 +677,6 @@ begin
   for I := 0 to Data.Height - 1 do
     Move(Bitmap.ScanLine[I]^, PByteArray(Data.Bits)[I * LineBytes], LineBytes);
 {$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  if Format = ifIndex8 then
-  begin
-    // Copy palette
-    ColorTable := Bitmap.ColorTable;
-    for I := 0 to Info.PaletteEntries - 1 do
-    with ColorTable[I] do
-    begin
-      Data.Palette[I].A := $FF;
-      Data.Palette[I].R := R;
-      Data.Palette[I].G := G;
-      Data.Palette[I].B := B;
-    end;
-  end;
-  // Copy scanlines
-  for I := 0 to Data.Height - 1 do
-    Move(Bitmap.ScanLine[I]^, PByteArray(Data.Bits)[I * LineBytes], LineBytes);
-{$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   // Get raw image from bitmap (mask handle must be 0 or expect violations)
   if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, nil) then
@@ -754,6 +708,7 @@ procedure DisplayImageDataOnDC(DC: HDC; const DstRect: TRect; const ImageData: T
 var
   OldMode: Integer;
   BitmapInfo: Windows.TBitmapInfo;
+  Bmp: TBitmap;
 begin
   if TestImage(ImageData) then
   begin
@@ -777,62 +732,45 @@ begin
     end;
 
     try
-      with SrcRect, ImageData do
-        Windows.StretchDIBits(DC, DstRect.Left, DstRect.Top,
+       with SrcRect, ImageData do
+        if Windows.StretchDIBits(DC, DstRect.Left, DstRect.Top,
           DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Left,
-          Top, Right - Left, Bottom - Top, Bits, BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+          Top, Right - Left, Bottom - Top, Bits, BitmapInfo, DIB_RGB_COLORS, SRCCOPY) <> Height then
+        begin
+          // StretchDIBits may fail on some ocassions (error 487, http://support.microsoft.com/kb/269585).
+          // This fallback is slow but works every time. Thanks to Sergey Galezdinov for the fix.
+          Bmp := TBitmap.Create;
+          try
+            ConvertDataToBitmap(ImageData, Bmp);
+            StretchBlt(DC, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
+              Bmp.Canvas.Handle, 0, 0, Width, Height, SRCCOPY);
+          finally
+            Bmp.Free;
+          end;
+        end;
     finally
       Windows.SetStretchBltMode(DC, OldMode);
     end;
-  end;  
+  end;
 end;
 {$ENDIF}
 
 procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
-{$IF Defined(MSWINDOWS) and not Defined(COMPONENT_SET_CLX)}
+{$IF Defined(DCC) or Defined(LCLWIN32)} // Delphi or LCL Win32
 begin
   DisplayImageDataOnDC(DstCanvas.Handle, DstRect, ImageData, SrcRect);
 end;
-{$ELSEIF Defined(COMPONENT_SET_CLX)}
-var
-  Bitmap: TBitmap;
-  //Handle: LongWord;
-begin
-  (*
-  // It would be nice if this worked:
-  DstCanvas.Start;
-  Handle := QPainter_handle(DstCanvas.Handle);
-  {$IFDEF MSWINDOWS}
-  DisplayImageDataOnDC(Handle, DstRect, ImageData, SrcRect);
-  {$ELSE}
-  DisplayImageDataOnX(Handle, DstRect, ImageData, SrcRect);
-  {$ENDIF}
-  DstCanvas.Stop;
-  *)
-  Bitmap := TBitmap.Create;
-  try
-    ConvertDataToBitmap(ImageData, Bitmap);
-    DstCanvas.CopyRect(DstRect, Bitmap.Canvas, SrcRect);
-  finally
-    Bitmap.Free;
-  end;  
-end;
-{$ELSEIF Defined(UNIX) and Defined(COMPONENT_SET_LCL)}
+{$ELSEIF Defined(LCLGTK) or Defined(LCLGTK2)}
 
   procedure GDKDrawBitmap(Dest: HDC; DstX, DstY: Integer; SrcX, SrcY,
     SrcWidth, SrcHeight: Integer; ImageData: TImageData);
   var
     P: TPoint;
   begin
-    // If you get compilation errors here with new Lazarus (rev 14368+)
-    // uncomment commented code and comment the active code below:
-
-    //P := TGtkDeviceContext(Dest).Offset;
-    P := GetDCOffset(TDeviceContext(Dest));
+    P := TGtkDeviceContext(Dest).Offset;
     Inc(DstX, P.X);
     Inc(DstY, P.Y);
-    //gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
-    gdk_draw_rgb_32_image(TDeviceContext(Dest).Drawable, TDeviceContext(Dest).GC,
+    gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
       DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
       @PLongWordArray(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);
   end;
@@ -886,6 +824,10 @@ begin
       end
     end;
   end;
+end;
+{$ELSE}
+begin
+  raise Exception.Create(SUnsupportedLCLWidgetSet);
 end;
 {$IFEND}
 
@@ -1259,6 +1201,8 @@ initialization
 finalization
   UnRegisterTypes;
 
+{$IFEND} // {$IF not Defined(COMPONENT_SET_LCL) and not Defined(COMPONENT_SET_VCL)}
+
 {
   File Notes:
 
@@ -1266,6 +1210,11 @@ finalization
     - nothing now
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Added some more IFDEFs for Lazarus widget sets.
+    - Removed CLX code.
+    - GTK version of Unix DisplayImageData only used with LCL GTK so the
+      the rest of the unit can be used with Qt or other LCL interfaces. 
+    - Fallback mechanism for DisplayImageDataOnDC, it may fail on occasions.
     - Changed file format conditional compilation to reflect changes
       in LINK symbols.
     - Lazarus 0.9.26 compatibility changes.

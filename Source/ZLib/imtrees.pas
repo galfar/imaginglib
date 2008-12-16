@@ -637,7 +637,7 @@ const
  }
 
 const
-  Buf_size = (8 * 2*sizeof(char));
+  Buf_size = (8 * 2*sizeof(uch));
 { Number of bits used within bi_buf. (bi_buf might be implemented on
   more than 16 bits on some systems.) }
 
@@ -916,7 +916,7 @@ begin
     {$ifdef DEBUG}
     if (n>31) and (n<128) then
       Tracecv(tree <> tree_ptr(@static_ltree),
-       (^M'n #'+IntToStr(n)+' '+char(n)+' l '+IntToStr(len)+' c '+
+       (^M'n #'+IntToStr(n)+' '+AnsiChar(n)+' l '+IntToStr(len)+' c '+
          IntToStr(tree^[n].fc.Code)+' ('+IntToStr(next_code[len]-1)+')'))
     else
       Tracecv(tree <> tree_ptr(@static_ltree),
@@ -1962,7 +1962,7 @@ begin
       { send a literal byte }
       {$ifdef DEBUG}
       Tracevvv(#13'cd '+IntToStr(lc));
-      Tracecv((lc > 31) and (lc < 128), ' '+char(lc)+' ');
+      Tracecv((lc > 31) and (lc < 128), ' '+AnsiChar(lc)+' ');
       {$ENDIF}
       send_bits(s, ltree[lc].fc.Code, ltree[lc].dl.Len);
     end
@@ -2106,7 +2106,7 @@ begin
 {$endif} { STORED_FILE_OK }
 
 {$ifdef FORCE_STORED}
-  if (buf <> pchar(0)) then
+  if (buf <> pcharf(0)) then
   begin { force stored block }
 {$else}
   if (stored_len+4 <= opt_lenb) and (buf <> pcharf(0)) then

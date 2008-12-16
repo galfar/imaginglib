@@ -23,28 +23,24 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_DependencyCheckOutputName>Bench.exe</DCC_DependencyCheckOutputName>
+			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;..\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_ExeOutput>..\..\Bin\</DCC_ExeOutput>
+			<DCC_DependencyCheckOutputName>..\..\Bin\Bench.exe</DCC_DependencyCheckOutputName>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
-			<DCC_DependencyCheckOutputName>..\..\Bin\Bench.exe</DCC_DependencyCheckOutputName>
 			<Version>7.0</Version>
 			<DCC_AssertionsAtRuntime>False</DCC_AssertionsAtRuntime>
 			<DCC_DebugInformation>False</DCC_DebugInformation>
 			<DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
 			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
-			<DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
-			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_ResourcePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_ResourcePath)</DCC_ResourcePath>
 			<DCC_ObjPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_ObjPath)</DCC_ObjPath>
 			<DCC_IncludePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_IncludePath)</DCC_IncludePath>
 			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2)'!=''">
-			<DCC_DependencyCheckOutputName>..\..\Bin\Bench.exe</DCC_DependencyCheckOutputName>
 			<Version>7.0</Version>
 			<DCC_SymbolReferenceInfo>2</DCC_SymbolReferenceInfo>
-			<DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
-			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_ResourcePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_ResourcePath)</DCC_ResourcePath>
 			<DCC_ObjPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_ObjPath)</DCC_ObjPath>
 			<DCC_IncludePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_IncludePath)</DCC_IncludePath>

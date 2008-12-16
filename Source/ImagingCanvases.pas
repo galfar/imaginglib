@@ -118,6 +118,8 @@ type
 
   TDynFPPixelArray = array of TColorFPRec;
 
+  THistogramArray = array[Byte] of Integer;
+
   TSelectPixelFunction = function(var Pixels: TDynFPPixelArray): TColorFPRec;
 
   { Base canvas class for drawing objects, applying effects, and other.
@@ -128,7 +130,7 @@ type
     recompute some data size related stuff).
 
     TImagingCanvas works for all image data formats except special ones
-    (compressed). Because of this its methods are quite slow (they work
+    (compressed). Because of this its methods are quite slow (they usually work
     with colors in ifA32R32G32B32F format). If you want fast drawing you
     can use one of fast canvas clases. These descendants of TImagingCanvas
     work only for few select formats (or only one) but they are optimized thus
@@ -181,6 +183,7 @@ type
     procedure StretchDrawInternal(const SrcRect: TRect; DestCanvas: TImagingCanvas;
       const DestRect: TRect; SrcFactor, DestFactor: TBlendingFactor;
       Filter: TResizeFilter; PixelWriteProc: TPixelWriteProc);
+
   public
     constructor CreateForData(ImageDataPointer: PImageData);
     constructor CreateForImage(Image: TBaseImage);
@@ -216,6 +219,12 @@ type
       filled by using the current fill settings. Rect specifies bounding rectangle
       of ellipse to be drawn.}
     procedure Ellipse(const Rect: TRect);
+    { Fills area of canvas with current fill color starting at point [X, Y] and
+      coloring its neighbors. Default flood fill mode changes color of all
+      neighbors with the same color as pixel [X, Y]. With BoundaryFillMode
+      set to True neighbors are recolored regardless of their old color,
+      but area which will be recolored has boundary (specified by current pen color).}
+    procedure FloodFill(X, Y: Integer; BoundaryFillMode: Boolean = False);         
 
     { Draws contents of this canvas onto another canvas with pixel blending.
       Blending factors are chosen using TBlendingFactor parameters.
@@ -296,6 +305,20 @@ type
       specifies the lightest color, and mid point is gamma aplied to image.
       Black and white point must be in range [0,1].}
     procedure AdjustColorLevels(BlackPoint, WhitePoint: Single; MidPoint: Single = 1.0);
+
+    { Calculates image histogram for each channel and also gray values. Each
+      channel has 256 values available. Channel values of data formats with higher
+      precision are scaled and rounded. Example: Red[126] specifies number of pixels
+      in image with red channel = 126.}
+    procedure GetHistogram(out Red, Green, Blue, Alpha, Gray: THistogramArray);
+    { Fills image channel with given value leaving other channels intact.
+      Use ChannelAlpha, ChannelRed, etc. constants from ImagingTypes as
+      channel identifier.}
+    procedure FillChannel(ChannelId: Integer; NewChannelValue: Byte); overload;
+    { Fills image channel with given value leaving other channels intact.
+      Use ChannelAlpha, ChannelRed, etc. constants from ImagingTypes as
+      channel identifier.}
+    procedure FillChannel(ChannelId: Integer; NewChannelValue: Single); overload;
 
     { Color used when drawing lines, frames, and outlines of objects.}
     property PenColor32: TColor32 read FPenColor32 write SetPenColor32;
@@ -496,7 +519,7 @@ const
     Divisor: 1;
     Bias:    1);
 
-  { Kernel for 3x3 horz/vert embossing filter.}  
+  { Kernel for 3x3 horz/vert embossing filter.}
   FilterEmboss3x3: TConvolutionFilter3x3 = (
     Kernel: ((2,  0,  0),
              (0, -1,  0),
@@ -1199,6 +1222,98 @@ begin
   end;
 end;
 
+procedure TImagingCanvas.FloodFill(X, Y: Integer; BoundaryFillMode: Boolean);
+var
+  Stack: array of TPoint;
+  StackPos, Y1: Integer;
+  OldColor: TColor32;
+  SpanLeft, SpanRight: Boolean;
+
+  procedure Push(AX, AY: Integer);
+  begin
+    if StackPos < High(Stack) then
+    begin
+      Inc(StackPos);
+      Stack[StackPos].X := AX;
+      Stack[StackPos].Y := AY;
+    end
+    else
+    begin
+      SetLength(Stack, Length(Stack) + FPData.Width);
+      Push(AX, AY);
+    end;
+  end;
+
+  function Pop(out AX, AY: Integer): Boolean;
+  begin
+    if StackPos > 0 then
+    begin
+      AX := Stack[StackPos].X;
+      AY := Stack[StackPos].Y;
+      Dec(StackPos);
+      Result := True;
+    end
+    else
+      Result := False;
+  end;
+
+  function Compare(AX, AY: Integer): Boolean;
+  var
+    Color: TColor32;
+  begin
+    Color := GetPixel32(AX, AY);
+    if BoundaryFillMode then
+      Result := (Color <> FFillColor32) and (Color <> FPenColor32)
+    else
+      Result := Color = OldColor;
+  end;
+
+begin
+  // Scanline Floodfill Algorithm With Stack
+  // http://student.kuleuven.be/~m0216922/CG/floodfill.html
+
+  if not PtInRect(FClipRect, Point(X, Y)) then Exit;
+
+  SetLength(Stack, FPData.Width * 4);
+  StackPos := 0;
+
+  OldColor := GetPixel32(X, Y);
+
+  Push(X, Y);
+
+  while Pop(X, Y) do
+  begin
+    Y1 := Y;
+    while (Y1 >= FClipRect.Top) and Compare(X, Y1) do
+      Dec(Y1);
+
+    Inc(Y1);
+    SpanLeft := False;
+    SpanRight := False;
+
+    while (Y1 < FClipRect.Bottom) and Compare(X, Y1) do
+    begin
+      SetPixel32(X, Y1, FFillColor32);
+      if not SpanLeft and (X > FClipRect.Left) and Compare(X - 1, Y1) then
+      begin
+        Push(X - 1, Y1);
+        SpanLeft := True;
+      end
+      else if SpanLeft and (X > FClipRect.Left) and not Compare(X - 1, Y1) then
+        SpanLeft := False
+      else if not SpanRight and (X < FClipRect.Right - 1) and Compare(X + 1, Y1)then
+      begin
+        Push(X + 1, Y1);
+        SpanRight := True;
+      end
+      else if SpanRight and (X < FClipRect.Right - 1) and not Compare(X + 1, Y1) then
+        SpanRight := False;
+
+      Inc(Y1);
+    end;
+  end;
+end;
+
 procedure TImagingCanvas.DrawInternal(const SrcRect: TRect;
   DestCanvas: TImagingCanvas; DestX, DestY: Integer; SrcFactor,
   DestFactor: TBlendingFactor; PixelWriteProc: TPixelWriteProc);
@@ -1580,6 +1695,84 @@ begin
   PointTransform(TransformLevels, BlackPoint, WhitePoint, 1.0 / MidPoint);
 end;
 
+procedure TImagingCanvas.GetHistogram(out Red, Green, Blue, Alpha,
+  Gray: THistogramArray);
+var
+  X, Y, Bpp: Integer;
+  PixPointer: PByte;
+  Color32: TColor32Rec;
+begin
+  FillChar(Red,   SizeOf(Red), 0);
+  FillChar(Green, SizeOf(Green), 0);
+  FillChar(Blue,  SizeOf(Blue), 0);
+  FillChar(Alpha, SizeOf(Alpha), 0);
+  FillChar(Gray,  SizeOf(Gray), 0);
+
+  Bpp := FFormatInfo.BytesPerPixel;
+
+  for Y := FClipRect.Top to FClipRect.Bottom - 1 do
+  begin
+    PixPointer := @PByteArray(FPData.Bits)[Y * FPData.Width * Bpp + FClipRect.Left * Bpp];
+    for X := FClipRect.Left to FClipRect.Right - 1 do
+    begin
+      Color32 := FFormatInfo.GetPixel32(PixPointer, @FFormatInfo, FPData.Palette);
+
+      Inc(Red[Color32.R]);
+      Inc(Green[Color32.G]);
+      Inc(Blue[Color32.B]);
+      Inc(Alpha[Color32.A]);
+      Inc(Gray[Round(GrayConv.R * Color32.R + GrayConv.G * Color32.G + GrayConv.B * Color32.B)]);
+
+      Inc(PixPointer, Bpp);
+    end;
+  end;
+end;
+
+procedure TImagingCanvas.FillChannel(ChannelId: Integer; NewChannelValue: Byte);
+var
+  X, Y, Bpp: Integer;
+  PixPointer: PByte;
+  Color32: TColor32Rec;
+begin
+  Bpp := FFormatInfo.BytesPerPixel;
+
+  for Y := FClipRect.Top to FClipRect.Bottom - 1 do
+  begin
+    PixPointer := @PByteArray(FPData.Bits)[Y * FPData.Width * Bpp + FClipRect.Left * Bpp];
+    for X := FClipRect.Left to FClipRect.Right - 1 do
+    begin
+      Color32 := FFormatInfo.GetPixel32(PixPointer, @FFormatInfo, FPData.Palette);
+      Color32.Channels[ChannelId] := NewChannelValue;
+      FFormatInfo.SetPixel32(PixPointer, @FFormatInfo, FPData.Palette, Color32);
+
+      Inc(PixPointer, Bpp);
+    end;
+  end;
+end;
+
+procedure TImagingCanvas.FillChannel(ChannelId: Integer;
+  NewChannelValue: Single);
+var
+  X, Y, Bpp: Integer;
+  PixPointer: PByte;
+  ColorFP: TColorFPRec;
+begin
+  Bpp := FFormatInfo.BytesPerPixel;
+
+  for Y := FClipRect.Top to FClipRect.Bottom - 1 do
+  begin
+    PixPointer := @PByteArray(FPData.Bits)[Y * FPData.Width * Bpp + FClipRect.Left * Bpp];
+    for X := FClipRect.Left to FClipRect.Right - 1 do
+    begin
+      ColorFP := FFormatInfo.GetPixelFP(PixPointer, @FFormatInfo, FPData.Palette);
+      ColorFP.Channels[ChannelId] := NewChannelValue;
+      FFormatInfo.SetPixelFP(PixPointer, @FFormatInfo, FPData.Palette, ColorFP);
+
+      Inc(PixPointer, Bpp);
+    end;
+  end;
+end;
+
 class function TImagingCanvas.GetSupportedFormats: TImageFormats;
 begin
   Result := [ifIndex8..Pred(ifDXT1)];
@@ -1646,6 +1839,9 @@ finalization
     - more objects (arc, polygon)
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Added overloaded FillChannel methods.
+    - Added FloodFill method.
+    - Added GetHistogram method.
     - Fixed "Invalid FP operation" in AdjustColorLevels in FPC compiled exes
       (thanks to Carlos González).
     - Added TImagingCanvas.AdjustColorLevels method.

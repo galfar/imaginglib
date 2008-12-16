@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   LCL Imager (ObjectPascal, high level/component sets/canvas, Win32/Linux/BSD)
-  tested in Lazarus 0.9.24
+  tested in Lazarus 0.9.26 (Windows: Win32, Qt, Gtk2; Unix: Gtk)
   written by Marek Mauder
 
   Simple image manipulator program which shows usage of Imaging VCL/CLX/LCL

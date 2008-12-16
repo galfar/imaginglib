@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   VCL Image Browser (ObjectPascal, high level/component sets/canvas, Win32)
-  tested in Delphi 7/10
+  tested in Delphi 7/11/12
   written by Marek Mauder
 
   This simple viewer application shows usage of high level class interface
@@ -45,7 +45,7 @@ uses
   ImagingClasses,
   ImagingComponents,
   ImagingCanvases,
-  ImagingFormats,   
+  ImagingFormats,
   ImagingUtility;
 
 type
