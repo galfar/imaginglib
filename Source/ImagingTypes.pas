@@ -39,7 +39,7 @@ const
   { Current Minor version of Imaging.}
   ImagingVersionMinor = 26;
   { Current patch of Imaging.}
-  ImagingVersionPatch = 1;
+  ImagingVersionPatch = 2;
 
   { Imaging Option Ids whose values can be set/get by SetOption/
     GetOption functions.}
@@ -140,7 +140,9 @@ const
   { Boolean option that specifies whether GIF images with more frames
     are animated by Imaging (according to frame disposal methods) or just
     raw frames are loaded and sent to user (if you want to animate GIF yourself).
-    Default value is 1.}
+    Default value is 1.
+    Raw frames are 256 color indexed images (ifIndex8), whereas
+    animated frames are always in 32bit ifA8R8G8B8 format (simplifies animating).}
   ImagingGIFLoadAnimated       = 56;
 
 

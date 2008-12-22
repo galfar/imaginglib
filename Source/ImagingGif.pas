@@ -44,7 +44,8 @@ type
     its own color palette. GIF uses lossless LZW compression
     (patent expired few years ago).
     Imaging can load and save all GIFs with all frames and supports
-    transparency.}
+    transparency. Imaging can load just raw ifIndex8 frames or
+    also animate them in ifA8R8G8B8 format. See ImagingGIFLoadAnimated option.}
   TGIFFileFormat = class(TImageFileFormat)
   private
     FLoadAnimated: LongBool;
@@ -63,6 +64,8 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+  published
+    property LoadAnimated: LongBool read FLoadAnimated write FLoadAnimated;
   end;
 
 implementation
@@ -75,7 +78,7 @@ const
 
 type
   TGIFVersion = (gv87, gv89);
-  TDisposalMethod = (dmUndefined, dmLeave, dmRestoreBackground,
+  TDisposalMethod = (dmNoRemoval, dmLeave, dmRestoreBackground,
     dmRestorePrevious, dmReserved4, dmReserved5, dmReserved6, dmReserved7);
 
 const
@@ -144,6 +147,19 @@ type
     DelayTime: Word;
     TransparentColorIndex: Byte;
     Terminator: Byte;
+  end;
+
+const
+  // Netscape sub block types
+  GIFAppLoopExtension = 1;
+  GIFAppBufferExtension = 2;
+
+type
+  TGIFIdentifierCode = array[0..7] of char;
+  TGIFAuthenticationCode = array[0..2] of char;
+  TGIFApplicationRec = packed record
+    Identifier		  : TGIFIdentifierCode;
+    Authentication	: TGIFAuthenticationCode;
   end;
 
 const
@@ -648,28 +664,56 @@ end;
 
 function TGIFFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+type
+  TFrameInfo = record
+    Left, Top: Integer;
+    Width, Height: Integer;
+    Disposal: TDisposalMethod;
+    HasTransparency: Boolean;
+    HasLocalPal: Boolean;
+    TransIndex: Integer;
+    BackIndex: Integer;
+  end;
 var
   Header: TGIFHeader;
   HasGlobalPal: Boolean;
   GlobalPalLength: Integer;
   GlobalPal: TPalette32Size256;
-  I: Integer;
+  ScreenWidth, ScreenHeight, I, CachedIndex: Integer;
   BlockID: Byte;
   HasGraphicExt: Boolean;
   GraphicExt: TGraphicControlExtension;
-  Disposals: array of TDisposalMethod;
+  FrameInfos: array of TFrameInfo;
+  AppRead: Boolean;
+  CachedFrame: TImageData;
+  AnimFrames: TDynImageDataArray;
 
   function ReadBlockID: Byte;
   begin
     Result := GIFTrailer;
-    GetIO.Read(Handle, @Result, SizeOf(Result));
+    if GetIO.Read(Handle, @Result, SizeOf(Result)) < SizeOf(Result) then
+      Result := GIFTrailer;
   end;
 
   procedure ReadExtensions;
   var
-    BlockSize, ExtType: Byte;
+    BlockSize, BlockType, ExtType: Byte;
+    AppRec: TGIFApplicationRec;
+    LoopCount: SmallInt;
+
+    procedure SkipBytes;
+    begin
+      with GetIO do
+      repeat
+        // Read block sizes and skip them
+        Read(Handle, @BlockSize, SizeOf(BlockSize));
+        Seek(Handle, BlockSize, smFromCurrent);
+      until BlockSize = 0;
+    end;
+
   begin
     HasGraphicExt := False;
+    AppRead := False;
 
     // Read extensions until image descriptor is found. Only graphic extension
     // is stored now (for transparency), others are skipped.
@@ -678,47 +722,69 @@ var
     begin
       Read(Handle, @ExtType, SizeOf(ExtType));
 
-      if ExtType = GIFGraphicControlExtension then
+      while ExtType in [GIFGraphicControlExtension, GIFCommentExtension, GIFApplicationExtension, GIFPlainText] do
       begin
-        HasGraphicExt := True;
-        Read(Handle, @GraphicExt, SizeOf(GraphicExt));
+        if ExtType = GIFGraphicControlExtension then
+        begin
+          HasGraphicExt := True;
+          Read(Handle, @GraphicExt, SizeOf(GraphicExt));
+        end
+        else if (ExtType = GIFApplicationExtension) and not AppRead then
+        begin
+          Read(Handle, @BlockSize, SizeOf(BlockSize));
+          if BlockSize >= SizeOf(AppRec) then
+          begin
+            Read(Handle, @AppRec, SizeOf(AppRec));
+            if (AppRec.Identifier = 'NETSCAPE') and (AppRec.Authentication = '2.0') then
+            begin
+              Read(Handle, @BlockSize, SizeOf(BlockSize));
+              while BlockSize <> 0 do
+              begin
+                BlockType := ReadBlockID;
+                Dec(BlockSize);
+
+                case BlockType of
+                  GIFAppLoopExtension:
+                    if (BlockSize >= SizeOf(LoopCount)) then
+                    begin
+                      // Read loop count
+                      Read(Handle, @LoopCount, SizeOf(LoopCount));
+                      Dec(BlockSize, SizeOf(LoopCount));
+                    end;
+                  GIFAppBufferExtension:
+                    begin
+                      Dec(BlockSize, SizeOf(Word));
+                      Seek(Handle, SizeOf(Word), smFromCurrent);
+                    end;
+                end;
+              end;
+              SkipBytes;
+              AppRead := True;
+            end
+            else
+              begin
+                // Revert all bytes reading
+                Seek(Handle, - SizeOf(AppRec) - SizeOf(BlockSize), smFromCurrent);
+                SkipBytes;
+              end;
+          end
+          else
+            begin
+              Seek(Handle, - BlockSize - SizeOf(BlockSize), smFromCurrent);
+              SkipBytes;
+            end;
+        end
+        else if ExtType in [GIFCommentExtension, GIFApplicationExtension, GIFPlainText] then
+        repeat
+          // Read block sizes and skip them
+          Read(Handle, @BlockSize, SizeOf(BlockSize));
+          Seek(Handle, BlockSize, smFromCurrent);
+        until BlockSize = 0;
+
+        // Read ID of following block
+        BlockID := ReadBlockID;
+        ExtType := BlockID;
       end
-      else if ExtType in [GIFCommentExtension, GIFApplicationExtension, GIFPlainText] then
-      repeat
-        // Read block sizes and skip them
-        Read(Handle, @BlockSize, SizeOf(BlockSize));
-        Seek(Handle, BlockSize, smFromCurrent);
-      until BlockSize = 0;
-
-      // Read ID of following block
-      BlockID := ReadBlockID;
-    end;
-  end;
-
-  procedure CopyFrameTransparent(const Image, Frame: TImageData; Left, Top,
-    TransIndex: Integer; Disposal: TDisposalMethod);
-  var
-    X, Y: Integer;
-    Src, Dst: PByte;
-  begin
-    Src := Frame.Bits;
-
-    // Copy all pixels from frame to log screen but ignore the transparent ones
-    for Y := 0 to Frame.Height - 1 do
-    begin
-      Dst := @PByteArray(Image.Bits)[(Top + Y) * Image.Width + Left];
-      for X := 0 to Frame.Width - 1 do
-      begin
-        // If disposal methos is undefined copy all pixels regardless of
-        // transparency (transparency of whole image will be determined by TranspIndex
-        // in image palette) - same effect as filling the image with trasp color
-        // instead of backround color beforehand.
-        // For other methods don't copy transparent pixels from frame to image.
-        if (Src^ <> TransIndex) or (Disposal = dmUndefined) then
-          Dst^ := Src^;
-        Inc(Src);
-        Inc(Dst);
-      end;
     end;
   end;
 
@@ -747,33 +813,49 @@ var
   procedure ReadFrame;
   var
     ImageDesc: TImageDescriptor;
-    HasLocalPal, Interlaced, HasTransparency: Boolean;
-    I, Idx, LocalPalLength, TransIndex: Integer;
+    Interlaced: Boolean;
+    I, Idx, LocalPalLength: Integer;
     LocalPal: TPalette32Size256;
-    BlockTerm: Byte;
-    Frame: TImageData;
     LZWStream: TMemoryStream;
+
+    procedure RemoveBadFrame;
+    begin
+      FreeImage(Images[Idx]);
+      SetLength(Images, Length(Images) - 1);
+    end;
+
   begin
     Idx := Length(Images);
     SetLength(Images, Idx + 1);
+    SetLength(FrameInfos, Idx + 1);
     FillChar(LocalPal, SizeOf(LocalPal), 0);
+
     with GetIO do
     begin
       // Read and parse image descriptor
       Read(Handle, @ImageDesc, SizeOf(ImageDesc));
-      HasLocalPal := (ImageDesc.PackedFields and GIFLocalColorTable) = GIFLocalColorTable;
+      FrameInfos[Idx].HasLocalPal := (ImageDesc.PackedFields and GIFLocalColorTable) = GIFLocalColorTable;
       Interlaced := (ImageDesc.PackedFields and GIFInterlaced) = GIFInterlaced;
       LocalPalLength := ImageDesc.PackedFields and GIFColorTableSize;
       LocalPalLength := 1 shl (LocalPalLength + 1);   // Total pal length is 2^(n+1)
 
-      // Create new logical screen
-      NewImage(Header.ScreenWidth, Header.ScreenHeight, ifIndex8, Images[Idx]);
+      // From Mozilla source
+      if (ImageDesc.Width = 0) or (ImageDesc.Width > Header.ScreenWidth) then
+        ImageDesc.Width := Header.ScreenWidth;
+      if (ImageDesc.Height = 0) or (ImageDesc.Height > Header.ScreenHeight)  then
+        ImageDesc.Height := Header.ScreenHeight;
+
+      FrameInfos[Idx].Left := ImageDesc.Left;
+      FrameInfos[Idx].Top := ImageDesc.Top;
+      FrameInfos[Idx].Width := ImageDesc.Width;
+      FrameInfos[Idx].Height := ImageDesc.Height;
+      FrameInfos[Idx].BackIndex := Header.BackgroundColorIndex;
+
       // Create new image for this frame which would be later pasted onto logical screen
-      InitImage(Frame);
-      NewImage(ImageDesc.Width, ImageDesc.Height, ifIndex8, Frame);
+      NewImage(ImageDesc.Width, ImageDesc.Height, ifIndex8, Images[Idx]);
 
       // Load local palette if there is any
-      if HasLocalPal then
+      if FrameInfos[Idx].HasLocalPal then
         for I := 0 to LocalPalLength - 1 do
         begin
           LocalPal[I].A := 255;
@@ -784,87 +866,160 @@ var
 
       // Use local pal if present or global pal if present or create
       // default pal if neither of them is present
-      if HasLocalPal then
+      if FrameInfos[Idx].HasLocalPal then
         Move(LocalPal, Images[Idx].Palette^, SizeOf(LocalPal))
       else if HasGlobalPal then
         Move(GlobalPal, Images[Idx].Palette^, SizeOf(GlobalPal))
       else
         FillCustomPalette(Images[Idx].Palette, GlobalPalLength, 3, 3, 2);
 
-      // Add default disposal method for this frame
-      SetLength(Disposals, Length(Disposals) + 1);
-      Disposals[High(Disposals)] := dmUndefined;
+      if (ImageDesc.Left <= Header.ScreenWidth + 1) and (ImageDesc.Top <= Header.ScreenHeight + 1) then
+      begin
+        ScreenWidth := Max(ScreenWidth, ImageDesc.Width + ImageDesc.Left);
+        ScreenHeight := Max(ScreenHeight, ImageDesc.Height + ImageDesc.Top);
+      end
+      else
+      begin
+        RemoveBadFrame;
+        Exit;
+      end;
 
       // If Grahic Control Extension is present make use of it
       if HasGraphicExt then
       begin
-        HasTransparency := (GraphicExt.PackedFields and GIFTransparent) = GIFTransparent;
-        Disposals[High(Disposals)] := TDisposalMethod((GraphicExt.PackedFields and GIFDisposalMethod) shr 2);
-        if HasTransparency then
-          Images[Idx].Palette[GraphicExt.TransparentColorIndex].A := 0;
-      end
-      else
-        HasTransparency := False;
-
-      if Idx >= 1 then
-      begin
-        // If previous frame had some special disposal method we take it into
-        // account now
-        case Disposals[Idx - 1] of
-          dmUndefined: ; // Do nothing
-          dmLeave:
-            begin
-              // Leave previous frame on log screen
-              CopyRect(Images[Idx - 1], 0, 0, Images[Idx].Width,
-                Images[Idx].Height, Images[Idx], 0, 0);
-            end;
-          dmRestoreBackground:
-            begin
-              // Clear log screen with background color
-              FillRect(Images[Idx], 0, 0, Images[Idx].Width, Images[Idx].Height,
-                @Header.BackgroundColorIndex);
-            end;
-          dmRestorePrevious:
-            if Idx >= 2 then
-            begin
-              // Set log screen to "previous of previous" frame
-              CopyRect(Images[Idx - 2], 0, 0, Images[Idx].Width,
-                Images[Idx].Height, Images[Idx], 0, 0);
-            end;
+        FrameInfos[Idx].HasTransparency := (GraphicExt.PackedFields and GIFTransparent) = GIFTransparent;
+        FrameInfos[Idx].Disposal := TDisposalMethod((GraphicExt.PackedFields and GIFDisposalMethod) shr 2);
+        if FrameInfos[Idx].HasTransparency then
+        begin
+          FrameInfos[Idx].TransIndex := GraphicExt.TransparentColorIndex;
+          Images[Idx].Palette[FrameInfos[Idx].TransIndex].A := 0;
         end;
       end
       else
-      begin
-        // First frame - just fill with background color
-        FillRect(Images[Idx], 0, 0, Images[Idx].Width, Images[Idx].Height,
-          @Header.BackgroundColorIndex);
-      end;
+        FrameInfos[Idx].HasTransparency := False;
 
       LZWStream := TMemoryStream.Create;
       try
-        // Copy LZW data to temp stream, needed for correct decompression
-        CopyLZWData(LZWStream);
-        LZWStream.Position := 0;
-        // Data decompression finally
-        LZWDecompress(LZWStream, Handle, ImageDesc.Width, ImageDesc.Height, Interlaced, Frame.Bits);
-        // Now copy frame to logical screen with skipping of transparent pixels (if enabled)
-        TransIndex := Iff(HasTransparency, GraphicExt.TransparentColorIndex, MaxInt);
-        CopyFrameTransparent(Images[Idx], Frame, ImageDesc.Left, ImageDesc.Top,
-          TransIndex, Disposals[Idx]);
+        try
+          // Copy LZW data to temp stream, needed for correct decompression
+          CopyLZWData(LZWStream);
+          LZWStream.Position := 0;
+          // Data decompression finally
+          LZWDecompress(LZWStream, Handle, ImageDesc.Width, ImageDesc.Height, Interlaced, Images[Idx].Bits);
+        except
+          RemoveBadFrame;
+          Exit;
+        end;
       finally
-        FreeImage(Frame);
         LZWStream.Free;
       end;
     end;
   end;
 
+  procedure CopyFrameTransparent32(const Image, Frame: TImageData; Left, Top: Integer);
+  var
+    X, Y: Integer;
+    Src: PByte;
+    Dst: PColor32;
+  begin
+    Src := Frame.Bits;
+
+    // Copy all pixels from frame to log screen but ignore the transparent ones
+    for Y := 0 to Frame.Height - 1 do
+    begin
+      Dst := @PColor32RecArray(Image.Bits)[(Top + Y) * Image.Width + Left];
+      for X := 0 to Frame.Width - 1 do
+      begin
+        if (Frame.Palette[Src^].A <> 0) then
+          Dst^ := Frame.Palette[Src^].Color;
+        Inc(Src);
+        Inc(Dst);
+      end;
+    end;
+  end;
+
+  procedure AnimateFrame(Index: Integer; var AnimFrame: TImageData);
+  var
+    I, First, Last: Integer;
+    UseCache: Boolean;
+    BGColor: TColor32;
+  begin
+    Last := Index;
+    First := Max(0, Last);
+    UseCache := TestImage(CachedFrame) and (CachedIndex = Index - 1) and (CachedIndex >= 0) and
+      (FrameInfos[CachedIndex].Disposal <> dmRestorePrevious);
+
+    if UseCache then
+      CloneImage(CachedFrame, AnimFrame)
+    else
+      FreeImage(CachedFrame);
+
+    BGColor := Images[Index].Palette[FrameInfos[Index].BackIndex].Color;
+
+    if not UseCache then
+    begin
+      if FrameInfos[Index].HasTransparency then
+        BGColor := Images[Index].Palette[FrameInfos[Index].TransIndex].Color;
+
+      FillMemoryLongWord(AnimFrame.Bits, AnimFrame.Size, BGColor);
+
+      while First > 0 do
+      begin
+        if (ScreenWidth = Images[First].Width) and (ScreenHeight = Images[First].Height) then
+        begin
+          if (FrameInfos[First].Disposal = dmRestoreBackground) and (First < Last) then
+            Break;
+        end;
+        Dec(First);
+      end;
+
+      for I := First to Last - 1 do
+      begin
+        case FrameInfos[I].Disposal of
+          dmNoRemoval, dmLeave:
+            begin
+              //we copy just a meaning bytes, not all the frame
+              CopyFrameTransparent32(AnimFrame, Images[I], FrameInfos[I].Left, FrameInfos[I].Top);
+            end;
+          dmRestoreBackground:
+            if (I > First) then
+            begin
+              //filling the rect with background is equal to "clearing" it
+             // FillMemoryLongWord(AnimFrame.Bits, AnimFrame.Size, BGColor);
+             FillRect(AnimFrame, FrameInfos[I].Left, FrameInfos[I].Top,
+               FrameInfos[I].Width, FrameInfos[I].Height, @BGColor);
+            end;
+          dmRestorePrevious: ; // do nothing
+        end;
+      end;
+    end
+    else if FrameInfos[CachedIndex].Disposal = dmRestoreBackground then
+    begin
+      if FrameInfos[CachedIndex].HasTransparency then
+        BGColor := Images[CachedIndex].Palette[FrameInfos[CachedIndex].TransIndex].Color;
+      //FillMemoryLongWord(AnimFrame.Bits, AnimFrame.Size, BGColor);
+      FillRect(AnimFrame, FrameInfos[CachedIndex].Left, FrameInfos[CachedIndex].Top,
+        FrameInfos[CachedIndex].Width, FrameInfos[CachedIndex].Height, @BGColor);
+    end;
+
+    CopyFrameTransparent32(AnimFrame, Images[Index], FrameInfos[Index].Left, FrameInfos[Index].Top);
+
+    CloneImage(AnimFrame, CachedFrame);
+    CachedIndex := Index;
+  end;
+
 begin
+  AppRead := False;
+
   SetLength(Images, 0);
   FillChar(GlobalPal, SizeOf(GlobalPal), 0);
+
   with GetIO do
   begin
     // Read GIF header
     Read(Handle, @Header, SizeOf(Header));
+    ScreenWidth := Header.ScreenWidth;
+    ScreenHeight := Header.ScreenHeight;
     HasGlobalPal := Header.PackedFields and GIFGlobalColorTable = GIFGlobalColorTable; // Bit 7
     GlobalPalLength := Header.PackedFields and GIFColorTableSize; // Bits 0-2
     GlobalPalLength := 1 shl (GlobalPalLength + 1);   // Total pal length is 2^(n+1)
@@ -887,6 +1042,9 @@ begin
     // Now read all data blocks in the file until file trailer is reached
     while BlockID <> GIFTrailer do
     begin
+      while not (BlockID in [GIFTrailer, GIFExtensionIntroducer, GIFImageDescriptor]) do
+        BlockID := ReadBlockID;
+
       // Read supported and skip unsupported extensions
       ReadExtensions;
       // If image frame is found read it
@@ -897,6 +1055,27 @@ begin
       // If block ID is unknown set it to end-of-GIF marker
       if not (BlockID in [GIFExtensionIntroducer, GIFTrailer, GIFImageDescriptor]) then
         BlockID := GIFTrailer;
+    end;
+
+    if FLoadAnimated then
+    begin
+      SetLength(AnimFrames, Length(Images));
+      InitImage(CachedFrame);
+      CachedIndex := -1;
+
+      for I := 0 to High(Images) do
+      begin
+        // Create new logical screen
+        NewImage(ScreenWidth, ScreenHeight, ifA8R8G8B8, AnimFrames[I]);
+        AnimateFrame(I, AnimFrames[I]);
+      end;
+
+      FreeImage(CachedFrame);
+      for I := 0 to High(AnimFrames) do
+      begin
+        FreeImage(Images[I]);
+        Images[I] := AnimFrames[I];
+      end;
     end;
 
     Result := True;
@@ -1010,6 +1189,11 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+
+    - GIF loading and animation mostly rewritten, based on
+      modification by Sergey Galezdinov (ExtraGIF in Extras/Contrib).
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
     - Fixed loading of some rare GIFs, problems with LZW

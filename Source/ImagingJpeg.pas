@@ -386,8 +386,10 @@ var
 {$ENDIF}
 begin
   // Copy IO functions to global var used in JpegLib callbacks
+  Result := False;
   SetJpegIO(GetIO);
   SetLength(Images, 1);
+  
   with JIO, Images[0] do
   try
     InitDecompressor(Handle, jc);

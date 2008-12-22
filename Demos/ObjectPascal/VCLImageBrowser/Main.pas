@@ -137,6 +137,13 @@ begin
       // Load all subimages in file
       T := ImagingUtility.GetTimeMicroseconds;
       FImage.LoadMultiFromFile(FFileName);
+
+      if not FImage.AllImagesValid then
+      begin
+        SetUnsupported;
+        Exit;
+      end;
+
       FLastTime := (ImagingUtility.GetTimeMicroseconds - T) div 1000;
       StatusBar.SimpleText := Format('Last image loaded in: %.0n ms', [FLastTime * 1.0]);
       // Store original data formats for later use
