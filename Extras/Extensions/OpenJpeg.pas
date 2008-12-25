@@ -44,7 +44,7 @@
   OpenJpeg Homepage: http://www.openjpeg.org
   PasOpenJpeg Homepage: http://galfar.vevb.net/openjpeg
 
-  Current Version: 1.0 (OpenJpeg 1.3.0 SVN revision 507 with my CDEF patch)
+  Current Version: 1.1 2008-12-23 (OpenJpeg 1.3.0 SVN revision 507 with my CDEF patch)
 
 }
 

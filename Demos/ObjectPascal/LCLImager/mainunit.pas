@@ -130,6 +130,12 @@ type
     MenuItem74: TMenuItem;
     MenuItem75: TMenuItem;
     MenuItem76: TMenuItem;
+    MenuItem77: TMenuItem;
+    AlphaItem: TMenuItem;
+    RedItem: TMenuItem;
+    GreenItem: TMenuItem;
+    BlueItem: TMenuItem;
+    MenuItem82: TMenuItem;
     MenuItemActSubImage: TMenuItem;
     MenuItem34: TMenuItem;
     MenuItem35: TMenuItem;
@@ -208,6 +214,8 @@ type
     procedure MenuItem76Click(Sender: TObject);
     procedure MenuItem7Click(Sender: TObject);
     procedure FormatChangeClick(Sender: TObject);
+    procedure ChannelSetClick(Sender: TObject);
+    procedure MenuItem82Click(Sender: TObject);
   private
     FBitmap: TImagingBitmap;
     FImage: TMultiImage;
@@ -589,6 +597,27 @@ var
   Item: TMenuItem;
   Fmt: TImageFormat;
   Info: TImageFormatInfo;
+
+  function Clone(AItem: TMenuItem): TMenuItem;
+  begin
+    Result := TMenuItem.Create(MainMenu);
+    Result.Caption := AItem.Caption;
+    Result.Tag := AItem.Tag;
+    Result.OnClick := AItem.OnClick;;
+  end;
+
+  procedure AddSetChannelItem(const Caption: string; Value: Integer);
+  begin
+    Item := TMenuItem.Create(MainMenu);
+    Item.Caption := Caption;
+    Item.Tag := Value;
+    Item.OnClick := ChannelSetClick;
+    AlphaItem.Add(Item);
+    RedItem.Add(Clone(Item));
+    GreenItem.Add(Clone(Item));
+    BlueItem.Add(Clone(Item));
+  end;
+
 begin
   Caption := Format(SWindowTitle, [Imaging.GetVersionStr]);
 
@@ -615,7 +644,11 @@ begin
       FormatItem.Add(Item);
     end;
   end;
-  
+
+  AddSetChannelItem('Set to 5%', 12);
+  AddSetChannelItem('Set to 50%', 128);
+  AddSetChannelItem('Set to 100%', 255);
+
   // Set 'Fit to window' mode
   ActViewFitToWindowExecute(Self);
   
@@ -634,6 +667,88 @@ begin
     T := GetTimeMicroseconds;
     FImage.Format := TImageFormat(Tag);
     MeasureTime('Image converted in:', T);
+    UpdateView;
+  end;
+end;
+
+procedure TMainForm.ChannelSetClick(Sender: TObject);
+var
+  T: Int64;
+  Canvas: TImagingCanvas;
+  ChanId: Integer;
+begin
+  if CheckCanvasFormat then
+  with Sender as TMenuItem do
+  begin
+    case Parent.Caption[1] of
+      'A': ChanId := ChannelAlpha;
+      'R': ChanId := ChannelRed;
+      'G': ChanId := ChannelGreen;
+      'B': ChanId := ChannelBlue;
+    else
+      ChanId := ChannelRed;
+    end;
+
+    Canvas := TImagingCanvas.CreateForImage(FImage);
+
+    T := GetTimeMicroseconds;
+    Canvas.FillChannel(ChanId, Tag);
+    MeasureTime('Channel filled in:', T);
+
+    Canvas.Free;
+    UpdateView;
+  end;
+end;
+
+procedure TMainForm.MenuItem82Click(Sender: TObject);
+var
+  T: Int64;
+  Canvas: TImagingCanvas;
+  Red, Green, Blue, Alpha, Gray: THistogramArray;
+  I, MaxPixels: Integer;
+  Factor: Single;
+
+  procedure VisualizeHistogram(const Histo: THistogramArray; Color: TColor32; Offset: Integer);
+  var
+    I, J: Integer;
+  begin
+    Canvas.PenColor32 := Color;
+    for I := 0 to 255 do
+      Canvas.VertLine(I + Offset, 256 - Round(Histo[I] * Factor), 255);
+  end;
+
+begin
+  if CheckCanvasFormat then
+  begin
+    Canvas := TImagingCanvas.CreateForImage(FImage);
+
+    T := GetTimeMicroseconds;
+    Canvas.GetHistogram(Red, Green, Blue, Alpha, Gray);
+    MeasureTime('Histograms computed in:', T);
+
+    FImage.RecreateImageData(1024, 256, ifA8R8G8B8);
+    Canvas.UpdateCanvasState;
+    Canvas.FillColor32 := pcBlack;
+    Canvas.FillRect(FImage.BoundsRect);
+
+    MaxPixels := 0;
+    for I := 0 to 255 do
+      if Red[I] > MaxPixels then MaxPixels := Red[I];
+    for I := 0 to 255 do
+      if Green[I] > MaxPixels then MaxPixels := Green[I];
+    for I := 0 to 255 do
+      if Blue[I] > MaxPixels then MaxPixels := Blue[I];
+    for I := 0 to 255 do
+      if Gray[I] > MaxPixels then MaxPixels := Gray[I];
+
+    Factor := 256 / MaxPixels;
+
+    VisualizeHistogram(Red, pcRed, 0);
+    VisualizeHistogram(Green, pcGreen, 256);
+    VisualizeHistogram(Blue, pcBlue, 512);
+    VisualizeHistogram(Gray, pcGray, 768);
+
+    Canvas.Free;
     UpdateView;
   end;
 end;
@@ -826,6 +941,8 @@ initialization
     - add more canvas stuff when it will be avaiable
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Added "show histogram" menu item and functionality.
+    - Added new Colors submenu with "set channel set value" commands.
     - Added Canvas.AdjustColorLevels example.
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------

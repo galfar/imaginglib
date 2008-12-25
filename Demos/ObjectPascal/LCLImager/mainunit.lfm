@@ -4,7 +4,7 @@ object MainForm: TMainForm
   Top = 258
   Width = 768
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
-  ClientHeight = 491
+  ClientHeight = 492
   ClientWidth = 768
   Constraints.MinHeight = 240
   Constraints.MinWidth = 320
@@ -90,7 +90,7 @@ object MainForm: TMainForm
   WindowState = wsMaximized
   object Image: TImage
     Cursor = crHandPoint
-    Height = 469
+    Height = 470
     Width = 768
     Align = alClient
     AutoSize = True
@@ -101,7 +101,7 @@ object MainForm: TMainForm
   end
   object PanelStatus: TPanel
     Height = 22
-    Top = 469
+    Top = 470
     Width = 768
     Align = alBottom
     Alignment = taLeftJustify
@@ -385,6 +385,25 @@ object MainForm: TMainForm
       object MenuItem76: TMenuItem
         Caption = 'Levels (B:0.35;W:1.0;M:0.9)'
         OnClick = MenuItem76Click
+      end
+    end
+    object MenuItem77: TMenuItem
+      Caption = 'Colors'
+      object AlphaItem: TMenuItem
+        Caption = 'Alpha'
+      end
+      object RedItem: TMenuItem
+        Caption = 'Red'
+      end
+      object GreenItem: TMenuItem
+        Caption = 'Green'
+      end
+      object BlueItem: TMenuItem
+        Caption = 'Blue'
+      end
+      object MenuItem82: TMenuItem
+        Caption = 'Show Histograms'
+        OnClick = MenuItem82Click
       end
     end
     object MenuItem70: TMenuItem

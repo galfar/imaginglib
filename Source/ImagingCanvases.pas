@@ -318,7 +318,7 @@ type
     { Fills image channel with given value leaving other channels intact.
       Use ChannelAlpha, ChannelRed, etc. constants from ImagingTypes as
       channel identifier.}
-    procedure FillChannel(ChannelId: Integer; NewChannelValue: Single); overload;
+    procedure FillChannelFP(ChannelId: Integer; NewChannelValue: Single); overload;
 
     { Color used when drawing lines, frames, and outlines of objects.}
     property PenColor32: TColor32 read FPenColor32 write SetPenColor32;
@@ -1750,8 +1750,7 @@ begin
   end;
 end;
 
-procedure TImagingCanvas.FillChannel(ChannelId: Integer;
-  NewChannelValue: Single);
+procedure TImagingCanvas.FillChannelFP(ChannelId: Integer; NewChannelValue: Single);
 var
   X, Y, Bpp: Integer;
   PixPointer: PByte;

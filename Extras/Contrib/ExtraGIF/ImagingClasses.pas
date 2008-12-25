@@ -1,5 +1,5 @@
 {
-  $Id: ImagingClasses.pas 124 2008-04-21 09:47:07Z galfar $
+  $Id: ImagingClasses.pas 148 2008-12-16 13:03:03Z galfar $
   Vampyre Imaging Library
   by Marek Mauder 
   http://imaginglib.sourceforge.net
@@ -26,7 +26,9 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ This unit contains class based wrapper to Imaging library.}
+{ This unit contains class based wrapper to Imaging library.
+   
+  Note: This modified unit is part of ExtraGIF mod of Imaging library.}
 unit ImagingClasses;
 
 {$I ImagingOptions.inc}
@@ -68,7 +70,7 @@ type
     constructor CreateFromImage(AImage: TBaseImage);
     destructor Destroy; override;
     { Returns info about current image.}
-    function ToString: string;
+    function ToString: string; {$IF Defined(DCC) and (CompilerVersion >= 20.0)}override;{$IFEND}
 
     { Creates a new image data with the given size and format. Old image
       data is lost. Works only for the current image of TMultiImage.}
@@ -193,7 +195,6 @@ type
     function PrepareInsert(Index, Count: LongInt): Boolean;
     procedure DoInsertImages(Index: LongInt; const Images: TDynImageDataArray);
     procedure DoInsertNew(Index: LongInt; AWidth, AHeight: LongInt; AFormat: TImageFormat);
-  published
   public
     constructor Create; override;
     constructor CreateFromParams(AWidth, AHeight: LongInt; AFormat: TImageFormat; Images: LongInt);

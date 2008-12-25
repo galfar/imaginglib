@@ -17,8 +17,9 @@ interface
 
 {$IFNDEF RVDONOTUSEANIMATION}
 
-uses Windows, Classes, Graphics, CRVFData, RVAnimate, RVItem, ImagingClasses, ImagingComponents,
-  DBugIntf;
+uses
+  Windows, Classes, Graphics, CRVFData, RVAnimate, RVItem,
+  ImagingTypes, ImagingClasses, ImagingComponents;
 
 type
   TRVGifImageAnimator = class (TRVAnimator)
@@ -76,14 +77,12 @@ var
   FBackColor: TColor;
   UseSrcBitmap: Boolean;
 begin
-//  SendDebug('animated draw');
   gif := TGifImage(TRVGraphicItemInfo(item).Image);
   gif.BackgroundSharing := True;
   gif.SelfAnimated := False;
   gif.ReAnimate    := False;
 
-  if Animation then
-    gif.ActiveIndex := FrameIndex;
+  gif.ActiveIndex := FrameIndex;
 
   R := Rect(0, 0, 0, 0);
   bmpsrc := TBitmap.Create;
@@ -130,7 +129,6 @@ end;
 function GetGifFrameCount(gif: TGifImage): Integer;
 begin
   Result := 0;
-
   if (gif = nil) or gif.Empty then
     Exit;
 
@@ -164,7 +162,6 @@ end;
 procedure TRVGifImageAnimator.ResetBackground;
 begin
   inherited;
-//  SendDebug('bg reset');
 end;
 
 var DefMakeAnimator: TRVMakeAnimatorProc;

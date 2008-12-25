@@ -1191,7 +1191,6 @@ initialization
     - nothing now
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
-
     - GIF loading and animation mostly rewritten, based on
       modification by Sergey Galezdinov (ExtraGIF in Extras/Contrib).
 

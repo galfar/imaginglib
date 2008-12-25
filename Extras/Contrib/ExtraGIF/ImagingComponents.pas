@@ -1,5 +1,5 @@
 {
-  $Id: ImagingComponents.pas 128 2008-07-23 11:57:36Z galfar $
+  $Id: ImagingComponents.pas 148 2008-12-16 13:03:03Z galfar $
   Vampyre Imaging Library
   by Marek Mauder 
   http://imaginglib.sourceforge.net
@@ -26,13 +26,24 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ This unit contains VCL/CLX/LCL TGraphic descendant which uses Imaging library
-  for saving and loading.}
+{ This unit contains VCL/LCL TGraphic descendant which uses Imaging library
+  for saving and loading.
+  
+  Note: This modified unit is part of ExtraGIF mod of Imaging library.}
 unit ImagingComponents;
 
 {$I ImagingOptions.inc}
 
 interface
+
+{$IFDEF LCL}
+  {$DEFINE COMPONENT_SET_LCL}
+{$ENDIF}
+
+{$IF not Defined(COMPONENT_SET_LCL) and not Defined(COMPONENT_SET_VCL)}
+// If no component sets should be used just include empty unit.
+implementation
+{$ELSE}
 
 uses
   SysUtils, Types, Classes,
@@ -42,10 +53,6 @@ uses
 {$IFDEF COMPONENT_SET_VCL}
   Graphics,
 {$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  Qt,
-  QGraphics,
-{$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   InterfaceBase,
   GraphType,
@@ -53,7 +60,7 @@ uses
   LCLType,
   LCLIntf,
 {$ENDIF}
-{$IFDEF LINK_GIF}
+{$IFNDEF DONT_LINK_GIF}
   ImagingGif,
 {$ENDIF}
   ImagingTypes, Imaging, ImagingClasses, ImagingCanvases, ImagingFormats;
@@ -180,7 +187,7 @@ type
   {$WARNINGS ON}
   TImagingGraphicClass = class of TImagingGraphic;
 
-  {$IFDEF LINK_GIF}
+  {$IFNDEF DONT_LINK_GIF}
   TImagingGifGraphic = class(TImagingGraphic)
   private
     FRepeatCount: Integer;
@@ -220,12 +227,11 @@ type
       file format according to the DefaultFileExt property.
       So each descendant class can save some other file format.}
     procedure SaveToStream(Stream: TStream); override;
-    { Returns TImageFileFormat descendant for this graphic class.}
   {$IFDEF COMPONENT_SET_LCL}
     { Returns file extensions of this graphic class.}
     class function GetFileExtensions: string; override;
     { Returns default MIME type of this graphic class.}
-    function GetDefaultMimeType: string; override;
+    function GetMimeType: string; override;
   {$ENDIF}
     { Default (the most common) file extension of this graphic class.}
     property DefaultFileExt: string read FDefaultFileExt;
@@ -233,7 +239,7 @@ type
 
   TImagingGraphicForSaveClass = class of TImagingGraphicForSave;
 
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
   { TImagingGraphic descendant for loading/saving Windows bitmaps.
     VCL/CLX/LCL all have native support for bitmaps so you might
     want to disable this class (although you can save bitmaps with
@@ -250,7 +256,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
   { TImagingGraphic descendant for loading/saving JPEG images.}
   TImagingJpeg = class(TImagingGraphicForSave)
   protected
@@ -261,7 +267,7 @@ type
     procedure SaveToStream(Stream: TStream); override;
     class function GetFileFormat: TImageFileFormat; override;
   {$IFDEF COMPONENT_SET_LCL}
-    function GetDefaultMimeType: string; override;
+    function GetMimeType: string; override;
   {$ENDIF}
     { See ImagingJpegQuality option for details.}
     property Quality: LongInt read FQuality write FQuality;
@@ -270,7 +276,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_PNG}
+{$IFNDEF DONT_LINK_PNG}
   { TImagingGraphic descendant for loading/saving PNG images.}
   TImagingPNG = class(TImagingGraphicForSave)
   protected
@@ -287,15 +293,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_GIF}
-  { TImagingGraphic descendant for loading/saving GIF images.}
-  TImagingGIF = class(TImagingGraphicForSave)
-  public
-    class function GetFileFormat: TImageFileFormat; override;
-  end;
-{$ENDIF}
-
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
   { TImagingGraphic descendant for loading/saving Targa images.}
   TImagingTarga = class(TImagingGraphicForSave)
   protected
@@ -309,7 +307,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
   { Compresssion type used when saving DDS files by TImagingDds.}
   TDDSCompresion = (dcNone, dcDXT1, dcDXT3, dcDXT5);
 
@@ -327,7 +325,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_MNG}
+{$IFNDEF DONT_LINK_MNG}
   { TImagingGraphic descendant for loading/saving MNG images.}
   TImagingMNG = class(TImagingGraphicForSave)
   protected
@@ -342,7 +340,7 @@ type
     procedure SaveToStream(Stream: TStream); override;
     class function GetFileFormat: TImageFileFormat; override;
   {$IFDEF COMPONENT_SET_LCL}
-    function GetDefaultMimeType: string; override;
+    function GetMimeType: string; override;
   {$ENDIF}
     { See ImagingMNGLossyCompression option for details.}
     property LossyCompression: Boolean read FLossyCompression write FLossyCompression;
@@ -359,7 +357,7 @@ type
   end;
 {$ENDIF}
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
   { TImagingGraphic descendant for loading/saving JNG images.}
   TImagingJNG = class(TImagingGraphicForSave)
   protected
@@ -436,26 +434,26 @@ procedure DisplayImageDataOnDC(DC: HDC; const DstRect: TRect; const ImageData: T
 implementation
 
 uses
-{$IF Defined(UNIX) and Defined(COMPONENT_SET_LCL)}
-  {$IFDEF LCLGTK2}
+{$IF Defined(LCL)}
+  {$IF Defined(LCLGTK2)}
     GLib2, GDK2, GTK2, GTKDef, GTKProc,
-  {$ELSE}
+  {$ELSEIF Defined(LCLGTK)}
     GDK, GTK, GTKDef, GTKProc,
-  {$ENDIF}
+  {$IFEND}
 {$IFEND}
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
   ImagingBitmap,
 {$ENDIF}
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
   ImagingJpeg,
 {$ENDIF}
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
   ImagingTarga,
 {$ENDIF}
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
   ImagingDds,
 {$ENDIF}
-{$IF Defined(LINK_PNG) or Defined(LINK_MNG) or Defined(LINK_JNG)}
+{$IF not Defined(DONT_LINK_PNG) or not Defined(DONT_LINK_MNG) or not Defined(DONT_LINK_JNG)}
   ImagingNetworkGraphics,
 {$IFEND}
   ImagingUtility, Contnrs, OverbyteICSMD5, Messages;
@@ -467,6 +465,7 @@ resourcestring
   SBadFormatDataToBitmap = 'Cannot find compatible bitmap format for image %s';
   SBadFormatBitmapToData = 'Cannot find compatible data format for bitmap %p';
   SBadFormatDisplay = 'Unsupported image format passed';
+  SUnsupportedLCLWidgetSet = 'This function is not implemented for current LCL widget set';
   SImagingGraphicName = 'Imaging Graphic AllInOne';
 
 const
@@ -541,87 +540,85 @@ var
 begin
   for I := Imaging.GetFileFormatCount - 1 downto 0 do
     RegisterFileFormatAllInOne(Imaging.GetFileFormatAtIndex(I));
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingGraphic);{$ENDIF}
+  Classes.RegisterClass(TImagingGraphic);
 
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
   RegisterFileFormat(TImagingTarga);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingTarga);{$ENDIF}
+  Classes.RegisterClass(TImagingTarga);
 {$ENDIF}
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
   RegisterFileFormat(TImagingDDS);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingDDS);{$ENDIF}
+  Classes.RegisterClass(TImagingDDS);
 {$ENDIF}
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
   RegisterFileFormat(TImagingJNG);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingJNG);{$ENDIF}
+  Classes.RegisterClass(TImagingJNG);
 {$ENDIF}
-{$IFDEF LINK_MNG}
+{$IFNDEF DONT_LINK_MNG}
   RegisterFileFormat(TImagingMNG);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingMNG);{$ENDIF}
+  Classes.RegisterClass(TImagingMNG);
 {$ENDIF}
-{$IFDEF LINK_GIF}
+{$IFNDEF DONT_LINK_GIF}
   RegisterFileFormat(TImagingGifGraphic);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingGifGraphic);{$ENDIF}
+  Classes.RegisterClass(TImagingGifGraphic);
 {$ENDIF}
-{$IFDEF LINK_PNG}
+{$IFNDEF DONT_LINK_PNG}
   {$IFDEF COMPONENT_SET_LCL}
     // Unregister Lazarus´ default PNG loader which crashes on some PNG files
     TPicture.UnregisterGraphicClass(TPortableNetworkGraphic);
   {$ENDIF}
   RegisterFileFormat(TImagingPNG);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingPNG);{$ENDIF}
+  Classes.RegisterClass(TImagingPNG);
 {$ENDIF}
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
   RegisterFileFormat(TImagingJpeg);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingJpeg);{$ENDIF}
+  Classes.RegisterClass(TImagingJpeg);
 {$ENDIF}
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
   RegisterFileFormat(TImagingBitmap);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.RegisterClass(TImagingBitmap);{$ENDIF}
-{$ENDIF}   
+  Classes.RegisterClass(TImagingBitmap);
+{$ENDIF}
 end;
 
-{ Unregisters types from VCL/CLX/LCL.}
+{ Unregisters types from VCL/LCL.}
 procedure UnRegisterTypes;
 begin
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
   TPicture.UnregisterGraphicClass(TImagingBitmap);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingBitmap);{$ENDIF}
+  Classes.UnRegisterClass(TImagingBitmap);
 {$ENDIF}
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
   TPicture.UnregisterGraphicClass(TImagingJpeg);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingJpeg);{$ENDIF}
+  Classes.UnRegisterClass(TImagingJpeg);
 {$ENDIF}
-{$IFDEF LINK_PNG}
+{$IFNDEF DONT_LINK_PNG}
   TPicture.UnregisterGraphicClass(TImagingPNG);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingPNG);{$ENDIF}
+  Classes.UnRegisterClass(TImagingPNG);
 {$ENDIF}
-{$IFDEF LINK_GIF}
-  TPicture.UnregisterGraphicClass(TImagingGIF);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingGIF);{$ENDIF}
+{$IFNDEF DONT_LINK_GIF}
+  TPicture.UnregisterGraphicClass(TImagingGifGraphic);
+  Classes.UnRegisterClass(TImagingGifGraphic);
 {$ENDIF}
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
   TPicture.UnregisterGraphicClass(TImagingTarga);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingTarga);{$ENDIF}
+  Classes.UnRegisterClass(TImagingTarga);
 {$ENDIF}
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
   TPicture.UnregisterGraphicClass(TImagingDDS);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingDDS);{$ENDIF}
+  Classes.UnRegisterClass(TImagingDDS);
 {$ENDIF}
   TPicture.UnregisterGraphicClass(TImagingGraphic);
-  {$IFNDEF COMPONENT_SET_CLX}Classes.UnRegisterClass(TImagingGraphic);{$ENDIF}
+  Classes.UnRegisterClass(TImagingGraphic);
 end;
 
 function DataFormatToPixelFormat(Format: TImageFormat): TPixelFormat;
 begin
   case Format of
-{$IFNDEF COMPONENT_SET_LCL}
+{$IFDEF COMPONENT_SET_VCL}
     ifIndex8: Result := pf8bit;
-{$ENDIF}
-{$IF (not Defined(COMPONENT_SET_CLX)) and (not Defined(COMPONENT_SET_LCL))}
     ifR5G6B5: Result := pf16bit;
     ifR8G8B8: Result := pf24bit;
-{$IFEND}
+{$ENDIF}
     ifA8R8G8B8,
     ifX8R8G8B8: Result := pf32bit;
   else
@@ -633,11 +630,9 @@ function PixelFormatToDataFormat(Format: TPixelFormat): TImageFormat;
 begin
   case Format of
     pf8bit: Result := ifIndex8;
-{$IFNDEF COMPONENT_SET_CLX}
     pf15bit: Result := ifA1R5G5B5;
     pf16bit: Result := ifR5G6B5;
     pf24bit: Result := ifR8G8B8;
-{$ENDIF}
     pf32bit: Result := ifA8R8G8B8;
   else
     Result := ifUnknown;
@@ -652,9 +647,6 @@ var
   WorkData: TImageData;
 {$IFDEF COMPONENT_SET_VCL}
   LogPalette: TMaxLogPalette;
-{$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  ColorTable: PPalette32;
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   RawImage: TRawImage;
@@ -671,29 +663,26 @@ begin
     if Info.IsFloatingPoint or Info.HasAlphaChannel or Info.IsSpecial then
       Imaging.ConvertImage(WorkData, ifA8R8G8B8)
     else
-{$IFNDEF COMPONENT_SET_LCL}
+{$IFDEF COMPONENT_SET_VCL}
       if Info.IsIndexed or Info.HasGrayChannel then
         Imaging.ConvertImage(WorkData, ifIndex8)
+      else if Info.UsePixelFormat then
+        Imaging.ConvertImage(WorkData, ifR5G6B5)
       else
-{$ENDIF}
-{$IF (not Defined(COMPONENT_SET_CLX)) and (not Defined(COMPONENT_SET_LCL))}
-        if Info.UsePixelFormat then
-          Imaging.ConvertImage(WorkData, ifR5G6B5)
-        else
-          Imaging.ConvertImage(WorkData, ifR8G8B8);
+        Imaging.ConvertImage(WorkData, ifR8G8B8);
 {$ELSE}
         Imaging.ConvertImage(WorkData, ifA8R8G8B8);
-{$IFEND}
+{$ENDIF}
 
     PF := DataFormatToPixelFormat(WorkData.Format);
     GetImageFormatInfo(WorkData.Format, Info);
   end
   else
     WorkData := Data;
-    
+
   if PF = pfCustom then
     RaiseImaging(SBadFormatDataToBitmap, [ImageToStr(WorkData)]);
-      
+
   LineBytes := WorkData.Width * Info.BytesPerPixel;
 
 {$IFDEF COMPONENT_SET_VCL}
@@ -715,27 +704,6 @@ begin
       palPalEntry[I].peBlue := WorkData.Palette[I].B;
     end;
     Bitmap.Palette := CreatePalette(PLogPalette(@LogPalette)^);
-  end;
-  // Copy scanlines
-  for I := 0 to WorkData.Height - 1 do
-    Move(PByteArray(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
-{$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  Bitmap.Width := WorkData.Width;
-  Bitmap.Height := WorkData.Height;
-  Bitmap.PixelFormat := PF;
-
-  if (PF = pf8bit) and (WorkData.Palette <> nil) then
-  begin
-    // Copy palette
-    ColorTable := Bitmap.ColorTable;
-    for I := 0 to Info.PaletteEntries - 1 do
-    with ColorTable[I] do
-    begin
-      R := WorkData.Palette[I].R;
-      G := WorkData.Palette[I].G;
-      B := WorkData.Palette[I].B;
-    end;
   end;
   // Copy scanlines
   for I := 0 to WorkData.Height - 1 do
@@ -788,9 +756,6 @@ var
   Colors: Word;
   LogPalette: TMaxLogPalette;
 {$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  ColorTable: PPalette32;
-{$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   RawImage: TRawImage;
   LineLazBytes: LongInt;
@@ -804,7 +769,6 @@ begin
   // trough RawImage api and cannot be changed to mirror some Imaging format
   // (so formats with no coresponding Imaging format cannot be saved now).
 
-  { If you get complitation error here upgrade to Lazarus 0.9.24+ }
   if RawImage_DescriptionFromBitmap(Bitmap.Handle, RawImage.Description) then
     case RawImage.Description.BitsPerPixel of
       8: Format := ifIndex8;
@@ -861,28 +825,9 @@ begin
   for I := 0 to Data.Height - 1 do
     Move(Bitmap.ScanLine[I]^, PByteArray(Data.Bits)[I * LineBytes], LineBytes);
 {$ENDIF}
-{$IFDEF COMPONENT_SET_CLX}
-  if Format = ifIndex8 then
-  begin
-    // Copy palette
-    ColorTable := Bitmap.ColorTable;
-    for I := 0 to Info.PaletteEntries - 1 do
-    with ColorTable[I] do
-    begin
-      Data.Palette[I].A := $FF;
-      Data.Palette[I].R := R;
-      Data.Palette[I].G := G;
-      Data.Palette[I].B := B;
-    end;
-  end;
-  // Copy scanlines
-  for I := 0 to Data.Height - 1 do
-    Move(Bitmap.ScanLine[I]^, PByteArray(Data.Bits)[I * LineBytes], LineBytes);
-{$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   // Get raw image from bitmap (mask handle must be 0 or expect violations)
-  { If you get complitation error here upgrade to Lazarus 0.9.24+ }
-  if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, Classes.Rect(0, 0, Data.Width, Data.Height)) then
+  if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, nil) then
   begin
     LineLazBytes := GetBytesPerLine(Data.Width, RawImage.Description.BitsPerPixel,
       RawImage.Description.LineEnd);
@@ -911,6 +856,7 @@ procedure DisplayImageDataOnDC(DC: HDC; const DstRect: TRect; const ImageData: T
 var
   OldMode: Integer;
   BitmapInfo: Windows.TBitmapInfo;
+  Bmp: TBitmap;
 begin
   if TestImage(ImageData) then
   begin
@@ -934,66 +880,49 @@ begin
     end;
 
     try
-      with SrcRect, ImageData do
-        Windows.StretchDIBits(DC, DstRect.Left, DstRect.Top,
+       with SrcRect, ImageData do
+        if Windows.StretchDIBits(DC, DstRect.Left, DstRect.Top,
           DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Left,
-          Top, Right - Left, Bottom - Top, Bits, BitmapInfo, DIB_RGB_COLORS, SRCCOPY);
+          Top, Right - Left, Bottom - Top, Bits, BitmapInfo, DIB_RGB_COLORS, SRCCOPY) <> Height then
+        begin
+          // StretchDIBits may fail on some ocassions (error 487, http://support.microsoft.com/kb/269585).
+          // This fallback is slow but works every time. Thanks to Sergey Galezdinov for the fix.
+          Bmp := TBitmap.Create;
+          try
+            ConvertDataToBitmap(ImageData, Bmp);
+            StretchBlt(DC, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
+              Bmp.Canvas.Handle, 0, 0, Width, Height, SRCCOPY);
+          finally
+            Bmp.Free;
+          end;
+        end;
     finally
       Windows.SetStretchBltMode(DC, OldMode);
     end;
-  end;  
+  end;
 end;
 {$ENDIF}
 
 procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
-{$IF Defined(MSWINDOWS) and not Defined(COMPONENT_SET_CLX)}
+{$IF Defined(DCC) or Defined(LCLWIN32)} // Delphi or LCL Win32
 begin
   DisplayImageDataOnDC(DstCanvas.Handle, DstRect, ImageData, SrcRect);
 end;
-{$ELSEIF Defined(COMPONENT_SET_CLX)}
-var
-  Bitmap: TBitmap;
-  //Handle: LongWord;
-begin
-  (*
-  // It would be nice if this worked:
-  DstCanvas.Start;
-  Handle := QPainter_handle(DstCanvas.Handle);
-  {$IFDEF MSWINDOWS}
-  DisplayImageDataOnDC(Handle, DstRect, ImageData, SrcRect);
-  {$ELSE}
-  DisplayImageDataOnX(Handle, DstRect, ImageData, SrcRect);
-  {$ENDIF}
-  DstCanvas.Stop;
-  *)
-  Bitmap := TBitmap.Create;
-  try
-    ConvertDataToBitmap(ImageData, Bitmap);
-    DstCanvas.CopyRect(DstRect, Bitmap.Canvas, SrcRect);
-  finally
-    Bitmap.Free;
-  end;  
-end;
-{$ELSEIF Defined(UNIX) and Defined(COMPONENT_SET_LCL)}
+{$ELSEIF Defined(LCLGTK) or Defined(LCLGTK2)}
 
   procedure GDKDrawBitmap(Dest: HDC; DstX, DstY: Integer; SrcX, SrcY,
     SrcWidth, SrcHeight: Integer; ImageData: TImageData);
   var
     P: TPoint;
   begin
-    // If you get compilation errors here with new Lazarus (rev 14368+)
-    // uncomment commented code and comment the active code below:
-
-    //P := TGtkDeviceContext(Dest).Offset;
-    P := GetDCOffset(TDeviceContext(Dest));
+    P := TGtkDeviceContext(Dest).Offset;
     Inc(DstX, P.X);
     Inc(DstY, P.Y);
-    //gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
-    gdk_draw_rgb_32_image(TDeviceContext(Dest).Drawable, TDeviceContext(Dest).GC,
+    gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
       DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
       @PLongWordArray(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);
   end;
-  
+
 var
   DisplayImage: TImageData;
   NewWidth, NewHeight: Integer;
@@ -1044,6 +973,10 @@ begin
     end;
   end;
 end;
+{$ELSE}
+begin
+  raise Exception.Create(SUnsupportedLCLWidgetSet);
+end;
 {$IFEND}
 
 procedure DisplayImage(DstCanvas: TCanvas; DstX, DstY: LongInt; Image: TBaseImage);
@@ -1064,9 +997,6 @@ end;
 
 
 { TImagingGraphic class implementation }
-
-
-{ TImagingGraphic }
 
 constructor TImagingGraphic.Create;
 begin
@@ -1404,7 +1334,7 @@ begin
     LoadFromStream(TempStream);
   finally
     TempStream.Free;
-  end;  
+  end;
 end;
 
 procedure TImagingGraphic.LoadFromStream(Stream: TStream);
@@ -1490,7 +1420,7 @@ begin
       Stream.Read(buf[0], Stream.Size);
       StrHash := Getmd5(Pointer(buf), Stream.Size);
       SetLength(buf, 0);
-    
+
       //find hash in Internal RefCount hashed List
       HashPos := HashedPicList.IndexOf(StrHash);
       if HashPos < 0 then
@@ -1679,13 +1609,13 @@ begin
   Result := StringReplace(GetFileFormat.Extensions.CommaText, ',', ';', [rfReplaceAll]);
 end;
 
-function TImagingGraphicForSave.GetDefaultMimeType: string;
+function TImagingGraphicForSave.GetMimeType: string;
 begin
   Result := 'image/' + FDefaultFileExt;
 end;
 {$ENDIF}
 
-{$IFDEF LINK_BITMAP}
+{$IFNDEF DONT_LINK_BITMAP}
 
 { TImagingBitmap class implementation }
 
@@ -1709,7 +1639,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_JPEG}
+{$IFNDEF DONT_LINK_JPEG}
 
 { TImagingJpeg class implementation }
 
@@ -1726,7 +1656,7 @@ begin
 end;
 
 {$IFDEF COMPONENT_SET_LCL}
-function TImagingJpeg.GetDefaultMimeType: string;
+function TImagingJpeg.GetMimeType: string;
 begin
   Result := 'image/jpeg';
 end;
@@ -1743,7 +1673,7 @@ end;
 
 {$ENDIF}
 
-{$IFDEF LINK_PNG}
+{$IFNDEF DONT_LINK_PNG}
 
 { TImagingPNG class implementation }
 
@@ -1769,18 +1699,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_GIF}
-
-{ TImagingGIF class implementation}
-
-class function TImagingGIF.GetFileFormat: TImageFileFormat;
-begin
-  Result := FindImageFileFormatByClass(TGIFFileFormat);
-end;
-
-{$ENDIF}
-
-{$IFDEF LINK_TARGA}
+{$IFNDEF DONT_LINK_TARGA}
 
 { TImagingTarga class implementation }
 
@@ -1804,7 +1723,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_DDS}
+{$IFNDEF DONT_LINK_DDS}
 
 { TImagingDDS class implementation }
 
@@ -1837,7 +1756,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_MNG}
+{$IFNDEF DONT_LINK_MNG}
 
 { TImagingMNG class implementation }
 
@@ -1858,7 +1777,7 @@ begin
 end;
 
 {$IFDEF COMPONENT_SET_LCL}
-function TImagingMNG.GetDefaultMimeType: string;
+function TImagingMNG.GetMimeType: string;
 begin
   Result := 'video/mng';
 end;
@@ -1878,7 +1797,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF LINK_JNG}
+{$IFNDEF DONT_LINK_JNG}
 
 { TImagingJNG class implementation }
 
@@ -2151,10 +2070,10 @@ begin
   end;
 
   if FRefCount = 0 then
-    Free;   
+    Free;
 end;
 
-{$IFDEF LINK_GIF}
+{$IFNDEF DONT_LINK_GIF}
 { TImagingGifGraphics }
 
 destructor TImagingGifGraphic.Destroy;
@@ -2206,7 +2125,7 @@ var
   J: Integer;
   FrameBufferImg, FrameCopy: TImageData;
   UseCache: Boolean;
-
+  
   procedure CopyFrameTransparent32(const Image, Frame: TImageData; Left, Top: Integer);
   var
     X, Y: Integer;
@@ -2240,12 +2159,16 @@ begin
                 (GifData(FCacheIndex).DisposalMethod <> dmRestorePrevious);
 
     InitImage(FrameCopy);
-    NewImage(BG.Width, BG.Height, ifA8R8G8B8, FrameCopy);
 
     if UseCache then
+    begin
       CloneImage(FLastFrame, FrameCopy)
+    end
     else
+    begin
       FreeImage(FLastFrame);
+      NewImage(BG.Width, BG.Height, ifA8R8G8B8, FrameCopy);
+    end;
 
     if not UseCache then
     begin
@@ -2261,7 +2184,7 @@ begin
        // if TestImage(FLastFrame) and (First = FCacheIndex) then Break;
         Dec(First);
       end;
-
+      
       for J := First to Last - 1 do
       begin
         case GifData(J).DisposalMethod of
@@ -2352,7 +2275,7 @@ begin
     //when reached to the end of repeat, set activeframe to the last - 1, so the PaintTriggered
     //could set it to last frame
     if FRepeatCount <= 0 then
-      FActiveImage := Max(FMultImage.ImageCount - 2, 0)    
+      FActiveImage := Max(FMultImage.ImageCount - 2, 0)
   end;
 
   inherited DoPaintTriggered;
@@ -2449,11 +2372,22 @@ finalization
   PainterThread.FPause := True;
   PainterThread.Terminate;
   PainterThread.Free;
+{$IFEND} // {$IF not Defined(COMPONENT_SET_LCL) and not Defined(COMPONENT_SET_VCL)}
 {
   File Notes:
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - Added some more IFDEFs for Lazarus widget sets.
+    - Removed CLX code.
+    - GTK version of Unix DisplayImageData only used with LCL GTK so the
+      the rest of the unit can be used with Qt or other LCL interfaces. 
+    - Fallback mechanism for DisplayImageDataOnDC, it may fail on occasions.
+    - Changed file format conditional compilation to reflect changes
+      in LINK symbols.
+    - Lazarus 0.9.26 compatibility changes.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
     - Fixed wrong IFDEF causing that Imaging wouldn't compile in Lazarus

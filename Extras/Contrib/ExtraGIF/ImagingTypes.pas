@@ -26,7 +26,9 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ This unit contains basic types and constants used by Imaging library.}
+{ This unit contains basic types and constants used by Imaging library.
+
+  Note: This modified unit is part of ExtraGIF mod of Imaging library.}
 unit ImagingTypes;
 
 {$I ImagingOptions.inc}
@@ -37,9 +39,9 @@ const
   { Current Major version of Imaging.}
   ImagingVersionMajor = 0;
   { Current Minor version of Imaging.}
-  ImagingVersionMinor = 24;
+  ImagingVersionMinor = 26;
   { Current patch of Imaging.}
-  ImagingVersionPatch = 3;
+  ImagingVersionPatch = 2;
 
   { Imaging Option Ids whose values can be set/get by SetOption/
     GetOption functions.}
@@ -473,7 +475,10 @@ end;
 
   -- TODOS ----------------------------------------------------
     - add lookup tables to pixel formats for fast conversions
-    
+
+  -- 0.24.3 Changes/Bug Fixes ---------------------------------
+    - Added ifATI1N and ifATI2N image data formats.
+
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added ifBTC image format and SpecialNearestFormat field
       to TImageFormatInfo.

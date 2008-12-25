@@ -686,7 +686,7 @@ begin
       R.Left := 0;
       R.Bottom := SwapEndianLongWord(Height);
       R.Right := SwapEndianLongWord(Width);
-      WordVal := Swap(Info.ChannelCount);
+      WordVal := SwapEndianWord(Info.ChannelCount);
       Write(Handle, @LongVal, SizeOf(LongVal));        // Layer section size, empty now
       Write(Handle, @LayerCount, SizeOf(LayerCount));  // Layer count
       Write(Handle, @R, SizeOf(R));                    // Bounds rect

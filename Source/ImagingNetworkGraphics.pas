@@ -29,7 +29,7 @@
 { This unit contains image format loaders/savers for Network Graphics image
   file formats PNG, MNG, and JNG.}
 unit ImagingNetworkGraphics;
-
+        
 interface
 
 {$I ImagingOptions.inc}

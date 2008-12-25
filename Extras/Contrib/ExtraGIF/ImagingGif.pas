@@ -26,7 +26,9 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ This unit contains image format loader/saver for GIF images.}
+{ This unit contains image format loader/saver for GIF images.
+
+  Note: This modified unit is part of ExtraGIF mod of Imaging library.}
 unit ImagingGif;
 
 {$I ImagingOptions.inc}
@@ -1464,9 +1466,13 @@ initialization
 
 {
   File Notes:
-
- -- TODOS ----------------------------------------------------
+  
+  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.25.0 Changes/Bug Fixes ---------------------------------
+    - Fixed loading of some rare GIFs, problems with LZW
+      decompression.
 
   -- 0.24.3 Changes/Bug Fixes ---------------------------------
     - Better solution to transparency for some GIFs. Background not
