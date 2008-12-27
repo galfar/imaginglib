@@ -56,7 +56,7 @@
       </row>
       <row>
         <td><keyword>(Imaging Root)\Extras\Extensions\LibTiff</keyword></td>
-        <td>Needed if you enable <link url="../FileFormats/Tiff.xml">TIFF</link> support.</td>
+        <td>Needed for <link url="../FileFormats/Tiff.xml">TIFF</link> support in Delphi.</td>
       </row>
     </table>
 
@@ -157,11 +157,6 @@
         <keyword>Bin</keyword> directory using Free Pascal</td>
       </row>
       <row>
-        <td><keyword>BuildLibraryKylix.sh (Linux)</keyword></td>
-        <td>Builds <keyword>libVampyreImaging.so</keyword> in
-        <keyword>Bin</keyword> directory using Kylix</td>
-      </row>
-      <row>
         <td><keyword>BuildLibraryFPC.sh (Linux/Unix)</keyword></td>
         <td>Builds <keyword>libVampyreImaging.so</keyword> in
         <keyword>Bin</keyword> directory using Free Pascal</td>
@@ -193,16 +188,6 @@
       <row>
         <td><keyword>BuildDemosDOS.bat (DOS)</keyword></td>
         <td>Builds demos in <keyword>Demos\Bin</keyword> directory using Free Pascal</td>
-      </row>
-      <row>
-        <td><keyword>BuildDemosKylix.sh (Linux)</keyword></td>
-        <td>Builds demos in <keyword>Demos/Bin</keyword> directory using Kylix</td>
-      </row>
-      <row>
-        <td><keyword>BuildExtDemosKylix.sh (Linux)</keyword></td>
-        <td>Builds demos of Imaging extensions which require external units
-        in <keyword>Demos\Bin</keyword>
-        directory using Kylix (<link url="#extnote">Note</link>)</td>
       </row>
       <row>
         <td><keyword>BuildDemosFPC.sh (Linux/Unix)</keyword></td>

@@ -57,6 +57,8 @@ type
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+  published
+    property SaveAsLayer: LongBool read FSaveAsLayer write FSaveAsLayer;
   end;
 
 implementation

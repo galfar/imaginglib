@@ -23,7 +23,7 @@
     </par>
     
     <par>Here is a list of some of the features I want to include in future
-    Imaging releases:</par>
+      Imaging releases:</par>
     <bulletlist>
       <li>new library core</li>
       <li>native Pascal TIFF support</li>

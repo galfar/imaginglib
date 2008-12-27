@@ -19,6 +19,21 @@
       RGB images but without actual conversion to RGB color space.
       Also no layer information is loaded.
     </par>
+    <par>
+      As of Imaging version 0.26.2 images with alpha channel can be 
+      saved using layers. That way when opened in Photoshop they 
+      have proper transparency, not alpha channel 
+      (will have one layer, RGB color channels, and transparency).
+      PSD files with layers are bigger because image has to be stored 
+      as background as well as layer data.
+      Therefore, RLE compression was implemented to keep the files smaller 
+      (Photoshop saves PSDs RLE compressed too by default).
+      Note that layers are not supported for floating point image data formats
+      since it's not supported by Photoshop itself.
+      Saving of layers can also be disabled 
+      (will be opened in PS as background raster with RGBA channels) 
+      using appropriate option.    
+    </par>
     
     <table>
       <title>Photoshop Document File Format Support</title>
@@ -87,6 +102,33 @@
         <td>other types</td>
         <td><icode>depends on type</icode></td>
         <td>Yes/No</td><td>No</td>
+      </row>
+    </table>
+    
+    <par>
+      When working with PSD files you can find useful some options
+      which can be set by <ref>SetOption</ref> function and their current values
+      can be get by <ref>GetOption</ref> function.
+      Or you can set them by modifying properties of <ref>TPSDFileFormat</ref>
+      class.
+    </par>
+    
+    <table>
+      <title>Options Related to PSD Files</title>
+      <row>
+        <th>OptionId</th>
+        <th>Allowed Values</th>
+        <th>Usage</th>
+      </row>
+      <row>
+        <td><ref>ImagingPSDSaveAsLayer</ref></td>
+        <td><b>0 (false)</b> or <b>1 (true)</b></td>
+        <td>If enabled image data is saved as layer of PSD file. This is required
+            to get proper transparency when opened in Photoshop for images with
+            alpha data (will be opened with one layer, RGB color channels, and transparency).
+            If you don't need this Photoshop compatibility turn this option off as you'll get
+            smaller file (will be opened in PS as background raster with RGBA channels)
+            Default value is <b>1 (true)</b>. </td>
       </row>
     </table>
     

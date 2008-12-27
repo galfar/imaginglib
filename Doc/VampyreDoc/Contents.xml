@@ -30,7 +30,7 @@
                 <item url="Usage/Install.xml" name="Install and Compile" />
                 <item url="Usage/LowLevel.xml" name="Low Level Interface" />
                 <item url="Usage/HighLevel.xml" name="High Level Interface" />
-                <item url="Usage/Components.xml" name="VCL/CLX/LCL Classes" />
+                <item url="Usage/Components.xml" name="VCL/LCL Classes" />
                 <item url="Usage/CanvasUsage.xml" name="Using Canvas Class" />
               </itemlist>
             </item>
@@ -56,7 +56,7 @@
                   </itemlist>
                 </item>
                 <item url="Procedures/High/High.xml" name="High Level Interface" />
-                <item url="Procedures/Components/ProcComp.xml" name="VCL/CLX/LCL Classes" />
+                <item url="Procedures/Components/ProcComp.xml" name="VCL/LCL Classes" />
                 <item url="Procedures/Canvas.xml" name="Canvas Class Tips" />
               </itemlist>
             </item>

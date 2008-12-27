@@ -71,7 +71,7 @@
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2006/2007 <b>W</b>
+        <td>Delphi 7/2007/2009 <b>W</b>
         Free Pascal 2.2.2 <b>WLBD</b></td>
       </row>
       <row>
@@ -139,7 +139,7 @@
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2007 <b>W</b></td>
+        <td>Delphi 7/2007/2009 <b>W</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -208,7 +208,7 @@
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Lazarus 0.9.24 <b>WLB</b></td>
+        <td>Lazarus 0.9.26 <b>WLB</b> interfaces: Win32/64, GTK/GTK2, Qt</td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -245,6 +245,10 @@
       Filters and point transforms are provided by <ref>TImagingCanvas</ref>.
       <keyword>Binary Morphology</keyword> menu provides image segmentation
       functions using basic morphology operators (unit <ref>ImagingBinary</ref>).
+      <keyword>Colors</keyword> menu allows user to 
+      set the value of specific color/alpha channel of all image pixels. 
+      There is also option to show histogram of current image (R, G, B, and Gray
+      values displayed).      
     </par>
     <image url="lclimager.png"/>
     
@@ -280,7 +284,7 @@
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2006/2007 <b>W</b>,
+        <td>Delphi 7/2007/2009 <b>W</b>,
         Free Pascal 2.2.2 <b>WLBD</b></td>
       </row>
       <row>
@@ -378,7 +382,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2007 <b>W</b>FPC 2.2.2 <b>WL</b></td>
+        <td>Delphi 7/2007/2009 <b>W</b>FPC 2.2.2 <b>WL</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -435,7 +439,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2007 <b>W</b>, FPC 2.0.4 <b>W</b></td>
+        <td>Delphi 7/2007/2009 <b>W</b>, FPC 2.0.4 <b>W</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>
@@ -491,7 +495,7 @@ R1G1B1 R3G3B2 R5G6B5 A1R5G5B5 A4R4G4B4 X1R5G5B5 X4R4G4B4 R8G8B8 A8R8G8B8 X8R8G8B
       </row>
       <row>
         <td><b>Compilers (tested)</b></td>
-        <td>Delphi 7/2007 <b>W</b>, FPC 2.2.2 <b>WL</b></td>
+        <td>Delphi 7/2007/2009 <b>W</b>, FPC 2.2.2 <b>WL</b></td>
       </row>
       <row>
         <td><b>Demo shows usage of</b></td>

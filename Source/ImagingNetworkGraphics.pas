@@ -34,6 +34,12 @@ interface
 
 {$I ImagingOptions.inc}
 
+{ If MN support is enabled we must make sure PNG and JNG are enabled too.}
+{$IFNDEF DONT_LINK_MNG}
+  {$UNDEF DONT_LINK_PNG}
+  {$UNDEF DONT_LINK_JNG}
+{$ENDIF}
+
 uses
   Classes, ImagingTypes, Imaging, ImagingUtility, ImagingFormats, dzlib;
 

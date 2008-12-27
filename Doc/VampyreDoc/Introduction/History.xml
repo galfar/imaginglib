@@ -14,6 +14,60 @@
       <link url="#legend">Changes Legend</link>.
     </par>
     
+    <!-- VERSION 00.26.2 -->
+    <section>
+      <mediumcap>Version 0.26.2 - 28th December 2008</mediumcap>
+      <notes>
+        For complete list of changes see <keyword>File Notes</keyword>
+        section at the end of each source file.
+      </notes>
+      <bulletlist>
+        <li>
+          <keyword>[*]</keyword>
+          Delphi 2009 and Lazarus 0.9.26 compatibility fixes.
+          New project files for Delphi 2009 added. Kylix and CLX 
+          stuff removed.  
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          New canvas methods: flood and boundary fills, color channel
+          fills, color level adjusment, histogram calculation.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Animated <b>GIF</b> support rewritten and it now 
+          properly animates all tested GIFs (several thousand, true color ones too). 
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Added new <keyword>Extras/Contrib</keyword> directory with 
+          Imaging modifications, extensions, demos, etc. contributed 
+          by users (now with ExtraGIF, NIF loader, and HqResampler).          
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Changed LINK defined symbols that control which file formats will be
+          automatically registered. More in <link url="../Extensions/ExtFileFormats.xml">File Format Extensions</link>
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>PSD</b> images with alpha channel are now saved as layers 
+          to get proper transparency when opened in Photoshop.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Changed conditional compilation of <ref>ImagingComponents.pas</ref>
+          unit to properly work with LCL widget sets other than
+          Win32 and GTK.
+        </li>
+        <li>
+          <keyword>[F]</keyword>
+          Fixed problem with loading of progressive JPEGs (out of memory) 
+          when using FPC Win32.
+        </li>
+      </bulletlist>
+    </section>
+     
     <!-- VERSION 00.26.0 -->
     <section>
       <mediumcap>Version 0.26.0 - 27th August 2008</mediumcap>

@@ -7,7 +7,9 @@
     <par>
       Main development language is <b>Object Pascal</b> and two
       main supported compilers are <b>Borland Delphi</b> and <b>Free Pascal</b>.
-      <b>Kylix</b> works too but <b>C++ Builder</b> crashes on internal error.
+      <b>Kylix</b> worked too but latest versions were not tested 
+      (IDE won't work well in current Linux distros). 
+      <b>C++ Builder</b> crashes on internal error.
       Other Pascal compilers like GPC or TMT were not tested (probably won't work).
       Supported platforms are now <b>Windows</b>, <b>Linux</b>, <b>FreeBSD</b>
       (some other Unix systems most probably too),
@@ -31,8 +33,8 @@
         <th>Info</th>
       </row>
       <row>
-        <td><keyword>Delphi 7/2006/2007 (Win32)</keyword></td>
-        <td>Tested and everything compiled successfully (Delphi 6, 2005, and TurboDelphi
+        <td><keyword>Delphi 6/7/2006/2007/2009 (Win32)</keyword></td>
+        <td>Tested and everything compiled successfully (Delphi 2005, and TurboDelphi
             should work too, older probably not)</td>
       </row>
       <row>
@@ -40,13 +42,13 @@
         <td>Tested and everything compiled successfully</td>
       </row>
       <row>
-        <td><keyword>Lazarus 0.9.24 (Win32/Win64, Linux, FreeBSD)</keyword></td>
+        <td><keyword>Lazarus 0.9.26 (Win32/Win64, Linux, FreeBSD)</keyword></td>
         <td>Tested and everything compiled successfully</td>
       </row>
       <row>
         <td><keyword>Kylix 3 (Linux)</keyword></td>
         <td>Tested and everything compiled successfully (previous library versions,
-            Kylix is not tested anymore)</td>
+            Kylix is not tested anymore - won't work well in current Linux distros)</td>
       </row>
       <row>
         <td><keyword>C++ Builder 6/2006 (Win32)</keyword></td>

@@ -35,11 +35,11 @@ unit ImagingExtras;
 
 {$I ImagingOptions.inc}
 
-{ $DEFINE DONT_LINK_JPEG2000}    // link support for JPEG2000 images
-{ $DEFINE DONT_LINK_TIFF}        // link support for TIFF images
-{ $DEFINE DONT_LINK_PSD}         // link support for PSD images
-{ $DEFINE DONT_LINK_PCX}         // link support for PCX images
-{ $DEFINE DONT_LINK_XPM}         // link support for XPM images
+//{$DEFINE DONT_LINK_JPEG2000}    // link support for JPEG2000 images
+//{$DEFINE DONT_LINK_TIFF}        // link support for TIFF images
+//{$DEFINE DONT_LINK_PSD}         // link support for PSD images
+//{$DEFINE DONT_LINK_PCX}         // link support for PCX images
+//{$DEFINE DONT_LINK_XPM}         // link support for XPM images
 {$DEFINE DONT_LINK_ELDER}        // link support for Elder Imagery images
 
 {$IF not (Defined(DELPHI) or
@@ -114,7 +114,7 @@ uses
     - nothing now
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
-    - ElderImagery formats are disabled by default.
+    - ElderImagery formats are disabled by default, TIFF enabled.
     - Changed _LINK_ symbols according to changes in ImagingOptions.inc.
 
   -- 0.24.1 Changes/Bug Fixes ---------------------------------

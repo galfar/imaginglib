@@ -11,8 +11,8 @@
     </par>
     <par>
       Main development language is <b>Object Pascal</b>
-      (<b>Delphi</b>, <b>Kylix</b> and <b>Free Pascal</b> compilers
-      are supported) and there are interfaces to the library
+      (<b>Delphi</b> and <b>Free Pascal</b> compilers are supported) 
+      and there are interfaces to the library
       (compiled into dll/so) for other languages like <b>C/C++</b> and
       <b>Delphi.NET</b>. Currently supported operating systems are <b>Windows</b>,
       <b>Linux</b>, <b>FreeBSD</b> (and some other Unixes), <b>DOS</b> (and <b>.NET</b> using unmanaged DLL).

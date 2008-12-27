@@ -57,7 +57,7 @@
       Extensions for creating <b>OpenGL</b>, <b>Direct3D</b>, and <b>SDL</b> textures/surfaces.
     </li>
     <li>
-      <b>VCL</b>, <b>CLX</b> and <b>LCL</b> graphic classes and functions.
+      <b>VCL</b> and <b>LCL</b> graphic classes and functions.
     </li>
     <li>
       Image drawing with blending, linear and nonlinear filters, point transforms,

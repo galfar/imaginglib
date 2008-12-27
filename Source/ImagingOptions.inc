@@ -19,30 +19,27 @@
   Define formats which you don't want to be registred automatically.
   Default: all formats are registered, no symbols defined.}
 
-{ $DEFINE DONT_LINK_JPEG}        // link support for Jpeg images
-{ $DEFINE DONT_LINK_PNG}         // link support for PNG images
-{ $DEFINE DONT_LINK_TARGA}       // link support for Targa images
-{ $DEFINE DONT_LINK_BITMAP}      // link support for Windows Bitmap images
-{ $DEFINE DONT_LINK_DDS}         // link support for DDS images
-{ $DEFINE DONT_LINK_GIF}         // link support for GIF images
-{ $DEFINE DONT_LINK_MNG}         // link support for MNG images
-{ $DEFINE DONT_LINK_JNG}         // link support for JNG images
-{ $DEFINE DONT_LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
+//{$DEFINE DONT_LINK_JPEG}        // link support for Jpeg images
+//{$DEFINE DONT_LINK_PNG}         // link support for PNG images
+//{$DEFINE DONT_LINK_TARGA}       // link support for Targa images
+//{$DEFINE DONT_LINK_BITMAP}      // link support for Windows Bitmap images
+//{$DEFINE DONT_LINK_DDS}         // link support for DDS images
+//{$DEFINE DONT_LINK_GIF}         // link support for GIF images
+//{$DEFINE DONT_LINK_MNG}         // link support for MNG images
+//{$DEFINE DONT_LINK_JNG}         // link support for JNG images
+//{$DEFINE DONT_LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
 
-{ $DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
+//{$DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
                              // Extras package. Exactly which formats will be
                              // registered depends on settings in
                              // ImagingExtras.pas unit.
 
 { Component set used in ImagignComponents.pas unit. You usually don't need
   to be concerned with this - proper component library is selected automatically
-  according to your compiler (only exception is using CLX in Delphi 6/7). }
+  according to your compiler. }
 
-{$DEFINE COMPONENT_SET_VCL}   // use Borland's VCL
-{ $DEFINE COMPONENT_SET_CLX}   // use Borland's CLX (set automatically when using Kylix,
-                              // must be se manually when compiling with Delphi 6/7)
-{ $DEFINE COMPONENT_SET_LCL}   // use Lazarus' LCL (set automatically when
-                              // compiling with FPC)
+{$DEFINE COMPONENT_SET_VCL}   // use Delphi VCL
+{ $DEFINE COMPONENT_SET_LCL}  // use Lazarus LCL (set automatically when compiling with FPC)
 
 {
   Auto Options
@@ -152,40 +149,11 @@
 {$IFDEF FPC}
   {$DEFINE COMPONENT_SET_LCL}
   {$UNDEF COMPONENT_SET_VCL}
-  {$UNDEF COMPONENT_SET_CLX}
-{$ENDIF}
-
-{$IFDEF KYLIX}
-  {$DEFINE COMPONENT_SET_CLX}
-  {$UNDEF COMPONENT_SET_VCL}
-  {$UNDEF COMPONENT_SET_LCL}
 {$ENDIF}
 
 {$IFDEF DELPHI}
   {$UNDEF COMPONENT_SET_LCL}
-  {$IF CompilerVersion >= 17}
-    {$UNDEF COMPONENT_SET_CLX}     // Delphi 9+ has no CLX
-  {$IFEND}
-  {$IFNDEF COMPONENT_SET_VCL}
-    {$IFNDEF COMPONENT_SET_CLX}
-      {$DEFINE COMPONENT_SET_VCL}  // use VCL as default if not set
-    {$ENDIF}
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF COMPONENT_SET_VCL}
-  {$UNDEF COMPONENT_SET_CLX}
-  {$UNDEF COMPONENT_SET_LCL}
-{$ENDIF}
-
-{$IFDEF COMPONENT_SET_CLX}
-  {$UNDEF COMPONENT_SET_VCL}
-  {$UNDEF COMPONENT_SET_LCL}
-{$ENDIF}
-
-{$IFDEF COMPONENT_SET_LCL}
-  {$UNDEF COMPONENT_SET_VCL}
-  {$UNDEF COMPONENT_SET_CLX}
+  {$DEFINE COMPONENT_SET_VCL}
 {$ENDIF}
 
 { Platform options }
@@ -219,18 +187,6 @@
 
 {$IFDEF HAS_INLINE}        
   {$INLINE ON}             // turns inlining on for compilers that support it
-{$ENDIF}
-
-{ Extension dependencies check }
-
-{$IFDEF LINK_MNG}          // MNG uses internaly both PNG and JNG
-  {$DEFINE LINK_JNG}
-  {$DEFINE LINK_PNG}
-{$ENDIF}
-
-{$IFDEF LINK_JNG}          // JNG uses internaly both PNG and JPEG
-  {$DEFINE LINK_PNG}
-  {$DEFINE LINK_JPEG}
 {$ENDIF}
 
 

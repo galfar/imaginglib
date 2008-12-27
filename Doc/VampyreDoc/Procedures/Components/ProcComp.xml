@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet type="text/xsl" href="../../Xsl/doc2html.xsl"?>
 <doc>
-  <title>How To ... (VCL/CLX/LCL Classes)</title>
+  <title>How To ... (VCL/LCL Classes)</title>
   <chapter>
-    <title>How To ... (VCL/CLX/LCL Classes)</title>
+    <title>How To ... (VCL/LCL Classes)</title>
     <par>
       This section shows few possible usages of
-      VCL/CLX/LCL Imaging Classes and related functions
+      VCL/LCL Imaging Classes and related functions
       described in
-      <link url="../../Usage/Components.xml">VCL/CLX/LCL Classes</link>.
+      <link url="../../Usage/Components.xml">VCL/LCL Classes</link>.
       You can also learn how to use these classes
       by looking at demos which use them
       <link url="../../Demos/Pascal.xml">Pascal Demos</link>.
@@ -21,7 +21,7 @@
 
 uses
   ImagingTypes, Imaging, ImagingClasses,
-  // Add unit with VCL/CLX/LCL support, new file formats are automatically
+  // Add unit with VCL/LCL support, new file formats are automatically
   // registered to TPicture (so they will appear in TOpenPictureDialog for example)
   <ref>ImagingComponents</ref>;
   
@@ -52,7 +52,7 @@ begin
 end;
     </code>
     
-    <par>Displaying Imaging's images in VCL/CLX/LCL:</par>
+    <par>Displaying Imaging's images in VCL/LCL:</par>
     <code>
 // This procedure shows given image (high level class) on form
 // by converting it to TBitmap and then drawing on form's canvas

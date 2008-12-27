@@ -23,10 +23,10 @@
       But it is currently available only in Delphi (uses LibTiffDelphi object files)
       and it can make your compiled binaries quite big (almost 400 KiB size increase
       when compiled with TIFF support).
-      Because of this TIFF support is <b>disabled by default</b>.
-      If you need TIFF support you can enable it by changing
-      <icode>{ $DEFINE LINK_TIFF}</icode> to <icode>{$DEFINE LINK_TIFF}</icode>
-      in <ref>ImagingExtras.pas</ref> unit.
+      
+      If you don't need TIFF support and want smaller exe instead you 
+      can disable it by uncommenting <icode>{$DEFINE DONT_LINK_TIFF}</icode>
+      line in in <ref>ImagingExtras.pas</ref> unit.
     </par>
     
     <par>

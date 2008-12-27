@@ -67,10 +67,18 @@
     </blist>
 
     <note>
-      When saving image in IMG or CIF format it gets converted to 8 indexed
+      When saving image in IMG or CIF format it gets converted to 8bit indexed
       format and mapped to current palette set in saver class. Also note
-      that max size (in bytes) of image that can be saved is 65535
+      that max size (in bytes) of image that can be saved is 65535 bytes
       (it is resized automatically if bigger).
+    </note>
+    
+    <note>
+      Since most people won't need support for these formats they are disabled
+      by default (not compiled into your binary).    
+      If you want them go to <ref>ImagingExtras.pas</ref> unit
+      and comment out or delete <icode>{$DEFINE DONT_LINK_ELDER}</icode>
+      line.
     </note>
     
   </chapter>

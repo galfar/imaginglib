@@ -145,7 +145,6 @@ const
     animated frames are always in 32bit ifA8R8G8B8 format (simplifies animating).}
   ImagingGIFLoadAnimated       = 56;
 
-
   { This option is used when reducing number of colors used in
     image (mainly when converting from ARGB image to indexed
     format). Mask is 'anded' (bitwise AND) with every pixel's

@@ -875,11 +875,13 @@ var
 
       if (ImageDesc.Left <= Header.ScreenWidth + 1) and (ImageDesc.Top <= Header.ScreenHeight + 1) then
       begin
+        // Resize the screen if needed to fit the frame
         ScreenWidth := Max(ScreenWidth, ImageDesc.Width + ImageDesc.Left);
         ScreenHeight := Max(ScreenHeight, ImageDesc.Height + ImageDesc.Top);
       end
       else
       begin
+        // Remove frame outside logical screen
         RemoveBadFrame;
         Exit;
       end;
@@ -944,25 +946,35 @@ var
     UseCache: Boolean;
     BGColor: TColor32;
   begin
+    // We may need to use raw frame 0 to n to correctly animate n-th frame
     Last := Index;
     First := Max(0, Last);
+    // See if we can use last animate frame as a basis for this one
+    // (so we don't have to use previous raw frames).
     UseCache := TestImage(CachedFrame) and (CachedIndex = Index - 1) and (CachedIndex >= 0) and
       (FrameInfos[CachedIndex].Disposal <> dmRestorePrevious);
 
+    // Reuse or release cache
     if UseCache then
       CloneImage(CachedFrame, AnimFrame)
     else
       FreeImage(CachedFrame);
 
+    // Default color for clearing of the screen
     BGColor := Images[Index].Palette[FrameInfos[Index].BackIndex].Color;
+
+    // Now prepare logical screen for drawing of raw frame at Index.
+    // We may need to use all previous raw frames to get the screen
+    // to proper state (according to their disposal methods).
 
     if not UseCache then
     begin
       if FrameInfos[Index].HasTransparency then
         BGColor := Images[Index].Palette[FrameInfos[Index].TransIndex].Color;
-
+      // Clear whole screen
       FillMemoryLongWord(AnimFrame.Bits, AnimFrame.Size, BGColor);
 
+      // Try to maximize First so we don't have to use all 0 to n raw frames
       while First > 0 do
       begin
         if (ScreenWidth = Images[First].Width) and (ScreenHeight = Images[First].Height) then
@@ -978,32 +990,34 @@ var
         case FrameInfos[I].Disposal of
           dmNoRemoval, dmLeave:
             begin
-              //we copy just a meaning bytes, not all the frame
+              // Copy previous raw frame  onto screen
               CopyFrameTransparent32(AnimFrame, Images[I], FrameInfos[I].Left, FrameInfos[I].Top);
             end;
           dmRestoreBackground:
             if (I > First) then
             begin
-              //filling the rect with background is equal to "clearing" it
-             // FillMemoryLongWord(AnimFrame.Bits, AnimFrame.Size, BGColor);
-             FillRect(AnimFrame, FrameInfos[I].Left, FrameInfos[I].Top,
-               FrameInfos[I].Width, FrameInfos[I].Height, @BGColor);
+              // Restore background color
+              FillRect(AnimFrame, FrameInfos[I].Left, FrameInfos[I].Top,
+                FrameInfos[I].Width, FrameInfos[I].Height, @BGColor);
             end;
-          dmRestorePrevious: ; // do nothing
+          dmRestorePrevious: ; // Do nothing - previous state is already on screen
         end;
       end;
     end
     else if FrameInfos[CachedIndex].Disposal = dmRestoreBackground then
     begin
+      // We have our cached result but also need to restore
+      // background in a place of cached frame
       if FrameInfos[CachedIndex].HasTransparency then
         BGColor := Images[CachedIndex].Palette[FrameInfos[CachedIndex].TransIndex].Color;
-      //FillMemoryLongWord(AnimFrame.Bits, AnimFrame.Size, BGColor);
       FillRect(AnimFrame, FrameInfos[CachedIndex].Left, FrameInfos[CachedIndex].Top,
         FrameInfos[CachedIndex].Width, FrameInfos[CachedIndex].Height, @BGColor);
     end;
 
+    // Copy current raw frame to prepared screen
     CopyFrameTransparent32(AnimFrame, Images[Index], FrameInfos[Index].Left, FrameInfos[Index].Top);
 
+    // Cache animated result
     CloneImage(AnimFrame, CachedFrame);
     CachedIndex := Index;
   end;
@@ -1042,9 +1056,9 @@ begin
     // Now read all data blocks in the file until file trailer is reached
     while BlockID <> GIFTrailer do
     begin
+      // Read blocks until we find the one of known type
       while not (BlockID in [GIFTrailer, GIFExtensionIntroducer, GIFImageDescriptor]) do
         BlockID := ReadBlockID;
-
       // Read supported and skip unsupported extensions
       ReadExtensions;
       // If image frame is found read it
@@ -1059,6 +1073,7 @@ begin
 
     if FLoadAnimated then
     begin
+      // Aniated frames will be stored in AnimFrames
       SetLength(AnimFrames, Length(Images));
       InitImage(CachedFrame);
       CachedIndex := -1;
@@ -1067,9 +1082,12 @@ begin
       begin
         // Create new logical screen
         NewImage(ScreenWidth, ScreenHeight, ifA8R8G8B8, AnimFrames[I]);
+        // Animate frames to current log screen
         AnimateFrame(I, AnimFrames[I]);
       end;
 
+      // Now release raw 8bit frames and put animated 32bit ones
+      // to output array
       FreeImage(CachedFrame);
       for I := 0 to High(AnimFrames) do
       begin

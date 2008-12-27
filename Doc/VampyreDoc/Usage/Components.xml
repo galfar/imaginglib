@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <?xml-stylesheet type="text/xsl" href="../Xsl/doc2html.xsl"?>
 <doc>
-  <title>VCL/CLX/LCL Classes</title>
+  <title>VCL/LCL Classes</title>
   <chapter>
-    <title>VCL/CLX/LCL Classes</title>
+    <title>VCL/LCL Classes</title>
     <par>
-      Imaging contains <keyword>VCL/CLX/LCL </keyword>
+      Imaging contains <keyword>VCL/LCL </keyword>
       <icode>TGraphic</icode> descendant which uses Imaging library
       for loading and saving various different file formats.
       They actually descend from <icode>TBitmap</icode> and override only
@@ -20,20 +20,11 @@
       <icode>TPicture</icode> class will be able to load and save images using
       Imaging.
       There are packages for <keyword>Delphi</keyword>,
-      <keyword>Kylix</keyword>, and <keyword>Lazarus</keyword> in
+      and <keyword>Lazarus</keyword> in
       <keyword>Source\Projects</keyword> directory which you can install
       to your IDEs and use Imaging classes in form design stage too.
     </par>
-    
-    <par>
-      Which component set is used is defined in <icode>ImagingOptions.inc</icode>
-      include file. There are defines <icode>COMPONENT_SET_VCL</icode>,
-      <icode>COMPONENT_SET_CLX</icode>, and <icode>COMPONENT_SET_LCL</icode>.
-      Define one you want to use (note that checks are made to make sure that
-      selected component set is valid for the current compiler and platform
-      i.e. if you use Free Pascal <keyword>LCL</keyword> is set automatically).
-    </par>
-    
+  
     <par>
       Note that <ref>TImagingGraphic</ref> and all its descendants
       can load images in all file formats supported by Imaging
@@ -71,7 +62,7 @@
     </table>
     
     <linklist>
-      <title>Information about the usage of VCL/CLX/LCL Classes</title>
+      <title>Information about the usage of VCL/LCL Classes</title>
       <lslink url="../Procedures/Procedures.xml">How To ... </lslink>
       <lslink url="../Demos/Pascal.xml">Object Pascal Demos</lslink>
     </linklist>

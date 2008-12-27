@@ -1838,7 +1838,7 @@ finalization
     - more objects (arc, polygon)
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
-    - Added overloaded FillChannel methods.
+    - Added FillChannel methods.
     - Added FloodFill method.
     - Added GetHistogram method.
     - Fixed "Invalid FP operation" in AdjustColorLevels in FPC compiled exes
