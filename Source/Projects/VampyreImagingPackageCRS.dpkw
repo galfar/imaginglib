@@ -1,4 +1,4 @@
-package VampyreImagingPackageD2009;
+package VampyreImagingPackageCRS;
 
 {$R *.res}
 {$ALIGN 8}
@@ -21,7 +21,7 @@ package VampyreImagingPackageD2009;
 {$VARSTRINGCHECKS OFF}
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
-{$IMAGEBASE $7A00000}
+{$IMAGEBASE $400000}
 {$DESCRIPTION 'Vampyre Imaging Library Package'}
 {$IMPLICITBUILD OFF}
 {$DEFINE RELEASE}

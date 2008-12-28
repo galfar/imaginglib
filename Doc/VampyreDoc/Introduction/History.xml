@@ -31,7 +31,7 @@
         <li>
           <keyword>[+]</keyword>
           New canvas methods: flood and boundary fills, color channel
-          fills, color level adjusment, histogram calculation.
+          fills, color level adjustment, histogram calculation.
         </li>
         <li>
           <keyword>[+]</keyword>
@@ -59,6 +59,11 @@
           Changed conditional compilation of <ref>ImagingComponents.pas</ref>
           unit to properly work with LCL widget sets other than
           Win32 and GTK.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Removed linking against libstdc++ library in JPEG 2000 headers in Unix
+          (replaced with libc and Pascal functions).
         </li>
         <li>
           <keyword>[F]</keyword>

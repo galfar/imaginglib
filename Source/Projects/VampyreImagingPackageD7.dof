@@ -94,7 +94,7 @@ OutputDir=
 UnitOutputDir=
 PackageDLLOutputDir=..\..\Bin
 PackageDCPOutputDir=
-SearchPath=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions
+SearchPath=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls
 Conditionals=
 DebugSourceDirs=
@@ -133,9 +133,10 @@ ProductVersion=1.0.0.0
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=2
-Item0=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions
-Item1=..\Source;..\Source\JpegLib;..\Source\ZLib;
+Count=3
+Item0=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff
+Item1=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions
+Item2=..\Source;..\Source\JpegLib;..\Source\ZLib;
 [HistoryLists\hlOutputDirectorry]
 Count=1
 Item0=..\..\Bin

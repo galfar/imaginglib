@@ -99,7 +99,7 @@ var
   begin
     Result := '';
     SkipWhiteSpace(Line);
-    while (Length(Line) > 0) and (Line[1] in WhiteSpaces) do
+    while (Length(Line) > 0) and not (Line[1] in WhiteSpaces) do
     begin
       SetLength(Result, Length(Result) + 1);
       Result[Length(Result)] := Line[1];

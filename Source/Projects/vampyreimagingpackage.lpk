@@ -5,26 +5,26 @@
     <Name Value="VampyreImagingPackage"/>
     <Author Value="http://imaginglib.sourceforge.net"/>
     <CompilerOptions>
-      <Version Value="5"/>
+      <Version Value="8"/>
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="..\;..\JpegLib\;..\ZLib\"/>
+        <Libraries Value="..\..\Extras\Extensions\J2KObjects\"/>
         <OtherUnitFiles Value="..\;..\JpegLib\;..\ZLib\;..\..\Extras\Extensions\"/>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(Target_OS)"/>
       </SearchPaths>
       <Parsing>
         <Style Value="1"/>
         <SyntaxOptions>
+          <SyntaxMode Value="Delphi"/>
           <IncludeAssertionCode Value="True"/>
-          <DelphiCompat Value="True"/>
           <UseAnsiStrings Value="True"/>
         </SyntaxOptions>
       </Parsing>
       <CodeGeneration>
-        <Generate Value="Faster"/>
         <Optimizations>
           <VariablesInRegisters Value="True"/>
-          <OptimizationLevel Value="2"/>
+          <OptimizationLevel Value="0"/>
         </Optimizations>
       </CodeGeneration>
       <Other>
@@ -37,7 +37,7 @@
 "/>
     <License Value="MPL/LGLP
 "/>
-    <Version Minor="26"/>
+    <Version Minor="26" Release="2"/>
     <Files Count="19">
       <Item1>
         <Filename Value="..\Imaging.pas"/>

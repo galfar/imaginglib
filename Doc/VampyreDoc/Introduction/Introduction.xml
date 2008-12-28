@@ -15,8 +15,10 @@
       <lslink url="Features.xml">Features</lslink>
       <lslink url="History.xml">History</lslink>
       <lslink url="Future.xml">Future</lslink>
-      <lslink url="License.xml">License</lslink>
+      <lslink url="Faq.xml">Faq</lslink>
       <lslink url="Credits.xml">Credits</lslink>
+      <lslink url="Contrib.xml">Contributions</lslink>
+      <lslink url="License.xml">License</lslink>
     </linklist>
     
   </chapter>

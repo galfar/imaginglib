@@ -22,7 +22,8 @@
     
     <par>
       Some complex file formats make compiled binaries significantly larger.
-      Most notably <b>JPEG</b> (around 100 KiB), <b>JPEG2000</b> (around 150 KiB), and <b>PNG</b>
+      Most notably <b>TIFF</b> (around 400 KiB),
+      <b>JPEG</b> (around 100 KiB), <b>JPEG2000</b> (around 150 KiB), and <b>PNG</b>
       (around 50 KiB). Some formats use others internally - <b>MNG</b> and <b>JNG</b> use
       PNG and JPEG. If you know you won't be needing some of those formats
       and you don't want large binaries you can disable them at compile stage.

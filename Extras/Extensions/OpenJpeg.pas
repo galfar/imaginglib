@@ -44,7 +44,12 @@
   OpenJpeg Homepage: http://www.openjpeg.org
   PasOpenJpeg Homepage: http://galfar.vevb.net/openjpeg
 
-  Current Version: 1.1 2008-12-23 (OpenJpeg 1.3.0 SVN revision 507 with my CDEF patch)
+  Current Version: 1.01 (OpenJpeg 1.3.0 SVN revision 507 with my CDEF patch)
+
+  History:
+    v1.01 (2008-12-27):
+      - removed linking to stdc++ lib in LINUX/UNIX
+      - Delphi 2009 compatibility checks
 
 }
 
@@ -645,7 +650,17 @@ implementation
   {$IF Defined(FPC)}
     { Free Pascal Linux }
     { Link C runtime library.}
-    {$LINKLIB stdc++}
+    {$LINKLIB c}
+
+    function pow(const Base, Exponent: Double): Double; cdecl; [Public];
+    begin
+      if Exponent = 0.0 then
+        Result := 1.0
+      else if (Base = 0.0) and (Exponent > 0.0) then
+        Result := 0.0
+      else
+        Result := Exp(Exponent * Ln(Base));
+    end;
 
     {$IF Defined(CPU86)}
       { Free Pascal Linux x86 }

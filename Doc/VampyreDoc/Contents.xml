@@ -14,13 +14,16 @@
                 <item url="Introduction/Features.xml" name="Features" />
                 <item url="Introduction/History.xml" name="History" />
                 <item url="Introduction/Future.xml" name="Future" />
+                <item url="Introduction/Faq.xml" name="FAQ" />
+                <item url="Introduction/Credits.xml" name="Credits" />
+                <item url="Introduction/Contrib.xml" name="Contributions "/>
                 <item url="Introduction/License.xml" name="License" >
                   <itemlist>
                     <item url="Introduction/MPL.xml" name="MPL" />
                     <item url="Introduction/LGPL.xml" name="LGPL" />
                   </itemlist>  
                 </item>
-                <item url="Introduction/Credits.xml" name="Credits" />
+
               </itemlist>
             </item>
             

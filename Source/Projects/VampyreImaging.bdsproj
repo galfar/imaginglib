@@ -123,7 +123,7 @@
 			<Directories Name="UnitOutputDir"></Directories>
 			<Directories Name="PackageDLLOutputDir"></Directories>
 			<Directories Name="PackageDCPOutputDir"></Directories>
-			<Directories Name="SearchPath">..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;</Directories>
+			<Directories Name="SearchPath">..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</Directories>
 			<Directories Name="Packages">vclx;vcl;VclSmp;rtl;bdertl;vclactnband;vclshlctrls</Directories>
 			<Directories Name="Conditionals"></Directories>
 			<Directories Name="DebugSourceDirs"></Directories>

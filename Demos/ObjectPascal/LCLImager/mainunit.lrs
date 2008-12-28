@@ -1,9 +1,9 @@
 { This is an automatically generated lazarus resource file }
 
 LazarusResources.Add('TMainForm','FORMDATA',[
-  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#3'r'#1#6'Height'#3#0#2#3'Top'#3#2#1#5
+  'TPF0'#9'TMainForm'#8'MainForm'#4'Left'#2'k'#6'Height'#3#0#2#3'Top'#3#251#0#5
   +'Width'#3#0#3#7'Caption'#6')LCL Imager (Vampyre Imaging Library Demo)'#12'Cl'
-  +'ientHeight'#3#236#1#11'ClientWidth'#3#0#3#21'Constraints.MinHeight'#3#240#0
+  +'ientHeight'#3#225#1#11'ClientWidth'#3#0#3#21'Constraints.MinHeight'#3#240#0
   +#20'Constraints.MinWidth'#3'@'#1#9'Icon.Data'#10#194#8#0#0#190#8#0#0#0#0#1#0
   +#1#0'  '#0#1#0#0#0#0#168#8#0#0#22#0#0#0'('#0#0#0' '#0#0#0'@'#0#0#0#1#0#8#0#0
   +#0#0#0#128#4#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#128#0#0#128#0#0
@@ -106,9 +106,9 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +#7#8'MainMenu'#8'OnCreate'#7#10'FormCreate'#9'OnDestroy'#7#11'FormDestroy'#10
   +'ParentFont'#8#8'Position'#7#15'poDesktopCenter'#10'LCLVersion'#6#6'0.9.26'
   +#11'WindowState'#7#11'wsMaximized'#0#6'TImage'#5'Image'#6'Cursor'#7#11'crHan'
-  +'dPoint'#6'Height'#3#214#1#5'Width'#3#0#3#5'Align'#7#8'alClient'#8'AutoSize'
+  +'dPoint'#6'Height'#3#203#1#5'Width'#3#0#3#5'Align'#7#8'alClient'#8'AutoSize'
   +#9#6'Center'#9#7'OnClick'#7#10'ImageClick'#12'Proportional'#9#7'Stretch'#9#0
-  +#0#6'TPanel'#11'PanelStatus'#6'Height'#2#22#3'Top'#3#214#1#5'Width'#3#0#3#5
+  +#0#6'TPanel'#11'PanelStatus'#6'Height'#2#22#3'Top'#3#203#1#5'Width'#3#0#3#5
   +'Align'#7#8'alBottom'#9'Alignment'#7#13'taLeftJustify'#10'BevelWidth'#2#2#8
   +'TabOrder'#2#0#0#0#9'TMainMenu'#8'MainMenu'#4'left'#2'p'#3'top'#2'('#0#9'TMe'
   +'nuItem'#9'MenuItem1'#7'Caption'#6#4'File'#0#9'TMenuItem'#9'MenuItem3'#7'Cap'

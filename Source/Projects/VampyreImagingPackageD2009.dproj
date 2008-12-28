@@ -23,7 +23,9 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_DependencyCheckOutputName>C:\Documents and Settings\All Users\Documents\RAD Studio\6.0\Bpl\VampyreImagingPackageD2009.bpl</DCC_DependencyCheckOutputName>
+			<DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_BplOutput>..\..\Bin</DCC_BplOutput>
+			<DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingPackageD2009.bpl</DCC_DependencyCheckOutputName>
 			<DCC_ImageBase>07A00000</DCC_ImageBase>
 			<DesignOnlyPackage>false</DesignOnlyPackage>
 			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -37,28 +39,22 @@
 			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
-			<DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingPackageD2009.bpl</DCC_DependencyCheckOutputName>
 			<Version>7.0</Version>
 			<DCC_DebugInformation>False</DCC_DebugInformation>
 			<DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
 			<DCC_StrictVarStrings>False</DCC_StrictVarStrings>
 			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
-			<DCC_BplOutput>..\..\Bin</DCC_BplOutput>
-			<DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_ResourcePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_ResourcePath)</DCC_ResourcePath>
 			<DCC_ObjPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_ObjPath)</DCC_ObjPath>
 			<DCC_IncludePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_IncludePath)</DCC_IncludePath>
 			<DCC_ImageBase>7A00000</DCC_ImageBase>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2)'!=''">
-			<DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingPackageD2009.bpl</DCC_DependencyCheckOutputName>
 			<Version>7.0</Version>
 			<DCC_StrictVarStrings>False</DCC_StrictVarStrings>
 			<DCC_SymbolReferenceInfo>2</DCC_SymbolReferenceInfo>
 			<DCC_MinimumEnumSize>4</DCC_MinimumEnumSize>
 			<DCC_ImageBase>7A00000</DCC_ImageBase>
-			<DCC_BplOutput>..\..\Bin</DCC_BplOutput>
-			<DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_ResourcePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_ResourcePath)</DCC_ResourcePath>
 			<DCC_ObjPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_ObjPath)</DCC_ObjPath>
 			<DCC_IncludePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_IncludePath)</DCC_IncludePath>
@@ -80,7 +76,7 @@
 						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">26</VersionInfo>
-						<VersionInfo Name="Release">2</VersionInfo>
+						<VersionInfo Name="Release">0</VersionInfo>
 						<VersionInfo Name="Build">0</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
@@ -91,7 +87,7 @@
 						<VersionInfo Name="CodePage">1252</VersionInfo>
 					</VersionInfo>
 					<VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.26.2.0</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.26.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys>
@@ -104,8 +100,7 @@
 					<Source>
 						<Source Name="MainSource">VampyreImagingPackageD2009.dpkw</Source>
 					</Source>
-					<Excluded_Packages>
-					</Excluded_Packages>
+					<Excluded_Packages/>
 				</Delphi.Personality>
 			</BorlandProject>
 			<ProjectFileVersion>12</ProjectFileVersion>

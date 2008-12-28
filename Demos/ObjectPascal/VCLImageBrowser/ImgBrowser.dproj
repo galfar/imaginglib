@@ -2,7 +2,7 @@
   <PropertyGroup>
     <ProjectGuid>{a245fc95-7af7-4114-9213-6bc235be06cc}</ProjectGuid>
     <MainSource>ImgBrowser.dpr</MainSource>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
     <DCC_DependencyCheckOutputName>..\..\Bin\ImgBrowser.exe</DCC_DependencyCheckOutputName>

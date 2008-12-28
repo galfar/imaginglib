@@ -3,8 +3,6 @@ object AboutForm: TAboutForm
   Height = 288
   Top = 471
   Width = 286
-  HorzScrollBar.Page = 285
-  VertScrollBar.Page = 287
   ActiveControl = BitBtn1
   BorderIcons = []
   BorderStyle = bsSingle
@@ -17,13 +15,14 @@ object AboutForm: TAboutForm
   Constraints.MinHeight = 288
   Constraints.MinWidth = 286
   OnShow = FormShow
+  ParentFont = False
   Position = poMainFormCenter
+  LCLVersion = '0.9.26'
   object Image: TImage
     Left = 48
     Height = 89
     Top = 16
     Width = 188
-    Transparent = False
   end
   object Image2: TImage
     Left = 88
@@ -263,7 +262,6 @@ object AboutForm: TAboutForm
       FF80000003FF0000FFC0F0007FFF0000FFFFFFFFFFFF0000FFFFFFFFFFFF0000
       FFFFFFFFFFFF0000
     }
-    Transparent = False
   end
   object ImLabel: TLabel
     Left = 8
@@ -276,16 +274,19 @@ object AboutForm: TAboutForm
     Font.Color = clBlack
     Font.Style = [fsBold]
     ParentColor = False
+    ParentFont = False
   end
   object Label1: TLabel
     Left = 144
-    Height = 40
+    Height = 46
     Top = 188
-    Width = 45
+    Width = 64
+    AutoSize = False
     Caption = 'Lazarus Imager Demo'
     Font.Color = clBlack
     Font.Style = [fsBold]
     ParentColor = False
+    ParentFont = False
     WordWrap = True
   end
   object ImLabel1: TLabel
@@ -298,6 +299,7 @@ object AboutForm: TAboutForm
     Caption = 'http://imaginglib.sourceforge.net'
     Font.Color = clBlue
     ParentColor = False
+    ParentFont = False
   end
   object BitBtn1: TBitBtn
     Left = 104

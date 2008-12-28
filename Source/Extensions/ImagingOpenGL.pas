@@ -40,9 +40,9 @@ interface
 
 uses
   SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats,
-{$IFDEF USE_DGL_HEADERS}
+{$IF Defined(USE_DGL_HEADERS)}
   dglOpenGL,
-{$ELSEIF USE_GLSCENE_HEADERS}
+{$ELSEIF Defined(USE_GLSCENE_HEADERS)}
   OpenGL1x,
 {$ELSE}
   gl, glext,

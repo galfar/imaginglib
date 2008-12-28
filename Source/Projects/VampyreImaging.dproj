@@ -15,7 +15,7 @@
     <DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
     <DCC_Define>RELEASE</DCC_Define>
     <DCC_AssertionsAtRuntime>False</DCC_AssertionsAtRuntime>
-    <DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_UnitSearchPath>
+    <DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_UnitSearchPath>
     <DCC_ResourcePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_ResourcePath>
     <DCC_ObjPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_ObjPath>
     <DCC_IncludePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_IncludePath>
@@ -24,7 +24,7 @@
     <Version>7.0</Version>
     <DCC_SymbolReferenceInfo>2</DCC_SymbolReferenceInfo>
     <DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
-    <DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_UnitSearchPath>
+    <DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_UnitSearchPath>
     <DCC_ResourcePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_ResourcePath>
     <DCC_ObjPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_ObjPath>
     <DCC_IncludePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_IncludePath>
