@@ -155,17 +155,17 @@ const
   GIFAppBufferExtension = 2;
 
 type
-  TGIFIdentifierCode = array[0..7] of char;
-  TGIFAuthenticationCode = array[0..2] of char;
+  TGIFIdentifierCode = array[0..7] of AnsiChar;
+  TGIFAuthenticationCode = array[0..2] of AnsiChar;
   TGIFApplicationRec = packed record
-    Identifier		  : TGIFIdentifierCode;
-    Authentication	: TGIFAuthenticationCode;
+    Identifier: TGIFIdentifierCode;
+    Authentication: TGIFAuthenticationCode;
   end;
 
 const
   CodeTableSize = 4096;
   HashTableSize = 17777;
-  
+
 type
   TReadContext = record
     Inx: Integer;
@@ -1207,6 +1207,10 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Fixed bug - loading of GIF with NETSCAPE app extensions
+      failed with Delphi 2009.
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - GIF loading and animation mostly rewritten, based on

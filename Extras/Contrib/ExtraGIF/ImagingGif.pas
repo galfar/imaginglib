@@ -1470,6 +1470,13 @@ initialization
   -- TODOS ----------------------------------------------------
     - nothing now
 
+   -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Fixed bug - loading of GIF with NETSCAPE app extensions
+      failed with Delphi 2009.
+   
+  -- 0.26.1 Changes/Bug Fixes ---------------------------------
+    - ExtraGIF fork.
+
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
     - Fixed loading of some rare GIFs, problems with LZW
       decompression.

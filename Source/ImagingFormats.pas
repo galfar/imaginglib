@@ -388,6 +388,7 @@ var
     BytesPerPixel: 1;
     ChannelCount: 1;
     PaletteEntries: 256;
+    HasAlphaChannel: True;
     IsIndexed: True;
     GetPixelsSize: GetStdPixelsSize;
     CheckDimensions: CheckStdDimensions;
@@ -4223,6 +4224,9 @@ initialization
   -- TODOS ----------------------------------------------------
     - nothing now
     - rewrite StretchRect for 8bit channels to use integer math?
+
+  -- 0.26.3 Changes/Bug Fixes -----------------------------------
+    - ifIndex8 format now has HasAlphaChannel=True.
 
   -- 0.25.0 Changes/Bug Fixes -----------------------------------
     - Made some resampling stuff public so that it can be used in canvas class.

@@ -47,6 +47,9 @@
   Current Version: 1.01 (OpenJpeg 1.3.0 SVN revision 507 with my CDEF patch)
 
   History:
+    v1.02 (2009-01-??):
+      - removed linking to stdc++ lib in LINUX/UNIX
+      - using CRTL unit in Delphi, removed linking to some functions from msvcrtl.dll
     v1.01 (2008-12-27):
       - removed linking to stdc++ lib in LINUX/UNIX
       - Delphi 2009 compatibility checks
@@ -512,6 +515,11 @@ function opj_encode(cinfo: popj_cinfo_t; cio: popj_cio_t; image: popj_image_t;
   index: PAnsiChar): Bool; cdecl; external;
 
 implementation
+
+{$IF Defined(DCC)}
+uses
+  crtl;
+{$IFEND}
 
 {$IF Defined(WIN32)}
 
