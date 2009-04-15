@@ -1421,7 +1421,10 @@ begin
     // Free old image and assign new image to it
     FreeMemNil(Image.Bits);
     if Image.Palette <> nil then
+    begin
+      FreeMem(WorkImage.Palette);
       WorkImage.Palette := Image.Palette;
+    end;
     Image := WorkImage;
     Result := True;
   except
@@ -3293,6 +3296,10 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Fixed memory leak in ResizeImage ocurring when resizing
+      indexed images.
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - Added position/size checks to LoadFromStream functions.
