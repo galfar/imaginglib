@@ -584,7 +584,7 @@ begin
     RedShift := 16;
     GreenShift := 8;
     BlueShift := 0;
-    Depth := 24;
+    Depth := 32; // Must be 32 for alpha blending (and for working in MacOSX Carbon)
   end;
   RawImage.Data := WorkData.Bits;
   RawImage.DataSize := WorkData.Size;
@@ -1210,6 +1210,10 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Fixed garbled LCL TBitmaps created by ConvertDataToBitmap
+      in Mac OS X (Carbon).
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - Added some more IFDEFs for Lazarus widget sets.

@@ -1,7 +1,7 @@
 object AboutForm: TAboutForm
-  Left = 816
+  Left = 786
   Height = 288
-  Top = 471
+  Top = 409
   Width = 286
   ActiveControl = BitBtn1
   BorderIcons = []
@@ -280,7 +280,7 @@ object AboutForm: TAboutForm
     Left = 144
     Height = 46
     Top = 188
-    Width = 64
+    Width = 72
     AutoSize = False
     Caption = 'Lazarus Imager Demo'
     Font.Color = clBlack

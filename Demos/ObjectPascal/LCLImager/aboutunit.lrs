@@ -1,8 +1,8 @@
 { This is an automatically generated lazarus resource file }
 
 LazarusResources.Add('TAboutForm','FORMDATA',[
-  'TPF0'#10'TAboutForm'#9'AboutForm'#4'Left'#3'0'#3#6'Height'#3' '#1#3'Top'#3
-  +#215#1#5'Width'#3#30#1#13'ActiveControl'#7#7'BitBtn1'#11'BorderIcons'#11#0#11
+  'TPF0'#10'TAboutForm'#9'AboutForm'#4'Left'#3#18#3#6'Height'#3' '#1#3'Top'#3
+  +#153#1#5'Width'#3#30#1#13'ActiveControl'#7#7'BitBtn1'#11'BorderIcons'#11#0#11
   +'BorderStyle'#7#8'bsSingle'#7'Caption'#6#5'About'#12'ClientHeight'#3' '#1#11
   +'ClientWidth'#3#30#1#5'Color'#7#8'clWindow'#21'Constraints.MaxHeight'#3' '#1
   +#20'Constraints.MaxWidth'#3#30#1#21'Constraints.MinHeight'#3' '#1#20'Constra'
@@ -234,7 +234,7 @@ LazarusResources.Add('TAboutForm','FORMDATA',[
   +'dth'#3#8#1#9'Alignment'#7#8'taCenter'#8'AutoSize'#8#7'Caption'#6' Vampyre I'
   +'maging Library version '#10'Font.Color'#7#7'clBlack'#10'Font.Style'#11#6'fs'
   +'Bold'#0#11'ParentColor'#8#10'ParentFont'#8#0#0#6'TLabel'#6'Label1'#4'Left'#3
-  +#144#0#6'Height'#2'.'#3'Top'#3#188#0#5'Width'#2'@'#8'AutoSize'#8#7'Caption'#6
+  +#144#0#6'Height'#2'.'#3'Top'#3#188#0#5'Width'#2'H'#8'AutoSize'#8#7'Caption'#6
   +#19'Lazarus Imager Demo'#10'Font.Color'#7#7'clBlack'#10'Font.Style'#11#6'fsB'
   +'old'#0#11'ParentColor'#8#10'ParentFont'#8#8'WordWrap'#9#0#0#6'TLabel'#8'ImL'
   +'abel1'#4'Left'#2#8#6'Height'#2#13#3'Top'#3#144#0#5'Width'#3#8#1#9'Alignment'

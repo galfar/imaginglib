@@ -198,7 +198,7 @@ type
     ChunkID: TChar4;
   end;
 
-  { IHDR chunk format.}
+  { IHDR chunk format - PNG header.}
   TIHDR = packed record
     Width: LongWord;              // Image width
     Height: LongWord;             // Image height
@@ -211,7 +211,7 @@ type
   end;
   PIHDR = ^TIHDR;
 
-  { MHDR chunk format.}
+  { MHDR chunk format - MNG header.}
   TMHDR = packed record
     FrameWidth: LongWord;         // Frame width
     FrameHeight: LongWord;        // Frame height
@@ -223,7 +223,7 @@ type
   end;
   PMHDR = ^TMHDR;
 
-  { JHDR chunk format.}
+  { JHDR chunk format - JNG header.}
   TJHDR = packed record
     Width: LongWord;              // Image width
     Height: LongWord;             // Image height
@@ -239,6 +239,27 @@ type
     AlphaInterlacing: Byte;       // 0 = non interlaced
   end;
   PJHDR = ^TJHDR;
+
+  { acTL chunk format - APNG animation control.}
+  TacTL = packed record
+    NumFrames: LongWord;          // Number of frames
+    NumPlay: LongWord;            // Number of times to loop the animation (0 = inf)
+  end;
+  PacTL =^TacTL;
+
+  { fcTL chunk format - APNG frame control.}
+  TfcTL = packed record
+    SeqNumber: LongWord;          // Sequence number of the animation chunk, starting from 0
+    Width: LongWord;              // Width of the following frame
+    Height: LongWord;             // Height of the following frame
+    XOffset: LongWord;            // X position at which to render the following frame
+    YOffset: LongWord;            // Y position at which to render the following frame
+    DelayNumer: Word;             // Frame delay fraction numerator
+    DelayDenom: Word;             // Frame delay fraction denominator
+    DisposeOp: Byte;              // Type of frame area disposal to be done after rendering this frame
+    BlendOp: Byte;                // Type of frame area rendering for this frame
+  end;
+  PfcTL = ^TfcTL;
 
 const
   { PNG file identifier.}
@@ -266,6 +287,18 @@ const
   tRNSChunk: TChar4 = 'tRNS';
   bKGDChunk: TChar4 = 'bKGD';
   gAMAChunk: TChar4 = 'gAMA';
+  acTLChunk: TChar4 = 'acTL';
+  fcTLChunk: TChar4 = 'fcTL';
+  fdATChunk: TChar4 = 'fdAT';
+
+  { APNG frame dispose operations.}
+  DisposeOpNone       = 0;
+  DisposeOpBackground = 1;
+  DisposeOpPrevious   = 2;
+
+  { APNG frame blending modes}
+  BlendOpSource = 0;
+  BlendOpOver   = 1;
 
   { Interlace start and offsets.}
   RowStart: array[0..6] of LongInt = (0, 0, 4, 0, 2, 0, 1);
