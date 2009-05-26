@@ -91,6 +91,11 @@ const
     Allowed values are in range 0 (no compresstion) to 9 (best compression).
     Default value is 5.}
   ImagingPNGCompressLevel      = 26;
+  { Boolean option that specifies whether PNG images with more frames (APNG format)
+    are animated by Imaging (according to frame disposal/blend methods) or just
+    raw frames are loaded and sent to user (if you want to animate APNG yourself).
+    Default value is 1.}
+  ImagingPNGLoadAnimated       = 27;
 
   { Specifies whether MNG animation frames are saved with lossy or lossless
     compression. Lossless frames are saved as PNG images and lossy frames are

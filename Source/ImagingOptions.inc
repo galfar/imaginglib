@@ -15,11 +15,11 @@
                               // checking, stack frames, assertions, and
                               // other debugging options will be turned on
 
-{ File format support linking options.
+(* File format support linking options.
   Define formats which you don't want to be registred automatically.
   Default: all formats are registered = no symbols defined.
   Example: If you want to disable JPEG support just uncomment //{$DEFINE DONT_LINK_JPEG} line
-}
+*)
 
 //{$DEFINE DONT_LINK_JPEG}        // link support for Jpeg images
 //{$DEFINE DONT_LINK_PNG}         // link support for PNG images
