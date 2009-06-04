@@ -44,10 +44,10 @@ unit ImagingExtras;
 
 {$IF not (Defined(DELPHI) or
   (Defined(FPC) and not Defined(MSDOS) and
-  ((Defined(CPU86) and (Defined(LINUX) or Defined(WIN32)) or
-   (Defined(CPUX86_64) and Defined(UNIX)))))
+  ((Defined(CPU86) and (Defined(LINUX) or Defined(WIN32) or Defined(DARWIN)) or
+   (Defined(CPUX86_64) and Defined(LINUX)))))
   )}
-  // JPEG2000 only for 32bit Windows and for 32bit/64bit Linux with FPC
+  // JPEG2000 only for 32bit Windows/Linux/OSX and for 64bit Unix with FPC
   {$DEFINE DONT_LINK_JPEG2000}
 {$IFEND}
 
@@ -112,6 +112,9 @@ uses
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Allowed JPEG2000 for M ac OS X x86
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - ElderImagery formats are disabled by default, TIFF enabled.
