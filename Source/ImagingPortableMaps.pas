@@ -586,11 +586,11 @@ var
   begin
     SetLength(S, Length(S) + 1);
     S[Length(S)] := Delimiter;
-  {$IFDEF UNICODE}
+  {$IF Defined(DCC) and Defined(UNICODE)}
     GetIO.Write(Handle, @AnsiString(S)[1], Length(S));
   {$ELSE}
     GetIO.Write(Handle, @S[1], Length(S));
-  {$ENDIF}
+  {$IFEND}
     Inc(LineLength, Length(S));
   end;
 

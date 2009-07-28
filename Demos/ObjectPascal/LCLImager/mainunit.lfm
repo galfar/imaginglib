@@ -4,7 +4,7 @@ object MainForm: TMainForm
   Top = 251
   Width = 768
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
-  ClientHeight = 481
+  ClientHeight = 492
   ClientWidth = 768
   Constraints.MinHeight = 240
   Constraints.MinWidth = 320
@@ -90,7 +90,7 @@ object MainForm: TMainForm
   WindowState = wsMaximized
   object Image: TImage
     Cursor = crHandPoint
-    Height = 459
+    Height = 470
     Width = 768
     Align = alClient
     AutoSize = True
@@ -101,7 +101,7 @@ object MainForm: TMainForm
   end
   object PanelStatus: TPanel
     Height = 22
-    Top = 459
+    Top = 470
     Width = 768
     Align = alBottom
     Alignment = taLeftJustify

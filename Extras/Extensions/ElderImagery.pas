@@ -457,7 +457,8 @@ uses
   ElderImageryBsi,
   ElderImageryCif,
   ElderImageryImg,
-  ElderImageryTexture;
+  ElderImageryTexture,
+  ElderImagerySky;
 
 { TDaggerfallFileFormat class implementation }
 
@@ -635,6 +636,7 @@ initialization
   RegisterImageFileFormat(TCIFFileFormat);
   RegisterImageFileFormat(TIMGFileFormat);
   RegisterImageFileFormat(TTextureFileFormat);
+  RegisterImageFileFormat(TSKYFileFormat);
 
 {
   File Notes:

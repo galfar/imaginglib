@@ -244,6 +244,11 @@ var
 
 implementation
 
+{$IFDEF MSWINDOWS}
+uses
+  Windows;
+{$ENDIF}
+
 { TMainForm }
 
 procedure TMainForm.MenuItem10Click(Sender: TObject);
@@ -771,7 +776,13 @@ end;
 
 procedure TMainForm.ActViewInfoExecute(Sender: TObject);
 begin
-  MessageDlg('Image Info: ' + ImageToStr(FImage.ImageDataPointer^), mtInformation, [mbOK], 0);
+{$IFDEF MSWINDOWS}
+  // For some strange reason ordinary MessageDlg sometimes shows empty message for
+  // A8R8G8B8 images. Using Win32 msg box instead now.
+  MessageBox(Handle, PChar(ImageToStr(FImage.ImageDataPointer^)), 'Image information', MB_OK or MB_ICONINFORMATION);
+{$ELSE}
+  MessageDlg(ImageToStr(FImage.ImageDataPointer^), mtInformation, [mbOK], 0);
+{$ENDIF}
 end;
 
 procedure TMainForm.FormDestroy(Sender: TObject);

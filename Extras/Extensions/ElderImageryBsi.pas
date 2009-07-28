@@ -47,7 +47,6 @@ type
     BattleSpire BSI use *.bsi file extension whilst Redguard uses
     texbsi.* mask with number extension (just like Daggerfall).
     Only loading is supported for this format.
-
     BattleSpire images also contain some sort of 8bit->16bit color mapping data
     which I've not yet figured out (only blue channel known).}
   TBSIFileFormat = class(TElderFileFormat)
