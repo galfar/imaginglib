@@ -586,7 +586,11 @@ var
   begin
     SetLength(S, Length(S) + 1);
     S[Length(S)] := Delimiter;
+  {$IFDEF UNICODE}
+    GetIO.Write(Handle, @AnsiString(S)[1], Length(S));
+  {$ELSE}
     GetIO.Write(Handle, @S[1], Length(S));
+  {$ENDIF}
     Inc(LineLength, Length(S));
   end;
 
@@ -807,7 +811,6 @@ begin
   FName := SPGMFormatName;
   FSupportedFormats := PGMSupportedFormats;
   AddMasks(SPGMMasks);
-
   RegisterOption(ImagingPGMSaveBinary, @FSaveBinary);
   FIdNumbers := '25';
 end;
@@ -856,7 +859,6 @@ begin
   FName := SPPMFormatName;
   FSupportedFormats := PPMSupportedFormats;
   AddMasks(SPPMMasks);
-
   RegisterOption(ImagingPPMSaveBinary, @FSaveBinary);
   FIdNumbers := '36';
 end;
@@ -995,8 +997,11 @@ initialization
   -- TODOS ----------------------------------------------------
     - nothing now
 
+  -- 0.26.3 Changes/Bug Fixes -----------------------------------
+    - Fixed D2009 Unicode related bug in PNM saving.
+
   -- 0.24.3 Changes/Bug Fixes -----------------------------------
-    - Improved compatibility of 16bit/component image loading. 
+    - Improved compatibility of 16bit/component image loading.
     - Changes for better thread safety.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------

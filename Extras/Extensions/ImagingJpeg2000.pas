@@ -403,8 +403,8 @@ begin
       dy := 1;
       w  := Width;
       h  := Height;
-      bpp := (Info.BytesPerPixel div Info.ChannelCount) * 8;
-      prec := bpp;
+      prec := (Info.BytesPerPixel div Info.ChannelCount) * 8;
+      bpp := prec;
       sgnd := 0;
       comp_type := GetComponentType(I);
       x0 := 0;

@@ -44,18 +44,18 @@
   OpenJpeg Homepage: http://www.openjpeg.org
   PasOpenJpeg Homepage: http://galfar.vevb.net/openjpeg
 
-  Current Version: 1.01 (OpenJpeg 1.3.0 SVN revision 507 with my CDEF patch)
+  Current Version: 1.03 (OpenJpeg 1.3.0 SVN revision 507 with my CDEF patch)
 
   History:
     v1.03 (2009-06-04):
       - added Mac OSX x86 support
     v1.02 (2009-01-30):
       - removed linking to stdc++ lib in LINUX/UNIX
-      - using CRTL unit in Delphi, removed linking to some functions from msvcrtl.dll
     v1.01 (2008-12-27):
       - removed linking to stdc++ lib in LINUX/UNIX
       - Delphi 2009 compatibility checks
-
+    v1.00 (2008-03-01):
+      - CDEF patch for OpenJpeg, added component types
 }
 
 unit OpenJpeg;
@@ -518,11 +518,6 @@ function opj_encode(cinfo: popj_cinfo_t; cio: popj_cio_t; image: popj_image_t;
 
 implementation
 
-{$IF Defined(DCC)}
-uses
-  crtl;
-{$IFEND}
-
 {$IF Defined(WIN32)}
 
   {$IF Defined(DCC)}
@@ -645,7 +640,6 @@ uses
     function fprintf(f: Pointer; format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib;
     function vsprintf(s, format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib;
     function _ftol(x: Single): LongInt; cdecl; external MSCRuntimeLib;
-    function wcscpy(s1, s2: PWideChar): PWideChar; cdecl; external MSCRuntimeLib;
     function strcpy(s1, s2: PAnsiChar): PAnsiChar; cdecl; external MSCRuntimeLib;
     function strncpy(s1, s2: PAnsiChar; maxlen: Integer): PAnsiChar; cdecl; external MSCRuntimeLib;
     function strlen(s: PAnsiChar): Integer; cdecl; external MSCRuntimeLib;

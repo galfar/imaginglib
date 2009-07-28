@@ -40,7 +40,9 @@ unit ImagingExtras;
 //{$DEFINE DONT_LINK_PSD}         // link support for PSD images
 //{$DEFINE DONT_LINK_PCX}         // link support for PCX images
 //{$DEFINE DONT_LINK_XPM}         // link support for XPM images
-{$DEFINE DONT_LINK_ELDER}        // link support for Elder Imagery images
+{$IFNDEF TESTING}
+  {$DEFINE DONT_LINK_ELDER}        // link support for Elder Imagery images
+{$ENDIF}
 
 {$IF not (Defined(DELPHI) or
   (Defined(FPC) and not Defined(MSDOS) and

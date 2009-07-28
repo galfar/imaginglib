@@ -55,10 +55,10 @@ interface
 uses
   SysUtils, ImagingTypes, Imaging, ImagingColors,
 {$IF Defined(IMJPEGLIB)}
-  imjpeglib, imjmorecfg, imjcomapi, imjdapimin, imjdeferr,
+  imjpeglib, imjmorecfg, imjcomapi, imjdapimin, imjdeferr, imjerror,
   imjdapistd, imjcapimin, imjcapistd, imjdmarker, imjcparam,
 {$ELSEIF Defined(PASJPEG)}
-  jpeglib, jmorecfg, jcomapi, jdapimin, jdeferr,
+  jpeglib, jmorecfg, jcomapi, jdapimin, jdeferr, jerror,
   jdapistd, jcapimin, jcapistd, jdmarker, jcparam,
 {$IFEND}
   ImagingUtility;
@@ -115,7 +115,7 @@ const
   BufferSize = 16384;
 
 resourcestring
-  SJpegError = 'JPEG Error: %d';
+  SJpegError = 'JPEG Error';
 
 type
   TJpegContext = record
@@ -142,41 +142,22 @@ type
 
 var
   JIO: TIOFunctions;
-
+  JpegErrorMgr: jpeg_error_mgr;
 
 { Intenal unit jpeglib support functions }
 
-procedure JpegError(CurInfo: j_common_ptr);
+procedure JpegError(CInfo: j_common_ptr);
+var
+  Buffer: string;
 begin
-  raise EImagingError.CreateFmt(SJPEGError + ' (%s)',
-    [CurInfo^.err^.msg_code, jpeg_std_message_table[J_MESSAGE_CODE(CurInfo^.err^.msg_code)]]);
-end;
-
-procedure EmitMessage(CurInfo: j_common_ptr; msg_level: Integer);
-begin
+  { Create the message and raise exception }
+  CInfo^.err^.format_message(CInfo, buffer);
+  raise EImagingError.CreateFmt(SJPEGError + ' %d: ' + Buffer, [CInfo.err^.msg_code]);
 end;
 
 procedure OutputMessage(CurInfo: j_common_ptr);
 begin
 end;
-
-procedure FormatMessage(CurInfo: j_common_ptr; var buffer: string);
-begin
-end;
-
-procedure ResetErrorMgr(CurInfo: j_common_ptr);
-begin
-  CurInfo^.err^.num_warnings := 0;
-  CurInfo^.err^.msg_code := 0;
-end;
-
-var
-  JpegErrorRec: jpeg_error_mgr = (
-    error_exit: JpegError;
-    emit_message: EmitMessage;
-    output_message: OutputMessage;
-    format_message: FormatMessage;
-    reset_error_mgr: ResetErrorMgr);
 
 procedure ReleaseContext(var jc: TJpegContext);
 begin
@@ -316,7 +297,11 @@ end;
 procedure InitDecompressor(Handle: TImagingHandle; var jc: TJpegContext);
 begin
   FillChar(jc, sizeof(jc), 0);
-  jc.common.err := @JpegErrorRec;
+  // Set standard error handlers and then override some
+  jc.common.err := jpeg_std_error(JpegErrorMgr);
+  jc.common.err.error_exit := JpegError;
+  jc.common.err.output_message := OutputMessage;
+
   jpeg_CreateDecompress(@jc.d, JPEG_LIB_VERSION, sizeof(jc.d));
   JpegStdioSrc(jc.d, Handle);
   jpeg_read_header(@jc.d, True);
@@ -334,7 +319,11 @@ procedure InitCompressor(Handle: TImagingHandle; var jc: TJpegContext;
   Saver: TJpegFileFormat);
 begin
   FillChar(jc, sizeof(jc), 0);
-  jc.common.err := @JpegErrorRec;
+  // Set standard error handlers and then override some
+  jc.common.err := jpeg_std_error(JpegErrorMgr);
+  jc.common.err.error_exit := JpegError;
+  jc.common.err.output_message := OutputMessage;
+
   jpeg_CreateCompress(@jc.c, JPEG_LIB_VERSION, sizeof(jc.c));
   JpegStdioDest(jc.c, Handle);
   if Saver.FGrayScale then
@@ -562,6 +551,9 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Changed the Jpeg error manager, messages were not properly formated.
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - Fixed wrong color space setting in InitCompressor.
