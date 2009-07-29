@@ -23,6 +23,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_Define>TESTING;$(DCC_Define)</DCC_Define>
 			<DCC_ExeOutput>..\..\Bin\</DCC_ExeOutput>
 			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_DependencyCheckOutputName>..\..\Bin\ImgBrowser.exe</DCC_DependencyCheckOutputName>

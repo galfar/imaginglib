@@ -562,6 +562,13 @@ begin
   // Copy scanlines
   for I := 0 to WorkData.Height - 1 do
     Move(PByteArray(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
+
+  // Delphi 2009 and newer support alpha transparency
+{$IF Defined(DELPHI) and (CompilerVersion >= 20.0)}
+  if Bitmap.PixelFormat = pf32bit then
+    Bitmap.AlphaFormat := afDefined;
+{$IFEND}
+
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   // Create 32bit raw image from image data
@@ -1212,6 +1219,8 @@ finalization
     - nothing now
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Setting AlphaFormat property of TBitmap in ConvertDataToBitmap
+      when using Delphi 2009+.
     - Fixed garbled LCL TBitmaps created by ConvertDataToBitmap
       in Mac OS X (Carbon).
 

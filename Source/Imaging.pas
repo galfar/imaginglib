@@ -728,7 +728,7 @@ function NewImage(Width, Height: LongInt; Format: TImageFormat; var Image:
 var
   FInfo: PImageFormatInfo;
 begin
-  Assert((Width >= 0) and (Height >= 0));
+  Assert((Width > 0) and (Height >0));
   Assert(IsImageFormatValid(Format));
   Result := False;
   FreeImage(Image);
