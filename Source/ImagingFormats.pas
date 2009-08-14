@@ -3664,7 +3664,7 @@ begin
       GetBlock(Pixels, SrcBits, X, Y, Width, Height);
       for I := 0 to 7 do
         PByteArray(@AlphaBlock.Alphas)[I] :=
-          ((Pixels[I shl 1].Alpha shr 4) shl 4) or (Pixels[I shl 1 + 1].Alpha shr 4);
+          (Pixels[I shl 1].Alpha shr 4) or ((Pixels[I shl 1 + 1].Alpha shr 4) shl 4);
       GetEndpoints(Pixels, Block.Color0, Block.Color1);
       FixEndpoints(Block.Color0, Block.Color1, False);
       Block.Mask := GetColorMask(Block.Color0, Block.Color1, 4, Pixels);
@@ -4226,6 +4226,7 @@ initialization
     - rewrite StretchRect for 8bit channels to use integer math?
 
   -- 0.26.3 Changes/Bug Fixes -----------------------------------
+    - Fixed DXT3 alpha encoding.
     - ifIndex8 format now has HasAlphaChannel=True.
 
   -- 0.25.0 Changes/Bug Fixes -----------------------------------

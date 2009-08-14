@@ -78,7 +78,7 @@
       <row><td><ref>SplitImage</ref></td></row>
       <row><td><ref>MakePaletteForImages</ref></td></row>
       <row><td><ref>RotateImage</ref></td></row>
-
+      
 
       <!-- Drawing/Pixel Functions  -->
       <row><th>Drawing/Pixel Functions</th></row>

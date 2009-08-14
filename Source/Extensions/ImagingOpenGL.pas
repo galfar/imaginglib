@@ -52,16 +52,16 @@ uses
 type
   { Various texture capabilities of installed OpenGL driver.}
   TGLTextureCaps = record
-    MaxTextureSize: LongInt;  // Max size of texture in pixels supported by HW
-    NonPowerOfTwo: Boolean;   // HW has full support for NPOT textures
-    DXTCompression: Boolean;  // HW supports S3TC/DXTC compressed textures
-    ATI3DcCompression: Boolean; // HW supports ATI 3Dc compressed textures (ATI2N)
-    LATCCompression: Boolean; // HW supports LATC/RGTC compressed textures (ATI1N+ATI2N)
-    FloatTextures: Boolean;   // HW supports floating point textures
-    MaxAnisotropy: LongInt;   // Max anisotropy for aniso texture filtering
+    MaxTextureSize: LongInt;     // Max size of texture in pixels supported by HW
+    NonPowerOfTwo: Boolean;      // HW has full support for NPOT textures
+    DXTCompression: Boolean;     // HW supports S3TC/DXTC compressed textures
+    ATI3DcCompression: Boolean;  // HW supports ATI 3Dc compressed textures (ATI2N)
+    LATCCompression: Boolean;    // HW supports LATC/RGTC compressed textures (ATI1N+ATI2N)
+    FloatTextures: Boolean;      // HW supports floating point textures
+    MaxAnisotropy: LongInt;      // Max anisotropy for aniso texture filtering
     MaxSimultaneousTextures: LongInt; // Number of texture units
-    ClampToEdge: Boolean;     // GL_EXT_texture_edge_clamp
-    TextureLOD: Boolean;      // GL_SGIS_texture_lod
+    ClampToEdge: Boolean;        // GL_EXT_texture_edge_clamp
+    TextureLOD: Boolean;         // GL_SGIS_texture_lod
     VertexTextureUnits: Integer; // Texture units accessible in vertex programs
   end;
 
