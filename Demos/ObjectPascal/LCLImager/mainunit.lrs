@@ -194,37 +194,39 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'ding'#7'OnClick'#7#15'MenuItem62Click'#0#0#9'TMenuItem'#10'MenuItem75'#7'Ca'
   +'ption'#6#26'Levels (B:0.0;W:0.5;M:1.0)'#7'OnClick'#7#15'MenuItem75Click'#0#0
   ,#9'TMenuItem'#10'MenuItem76'#7'Caption'#6#27'Levels (B:0.35;W:1.0;M:0.9)'#7
-  +'OnClick'#7#15'MenuItem76Click'#0#0#0#9'TMenuItem'#10'MenuItem77'#7'Caption'
-  +#6#6'Colors'#0#9'TMenuItem'#9'AlphaItem'#7'Caption'#6#5'Alpha'#0#0#9'TMenuIt'
-  +'em'#7'RedItem'#7'Caption'#6#3'Red'#0#0#9'TMenuItem'#9'GreenItem'#7'Caption'
-  +#6#5'Green'#0#0#9'TMenuItem'#8'BlueItem'#7'Caption'#6#4'Blue'#0#0#9'TMenuIte'
-  +'m'#10'MenuItem82'#7'Caption'#6#15'Show Histograms'#7'OnClick'#7#15'MenuItem'
-  +'82Click'#0#0#0#9'TMenuItem'#10'MenuItem70'#7'Caption'#6#17'Binary Morpholog'
-  +'y'#0#9'TMenuItem'#10'MenuItem71'#7'Caption'#6#5'Erode'#7'OnClick'#7#15'Menu'
-  +'Item71Click'#0#0#9'TMenuItem'#10'MenuItem72'#7'Caption'#6#6'Dilate'#7'OnCli'
-  +'ck'#7#15'MenuItem72Click'#0#0#9'TMenuItem'#10'MenuItem73'#7'Caption'#6#4'Op'
-  +'en'#7'OnClick'#7#15'MenuItem73Click'#0#0#9'TMenuItem'#10'MenuItem74'#7'Capt'
-  +'ion'#6#5'Close'#7'OnClick'#7#15'MenuItem74Click'#0#0#0#9'TMenuItem'#9'MenuI'
-  +'tem9'#7'Caption'#6#4'Help'#0#9'TMenuItem'#10'MenuItem10'#7'Caption'#6#5'Abo'
-  +'ut'#7'OnClick'#7#15'MenuItem10Click'#0#0#0#0#18'TOpenPictureDialog'#5'OpenD'
-  +#6'Filter'#6#255'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;'
-  +'*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.'
-  +'jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.x'
-  +'pm;*.bmp|DirectDraw Surface (*.dds)|*.dds|True'#11'FilterIndex'#2#0#7'Optio'
-  +'ns'#11#15'ofFileMustExist'#14'ofEnableSizing'#12'ofViewDetail'#13'ofAutoPre'
-  +'view'#0#4'left'#3#152#0#3'top'#2'('#0#0#11'TActionList'#11'ActionList1'#4'l'
-  +'eft'#2'p'#3'top'#2'S'#0#7'TAction'#18'ActViewFitToWindow'#7'Caption'#6#13'F'
-  +'it To Window'#18'DisableIfNoHandler'#9#9'OnExecute'#7#25'ActViewFitToWindow'
-  +'Execute'#0#0#7'TAction'#15'ActViewRealSize'#7'Caption'#6#9'Real Size'#7'Che'
-  +'cked'#9#18'DisableIfNoHandler'#9#9'OnExecute'#7#22'ActViewRealSizeExecute'#0
-  +#0#7'TAction'#11'ActViewInfo'#7'Caption'#6#10'Image Info'#18'DisableIfNoHand'
-  +'ler'#9#9'OnExecute'#7#18'ActViewInfoExecute'#0#0#0#18'TSavePictureDialog'#5
-  +'SaveD'#5'Title'#6#12'Save file as'#10'DefaultExt'#6#4'.png'#6'Filter'#6#255
-  +'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ic'
-  +'o;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif'
-  +';*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectD'
-  +'raw Surface (*.dds)|*.dds|True'#11'FilterIndex'#2#0#7'Options'#11#17'ofOver'
-  +'writePrompt'#14'ofHideReadOnly'#20'ofExtensionDifferent'#15'ofPathMustExist'
-  +#14'ofEnableSizing'#12'ofViewDetail'#13'ofAutoPreview'#0#4'left'#3#152#0#3't'
-  +'op'#2'S'#0#0#0
+  +'OnClick'#7#15'MenuItem76Click'#0#0#9'TMenuItem'#10'MenuItem78'#7'Caption'#6
+  +#17'Premultiply Alpha'#7'OnClick'#7#15'MenuItem78Click'#0#0#9'TMenuItem'#10
+  +'MenuItem79'#7'Caption'#6#19'UnPremultiply Alpha'#7'OnClick'#7#15'MenuItem79'
+  +'Click'#0#0#0#9'TMenuItem'#10'MenuItem77'#7'Caption'#6#6'Colors'#0#9'TMenuIt'
+  +'em'#9'AlphaItem'#7'Caption'#6#5'Alpha'#0#0#9'TMenuItem'#7'RedItem'#7'Captio'
+  +'n'#6#3'Red'#0#0#9'TMenuItem'#9'GreenItem'#7'Caption'#6#5'Green'#0#0#9'TMenu'
+  +'Item'#8'BlueItem'#7'Caption'#6#4'Blue'#0#0#9'TMenuItem'#10'MenuItem82'#7'Ca'
+  +'ption'#6#15'Show Histograms'#7'OnClick'#7#15'MenuItem82Click'#0#0#0#9'TMenu'
+  +'Item'#10'MenuItem70'#7'Caption'#6#17'Binary Morphology'#0#9'TMenuItem'#10'M'
+  +'enuItem71'#7'Caption'#6#5'Erode'#7'OnClick'#7#15'MenuItem71Click'#0#0#9'TMe'
+  +'nuItem'#10'MenuItem72'#7'Caption'#6#6'Dilate'#7'OnClick'#7#15'MenuItem72Cli'
+  +'ck'#0#0#9'TMenuItem'#10'MenuItem73'#7'Caption'#6#4'Open'#7'OnClick'#7#15'Me'
+  +'nuItem73Click'#0#0#9'TMenuItem'#10'MenuItem74'#7'Caption'#6#5'Close'#7'OnCl'
+  +'ick'#7#15'MenuItem74Click'#0#0#0#9'TMenuItem'#9'MenuItem9'#7'Caption'#6#4'H'
+  +'elp'#0#9'TMenuItem'#10'MenuItem10'#7'Caption'#6#5'About'#7'OnClick'#7#15'Me'
+  +'nuItem10Click'#0#0#0#0#18'TOpenPictureDialog'#5'OpenD'#6'Filter'#6#255'Grap'
+  +'hic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.'
+  +'ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.j'
+  +'peg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDraw '
+  +'Surface (*.dds)|*.dds|True'#11'FilterIndex'#2#0#7'Options'#11#15'ofFileMust'
+  +'Exist'#14'ofEnableSizing'#12'ofViewDetail'#13'ofAutoPreview'#0#4'left'#3#152
+  +#0#3'top'#2'('#0#0#11'TActionList'#11'ActionList1'#4'left'#2'p'#3'top'#2'S'#0
+  +#7'TAction'#18'ActViewFitToWindow'#7'Caption'#6#13'Fit To Window'#18'Disable'
+  +'IfNoHandler'#9#9'OnExecute'#7#25'ActViewFitToWindowExecute'#0#0#7'TAction'
+  +#15'ActViewRealSize'#7'Caption'#6#9'Real Size'#7'Checked'#9#18'DisableIfNoHa'
+  +'ndler'#9#9'OnExecute'#7#22'ActViewRealSizeExecute'#0#0#7'TAction'#11'ActVie'
+  +'wInfo'#7'Caption'#6#10'Image Info'#18'DisableIfNoHandler'#9#9'OnExecute'#7
+  +#18'ActViewInfoExecute'#0#0#0#18'TSavePictureDialog'#5'SaveD'#5'Title'#6#12
+  +'Save file as'#10'DefaultExt'#6#4'.png'#6'Filter'#6#255'Graphic (*.dds;*.tga'
+  +';*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;'
+  +'*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;'
+  +'*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDraw Surface (*.dds)|'
+  +'*.dds|True'#11'FilterIndex'#2#0#7'Options'#11#17'ofOverwritePrompt'#14'ofHi'
+  +'deReadOnly'#20'ofExtensionDifferent'#15'ofPathMustExist'#14'ofEnableSizing'
+  +#12'ofViewDetail'#13'ofAutoPreview'#0#4'left'#3#152#0#3'top'#2'S'#0#0#0
 ]);

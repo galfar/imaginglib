@@ -305,6 +305,11 @@ type
       specifies the lightest color, and mid point is gamma aplied to image.
       Black and white point must be in range [0,1].}
     procedure AdjustColorLevels(BlackPoint, WhitePoint: Single; MidPoint: Single = 1.0);
+    { Premultiplies color channel values by alpha. Needed for some platforms/APIs
+      to display images with alpha properly.}
+    procedure PremultiplyAlpha;
+    { Reverses PremultiplyAlpha operation.}
+    procedure UnPremultiplyAlpha;
 
     { Calculates image histogram for each channel and also gray values. Each
       channel has 256 values available. Channel values of data formats with higher
@@ -767,6 +772,31 @@ begin
     Result.B := Power((Pixel.B - BlackPoint) / (WhitePoint - BlackPoint), Exp)
   else
     Result.B := 0.0;
+end;
+
+function TransformPremultiplyAlpha(const Pixel: TColorFPRec; P1, P2, P3: Single): TColorFPRec;
+begin
+  Result.A := Pixel.A;
+  Result.R := Result.R * Pixel.A;
+  Result.G := Result.G * Pixel.A;
+  Result.B := Result.B * Pixel.A;
+end;
+
+function TransformUnPremultiplyAlpha(const Pixel: TColorFPRec; P1, P2, P3: Single): TColorFPRec;
+begin
+  Result.A := Pixel.A;
+  if Pixel.A <> 0.0 then
+  begin
+    Result.R := Result.R / Pixel.A;
+    Result.G := Result.G / Pixel.A;
+    Result.B := Result.B / Pixel.A;
+  end
+  else
+  begin
+    Result.R := 0;
+    Result.G := 0;
+    Result.B := 0;
+  end;
 end;
 
 
@@ -1695,6 +1725,16 @@ begin
   PointTransform(TransformLevels, BlackPoint, WhitePoint, 1.0 / MidPoint);
 end;
 
+procedure TImagingCanvas.PremultiplyAlpha;
+begin
+  PointTransform(TransformPremultiplyAlpha, 0, 0, 0);
+end;
+
+procedure TImagingCanvas.UnPremultiplyAlpha;
+begin
+  PointTransform(TransformUnPremultiplyAlpha, 0, 0, 0);
+end;
+
 procedure TImagingCanvas.GetHistogram(out Red, Green, Blue, Alpha,
   Gray: THistogramArray);
 var
@@ -1836,6 +1876,9 @@ finalization
     - implement pen width everywhere
     - add blending (*image and object drawing)
     - more objects (arc, polygon)
+
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Added PremultiplyAlpha and UnPremultiplyAlpha methods.
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - Added FillChannel methods.

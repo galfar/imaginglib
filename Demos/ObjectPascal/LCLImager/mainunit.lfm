@@ -386,6 +386,14 @@ object MainForm: TMainForm
         Caption = 'Levels (B:0.35;W:1.0;M:0.9)'
         OnClick = MenuItem76Click
       end
+      object MenuItem78: TMenuItem
+        Caption = 'Premultiply Alpha'
+        OnClick = MenuItem78Click
+      end
+      object MenuItem79: TMenuItem
+        Caption = 'UnPremultiply Alpha'
+        OnClick = MenuItem79Click
+      end
     end
     object MenuItem77: TMenuItem
       Caption = 'Colors'

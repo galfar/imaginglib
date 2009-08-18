@@ -48,7 +48,8 @@ type
     mtSwapRB, mtSwapRG, mtSwapGB, mtReduce1024,
     mtReduce256, mtReduce64, mtReduce16, mtReduce2);
   TPointTransform = (ptInvert, ptIncContrast, ptDecContrast, ptIncBrightness,
-    ptDecBrightness, ptIncGamma, ptDecGamma, ptThreshold, ptLevelsLow, ptLevelsHigh);
+    ptDecBrightness, ptIncGamma, ptDecGamma, ptThreshold, ptLevelsLow,
+    ptLevelsHigh, ptAlphaPreMult, ptAlphaUnPreMult);
   TNonLinearFilter = (nfMedian, nfMin, nfMax);
   TMorphology = (mpErode, mpDilate, mpOpen, mpClose);
     
@@ -132,6 +133,8 @@ type
     MenuItem76: TMenuItem;
     MenuItem77: TMenuItem;
     AlphaItem: TMenuItem;
+    MenuItem78: TMenuItem;
+    MenuItem79: TMenuItem;
     RedItem: TMenuItem;
     GreenItem: TMenuItem;
     BlueItem: TMenuItem;
@@ -212,6 +215,8 @@ type
     procedure MenuItem74Click(Sender: TObject);
     procedure MenuItem75Click(Sender: TObject);
     procedure MenuItem76Click(Sender: TObject);
+    procedure MenuItem78Click(Sender: TObject);
+    procedure MenuItem79Click(Sender: TObject);
     procedure MenuItem7Click(Sender: TObject);
     procedure FormatChangeClick(Sender: TObject);
     procedure ChannelSetClick(Sender: TObject);
@@ -494,16 +499,18 @@ begin
     T := GetTimeMicroseconds;
 
     case Transform of
-      ptInvert:        FImageCanvas.InvertColors;
-      ptIncContrast:   FImageCanvas.ModifyContrastBrightness(20, 0);
-      ptDecContrast:   FImageCanvas.ModifyContrastBrightness(-20, 0);
-      ptIncBrightness: FImageCanvas.ModifyContrastBrightness(0, 20);
-      ptDecBrightness: FImageCanvas.ModifyContrastBrightness(0, -20);
-      ptIncGamma:      FImageCanvas.GammaCorection(1.2, 1.2, 1.2);
-      ptDecGamma:      FImageCanvas.GammaCorection(0.8, 0.8, 0.8);
-      ptThreshold:     FImageCanvas.Threshold(0.5, 0.5, 0.5);
-      ptLevelsLow:     FImageCanvas.AdjustColorLevels(0.0, 0.5, 1.0);
-      ptLevelsHigh:    FImageCanvas.AdjustColorLevels(0.35, 1.0, 0.9);
+      ptInvert:         FImageCanvas.InvertColors;
+      ptIncContrast:    FImageCanvas.ModifyContrastBrightness(20, 0);
+      ptDecContrast:    FImageCanvas.ModifyContrastBrightness(-20, 0);
+      ptIncBrightness:  FImageCanvas.ModifyContrastBrightness(0, 20);
+      ptDecBrightness:  FImageCanvas.ModifyContrastBrightness(0, -20);
+      ptIncGamma:       FImageCanvas.GammaCorection(1.2, 1.2, 1.2);
+      ptDecGamma:       FImageCanvas.GammaCorection(0.8, 0.8, 0.8);
+      ptThreshold:      FImageCanvas.Threshold(0.5, 0.5, 0.5);
+      ptLevelsLow:      FImageCanvas.AdjustColorLevels(0.0, 0.5, 1.0);
+      ptLevelsHigh:     FImageCanvas.AdjustColorLevels(0.35, 1.0, 0.9);
+      ptAlphaPreMult:   FImageCanvas.PremultiplyAlpha;
+      ptAlphaUnPreMult: FImageCanvas.UnPremultiplyAlpha;
     end;
 
     MeasureTime('Point transform done in:', T);
@@ -891,6 +898,16 @@ begin
   ApplyPointTransform(ptLevelsHigh);
 end;
 
+procedure TMainForm.MenuItem78Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptAlphaPreMult);
+end;
+
+procedure TMainForm.MenuItem79Click(Sender: TObject);
+begin
+  ApplyPointTransform(ptAlphaUnPreMult);
+end;
+
 procedure TMainForm.MenuItem7Click(Sender: TObject);
 begin
   Close;
@@ -950,6 +967,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - add more canvas stuff when it will be avaiable
+
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Added premult/unpremult alpha point transforms.
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - Added "show histogram" menu item and functionality.
