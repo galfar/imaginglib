@@ -24,7 +24,7 @@
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
 			<DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
-			<DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff;..\Extensions;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<GenDll>true</GenDll>
 			<DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingD2009.dll</DCC_DependencyCheckOutputName>
 		</PropertyGroup>
@@ -57,7 +57,6 @@
 			<BorlandProject>
 				<Delphi.Personality>
 					<Parameters>
-						<Parameters Name="HostApplication">D:\Project\Libs\Imaging\Demos\Bin\Demo01.exe</Parameters>
 						<Parameters Name="UseLauncher">False</Parameters>
 						<Parameters Name="LoadAllSymbols">True</Parameters>
 						<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>

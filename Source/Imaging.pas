@@ -2535,7 +2535,7 @@ begin
 
   if OptionId >= Length(Options) then
     SetLength(Options, OptionId + InitialOptions);
-  if (OptionId >= 0) and (OptionId < Length(Options)) and (Options[OptionId] = nil) then
+  if (OptionId >= 0) and (OptionId < Length(Options)) {and (Options[OptionId] = nil) - must be able to override existing } then
   begin
     Options[OptionId] := Variable;
     Result := True;
@@ -2547,7 +2547,7 @@ var
   I: LongInt;
 begin
   Result := nil;
-  for I := 0 to ImageFileFormats.Count - 1 do
+  for I := ImageFileFormats.Count - 1 downto 0 do
     if TImageFileFormat(ImageFileFormats[I]).Extensions.IndexOf(Ext) >= 0 then
     begin
       Result := TImageFileFormat(ImageFileFormats[I]);
@@ -2560,7 +2560,7 @@ var
   I: LongInt;
 begin
   Result := nil;
-  for I := 0 to ImageFileFormats.Count - 1 do
+  for I := ImageFileFormats.Count - 1 downto 0 do
     if TImageFileFormat(ImageFileFormats[I]).TestFileName(FileName) then
     begin
       Result := TImageFileFormat(ImageFileFormats[I]);
@@ -2823,7 +2823,7 @@ begin
     end;
   end;
 end;
-  
+
 function TImageFileFormat.PrepareSave(Handle: TImagingHandle;
   const Images: TDynImageDataArray; var Index: Integer): Boolean;
 var
@@ -3298,6 +3298,9 @@ finalization
     - nothing now
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Reversed the order file formats list is searched so
+      if you register a new one it will be found sooner than
+      built in formats.
     - Fixed memory leak in ResizeImage ocurring when resizing
       indexed images.
 

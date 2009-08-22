@@ -56,6 +56,7 @@ type
   TBooleanArray = array[0..MaxInt - 1] of Boolean;
   PBooleanArray = ^TBooleanArray;
 
+  TDynByteArray = array of Byte;
   TDynIntegerArray = array of Integer;
   TDynBooleanArray = array of Boolean;
   

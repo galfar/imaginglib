@@ -1,7 +1,7 @@
 {
   $Id$
   Vampyre Imaging Library
-  by Marek Mauder 
+  by Marek Mauder
   http://imaginglib.sourceforge.net
 
   The contents of this file are used with permission, subject to the Mozilla
@@ -70,7 +70,10 @@ uses
 
 type
   { Class for loading/saving Jpeg images. Supports load/save of
-    8 bit grayscale and 24 bit RGB images.}
+    8 bit grayscale and 24 bit RGB images. Jpegs can be saved with optional
+    progressive encoding.
+    Based on IJG's JpegLib so doesn't support alpha channels and lossless
+    coding.}
   TJpegFileFormat = class(TImageFileFormat)
   private
     FGrayScale: Boolean;
@@ -110,8 +113,6 @@ const
 const
   { Jpeg file identifiers.}
   JpegMagic: TChar2 = #$FF#$D8;
-  JFIFSignature: TChar4 = 'JFIF';
-  EXIFSignature: TChar4 = 'Exif';
   BufferSize = 16384;
 
 resourcestring
@@ -524,7 +525,7 @@ end;
 function TJpegFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
 var
   ReadCount: LongInt;
-  ID: array[0..9] of Char;
+  ID: array[0..9] of AnsiChar;
 begin
   Result := False;
   if Handle <> nil then

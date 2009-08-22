@@ -31,9 +31,15 @@
   exported as PChars.}
 library VampyreImaging;
 
+{ $DEFINE EXPORT_GLEXT}
+
+
 {$I ImagingOptions.inc}
 
 uses
+{$IFDEF EXPORT_GLEXT}
+  ImagingOpenGL,
+{$ENDIF}
   ImagingTypes,
   ImagingExport;
 
@@ -41,7 +47,19 @@ uses
   {$R *.res}
 {$ENDIF}
 
+{$IFDEF EXPORT_GLEXT}
+function ImLoadGLTextureFromFile(FileName: PAnsiChar): LongWord; cdecl;
+begin
+  Result := ImagingOpenGL.LoadGLTextureFromFile(FileName, nil, nil);
+end;
+{$ENDIF}
+
 exports
+
+{$IFDEF EXPORT_GLEXT}
+  ImLoadGLTextureFromFile,
+{$ENDIF}
+
   ImGetVersion,
   ImInitImage,
   ImNewImage,
@@ -114,8 +132,12 @@ exports
   ImResetFileIO;
 
 begin
+
 {
   Changes/Bug Fixes:
+
+  -- 0.26.3 ---------------------------------------------------
+    - Added optional GL extension exports.
 
   -- 0.19 -----------------------------------------------------
     - updated to reflect changes in ImagingExport

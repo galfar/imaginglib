@@ -52,14 +52,14 @@ function ImTestImage(var Image: TImageData): Boolean; cdecl;
 function ImFreeImage(var Image: TImageData): Boolean; cdecl;
 { Look at DetermineFileFormat for details. Ext should have enough space for
   result file extension.}
-function ImDetermineFileFormat(FileName, Ext: PChar): Boolean; cdecl;
+function ImDetermineFileFormat(FileName, Ext: PAnsiChar): Boolean; cdecl;
 { Look at DetermineMemoryFormat for details. Ext should have enough space for
   result file extension.}
-function ImDetermineMemoryFormat(Data: Pointer; Size: LongInt; Ext: PChar): Boolean; cdecl;
+function ImDetermineMemoryFormat(Data: Pointer; Size: LongInt; Ext: PAnsiChar): Boolean; cdecl;
 { Look at IsFileFormatSupported for details.}
-function ImIsFileFormatSupported(FileName: PChar): Boolean; cdecl;
+function ImIsFileFormatSupported(FileName: PAnsiChar): Boolean; cdecl;
 { Look at EnumFileFormats for details.}
-function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PChar;
+function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PAnsiChar;
   var CanSave, IsMultiImageFormat: Boolean): Boolean; cdecl;
 
 { Inits image list.}
@@ -82,24 +82,24 @@ function ImTestImagesInList(ImageList: TImageDataList): Boolean; cdecl;
 function ImFreeImageList(var ImageList: TImageDataList): Boolean; cdecl;
 
 { Look at LoadImageFromFile for details.}
-function ImLoadImageFromFile(FileName: PChar; var Image: TImageData): Boolean; cdecl;
+function ImLoadImageFromFile(FileName: PAnsiChar; var Image: TImageData): Boolean; cdecl;
 { Look at LoadImageFromMemory for details.}
 function ImLoadImageFromMemory(Data: Pointer; Size: LongInt; var Image: TImageData): Boolean; cdecl;
 { Look at LoadMultiImageFromFile for details.}
-function ImLoadMultiImageFromFile(FileName: PChar; var ImageList: TImageDataList): Boolean; cdecl;
+function ImLoadMultiImageFromFile(FileName: PAnsiChar; var ImageList: TImageDataList): Boolean; cdecl;
 { Look at LoadMultiImageFromMemory for details.}
 function ImLoadMultiImageFromMemory(Data: Pointer; Size: LongInt;
   var ImageList: TImageDataList): Boolean; cdecl;
 
 { Look at SaveImageToFile for details.}
-function ImSaveImageToFile(FileName: PChar; const Image: TImageData): Boolean; cdecl;
+function ImSaveImageToFile(FileName: PAnsiChar; const Image: TImageData): Boolean; cdecl;
 { Look at SaveImageToMemory for details.}
-function ImSaveImageToMemory(Ext: PChar; Data: Pointer; var Size: LongInt;
+function ImSaveImageToMemory(Ext: PAnsiChar; Data: Pointer; var Size: LongInt;
   const Image: TImageData): Boolean; cdecl;
 { Look at SaveMultiImageToFile for details.}
-function ImSaveMultiImageToFile(FileName: PChar; ImageList: TImageDataList): Boolean; cdecl;
+function ImSaveMultiImageToFile(FileName: PAnsiChar; ImageList: TImageDataList): Boolean; cdecl;
 { Look at SaveMultiImageToMemory for details.}
-function ImSaveMultiImageToMemory(Ext: PChar; Data: Pointer; Size: PLongInt;
+function ImSaveMultiImageToMemory(Ext: PAnsiChar; Data: Pointer; Size: PLongInt;
   ImageList: TImageDataList): Boolean; cdecl;
 
 { Look at CloneImage for details.}
@@ -262,33 +262,33 @@ begin
   end;
 end;
 
-function ImDetermineFileFormat(FileName, Ext: PChar): Boolean;
+function ImDetermineFileFormat(FileName, Ext: PAnsiChar): Boolean;
 var
   S: string;
 begin
   try
     S := Imaging.DetermineFileFormat(FileName);
     Result := S <> '';
-    StrCopy(Ext, PChar(S));
+    StrCopy(Ext, PAnsiChar(AnsiString(S)));
   except
     Result := False;
   end;
 end;
 
-function ImDetermineMemoryFormat(Data: Pointer; Size: LongInt; Ext: PChar): Boolean;
+function ImDetermineMemoryFormat(Data: Pointer; Size: LongInt; Ext: PAnsiChar): Boolean;
 var
   S: string;
 begin
   try
     S := Imaging.DetermineMemoryFormat(Data, Size);
     Result := S <> '';
-    StrCopy(Ext, PChar(S));
+    StrCopy(Ext, PAnsiChar(AnsiString(S)));
   except
     Result := False;
   end;
 end;
 
-function ImIsFileFormatSupported(FileName: PChar): Boolean;
+function ImIsFileFormatSupported(FileName: PAnsiChar): Boolean;
 begin
   try
     Result := Imaging.IsFileFormatSupported(FileName);
@@ -297,7 +297,7 @@ begin
   end;
 end;
 
-function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PChar;
+function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PAnsiChar;
   var CanSave, IsMultiImageFormat: Boolean): Boolean;
 var
   StrName, StrDefaultExt, StrMasks: string;
@@ -305,9 +305,9 @@ begin
   try
     Result := Imaging.EnumFileFormats(Index, StrName, StrDefaultExt, StrMasks, CanSave,
       IsMultiImageFormat);
-    StrCopy(Name, PChar(StrName));
-    StrCopy(DefaultExt, PChar(StrDefaultExt));
-    StrCopy(Masks, PChar(StrMasks));
+    StrCopy(Name, PAnsiChar(AnsiString(StrName)));
+    StrCopy(DefaultExt, PAnsiChar(AnsiString(StrDefaultExt)));
+    StrCopy(Masks, PAnsiChar(AnsiString(StrMasks)));
   except
     Result := False;
   end;
@@ -419,7 +419,7 @@ begin
   end;
 end;
 
-function ImLoadImageFromFile(FileName: PChar; var Image: TImageData): Boolean;
+function ImLoadImageFromFile(FileName: PAnsiChar; var Image: TImageData): Boolean;
 begin
   try
     Result := Imaging.LoadImageFromFile(FileName, Image);
@@ -437,7 +437,7 @@ begin
   end;
 end;
 
-function ImLoadMultiImageFromFile(FileName: PChar; var ImageList: TImageDataList):
+function ImLoadMultiImageFromFile(FileName: PAnsiChar; var ImageList: TImageDataList):
   Boolean;
 begin
   try
@@ -460,7 +460,7 @@ begin
   end;
 end;
 
-function ImSaveImageToFile(FileName: PChar; const Image: TImageData): Boolean;
+function ImSaveImageToFile(FileName: PAnsiChar; const Image: TImageData): Boolean;
 begin
   try
     Result := Imaging.SaveImageToFile(FileName, Image);
@@ -469,7 +469,7 @@ begin
   end;
 end;
 
-function ImSaveImageToMemory(Ext: PChar; Data: Pointer; var Size: LongInt;
+function ImSaveImageToMemory(Ext: PAnsiChar; Data: Pointer; var Size: LongInt;
   const Image: TImageData): Boolean;
 begin
   try
@@ -479,7 +479,7 @@ begin
   end;
 end;
 
-function ImSaveMultiImageToFile(FileName: PChar;
+function ImSaveMultiImageToFile(FileName: PAnsiChar;
   ImageList: TImageDataList): Boolean;
 begin
   try
@@ -490,7 +490,7 @@ begin
   end;
 end;
 
-function ImSaveMultiImageToMemory(Ext: PChar; Data: Pointer; Size: PLongInt;
+function ImSaveMultiImageToMemory(Ext: PAnsiChar; Data: Pointer; Size: PLongInt;
   ImageList: TImageDataList): Boolean;
 begin
   try
@@ -863,6 +863,10 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now 
+
+  -- 0.26.3 ---------------------------------------------------
+    - changed PChars to PAnsiChars and some more D2009 friendly
+      casts.
 
   -- 0.19 -----------------------------------------------------
     - updated to reflect changes in low level interface (added pixel set/get, ...)

@@ -54,6 +54,9 @@
 			<DelphiCompile Include="ImgBrowser.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
+			<DCCReference Include="Main.pas"/>
+			<DCCReference Include="Main.pa"/>
+			<DCCReference Include="Main.p"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
