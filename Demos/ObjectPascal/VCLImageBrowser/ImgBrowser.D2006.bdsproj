@@ -5,12 +5,12 @@
 			<Option Name="Personality">Delphi.Personality</Option>
 			<Option Name="ProjectType"></Option>
 			<Option Name="Version">1.0</Option>
-			<Option Name="GUID">{ABB0D60B-2E51-4480-BADB-CEE13BFAFCA4}</Option>
+			<Option Name="GUID">{16C08DFC-113B-4085-8320-BBCF2B7A1336}</Option>
 		</Option>
 	</PersonalityInfo>
 	<Delphi.Personality>
 		<Source>
-			<Source Name="MainSource">Bench.dpr</Source>
+			<Source Name="MainSource">ImgBrowser.dpr</Source>
 		</Source>
 		<FileVersion>
 			<FileVersion Name="Version">7.0</FileVersion>
@@ -18,8 +18,8 @@
 		<Compiler>
 			<Compiler Name="A">8</Compiler>
 			<Compiler Name="B">0</Compiler>
-			<Compiler Name="C">0</Compiler>
-			<Compiler Name="D">0</Compiler>
+			<Compiler Name="C">1</Compiler>
+			<Compiler Name="D">1</Compiler>
 			<Compiler Name="E">0</Compiler>
 			<Compiler Name="F">0</Compiler>
 			<Compiler Name="G">1</Compiler>
@@ -27,7 +27,7 @@
 			<Compiler Name="I">1</Compiler>
 			<Compiler Name="J">0</Compiler>
 			<Compiler Name="K">0</Compiler>
-			<Compiler Name="L">0</Compiler>
+			<Compiler Name="L">1</Compiler>
 			<Compiler Name="M">0</Compiler>
 			<Compiler Name="N">1</Compiler>
 			<Compiler Name="O">1</Compiler>
@@ -38,7 +38,7 @@
 			<Compiler Name="T">0</Compiler>
 			<Compiler Name="U">0</Compiler>
 			<Compiler Name="V">1</Compiler>
-			<Compiler Name="W">0</Compiler>
+			<Compiler Name="W">1</Compiler>
 			<Compiler Name="X">1</Compiler>
 			<Compiler Name="Y">0</Compiler>
 			<Compiler Name="Z">1</Compiler>
@@ -114,7 +114,7 @@
 			<Linker Name="GenerateDRC">False</Linker>
 			<Linker Name="MinStackSize">16384</Linker>
 			<Linker Name="MaxStackSize">1048576</Linker>
-			<Linker Name="ImageBase">4194304</Linker>
+			<Linker Name="ImageBase">127926272</Linker>
 			<Linker Name="ExeDescription"></Linker>
 			<Linker Name="GenerateHpps">False</Linker>
 		</Linker>
@@ -123,9 +123,9 @@
 			<Directories Name="UnitOutputDir"></Directories>
 			<Directories Name="PackageDLLOutputDir"></Directories>
 			<Directories Name="PackageDCPOutputDir"></Directories>
-			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common</Directories>
+			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions;..\..\..\Extras\Extensions\LibTiff</Directories>
 			<Directories Name="Packages">vclx;vcl;VclSmp;rtl;bdertl;vclactnband;vclshlctrls</Directories>
-			<Directories Name="Conditionals"></Directories>
+			<Directories Name="Conditionals">FULL_FEATURE_SET</Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
 			<Directories Name="UsePackages">False</Directories>
 		</Directories>
@@ -144,11 +144,6 @@
 			<Parameters Name="LoadAllSymbols">True</Parameters>
 			<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
 		</Parameters>
-		<Language>
-			<Language Name="ActiveLang"></Language>
-			<Language Name="ProjectLang">$00000000</Language>
-			<Language Name="RootDir"></Language>
-		</Language>
 		<VersionInfo>
 			<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
 			<VersionInfo Name="AutoIncBuild">False</VersionInfo>
@@ -167,6 +162,18 @@
 		<VersionInfoKeys>
 			<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+			<VersionInfoKeys Name="CompanyName"></VersionInfoKeys>
+			<VersionInfoKeys Name="FileDescription"></VersionInfoKeys>
+			<VersionInfoKeys Name="InternalName"></VersionInfoKeys>
+			<VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys>
+			<VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys>
+			<VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys>
+			<VersionInfoKeys Name="ProductName"></VersionInfoKeys>
 		</VersionInfoKeys>
+		<Language>
+			<Language Name="ActiveLang"></Language>
+			<Language Name="ProjectLang">$00000000</Language>
+			<Language Name="RootDir"></Language>
+		</Language>
 	</Delphi.Personality>
 </BorlandProject>

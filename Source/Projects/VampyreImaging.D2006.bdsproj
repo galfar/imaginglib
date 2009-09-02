@@ -5,12 +5,12 @@
 			<Option Name="Personality">Delphi.Personality</Option>
 			<Option Name="ProjectType"></Option>
 			<Option Name="Version">1.0</Option>
-			<Option Name="GUID">{894AAB89-E9CB-4AD7-8305-4E9F3C827751}</Option>
+			<Option Name="GUID">{7C2CB16E-3C40-462C-AF02-89551CDF2A0C}</Option>
 		</Option>
 	</PersonalityInfo>
 	<Delphi.Personality>
 		<Source>
-			<Source Name="MainSource">SDLDemo.dpr</Source>
+			<Source Name="MainSource">VampyreImaging.dpr</Source>
 		</Source>
 		<FileVersion>
 			<FileVersion Name="Version">7.0</FileVersion>
@@ -37,7 +37,7 @@
 			<Compiler Name="S">0</Compiler>
 			<Compiler Name="T">0</Compiler>
 			<Compiler Name="U">0</Compiler>
-			<Compiler Name="V">0</Compiler>
+			<Compiler Name="V">1</Compiler>
 			<Compiler Name="W">0</Compiler>
 			<Compiler Name="X">1</Compiler>
 			<Compiler Name="Y">0</Compiler>
@@ -114,7 +114,7 @@
 			<Linker Name="GenerateDRC">False</Linker>
 			<Linker Name="MinStackSize">16384</Linker>
 			<Linker Name="MaxStackSize">1048576</Linker>
-			<Linker Name="ImageBase">4194304</Linker>
+			<Linker Name="ImageBase">7995392</Linker>
 			<Linker Name="ExeDescription"></Linker>
 			<Linker Name="GenerateHpps">False</Linker>
 		</Linker>
@@ -123,11 +123,11 @@
 			<Directories Name="UnitOutputDir"></Directories>
 			<Directories Name="PackageDLLOutputDir"></Directories>
 			<Directories Name="PackageDCPOutputDir"></Directories>
-			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions</Directories>
-			<Directories Name="Conditionals"></Directories>
+			<Directories Name="SearchPath">..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</Directories>
+			<Directories Name="Packages">vclx;vcl;VclSmp;rtl;bdertl;vclactnband;vclshlctrls</Directories>
+			<Directories Name="Conditionals">FULL_FEATURE_SET</Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
 			<Directories Name="UsePackages">False</Directories>
-			<Directories Name="Packages"></Directories>
 		</Directories>
 		<Parameters>
 			<Parameters Name="RunParams"></Parameters>
@@ -144,36 +144,36 @@
 			<Parameters Name="LoadAllSymbols">True</Parameters>
 			<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
 		</Parameters>
-		<VersionInfo>
-			<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
-			<VersionInfo Name="AutoIncBuild">False</VersionInfo>
-			<VersionInfo Name="MajorVer">1</VersionInfo>
-			<VersionInfo Name="MinorVer">0</VersionInfo>
-			<VersionInfo Name="Release">0</VersionInfo>
-			<VersionInfo Name="Build">0</VersionInfo>
-			<VersionInfo Name="Debug">False</VersionInfo>
-			<VersionInfo Name="PreRelease">False</VersionInfo>
-			<VersionInfo Name="Special">False</VersionInfo>
-			<VersionInfo Name="Private">False</VersionInfo>
-			<VersionInfo Name="DLL">False</VersionInfo>
-			<VersionInfo Name="Locale">1029</VersionInfo>
-			<VersionInfo Name="CodePage">1250</VersionInfo>
-		</VersionInfo>
-		<VersionInfoKeys>
-			<VersionInfoKeys Name="CompanyName"></VersionInfoKeys>
-			<VersionInfoKeys Name="FileDescription"></VersionInfoKeys>
-			<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
-			<VersionInfoKeys Name="InternalName"></VersionInfoKeys>
-			<VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys>
-			<VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys>
-			<VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys>
-			<VersionInfoKeys Name="ProductName"></VersionInfoKeys>
-			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
-		</VersionInfoKeys>
 		<Language>
 			<Language Name="ActiveLang"></Language>
 			<Language Name="ProjectLang">$00000000</Language>
 			<Language Name="RootDir"></Language>
 		</Language>
+		<VersionInfo>
+			<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
+			<VersionInfo Name="AutoIncBuild">False</VersionInfo>
+			<VersionInfo Name="MajorVer">0</VersionInfo>
+			<VersionInfo Name="MinorVer">26</VersionInfo>
+			<VersionInfo Name="Release">4</VersionInfo>
+			<VersionInfo Name="Build">0</VersionInfo>
+			<VersionInfo Name="Debug">False</VersionInfo>
+			<VersionInfo Name="PreRelease">False</VersionInfo>
+			<VersionInfo Name="Special">False</VersionInfo>
+			<VersionInfo Name="Private">False</VersionInfo>
+			<VersionInfo Name="DLL">True</VersionInfo>
+			<VersionInfo Name="Locale">1033</VersionInfo>
+			<VersionInfo Name="CodePage">1252</VersionInfo>
+		</VersionInfo>
+		<VersionInfoKeys>
+			<VersionInfoKeys Name="FileVersion">0.26.4.0</VersionInfoKeys>
+			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+			<VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys>
+			<VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys>
+			<VersionInfoKeys Name="InternalName">VampyreImaging.dll</VersionInfoKeys>
+			<VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys>
+			<VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys>
+			<VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys>
+			<VersionInfoKeys Name="ProductName">Vampyre Imaging Library</VersionInfoKeys>
+		</VersionInfoKeys>
 	</Delphi.Personality>
 </BorlandProject>

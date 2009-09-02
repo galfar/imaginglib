@@ -40,7 +40,7 @@ unit ImagingExtras;
 //{$DEFINE DONT_LINK_PSD}         // link support for PSD images
 //{$DEFINE DONT_LINK_PCX}         // link support for PCX images
 //{$DEFINE DONT_LINK_XPM}         // link support for XPM images
-{$IFNDEF TESTING}
+{$IFNDEF FULL_FEATURE_SET}
   {$DEFINE DONT_LINK_ELDER}        // link support for Elder Imagery images
 {$ENDIF}
 
@@ -116,7 +116,7 @@ uses
     - nothing now
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
-    - Allowed JPEG2000 for M ac OS X x86
+    - Allowed JPEG2000 for Mac OS X x86
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - ElderImagery formats are disabled by default, TIFF enabled.

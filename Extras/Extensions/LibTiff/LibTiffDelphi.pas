@@ -15,9 +15,8 @@ uses
   Windows, SysUtils, Classes;
 
 const
-
-  LibTiffDelphiVersionString = 'LibTiffDelphi 3.7.0.00'#13#10'Pre-compiled LibTiff for Delphi'#13#10'http://www.awaresystems.be/'#13#10;
-
+  //DW
+  LibTiffDelphiVersionString = 'LibTiffDelphi 3.9.1.00'#13#10'Pre-compiled LibTiff for Delphi'#13#10'http://www.awaresystems.be/'#13#10'3.9.1 implementaion by Do-wan Kim'#13#10;
 
   TIFF_NOTYPE                           = 0;
   TIFF_BYTE                             = 1;       { 8-bit unsigned integer }
@@ -569,7 +568,7 @@ function  strlen(s: Pointer): Cardinal; cdecl; forward;
 function  strcmp(a: Pointer; b: Pointer): Integer; cdecl; forward;
 function  strncmp(a: Pointer; b: Pointer; c: Longint): Integer; cdecl; forward;
 procedure qsort(base: Pointer; num: Cardinal; width: Cardinal; compare: TQSortCompare); cdecl; forward;
-function  bsearch(key: Pointer; base: Pointer; nelem: Cardinal; width: Cardinal; fcmp: TBsearchFcmp): Pointer; cdecl; forward;
+//DW function  bsearch(key: Pointer; base: Pointer; nelem: Cardinal; width: Cardinal; fcmp: TBsearchFcmp): Pointer; cdecl; forward;
 function  memmove(dest: Pointer; src: Pointer; n: Cardinal): Pointer; cdecl; forward;
 function  strchr(s: Pointer; c: Integer): Pointer; cdecl; forward;
 
@@ -668,10 +667,12 @@ begin
   FillMemory(p,c,v);
 end;
 
+(* DW
 function bsearch(key: Pointer; base: Pointer; nelem: Cardinal; width: Cardinal; fcmp: TBsearchFcmp): Pointer; cdecl;
 begin
   raise Exception.Create('LibTiffDelphi - call to bsearch - should presumably not occur');
 end;
+*)
 
 procedure qsort(base: Pointer; num: Cardinal; width: Cardinal; compare: TQSortCompare); cdecl;
 var
@@ -924,10 +925,12 @@ end;
 {tif_read}
 
 procedure _TIFFSwab16BitData(tif: Pointer; buf: Pointer; cc: Integer); cdecl; external;
+procedure _TIFFSwab24BitData(tif: pointer; buf: pointer; cc: integer); cdecl; external; //DW 3.8.2
 procedure _TIFFSwab32BitData(tif: Pointer; buf: Pointer; cc: Integer); cdecl; external;
 procedure _TIFFSwab64BitData(tif: Pointer; buf: Pointer; cc: Integer); cdecl; external;
 procedure _TIFFNoPostDecode(tif: Pointer; buf: Pointer; cc: Integer); cdecl; external;
 function  TIFFReadTile(tif: Pointer; buf: Pointer; x: Cardinal; y: Cardinal; z: Cardinal; s: Word): Integer; cdecl; external;
+function TIFFFillTile(tif: Pointer; tile: longword):integer; cdecl; external; //DW 3.8.2
 
 {$IFDEF LIBTIFF_DEBUG}
 {$L LibTiffDelphi\debug\tif_read.obj}
@@ -940,6 +943,11 @@ function  TIFFReadTile(tif: Pointer; buf: Pointer; x: Cardinal; y: Cardinal; z: 
 function  _TIFFSampleToTagType(tif: Pointer): Integer; cdecl; external;
 procedure _TIFFSetupFieldInfo(tif: Pointer); cdecl; external;
 function  _TIFFCreateAnonFieldInfo(tif: Pointer; tag: Cardinal; field_type: Integer): Pointer; cdecl; external;
+function _TIFFGetExifFieldInfo(size : plongint):pointer; cdecl; external; //DW 3.8.2
+function _TIFFDataSize(TIFFDataType : longint):longint; cdecl; external; //DW 3.8.2
+function _TIFFGetFieldInfo(size : plongint):pointer; cdecl; external; //DW 3.8.2
+function _TIFFMergeFieldInfo(tif: Pointer; fieldinfo : Pointer; n : Integer):Integer; cdecl; external; //DW 3.9.1
+
 
 {$IFDEF LIBTIFF_DEBUG}
 {$L LibTiffDelphi\debug\tif_dirinfo.obj}
@@ -1078,6 +1086,8 @@ function  _TIFFgetMode(mode: PChar; module: PChar): Integer; cdecl; external;
 {tif_predict}
 
 function  TIFFPredictorInit(tif: PTIFF): Integer; cdecl; external;
+function  TIFFPredictorCleanup(tif: PTIFF):integer; cdecl; external; //DW 3.8.2
+
 
 {$IFDEF LIBTIFF_DEBUG}
 {$L LibTiffDelphi\debug\tif_predict.obj}
@@ -1104,6 +1114,7 @@ function  TIFFPredictorInit(tif: PTIFF): Integer; cdecl; external;
 {tif_strip}
 
 function  _TIFFDefaultStripSize(tif: Pointer; s: Cardinal): Cardinal; cdecl; external;
+function TIFFOldScanlineSize(tif: Pointer):Cardinal; cdecl; external; //DW 3.9.1
 
 {$IFDEF LIBTIFF_DEBUG}
 {$L LibTiffDelphi\debug\tif_strip.obj}
@@ -1354,6 +1365,7 @@ begin
 end;
 
 function  TIFFInitJPEG(tif: PTIFF; scheme: Integer): Integer; cdecl; external;
+function  TIFFFillStrip(tif : PTIFF; Len : longword): integer; cdecl; external; //DW 3.8.2
 
 {$IFDEF LIBTIFF_DEBUG}
 {$L LibTiffDelphi\debug\tif_jpeg.obj}
@@ -1443,6 +1455,7 @@ function  TIFFInitZIP(tif: PTIFF; scheme: Integer): Integer; cdecl; external;
 
 function NotConfigured(tif: PTIFF; scheme: Integer): Integer; cdecl; external;
 
+{DW 
 const
 
   _TIFFBuiltinCODECS: array[0..17] of TIFFCodec = (
@@ -1464,6 +1477,7 @@ const
        (name:'SGILog'; scheme: COMPRESSION_SGILOG; init: TIFFInitSGILog),
        (name:'SGILog24'; scheme: COMPRESSION_SGILOG24; init: TIFFInitSGILog),
        (name:nil; scheme:0; init:nil));
+}
 
 {$IFDEF LIBTIFF_DEBUG}
 {$L LibTiffDelphi\debug\tif_codec.obj}
@@ -1670,6 +1684,7 @@ begin
               @TIFFStreamSizeProc,@TIFFNoMapProc,@TIFFNoUnmapProc);
   if Result<>nil then TIFFSetFileno(Result,Cardinal(Stream));
 end;
+
 
 initialization
 

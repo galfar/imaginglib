@@ -15,9 +15,8 @@ object AboutForm: TAboutForm
   Constraints.MinHeight = 288
   Constraints.MinWidth = 286
   OnShow = FormShow
-  ParentFont = False
   Position = poMainFormCenter
-  LCLVersion = '0.9.26'
+  LCLVersion = '0.9.26.2'
   object Image: TImage
     Left = 48
     Height = 89
@@ -309,7 +308,6 @@ object AboutForm: TAboutForm
     BorderSpacing.InnerBorder = 2
     Caption = '&Close'
     Kind = bkClose
-    ModalResult = 1
     NumGlyphs = 0
     TabOrder = 0
   end

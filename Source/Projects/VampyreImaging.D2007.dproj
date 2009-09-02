@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
-    <DCC_DependencyCheckOutputName>..\..\Bin\VampyreImaging.dll</DCC_DependencyCheckOutputName>
+    <DCC_DependencyCheckOutputName>..\..\Bin\VampyreImaging.D2007.dll</DCC_DependencyCheckOutputName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Version>7.0</Version>
@@ -16,9 +16,9 @@
     <DCC_Define>RELEASE</DCC_Define>
     <DCC_AssertionsAtRuntime>False</DCC_AssertionsAtRuntime>
     <DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_UnitSearchPath>
-    <DCC_ResourcePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_ResourcePath>
-    <DCC_ObjPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_ObjPath>
-    <DCC_IncludePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions</DCC_IncludePath>
+    <DCC_ResourcePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_ResourcePath>
+    <DCC_ObjPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_ObjPath>
+    <DCC_IncludePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Version>7.0</Version>
@@ -38,7 +38,7 @@
     <Borland.Personality>Delphi.Personality</Borland.Personality>
     <Borland.ProjectType />
     <BorlandProject>
-<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters></Parameters><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">0</VersionInfo><VersionInfo Name="MinorVer">26</VersionInfo><VersionInfo Name="Release">2</VersionInfo><VersionInfo Name="Build">0</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">True</VersionInfo><VersionInfo Name="Locale">1033</VersionInfo><VersionInfo Name="CodePage">1252</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="FileVersion">0.26.2.0</VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys><VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys><VersionInfoKeys Name="InternalName">VampyreImaging.dll</VersionInfoKeys><VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys><VersionInfoKeys Name="ProductName">Vampyre Imaging Library</VersionInfoKeys></VersionInfoKeys><Source><Source Name="MainSource">VampyreImaging.dpr</Source></Source></Delphi.Personality></BorlandProject></BorlandProject>
+<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters></Parameters><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">0</VersionInfo><VersionInfo Name="MinorVer">26</VersionInfo><VersionInfo Name="Release">4</VersionInfo><VersionInfo Name="Build">0</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">True</VersionInfo><VersionInfo Name="Locale">1033</VersionInfo><VersionInfo Name="CodePage">1252</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="FileVersion">0.26.4.0</VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys><VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys><VersionInfoKeys Name="InternalName">VampyreImaging.dll</VersionInfoKeys><VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys><VersionInfoKeys Name="ProductName">Vampyre Imaging Library</VersionInfoKeys></VersionInfoKeys><Source><Source Name="MainSource">VampyreImaging.dpr</Source></Source></Delphi.Personality></BorlandProject></BorlandProject>
   </ProjectExtensions>
   <Import Project="$(MSBuildBinPath)\Borland.Delphi.Targets" />
   <ItemGroup>

@@ -1,0 +1,84 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{efdaaccd-7cc5-49fe-8a0e-981a42f1b019}</ProjectGuid>
+  </PropertyGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Projects Include="Benchmark\Bench.D2007.dproj" />
+    <Projects Include="D3DDemo\D3DDemo.D2007.dproj" />
+    <Projects Include="OpenGLDemo\OpenGLDemo.D2007.dproj" />
+    <Projects Include="SDLDemo\SDLDemo.D2007.dproj" />
+    <Projects Include="VampConvert\VampConvert.D2007.dproj" />
+    <Projects Include="VCLImageBrowser\ImgBrowser.D2007.dproj" />
+  </ItemGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Default.Personality</Borland.Personality>
+    <Borland.ProjectType />
+    <BorlanD2007.dproject>
+  <BorlanD2007.dproject xmlns=""> <Default.Personality> </Default.Personality> </BorlanD2007.dproject></BorlanD2007.dproject>
+  </ProjectExtensions>
+  <Target Name="Bench_D2007">
+    <MSBuild Projects="Benchmark\Bench.D2007.dproj" Targets="" />
+  </Target>
+  <Target Name="Bench_D2007:Clean">
+    <MSBuild Projects="Benchmark\Bench.D2007.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="Bench_D2007:Make">
+    <MSBuild Projects="Benchmark\Bench.D2007.dproj" Targets="Make" />
+  </Target>
+  <Target Name="ImgBrowser_D2007">
+    <MSBuild Projects="VCLImageBrowser\ImgBrowser.D2007.dproj" Targets="" />
+  </Target>
+  <Target Name="ImgBrowser_D2007:Clean">
+    <MSBuild Projects="VCLImageBrowser\ImgBrowser.D2007.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="ImgBrowser_D2007:Make">
+    <MSBuild Projects="VCLImageBrowser\ImgBrowser.D2007.dproj" Targets="Make" />
+  </Target>
+  <Target Name="SDLDemo_D2007">
+    <MSBuild Projects="SDLDemo\SDLDemo.D2007.dproj" Targets="" />
+  </Target>
+  <Target Name="SDLDemo_D2007:Clean">
+    <MSBuild Projects="SDLDemo\SDLDemo.D2007.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="SDLDemo_D2007:Make">
+    <MSBuild Projects="SDLDemo\SDLDemo.D2007.dproj" Targets="Make" />
+  </Target>
+  <Target Name="D3DDemo_D2007">
+    <MSBuild Projects="D3DDemo\D3DDemo.D2007.dproj" Targets="" />
+  </Target>
+  <Target Name="D3DDemo_D2007:Clean">
+    <MSBuild Projects="D3DDemo\D3DDemo.D2007.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="D3DDemo_D2007:Make">
+    <MSBuild Projects="D3DDemo\D3DDemo.D2007.dproj" Targets="Make" />
+  </Target>
+  <Target Name="OpenGLDemo_D2007">
+    <MSBuild Projects="OpenGLDemo\OpenGLDemo.D2007.dproj" Targets="" />
+  </Target>
+  <Target Name="OpenGLDemo_D2007:Clean">
+    <MSBuild Projects="OpenGLDemo\OpenGLDemo.D2007.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="OpenGLDemo_D2007:Make">
+    <MSBuild Projects="OpenGLDemo\OpenGLDemo.D2007.dproj" Targets="Make" />
+  </Target>
+  <Target Name="VampConvert_D2007">
+    <MSBuild Projects="VampConvert\VampConvert.D2007.dproj" Targets="" />
+  </Target>
+  <Target Name="VampConvert_D2007:Clean">
+    <MSBuild Projects="VampConvert\VampConvert.D2007.dproj" Targets="Clean" />
+  </Target>
+  <Target Name="VampConvert_D2007:Make">
+    <MSBuild Projects="VampConvert\VampConvert.D2007.dproj" Targets="Make" />
+  </Target>
+  <Target Name="Build">
+    <CallTarget Targets="Bench_D2007;ImgBrowser_D2007;SDLDemo_D2007;D3DDemo_D2007;OpenGLDemo_D2007;VampConvert_D2007" />
+  </Target>
+  <Target Name="Clean">
+    <CallTarget Targets="Bench_D2007:Clean;ImgBrowser_D2007:Clean;SDLDemo_D2007:Clean;D3DDemo_D2007:Clean;OpenGLDemo_D2007:Clean;VampConvert_D2007:Clean" />
+  </Target>
+  <Target Name="Make">
+    <CallTarget Targets="Bench_D2007:Make;ImgBrowser_D2007:Make;SDLDemo_D2007:Make;D3DDemo_D2007:Make;OpenGLDemo_D2007:Make;VampConvert_D2007:Make" />
+  </Target>
+  <Import Condition="Exists('$(MSBuildBinPath)\Borland.Group.Targets')" Project="$(MSBuildBinPath)\Borland.Group.Targets" />
+</Project>

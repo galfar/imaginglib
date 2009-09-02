@@ -65,7 +65,7 @@ implementation
 
 const
   STextureFormatName = 'Daggerfall Texture';
-  STextureMasks      = 'texture.*,*.dagtexture';
+  STextureMasks      = '*.dagtexture,texture.*'; // fake ext first, it's used as format id
 
 type
   { Main texture header.}

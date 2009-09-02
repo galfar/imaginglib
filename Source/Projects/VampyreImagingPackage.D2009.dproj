@@ -1,11 +1,10 @@
 ﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
 			<ProjectGuid>{940ad730-b843-4a48-8eb1-594117a816c0}</ProjectGuid>
-			<MainSource>VampyreImagingPackageD2009.dpkw</MainSource>
+			<MainSource>VampyreImagingPackage.D2009.dpkw</MainSource>
 			<Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
 			<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
-			<DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingPackageCRS.bpl</DCC_DependencyCheckOutputName>
 			<ProjectVersion>12.0</ProjectVersion>
 			<Config Condition="'$(Config)'==''">Release</Config>
 		</PropertyGroup>
@@ -23,36 +22,28 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_Define>FULL_FEATURE_SET;$(DCC_Define)</DCC_Define>
+			<DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingPackage.D2009.bpl</DCC_DependencyCheckOutputName>
+			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
 			<DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_BplOutput>..\..\Bin</DCC_BplOutput>
-			<DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingPackageD2009.bpl</DCC_DependencyCheckOutputName>
 			<DCC_ImageBase>07A00000</DCC_ImageBase>
 			<DesignOnlyPackage>false</DesignOnlyPackage>
-			<DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
-			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
 			<DCC_Description>Vampyre Imaging Library Package</DCC_Description>
 			<GenPackage>true</GenPackage>
 			<DCC_OutputNeverBuildDcps>true</DCC_OutputNeverBuildDcps>
 			<GenDll>true</GenDll>
-			<DCC_DebugInformation>false</DCC_DebugInformation>
-			<DCC_StrictVarStrings>false</DCC_StrictVarStrings>
-			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<Version>7.0</Version>
-			<DCC_DebugInformation>False</DCC_DebugInformation>
-			<DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
-			<DCC_StrictVarStrings>False</DCC_StrictVarStrings>
-			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
 			<DCC_ResourcePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_ResourcePath)</DCC_ResourcePath>
 			<DCC_ObjPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_ObjPath)</DCC_ObjPath>
 			<DCC_IncludePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_IncludePath)</DCC_IncludePath>
 			<DCC_ImageBase>7A00000</DCC_ImageBase>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_DebugDCUs>true</DCC_DebugDCUs>
 			<Version>7.0</Version>
-			<DCC_StrictVarStrings>False</DCC_StrictVarStrings>
-			<DCC_SymbolReferenceInfo>2</DCC_SymbolReferenceInfo>
 			<DCC_MinimumEnumSize>4</DCC_MinimumEnumSize>
 			<DCC_ImageBase>7A00000</DCC_ImageBase>
 			<DCC_ResourcePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;$(DCC_ResourcePath)</DCC_ResourcePath>
@@ -76,18 +67,18 @@
 						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
 						<VersionInfo Name="MajorVer">0</VersionInfo>
 						<VersionInfo Name="MinorVer">26</VersionInfo>
-						<VersionInfo Name="Release">0</VersionInfo>
+						<VersionInfo Name="Release">4</VersionInfo>
 						<VersionInfo Name="Build">0</VersionInfo>
 						<VersionInfo Name="Debug">False</VersionInfo>
 						<VersionInfo Name="PreRelease">False</VersionInfo>
 						<VersionInfo Name="Special">False</VersionInfo>
 						<VersionInfo Name="Private">False</VersionInfo>
-						<VersionInfo Name="DLL">False</VersionInfo>
+						<VersionInfo Name="DLL">True</VersionInfo>
 						<VersionInfo Name="Locale">1033</VersionInfo>
 						<VersionInfo Name="CodePage">1252</VersionInfo>
 					</VersionInfo>
 					<VersionInfoKeys>
-						<VersionInfoKeys Name="FileVersion">0.26.0.0</VersionInfoKeys>
+						<VersionInfoKeys Name="FileVersion">0.26.4.0</VersionInfoKeys>
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys>
 						<VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys>
@@ -98,15 +89,15 @@
 						<VersionInfoKeys Name="ProductName">Vampyre Imaging Library</VersionInfoKeys>
 					</VersionInfoKeys>
 					<Source>
-						<Source Name="MainSource">VampyreImagingPackageD2009.dpkw</Source>
-					</Source>
-					<Excluded_Packages/>
+						<Source Name="MainSource">VampyreImagingPackage.D2009.dpkw</Source>
+					</Source>					
 				</Delphi.Personality>
+				<ModelSupport>False</ModelSupport>
 			</BorlandProject>
 			<ProjectFileVersion>12</ProjectFileVersion>
 		</ProjectExtensions>
 		<ItemGroup>
-			<DelphiCompile Include="VampyreImagingPackageD2009.dpkw">
+			<DelphiCompile Include="VampyreImagingPackage.D2009.dpkw">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="rtl.dcp"/>

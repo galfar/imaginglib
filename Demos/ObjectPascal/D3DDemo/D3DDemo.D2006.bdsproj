@@ -5,12 +5,12 @@
 			<Option Name="Personality">Delphi.Personality</Option>
 			<Option Name="ProjectType"></Option>
 			<Option Name="Version">1.0</Option>
-			<Option Name="GUID">{6A3CC48E-F515-47D6-9182-CCC29222AE23}</Option>
+			<Option Name="GUID">{B16FF7C8-E4B0-41B2-B8A3-1759CCF6EFA9}</Option>
 		</Option>
 	</PersonalityInfo>
 	<Delphi.Personality>
 		<Source>
-			<Source Name="MainSource">VampyreImagingPackageBDS.dpkw</Source>
+			<Source Name="MainSource">D3DDemo.dpr</Source>
 		</Source>
 		<FileVersion>
 			<FileVersion Name="Version">7.0</FileVersion>
@@ -41,7 +41,7 @@
 			<Compiler Name="W">0</Compiler>
 			<Compiler Name="X">1</Compiler>
 			<Compiler Name="Y">0</Compiler>
-			<Compiler Name="Z">4</Compiler>
+			<Compiler Name="Z">1</Compiler>
 			<Compiler Name="ShowHints">True</Compiler>
 			<Compiler Name="ShowWarnings">True</Compiler>
 			<Compiler Name="UnitAliases">WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;</Compiler>
@@ -114,20 +114,20 @@
 			<Linker Name="GenerateDRC">False</Linker>
 			<Linker Name="MinStackSize">16384</Linker>
 			<Linker Name="MaxStackSize">1048576</Linker>
-			<Linker Name="ImageBase">127926272</Linker>
-			<Linker Name="ExeDescription">Vampyre Imaging Library Package</Linker>
+			<Linker Name="ImageBase">4194304</Linker>
+			<Linker Name="ExeDescription"></Linker>
 			<Linker Name="GenerateHpps">False</Linker>
 		</Linker>
 		<Directories>
-			<Directories Name="OutputDir"></Directories>
+			<Directories Name="OutputDir">..\..\Bin</Directories>
 			<Directories Name="UnitOutputDir"></Directories>
-			<Directories Name="PackageDLLOutputDir">..\..\Bin</Directories>
+			<Directories Name="PackageDLLOutputDir"></Directories>
 			<Directories Name="PackageDCPOutputDir"></Directories>
-			<Directories Name="SearchPath">..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</Directories>
-			<Directories Name="Packages"></Directories>
-			<Directories Name="Conditionals"></Directories>
+			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions</Directories>
+			<Directories Name="Conditionals">DONT_LINK_EXTRAS</Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
 			<Directories Name="UsePackages">False</Directories>
+			<Directories Name="Packages"></Directories>
 		</Directories>
 		<Parameters>
 			<Parameters Name="RunParams"></Parameters>
@@ -144,36 +144,36 @@
 			<Parameters Name="LoadAllSymbols">True</Parameters>
 			<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
 		</Parameters>
-		<Language>
-			<Language Name="ActiveLang"></Language>
-			<Language Name="ProjectLang">$00000000</Language>
-			<Language Name="RootDir"></Language>
-		</Language>
 		<VersionInfo>
-			<VersionInfo Name="IncludeVerInfo">True</VersionInfo>
+			<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
 			<VersionInfo Name="AutoIncBuild">False</VersionInfo>
-			<VersionInfo Name="MajorVer">0</VersionInfo>
-			<VersionInfo Name="MinorVer">26</VersionInfo>
-			<VersionInfo Name="Release">2</VersionInfo>
+			<VersionInfo Name="MajorVer">1</VersionInfo>
+			<VersionInfo Name="MinorVer">0</VersionInfo>
+			<VersionInfo Name="Release">0</VersionInfo>
 			<VersionInfo Name="Build">0</VersionInfo>
 			<VersionInfo Name="Debug">False</VersionInfo>
 			<VersionInfo Name="PreRelease">False</VersionInfo>
 			<VersionInfo Name="Special">False</VersionInfo>
 			<VersionInfo Name="Private">False</VersionInfo>
 			<VersionInfo Name="DLL">False</VersionInfo>
-			<VersionInfo Name="Locale">1033</VersionInfo>
-			<VersionInfo Name="CodePage">1252</VersionInfo>
+			<VersionInfo Name="Locale">1029</VersionInfo>
+			<VersionInfo Name="CodePage">1250</VersionInfo>
 		</VersionInfo>
 		<VersionInfoKeys>
-			<VersionInfoKeys Name="FileVersion">0.26.2.0</VersionInfoKeys>
-			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
-			<VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys>
-			<VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys>
+			<VersionInfoKeys Name="CompanyName"></VersionInfoKeys>
+			<VersionInfoKeys Name="FileDescription"></VersionInfoKeys>
+			<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="InternalName"></VersionInfoKeys>
 			<VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys>
 			<VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys>
 			<VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys>
-			<VersionInfoKeys Name="ProductName">Vampyre Imaging Library</VersionInfoKeys>
-		</VersionInfoKeys>  
-  </Delphi.Personality>
+			<VersionInfoKeys Name="ProductName"></VersionInfoKeys>
+			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+		</VersionInfoKeys>
+		<Language>
+			<Language Name="ActiveLang"></Language>
+			<Language Name="ProjectLang">$00000000</Language>
+			<Language Name="RootDir"></Language>
+		</Language>
+	</Delphi.Personality>
 </BorlandProject>

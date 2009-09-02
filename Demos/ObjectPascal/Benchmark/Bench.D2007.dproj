@@ -15,10 +15,10 @@
     <DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
     <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
     <DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
-    <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common</DCC_UnitSearchPath>
-    <DCC_ResourcePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common</DCC_ResourcePath>
-    <DCC_ObjPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common</DCC_ObjPath>
-    <DCC_IncludePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common</DCC_IncludePath>
+    <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Extras\Extensions\LibTiff</DCC_UnitSearchPath>
+    <DCC_ResourcePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Extras\Extensions\LibTiff</DCC_ResourcePath>
+    <DCC_ObjPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Extras\Extensions\LibTiff</DCC_ObjPath>
+    <DCC_IncludePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Extras\Extensions\LibTiff</DCC_IncludePath>
     <DCC_Define>RELEASE</DCC_Define>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

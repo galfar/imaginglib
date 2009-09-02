@@ -3235,11 +3235,11 @@ type
 
   TPixelBlock = array[0..15] of TPixelInfo;
 
-function DecodeCol(Color : Word): TColor32Rec;
+function DecodeCol(Color: Word): TColor32Rec;
 {$IFDEF USE_INLINE} inline; {$ENDIF}
 begin
   Result.A := $FF;
-  {Result.R := ((Color and $F800) shr 11) shl 3;
+{  Result.R := ((Color and $F800) shr 11) shl 3;
   Result.G := ((Color and $07E0) shr 5) shl 2;
   Result.B := (Color and $001F) shl 3;}
   // this color expansion is slower but gives better results

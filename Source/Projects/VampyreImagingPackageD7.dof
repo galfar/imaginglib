@@ -4,7 +4,7 @@ Version=7.0
 A=8
 B=0
 C=1
-D=0
+D=1
 E=0
 F=0
 G=1
@@ -12,7 +12,7 @@ H=1
 I=1
 J=0
 K=0
-L=0
+L=1
 M=0
 N=1
 O=1
@@ -22,11 +22,11 @@ R=0
 S=0
 T=0
 U=0
-V=0
+V=1
 W=0
 X=1
 Y=0
-Z=4
+Z=1
 ShowHints=1
 ShowWarnings=1
 UnitAliases=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
@@ -96,7 +96,7 @@ PackageDLLOutputDir=..\..\Bin
 PackageDCPOutputDir=
 SearchPath=..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff
 Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls
-Conditionals=
+Conditionals=FULL_FEATURE_SET
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
@@ -110,25 +110,30 @@ IncludeVerInfo=1
 AutoIncBuild=0
 MajorVer=0
 MinorVer=26
-Release=2
+Release=4
 Build=0
 Debug=0
 PreRelease=0
 Special=0
 Private=0
-DLL=0
+DLL=1
 Locale=1033
 CodePage=1252
 [Version Info Keys]
 CompanyName=http://imaginglib.sourceforge.net
 FileDescription=Image loading, saving and manipulation library
-FileVersion=0.26.2.0
+FileVersion=0.26.4.0
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
 ProductName=Vampyre Imaging Library
 ProductVersion=1.0.0.0
+[Excluded Packages]
+D:\Projects\Libs\Imaging\Bin\VampyreImagingPackageD7.bpl=Vampyre Imaging Library Package
+[HistoryLists\hlConditionals]
+Count=1
+Item0=FULL_FEATURE_SET
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;

@@ -17,7 +17,7 @@
     <DCC_ResourcePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions</DCC_ResourcePath>
     <DCC_ObjPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions</DCC_ObjPath>
     <DCC_IncludePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions</DCC_IncludePath>
-    <DCC_Define>RELEASE</DCC_Define>
+    <DCC_Define>RELEASE;DONT_LINK_EXTRAS</DCC_Define>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Version>7.0</Version>

@@ -13,6 +13,7 @@ uses
 
 const
   SDataDir = 'Data';
+  SSourceDir = 'Source';
 
 { }
 function ExpandFileTo(const FileName, BasePath: string): string;
@@ -53,30 +54,29 @@ begin
 end;
 
 function GetDataDir: string;
+var
+  Iter: Integer;
 begin
-  Result := GetAppDir + PathDelim + SDataDir;
-  if not DirectoryExists(Result) then
-    Result := ExtractFileDir(GetAppDir) + PathDelim + SDataDir;
-  if not DirectoryExists(Result) then
-    Result := ExtractFileDir(ExtractFileDir(GetAppDir)) + PathDelim + SDataDir;
+  Iter := 0;
+  Result := GetAppDir;
+  while not DirectoryExists(Result + PathDelim + SDataDir) and (Iter < 7) do
+  begin
+    Result := ExtractFileDir(Result);
+    Inc(Iter);
+  end;
+  Result := Result + PathDelim + SDataDir;
 end;
 
 function GetRootDir: string;
+var
+  Iter: Integer;
 begin
-  Result := ExtractFileDir(GetAppDir);
-  if not DirectoryExists(Result + PathDelim + 'Source') then
+  Iter := 0;
+  Result := GetAppDir;
+  while not DirectoryExists(Result + PathDelim + SSourceDir) and (Iter < 7) do
   begin
     Result := ExtractFileDir(Result);
-    if not DirectoryExists(Result + PathDelim + 'Source') then
-    begin
-      Result := ExtractFileDir(Result);
-      if not DirectoryExists(Result + PathDelim + 'Source') then
-      begin
-        Result := ExtractFileDir(Result);
-        if not DirectoryExists(Result + PathDelim + 'Source') then
-          Result := ExtractFileDir(Result);
-      end;
-    end;
+    Inc(Iter);
   end;
 end;
 

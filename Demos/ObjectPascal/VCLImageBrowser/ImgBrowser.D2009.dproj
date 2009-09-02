@@ -23,7 +23,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_Define>TESTING;$(DCC_Define)</DCC_Define>
+			<DCC_Define>FULL_FEATURE_SET;$(DCC_Define)</DCC_Define>
 			<DCC_ExeOutput>..\..\Bin\</DCC_ExeOutput>
 			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_DependencyCheckOutputName>..\..\Bin\ImgBrowser.exe</DCC_DependencyCheckOutputName>
@@ -55,8 +55,6 @@
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="Main.pas"/>
-			<DCCReference Include="Main.pa"/>
-			<DCCReference Include="Main.p"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
@@ -110,6 +108,7 @@
 						<Source Name="MainSource">ImgBrowser.dpr</Source>
 					</Source>
 				</Delphi.Personality>
+				<ModelSupport>False</ModelSupport>
 			</BorlandProject>
 			<ProjectFileVersion>12</ProjectFileVersion>
 		</ProjectExtensions>

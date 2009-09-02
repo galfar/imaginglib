@@ -2,24 +2,22 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectGuid>{940ad730-b843-4a48-8eb1-594117a816c0}</ProjectGuid>
-    <MainSource>VampyreImagingPackageCRS.dpkw</MainSource>
+    <MainSource>VampyreImagingPackage.D2007.dpkw</MainSource>
     <Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
-    <DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingPackageCRS.bpl</DCC_DependencyCheckOutputName>
+    <DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingPackage.D2007.bpl</DCC_DependencyCheckOutputName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Version>7.0</Version>
-    <DCC_DebugInformation>False</DCC_DebugInformation>
-    <DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
-    <DCC_StrictVarStrings>False</DCC_StrictVarStrings>
     <DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
     <DCC_BplOutput>..\..\Bin</DCC_BplOutput>
     <DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_UnitSearchPath>
     <DCC_ResourcePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_ResourcePath>
     <DCC_ObjPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_ObjPath>
     <DCC_IncludePath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff</DCC_IncludePath>
-    <DCC_Define>RELEASE</DCC_Define>
+    <DCC_Define>RELEASE;FULL_FEATURE_SET</DCC_Define>
+    <DCC_ImageBase>7A00000</DCC_ImageBase>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <Version>7.0</Version>
@@ -38,11 +36,15 @@
     <Borland.Personality>Delphi.Personality</Borland.Personality>
     <Borland.ProjectType>Package</Borland.ProjectType>
     <BorlandProject>
-<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters></Parameters><Package_Options><Package_Options Name="PackageDescription">Vampyre Imaging Library Package</Package_Options><Package_Options Name="ImplicitBuild">False</Package_Options><Package_Options Name="DesigntimeOnly">False</Package_Options><Package_Options Name="RuntimeOnly">False</Package_Options></Package_Options><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">0</VersionInfo><VersionInfo Name="MinorVer">26</VersionInfo><VersionInfo Name="Release">2</VersionInfo><VersionInfo Name="Build">0</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">False</VersionInfo><VersionInfo Name="Locale">1033</VersionInfo><VersionInfo Name="CodePage">1252</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="FileVersion">0.26.2.0</VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys><VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys><VersionInfoKeys Name="InternalName"></VersionInfoKeys><VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys><VersionInfoKeys Name="ProductName">Vampyre Imaging Library</VersionInfoKeys></VersionInfoKeys><Source><Source Name="MainSource">VampyreImagingPackageCRS.dpkw</Source></Source><Excluded_Packages></Excluded_Packages></Delphi.Personality></BorlandProject></BorlandProject>
+<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters></Parameters><Package_Options><Package_Options Name="PackageDescription">Vampyre Imaging Library Package</Package_Options><Package_Options Name="ImplicitBuild">False</Package_Options><Package_Options Name="DesigntimeOnly">False</Package_Options><Package_Options Name="RuntimeOnly">False</Package_Options></Package_Options><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">0</VersionInfo><VersionInfo Name="MinorVer">26</VersionInfo><VersionInfo Name="Release">4</VersionInfo><VersionInfo Name="Build">0</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">True</VersionInfo><VersionInfo Name="Locale">1033</VersionInfo><VersionInfo Name="CodePage">1252</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="FileVersion">0.26.4.0</VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="CompanyName">http://imaginglib.sourceforge.net</VersionInfoKeys><VersionInfoKeys Name="FileDescription">Image loading, saving and manipulation library</VersionInfoKeys><VersionInfoKeys Name="InternalName"></VersionInfoKeys><VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys><VersionInfoKeys Name="ProductName">Vampyre Imaging Library</VersionInfoKeys></VersionInfoKeys><Source><Source Name="MainSource">VampyreImagingPackage.D2007.dpkw</Source></Source><Excluded_Packages>
+      
+      
+      <Excluded_Packages Name="D:\Projects\Libs\Imaging\Bin\VampyreImagingPackageCRS.bpl">File D:\Projects\Libs\Imaging\Bin\VampyreImagingPackageCRS.bpl not found</Excluded_Packages>
+    </Excluded_Packages></Delphi.Personality></BorlandProject></BorlandProject>
   </ProjectExtensions>
   <Import Project="$(MSBuildBinPath)\Borland.Delphi.Targets" />
   <ItemGroup>
-    <DelphiCompile Include="VampyreImagingPackageCRS.dpkw">
+    <DelphiCompile Include="VampyreImagingPackage.D2007.dpkw">
       <MainSource>MainSource</MainSource>
     </DelphiCompile>
     <DCCReference Include="..\..\Extras\Extensions\ImagingExtras.pas" />

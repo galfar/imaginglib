@@ -563,7 +563,7 @@ begin
   for I := 0 to WorkData.Height - 1 do
     Move(PByteArray(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
 
-  // Delphi 2009 and newer support alpha transparency
+  // Delphi 2009 and newer support alpha transparency fro TBitmap
 {$IF Defined(DELPHI) and (CompilerVersion >= 20.0)}
   if Bitmap.PixelFormat = pf32bit then
     Bitmap.AlphaFormat := afDefined;
@@ -577,9 +577,9 @@ begin
   begin
     Width := WorkData.Width;
     Height := WorkData.Height;
-    BitsPerPixel := Info.BytesPerPixel * 8;
+    BitsPerPixel := 32;
     Format := ricfRGBA;
-    LineEnd := rileByteBoundary;
+    LineEnd := rileDWordBoundary;
     BitOrder := riboBitsInOrder;
     ByteOrder := riboLSBFirst;
     LineOrder := riloTopToBottom;
@@ -597,8 +597,7 @@ begin
   RawImage.DataSize := WorkData.Size;
 
   // Create bitmap from raw image
-  { If you get complitation error here upgrade to Lazarus 0.9.24+ }
-  if RawImage_CreateBitmaps(RawImage, ImgHandle, ImgMaskHandle, False) then
+  if RawImage_CreateBitmaps(RawImage, ImgHandle, ImgMaskHandle) then
   begin
     Bitmap.Handle := ImgHandle;
     Bitmap.MaskHandle := ImgMaskHandle;

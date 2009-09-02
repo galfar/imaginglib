@@ -3,9 +3,6 @@
 			<ProjectGuid>{EF4F76F2-35E0-4933-9F11-CF518A4A9A71}</ProjectGuid>
 		</PropertyGroup>
 		<ItemGroup>
-			<Projects Include="Benchmark\Bench.D2009.dproj">
-				<Dependencies/>
-			</Projects>
 			<Projects Include="D3DDemo\D3DDemo.D2009.dproj">
 				<Dependencies/>
 			</Projects>
@@ -21,6 +18,9 @@
 			<Projects Include="VCLImageBrowser\ImgBrowser.D2009.dproj">
 				<Dependencies/>
 			</Projects>
+			<Projects Include="Benchmark\Bench.D2009.dproj">
+				<Dependencies/>
+			</Projects>
 		</ItemGroup>
 		<ProjectExtensions>
 			<Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -29,15 +29,6 @@
 				<Default.Personality/>
 			</BorlandProject>
 		</ProjectExtensions>
-		<Target Name="Bench_D2009">
-			<MSBuild Projects="Benchmark\Bench.D2009.dproj"/>
-		</Target>
-		<Target Name="Bench_D2009:Clean">
-			<MSBuild Targets="Clean" Projects="Benchmark\Bench.D2009.dproj"/>
-		</Target>
-		<Target Name="Bench_D2009:Make">
-			<MSBuild Targets="Make" Projects="Benchmark\Bench.D2009.dproj"/>
-		</Target>
 		<Target Name="D3DDemo_D2009">
 			<MSBuild Projects="D3DDemo\D3DDemo.D2009.dproj"/>
 		</Target>
@@ -83,14 +74,23 @@
 		<Target Name="ImgBrowser_D2009:Make">
 			<MSBuild Targets="Make" Projects="VCLImageBrowser\ImgBrowser.D2009.dproj"/>
 		</Target>
+		<Target Name="Bench_D2009">
+			<MSBuild Projects="Benchmark\Bench.D2009.dproj"/>
+		</Target>
+		<Target Name="Bench_D2009:Clean">
+			<MSBuild Targets="Clean" Projects="Benchmark\Bench.D2009.dproj"/>
+		</Target>
+		<Target Name="Bench_D2009:Make">
+			<MSBuild Targets="Make" Projects="Benchmark\Bench.D2009.dproj"/>
+		</Target>
 		<Target Name="Build">
-			<CallTarget Targets="Bench_D2009;D3DDemo_D2009;OpenGLDemo_D2009;SDLDemo_D2009;VampConvert_D2009;ImgBrowser_D2009"/>
+			<CallTarget Targets="D3DDemo_D2009;OpenGLDemo_D2009;SDLDemo_D2009;VampConvert_D2009;ImgBrowser_D2009;Bench_D2009"/>
 		</Target>
 		<Target Name="Clean">
-			<CallTarget Targets="Bench_D2009:Clean;D3DDemo_D2009:Clean;OpenGLDemo_D2009:Clean;SDLDemo_D2009:Clean;VampConvert_D2009:Clean;ImgBrowser_D2009:Clean"/>
+			<CallTarget Targets="D3DDemo_D2009:Clean;OpenGLDemo_D2009:Clean;SDLDemo_D2009:Clean;VampConvert_D2009:Clean;ImgBrowser_D2009:Clean;Bench_D2009:Clean"/>
 		</Target>
 		<Target Name="Make">
-			<CallTarget Targets="Bench_D2009:Make;D3DDemo_D2009:Make;OpenGLDemo_D2009:Make;SDLDemo_D2009:Make;VampConvert_D2009:Make;ImgBrowser_D2009:Make"/>
+			<CallTarget Targets="D3DDemo_D2009:Make;OpenGLDemo_D2009:Make;SDLDemo_D2009:Make;VampConvert_D2009:Make;ImgBrowser_D2009:Make;Bench_D2009:Make"/>
 		</Target>
 		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 	</Project>

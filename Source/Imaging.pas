@@ -303,7 +303,7 @@ function PopOptions: Boolean;
 { Image Format Functions }
 
 { Returns short information about given image format.}
-function GetImageFormatInfo(Format: TImageFormat; var Info: TImageFormatInfo): Boolean;
+function GetImageFormatInfo(Format: TImageFormat; out Info: TImageFormatInfo): Boolean;
 { Returns size in bytes of Width x Height area of pixels. Works for all formats.}
 function GetPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
 
@@ -2429,7 +2429,7 @@ end;
 
 { Image Format Functions }
 
-function GetImageFormatInfo(Format: TImageFormat; var Info: TImageFormatInfo): Boolean;
+function GetImageFormatInfo(Format: TImageFormat; out Info: TImageFormatInfo): Boolean;
 begin
   FillChar(Info, SizeOf(Info), 0);
   if ImageFormatInfos[Format] <> nil then

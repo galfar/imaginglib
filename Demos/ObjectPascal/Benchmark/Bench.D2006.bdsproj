@@ -5,12 +5,12 @@
 			<Option Name="Personality">Delphi.Personality</Option>
 			<Option Name="ProjectType"></Option>
 			<Option Name="Version">1.0</Option>
-			<Option Name="GUID">{B16FF7C8-E4B0-41B2-B8A3-1759CCF6EFA9}</Option>
+			<Option Name="GUID">{ABB0D60B-2E51-4480-BADB-CEE13BFAFCA4}</Option>
 		</Option>
 	</PersonalityInfo>
 	<Delphi.Personality>
 		<Source>
-			<Source Name="MainSource">D3DDemo.dpr</Source>
+			<Source Name="MainSource">Bench.dpr</Source>
 		</Source>
 		<FileVersion>
 			<FileVersion Name="Version">7.0</FileVersion>
@@ -18,7 +18,7 @@
 		<Compiler>
 			<Compiler Name="A">8</Compiler>
 			<Compiler Name="B">0</Compiler>
-			<Compiler Name="C">1</Compiler>
+			<Compiler Name="C">0</Compiler>
 			<Compiler Name="D">0</Compiler>
 			<Compiler Name="E">0</Compiler>
 			<Compiler Name="F">0</Compiler>
@@ -37,7 +37,7 @@
 			<Compiler Name="S">0</Compiler>
 			<Compiler Name="T">0</Compiler>
 			<Compiler Name="U">0</Compiler>
-			<Compiler Name="V">0</Compiler>
+			<Compiler Name="V">1</Compiler>
 			<Compiler Name="W">0</Compiler>
 			<Compiler Name="X">1</Compiler>
 			<Compiler Name="Y">0</Compiler>
@@ -123,11 +123,12 @@
 			<Directories Name="UnitOutputDir"></Directories>
 			<Directories Name="PackageDLLOutputDir"></Directories>
 			<Directories Name="PackageDCPOutputDir"></Directories>
-			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions</Directories>
+			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions;..\..\..\Extras\Extensions\LibTiff</Directories>
+			<Directories Name="Packages">vclx;vcl;VclSmp;rtl;bdertl;vclactnband;vclshlctrls</Directories>
 			<Directories Name="Conditionals"></Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
-			<Directories Name="UsePackages">False</Directories>  <Directories Name="Packages"></Directories>
-    </Directories>
+			<Directories Name="UsePackages">False</Directories>
+		</Directories>
 		<Parameters>
 			<Parameters Name="RunParams"></Parameters>
 			<Parameters Name="HostApplication"></Parameters>
@@ -143,6 +144,11 @@
 			<Parameters Name="LoadAllSymbols">True</Parameters>
 			<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
 		</Parameters>
+		<Language>
+			<Language Name="ActiveLang"></Language>
+			<Language Name="ProjectLang">$00000000</Language>
+			<Language Name="RootDir"></Language>
+		</Language>
 		<VersionInfo>
 			<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
 			<VersionInfo Name="AutoIncBuild">False</VersionInfo>
@@ -159,20 +165,8 @@
 			<VersionInfo Name="CodePage">1250</VersionInfo>
 		</VersionInfo>
 		<VersionInfoKeys>
-			<VersionInfoKeys Name="CompanyName"></VersionInfoKeys>
-			<VersionInfoKeys Name="FileDescription"></VersionInfoKeys>
 			<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
-			<VersionInfoKeys Name="InternalName"></VersionInfoKeys>
-			<VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys>
-			<VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys>
-			<VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys>
-			<VersionInfoKeys Name="ProductName"></VersionInfoKeys>
 			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 		</VersionInfoKeys>
-		<Language>
-			<Language Name="ActiveLang"></Language>
-			<Language Name="ProjectLang">$00000000</Language>
-			<Language Name="RootDir"></Language>
-		</Language>
 	</Delphi.Personality>
 </BorlandProject>

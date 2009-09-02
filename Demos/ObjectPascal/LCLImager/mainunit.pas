@@ -667,7 +667,7 @@ begin
   if (ParamCount > 0) and FileExists(ParamStr(1)) then
     OpenFile(ParamStr(1))
   else
-    OpenFile(GetDataDir + PathDelim + 'Tigers.jpg');
+    OpenFile(GetDataDir + PathDelim + 'Tigers.jpg')
 end;
 
 procedure TMainForm.FormatChangeClick(Sender: TObject);
@@ -722,7 +722,7 @@ var
 
   procedure VisualizeHistogram(const Histo: THistogramArray; Color: TColor32; Offset: Integer);
   var
-    I, J: Integer;
+    I: Integer;
   begin
     Canvas.PenColor32 := Color;
     for I := 0 to 255 do

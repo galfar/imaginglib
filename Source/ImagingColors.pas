@@ -190,6 +190,8 @@ end;
     - nothing now
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
+
+  -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added RGB<>CMY(K) converion functions for 16 bit channels
       (needed by PSD loading code).
 

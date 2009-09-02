@@ -56,7 +56,7 @@ implementation
 
 const
   SSKYFormatName = 'Daggerfall Sky Images';
-  SSKYMasks      = 'sky??.dat,*.dagsky';
+  SSKYMasks      = '*.dagsky,sky??.dat';
 
   SkyWidth     =    512;
   SkyHeight    =    220;

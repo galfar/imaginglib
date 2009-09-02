@@ -5,12 +5,12 @@
 			<Option Name="Personality">Delphi.Personality</Option>
 			<Option Name="ProjectType"></Option>
 			<Option Name="Version">1.0</Option>
-			<Option Name="GUID">{16C08DFC-113B-4085-8320-BBCF2B7A1336}</Option>
+			<Option Name="GUID">{EA08CD64-C5F5-4216-ADA8-80956980E54F}</Option>
 		</Option>
 	</PersonalityInfo>
 	<Delphi.Personality>
 		<Source>
-			<Source Name="MainSource">ImgBrowser.dpr</Source>
+			<Source Name="MainSource">VampConvert.dpr</Source>
 		</Source>
 		<FileVersion>
 			<FileVersion Name="Version">7.0</FileVersion>
@@ -30,7 +30,7 @@
 			<Compiler Name="L">1</Compiler>
 			<Compiler Name="M">0</Compiler>
 			<Compiler Name="N">1</Compiler>
-			<Compiler Name="O">1</Compiler>
+			<Compiler Name="O">0</Compiler>
 			<Compiler Name="P">1</Compiler>
 			<Compiler Name="Q">0</Compiler>
 			<Compiler Name="R">0</Compiler>
@@ -40,7 +40,7 @@
 			<Compiler Name="V">1</Compiler>
 			<Compiler Name="W">1</Compiler>
 			<Compiler Name="X">1</Compiler>
-			<Compiler Name="Y">0</Compiler>
+			<Compiler Name="Y">1</Compiler>
 			<Compiler Name="Z">1</Compiler>
 			<Compiler Name="ShowHints">True</Compiler>
 			<Compiler Name="ShowWarnings">True</Compiler>
@@ -88,7 +88,6 @@
 			<Compiler Name="ForLoopVarUndef">True</Compiler>
 			<Compiler Name="UnitNameMismatch">True</Compiler>
 			<Compiler Name="NoCFGFileFound">True</Compiler>
-			<Compiler Name="MessageDirective">True</Compiler>
 			<Compiler Name="ImplicitVariants">True</Compiler>
 			<Compiler Name="UnicodeToLocale">True</Compiler>
 			<Compiler Name="LocaleToUnicode">True</Compiler>
@@ -103,47 +102,48 @@
 			<Compiler Name="DuplicatesIgnored">True</Compiler>
 			<Compiler Name="UnitInitSeq">True</Compiler>
 			<Compiler Name="LocalPInvoke">True</Compiler>
+			<Compiler Name="MessageDirective">True</Compiler>
 			<Compiler Name="CodePage"></Compiler>
 		</Compiler>
 		<Linker>
 			<Linker Name="MapFile">0</Linker>
 			<Linker Name="OutputObjs">0</Linker>
+			<Linker Name="GenerateHpps">False</Linker>
 			<Linker Name="ConsoleApp">1</Linker>
 			<Linker Name="DebugInfo">False</Linker>
 			<Linker Name="RemoteSymbols">False</Linker>
 			<Linker Name="GenerateDRC">False</Linker>
 			<Linker Name="MinStackSize">16384</Linker>
 			<Linker Name="MaxStackSize">1048576</Linker>
-			<Linker Name="ImageBase">127926272</Linker>
+			<Linker Name="ImageBase">4194304</Linker>
 			<Linker Name="ExeDescription"></Linker>
-			<Linker Name="GenerateHpps">False</Linker>
 		</Linker>
 		<Directories>
 			<Directories Name="OutputDir">..\..\Bin</Directories>
 			<Directories Name="UnitOutputDir"></Directories>
 			<Directories Name="PackageDLLOutputDir"></Directories>
 			<Directories Name="PackageDCPOutputDir"></Directories>
-			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions</Directories>
-			<Directories Name="Packages">vclx;vcl;VclSmp;rtl;bdertl;vclactnband;vclshlctrls</Directories>
-			<Directories Name="Conditionals"></Directories>
+			<Directories Name="SearchPath">..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions;..\..\..\Extras\Extensions\LibTiff</Directories>
+			<Directories Name="Conditionals">FULL_FEATURE_SET</Directories>
 			<Directories Name="DebugSourceDirs"></Directories>
 			<Directories Name="UsePackages">False</Directories>
+			<Directories Name="Packages"></Directories>
 		</Directories>
 		<Parameters>
-			<Parameters Name="RunParams"></Parameters>
+			<Parameters Name="RunParams">-infile=glsprite.dds</Parameters>
 			<Parameters Name="HostApplication"></Parameters>
 			<Parameters Name="Launcher"></Parameters>
 			<Parameters Name="UseLauncher">False</Parameters>
 			<Parameters Name="DebugCWD"></Parameters>
-			<Parameters Name="RemoteHost"></Parameters>
-			<Parameters Name="RemotePath"></Parameters>
-			<Parameters Name="RemoteLauncher"></Parameters>
-			<Parameters Name="RemoteCWD"></Parameters>
-			<Parameters Name="RemoteDebug">False</Parameters>
 			<Parameters Name="Debug Symbols Search Path"></Parameters>
 			<Parameters Name="LoadAllSymbols">True</Parameters>
 			<Parameters Name="LoadUnspecifiedSymbols">False</Parameters>
 		</Parameters>
+		<Language>
+			<Language Name="ActiveLang"></Language>
+			<Language Name="ProjectLang">$00000000</Language>
+			<Language Name="RootDir"></Language>
+		</Language>
 		<VersionInfo>
 			<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
 			<VersionInfo Name="AutoIncBuild">False</VersionInfo>
@@ -160,20 +160,16 @@
 			<VersionInfo Name="CodePage">1250</VersionInfo>
 		</VersionInfo>
 		<VersionInfoKeys>
-			<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
-			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="CompanyName"></VersionInfoKeys>
 			<VersionInfoKeys Name="FileDescription"></VersionInfoKeys>
+			<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="InternalName"></VersionInfoKeys>
 			<VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys>
 			<VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys>
 			<VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys>
 			<VersionInfoKeys Name="ProductName"></VersionInfoKeys>
+			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
+			<VersionInfoKeys Name="Comments"></VersionInfoKeys>
 		</VersionInfoKeys>
-		<Language>
-			<Language Name="ActiveLang"></Language>
-			<Language Name="ProjectLang">$00000000</Language>
-			<Language Name="RootDir"></Language>
-		</Language>
 	</Delphi.Personality>
 </BorlandProject>

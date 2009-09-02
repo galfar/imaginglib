@@ -1,10 +1,10 @@
 object MainForm: TMainForm
-  Left = 107
+  Left = 473
   Height = 512
-  Top = 251
+  Top = 82
   Width = 768
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
-  ClientHeight = 492
+  ClientHeight = 481
   ClientWidth = 768
   Constraints.MinHeight = 240
   Constraints.MinWidth = 320
@@ -84,13 +84,12 @@ object MainForm: TMainForm
   Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  ParentFont = False
   Position = poDesktopCenter
-  LCLVersion = '0.9.26'
+  LCLVersion = '0.9.26.2'
   WindowState = wsMaximized
   object Image: TImage
     Cursor = crHandPoint
-    Height = 470
+    Height = 459
     Width = 768
     Align = alClient
     AutoSize = True
@@ -101,7 +100,7 @@ object MainForm: TMainForm
   end
   object PanelStatus: TPanel
     Height = 22
-    Top = 470
+    Top = 459
     Width = 768
     Align = alBottom
     Alignment = taLeftJustify
