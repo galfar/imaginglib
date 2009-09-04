@@ -24,7 +24,6 @@ package VampyreImagingPackage.D2009;
 {$IMAGEBASE $7A00000}
 {$DESCRIPTION 'Vampyre Imaging Library Package'}
 {$IMPLICITBUILD OFF}
-{$DEFINE FULLFEATURESET}
 
 requires
   rtl,

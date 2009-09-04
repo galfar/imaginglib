@@ -131,7 +131,7 @@ function ImSplitImage(var Image: TImageData; var Chunks: TImageDataList;
 function ImMakePaletteForImages(Images: TImageDataList; Pal: PPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean; cdecl;
 { Look at RotateImage for details.}
-function ImRotateImage(var Image: TImageData; Angle: LongInt): Boolean; cdecl;
+function ImRotateImage(var Image: TImageData; Angle: Single): Boolean; cdecl;
 
 { Look at CopyRect for details.}
 function ImCopyRect(const SrcImage: TImageData; SrcX, SrcY, Width, Height: LongInt;
@@ -612,7 +612,7 @@ begin
   end;
 end;
 
-function ImRotateImage(var Image: TImageData; Angle: LongInt): Boolean;
+function ImRotateImage(var Image: TImageData; Angle: Single): Boolean;
 begin
   try
     Result := Imaging.RotateImage(Image, Angle);

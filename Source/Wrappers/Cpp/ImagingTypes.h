@@ -45,8 +45,8 @@ namespace Imaging
 #endif
 
 #define ImagingMajor 0
-#define ImagingMinor 24
-#define ImagingPatch 0
+#define ImagingMinor 26
+#define ImagingPatch 4
 
 #define ImagingJpegQuality           10
 #define ImagingJpegProgressive       11

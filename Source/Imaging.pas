@@ -203,9 +203,8 @@ function SplitImage(var Image: TImageData; var Chunks: TDynImageDataArray;
   Pal must be allocated to have at least MaxColors entries.}
 function MakePaletteForImages(var Images: TDynImageDataArray; Pal: PPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean;
-{ Rotates image by 90, 180, 270, -90, -180, or -270 degrees counterclockwise.
-  Only multiples of 90 degrees are allowed.}
-function RotateImage(var Image: TImageData; Angle: LongInt): Boolean;
+{ Rotates image by Angle degrees counterclockwise. All angles are allowed.}
+function RotateImage(var Image: TImageData; Angle: Single): Boolean;
 
 { Drawing/Pixel functions }
 
@@ -606,7 +605,7 @@ resourcestring
   SErrorFreePalette = 'Error while freeing palette @%p';
   SErrorCopyPalette = 'Error while copying %d entries from palette @%p to @%p';
   SErrorReplaceColor = 'Error while replacing colors in rectangle X:%d Y:%d W:%d H:%d of image %s';
-  SErrorRotateImage = 'Error while rotating image %s by %d degrees';
+  SErrorRotateImage = 'Error while rotating image %s by %.2n degrees';
   SErrorStretchRect = 'Error while stretching rect from image %s to image %s.';
   SErrorEmptyStream = 'Input stream has no data. Check Position property.';
 
@@ -1862,33 +1861,154 @@ begin
   end;
 end;
 
-function RotateImage(var Image: TImageData; Angle: LongInt): Boolean;
+function RotateImage(var Image: TImageData; Angle: Single): Boolean;
 var
-  X, Y, BytesPerPixel: LongInt;
-  RotImage: TImageData;
-  Pix, RotPix: PByte;
   OldFmt: TImageFormat;
-begin
-  Assert(Angle mod 90 = 0);
-  Result := False;
 
-  if TestImage(Image) then
-  try
-    if (Angle < -360) or (Angle > 360) then Angle := Angle mod 360;
-    if (Angle = 0) or (Abs(Angle) = 360) then
+  procedure XShear(var Src, Dst: TImageData; Row, Offset, Weight, Bpp: Integer);
+  var
+    I, J, XPos: Integer;
+    PixSrc, PixLeft, PixOldLeft: TColor32Rec;
+    LineDst: PByteArray;
+    SrcPtr: PColor32;
+  begin
+    SrcPtr := @PByteArray(Src.Bits)[Row * Src.Width * Bpp];
+    LineDst := @PByteArray(Dst.Bits)[Row * Dst.Width * Bpp];
+    PixOldLeft.Color := 0;
+
+    for I := 0 to Src.Width - 1 do
     begin
-      Result := True;
-      Exit;
+      CopyPixel(SrcPtr, @PixSrc, Bpp);
+      for J := 0 to Bpp - 1 do
+        PixLeft.Channels[J] := MulDiv(PixSrc.Channels[J], Weight, 256);
+
+      XPos := I + Offset;
+      if (XPos >= 0) and (XPos < Dst.Width) then
+      begin
+        for J := 0 to Bpp - 1 do
+          PixSrc.Channels[J] := PixSrc.Channels[J] - (PixLeft.Channels[J] - PixOldLeft.Channels[J]);
+        CopyPixel(@PixSrc, @LineDst[XPos * Bpp], Bpp);
+      end;
+      PixOldLeft := PixLeft;
+      Inc(PByte(SrcPtr), Bpp);
     end;
 
-    Angle := Iff(Angle = -90, 270, Angle);
-    Angle := Iff(Angle = -270, 90, Angle);
-    Angle := Iff(Angle = -180, 180, Angle);
+    XPos := Src.Width + Offset;
+    if XPos < Dst.Width then
+      CopyPixel(@PixOldLeft, @LineDst[XPos * Bpp], Bpp);
+  end;
 
-    OldFmt := Image.Format;
-    if ImageFormatInfos[Image.Format].IsSpecial then
-      ConvertImage(Image, ifDefault);
+  procedure YShear(var Src, Dst: TImageData; Col, Offset, Weight, Bpp: Integer);
+  var
+    I, J, YPos: Integer;
+    PixSrc, PixLeft, PixOldLeft: TColor32Rec;
+    SrcPtr: PByte;
+  begin
+    SrcPtr := @PByteArray(Src.Bits)[Col * Bpp];
+    PixOldLeft.Color := 0;
 
+    for I := 0 to Src.Height - 1 do
+    begin
+      CopyPixel(SrcPtr, @PixSrc, Bpp);
+      for J := 0 to Bpp - 1 do
+        PixLeft.Channels[J] := MulDiv(PixSrc.Channels[J], Weight, 256);
+
+      YPos := I + Offset;
+      if (YPos >= 0) and (YPos < Dst.Height) then
+      begin
+        for J := 0 to Bpp - 1 do
+          PixSrc.Channels[J] := PixSrc.Channels[J] - (PixLeft.Channels[J] - PixOldLeft.Channels[J]);
+        CopyPixel(@PixSrc, @PByteArray(Dst.Bits)[(YPos * Dst.Width + Col) * Bpp], Bpp);
+      end;
+      PixOldLeft := PixLeft;
+      Inc(SrcPtr, Src.Width * Bpp);
+    end;
+
+    YPos := Src.Height + Offset;
+    if YPos < Dst.Height then
+      CopyPixel(@PixOldLeft, @PByteArray(Dst.Bits)[(YPos * Dst.Width + Col) * Bpp], Bpp);
+  end;
+
+  procedure Rotate45(var Image: TImageData; Angle: Single);
+  var
+    TempImage1, TempImage2: TImageData;
+    AngleRad, AngleTan, AngleSin, AngleCos, Shear: Single;
+    I, DstWidth, DstHeight, SrcWidth, SrcHeight, Bpp: Integer;
+    SrcFmt, TempFormat: TImageFormat;
+    Info: TImageFormatInfo;
+  begin
+    AngleRad := Angle * Pi / 180;
+    AngleSin := Sin(AngleRad);
+    AngleCos := Cos(AngleRad);
+    AngleTan := Sin(AngleRad / 2) / Cos(AngleRad / 2);
+    SrcWidth := Image.Width;
+    SrcHeight := Image.Height;
+    SrcFmt := Image.Format;
+
+    if not (SrcFmt in [ifR8G8B8..ifX8R8G8B8, ifGray8..ifGray32, ifA16Gray16]) then
+      ConvertImage(Image, ifA8R8G8B8);
+
+    TempFormat := Image.Format;
+    GetImageFormatInfo(TempFormat, Info);
+    Bpp := Info.BytesPerPixel;
+
+    // 1st shear (horizontal)
+    DstWidth := Trunc(SrcWidth + SrcHeight * Abs(AngleTan) + 0.5);
+    DstHeight := SrcHeight;
+    NewImage(DstWidth, DstHeight, TempFormat, TempImage1);
+
+    for I := 0 to DstHeight - 1 do
+    begin
+      if AngleTan >= 0 then
+        Shear := (I + 0.5) * AngleTan
+      else
+        Shear := (I - DstHeight + 0.5) * AngleTan;
+      XShear(Image, TempImage1, I, Floor(Shear), Trunc(255 * (Shear - Floor(Shear)) + 1), Bpp);
+    end;
+
+    // 2nd shear  (vertical)
+    FreeImage(Image);
+    DstHeight := Trunc(SrcWidth * Abs(AngleSin) + SrcHeight * AngleCos + 0.5) + 1;
+    NewImage(DstWidth, DstHeight, TempFormat, TempImage2);
+
+    if AngleSin >= 0 then
+      Shear := (SrcWidth - 1) * AngleSin
+    else
+      Shear := (SrcWidth - DstWidth) * -AngleSin;
+
+    for I := 0 to DstWidth - 1 do
+    begin
+      YShear(TempImage1, TempImage2, I, Floor(Shear), Trunc(255 * (Shear - Floor(Shear)) + 1), Bpp);
+      Shear := Shear - AngleSin;
+    end;
+
+    // 3rd shear (horizontal)
+    FreeImage(TempImage1);
+    DstWidth := Trunc(SrcHeight * Abs(AngleSin) + SrcWidth * AngleCos + 0.5) + 1;
+    NewImage(DstWidth, DstHeight, TempFormat, Image);
+
+    if AngleSin >= 0 then
+      Shear := (SrcWidth - 1) * AngleSin * -AngleTan
+    else
+      Shear := ((SrcWidth - 1) * -AngleSin + (1 - DstHeight)) * AngleTan;
+
+    for I := 0 to DstHeight - 1 do
+    begin
+      XShear(TempImage2, Image, I, Floor(Shear), Trunc(255 * (Shear - Floor(Shear)) + 1), Bpp);
+      Shear := Shear + AngleTan;
+    end;
+
+    FreeImage(TempImage2);
+    if Image.Format <> SrcFmt then
+      ConvertImage(Image, SrcFmt);
+  end;
+
+  procedure RotateMul90(var Image: TImageData; Angle: Integer);
+  var
+    RotImage: TImageData;
+    X, Y, BytesPerPixel: Integer;
+    RotPix, Pix: PByte;
+  begin
     InitImage(RotImage);
     BytesPerPixel := ImageFormatInfos[Image.Format].BytesPerPixel;
 
@@ -1928,8 +2048,7 @@ begin
         begin
           for Y := 0 to RotImage.Height - 1 do
           begin
-            Pix := @PByteArray(Image.Bits)[((Image.Height - 1) * Image.Width +
-              Y) * BytesPerPixel];
+            Pix := @PByteArray(Image.Bits)[((Image.Height - 1) * Image.Width + Y) * BytesPerPixel];
             for X := 0 to RotImage.Width - 1 do
             begin
               CopyPixel(Pix, RotPix, BytesPerPixel);
@@ -1943,6 +2062,46 @@ begin
     FreeMemNil(Image.Bits);
     RotImage.Palette := Image.Palette;
     Image := RotImage;
+  end;
+
+begin
+  Result := False;
+
+  if TestImage(Image) then
+  try
+    while Angle >= 360 do
+      Angle := Angle - 360;
+    while Angle < 0 do
+      Angle := Angle + 360;
+
+    if (Angle = 0) or (Abs(Angle) = 360) then
+    begin
+      Result := True;
+      Exit;
+    end;
+
+    OldFmt := Image.Format;
+    if ImageFormatInfos[Image.Format].IsSpecial then
+      ConvertImage(Image, ifDefault);
+
+    if (Angle > 45) and (Angle <= 135) then
+    begin
+      RotateMul90(Image, 90);
+      Angle := Angle - 90;
+    end
+    else if (Angle > 135) and (Angle <= 225) then
+    begin
+      RotateMul90(Image, 180);
+      Angle := Angle - 180;
+    end
+    else if (Angle > 225) and (Angle <= 315) then
+    begin
+      RotateMul90(Image, 270);
+      Angle := Angle - 270;
+    end;
+
+    if Angle <> 0 then
+      Rotate45(Image, Angle);
 
     if OldFmt <> Image.Format then
       ConvertImage(Image, OldFmt);
@@ -3298,6 +3457,7 @@ finalization
     - nothing now
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Extended RotateImage to allow arbitrary angle rotations.
     - Reversed the order file formats list is searched so
       if you register a new one it will be found sooner than
       built in formats.

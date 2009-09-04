@@ -43,8 +43,7 @@ uses
 type
 
   TManipulationType = (mtFlip, mtMirror, mtRotate90CW, mtRotate90CCW,
-    mtResize50Nearest, mtResize50Linear, mtResize50Cubic,
-    mtResize200Nearest, mtResize200Linear, mtResize200Cubic,
+    mtFreeRotate, mtResize50, mtResize200, mtFreeResize,
     mtSwapRB, mtSwapRG, mtSwapGB, mtReduce1024,
     mtReduce256, mtReduce64, mtReduce16, mtReduce2);
   TPointTransform = (ptInvert, ptIncContrast, ptDecContrast, ptIncBrightness,
@@ -135,6 +134,11 @@ type
     AlphaItem: TMenuItem;
     MenuItem78: TMenuItem;
     MenuItem79: TMenuItem;
+    MenuItem80: TMenuItem;
+    MenuItem81: TMenuItem;
+    MenuItem83: TMenuItem;
+    MenuItem84: TMenuItem;
+    MenuItem85: TMenuItem;
     RedItem: TMenuItem;
     GreenItem: TMenuItem;
     BlueItem: TMenuItem;
@@ -220,12 +224,17 @@ type
     procedure MenuItem7Click(Sender: TObject);
     procedure FormatChangeClick(Sender: TObject);
     procedure ChannelSetClick(Sender: TObject);
+    procedure MenuItem80Click(Sender: TObject);
     procedure MenuItem82Click(Sender: TObject);
+    procedure MenuItem83Click(Sender: TObject);
+    procedure MenuItem84Click(Sender: TObject);
+    procedure MenuItem85Click(Sender: TObject);
   private
     FBitmap: TImagingBitmap;
     FImage: TMultiImage;
     FImageCanvas: TImagingCanvas;
     FFileName: string;
+    FParam1, FParam2, FParam3: Integer;
     procedure OpenFile(const FileName: string);
     procedure SaveFile(const FileName: string);
     procedure SelectSubimage(Index: LongInt);
@@ -237,6 +246,8 @@ type
     procedure ApplyNonLinear(FilterType: TNonLinearFilter; FilterSize: Integer);
     procedure ApplyMorphology(MorphOp: TMorphology);
     procedure MeasureTime(const Msg: string; const OldTime: Int64);
+    procedure FreeResizeInput;
+    function InputInteger(const ACaption, APrompt: string; var Value: Integer): Boolean;
   public
 
   end; 
@@ -313,37 +324,43 @@ end;
 
 procedure TMainForm.MenuItem26Click(Sender: TObject);
 begin
-  ApplyManipulation(mtResize50Nearest);
+  FParam1 := Ord(rfNearest);
+  ApplyManipulation(mtResize50);
 end;
 
 procedure TMainForm.MenuItem27Click(Sender: TObject);
 begin
-  ApplyManipulation(mtResize50Linear);
+  FParam1 := Ord(rfBilinear);
+  ApplyManipulation(mtResize50);
 end;
 
 procedure TMainForm.MenuItem28Click(Sender: TObject);
 begin
-  ApplyManipulation(mtResize50Cubic);
+  FParam1 := Ord(rfBicubic);
+  ApplyManipulation(mtResize50);
 end;
 
 procedure TMainForm.MenuItem29Click(Sender: TObject);
 begin
-  ApplyManipulation(mtResize200Nearest);
+  FParam1 := Ord(rfNearest);
+  ApplyManipulation(mtResize200);
+end;
+
+procedure TMainForm.MenuItem30Click(Sender: TObject);
+begin
+  FParam1 := Ord(rfBilinear);
+  ApplyManipulation(mtResize200);
+end;
+
+procedure TMainForm.MenuItem31Click(Sender: TObject);
+begin
+  FParam1 := Ord(rfBicubic);
+  ApplyManipulation(mtResize200);
 end;
 
 procedure TMainForm.MenuItem2Click(Sender: TObject);
 begin
   ApplyManipulation(mtFlip);
-end;
-
-procedure TMainForm.MenuItem30Click(Sender: TObject);
-begin
-  ApplyManipulation(mtResize200Linear);
-end;
-
-procedure TMainForm.MenuItem31Click(Sender: TObject);
-begin
-  ApplyManipulation(mtResize200Cubic);
 end;
 
 procedure TMainForm.MenuItem33Click(Sender: TObject);
@@ -585,12 +602,10 @@ begin
     mtMirror:           FImage.Mirror;
     mtRotate90CW:       FImage.Rotate(-90);
     mtRotate90CCW:      FImage.Rotate(90);
-    mtResize50Nearest:  FImage.Resize(FImage.Width div 2, FImage.Height div 2, rfNearest);
-    mtResize50Linear:   FImage.Resize(FImage.Width div 2, FImage.Height div 2, rfBilinear);
-    mtResize50Cubic:    FImage.Resize(FImage.Width div 2, FImage.Height div 2, rfBicubic);
-    mtResize200Nearest: FImage.Resize(FImage.Width * 2, FImage.Height * 2, rfNearest);
-    mtResize200Linear:  FImage.Resize(FImage.Width * 2, FImage.Height * 2, rfBilinear);
-    mtResize200Cubic:   FImage.Resize(FImage.Width * 2, FImage.Height * 2, rfBicubic);
+    mtFreeRotate:       FImage.Rotate(FParam1);
+    mtResize50:         FImage.Resize(FImage.Width div 2, FImage.Height div 2, TResizeFilter(FParam1));
+    mtResize200:        FImage.Resize(FImage.Width * 2, FImage.Height * 2, TResizeFilter(FParam1));
+    mtFreeResize:       FImage.Resize(FParam2, FParam3, TResizeFilter(FParam1));
     mtSwapRB:           FImage.SwapChannels(ChannelRed, ChannelBlue);
     mtSwapRG:           FImage.SwapChannels(ChannelRed, ChannelGreen);
     mtSwapGB:           FImage.SwapChannels(ChannelGreen, ChannelBlue);
@@ -712,6 +727,36 @@ begin
   end;
 end;
 
+procedure TMainForm.MenuItem80Click(Sender: TObject);
+begin
+  if InputInteger('Free Rotate', 'Enter angle in degrees:', FParam1) then
+    ApplyManipulation(mtFreeRotate);
+end;
+
+procedure TMainForm.FreeResizeInput;
+begin
+  if InputInteger('Free Resize', 'Enter width in pixels', FParam2) and
+   InputInteger('Free Resize', 'Enter height in pixels', FParam3) then
+  begin
+    ApplyManipulation(mtFreeResize);
+  end;
+end;
+
+function TMainForm.InputInteger(const ACaption, APrompt: string;
+  var Value: Integer): Boolean;
+var
+  StrVal: string;
+begin
+  Result := False;
+  if Dialogs.InputQuery(ACaption, APrompt, StrVal) then
+  begin
+    if TryStrToInt(StrVal, Value) then
+      Exit(True)
+    else
+      MessageDlg('Cannot convert input to number', mtError, [mbOK], 0);
+  end;
+end;
+
 procedure TMainForm.MenuItem82Click(Sender: TObject);
 var
   T: Int64;
@@ -763,6 +808,24 @@ begin
     Canvas.Free;
     UpdateView;
   end;
+end;
+
+procedure TMainForm.MenuItem83Click(Sender: TObject);
+begin
+  FParam1 := Ord(rfNearest);
+  FreeResizeInput;
+end;
+
+procedure TMainForm.MenuItem84Click(Sender: TObject);
+begin
+  FParam1 := Ord(rfBilinear);
+  FreeResizeInput;
+end;
+
+procedure TMainForm.MenuItem85Click(Sender: TObject);
+begin
+  FParam1 := Ord(rfBicubic);
+  FreeResizeInput;
 end;
 
 procedure TMainForm.ActViewRealSizeExecute(Sender: TObject);
@@ -969,6 +1032,7 @@ initialization
     - add more canvas stuff when it will be avaiable
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Added Free Resize and Free Rotate functions to Manipulate menu.
     - Added premult/unpremult alpha point transforms.
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------

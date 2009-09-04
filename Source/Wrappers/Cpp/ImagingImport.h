@@ -135,7 +135,7 @@ typedef Boolean (ImagingAPI * TImGenerateMipMaps)(PImageData Image, int Levels, 
 typedef Boolean (ImagingAPI * TImMapImageToPalette)(PImageData Image, PPalette32 Pal, int Entries);
 typedef Boolean (ImagingAPI * TImSplitImage)(PImageData Image, PImageDataList Chunks, int ChunkWidth, int ChunkHeight, int * XChunks, int * YChunks, Boolean PreserveSize, const void * Fill);
 typedef Boolean (ImagingAPI * TImMakePaletteForImages)(TImageDataList Images, PPalette32 Pal, int MaxColors, Boolean ConvertImages);
-typedef Boolean (ImagingAPI * TImRotateImage)(PImageData Image, int Angle);
+typedef Boolean (ImagingAPI * TImRotateImage)(PImageData Image, float Angle);
 
 extern TImCloneImage ImCloneImage;
 extern TImConvertImage ImConvertImage;

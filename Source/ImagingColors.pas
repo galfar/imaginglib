@@ -68,6 +68,12 @@ procedure RGBToCMYK16(R, G, B: Word; var C, M, Y, K: Word);
 { Converts CMYK to RGB color.}
 procedure CMYKToRGB16(C, M, Y, K: Word; var R, G, B: Word);
 
+{ Converts RGB color to YCoCg.}
+procedure RGBToYCoCg(R, G, B: Byte; var Y, Co, Cg: Byte);
+{ Converts YCoCg to RGB color.}
+procedure YCoCgToRGB(Y, Co, Cg: Byte; var R, G, B: Byte);
+
+
 implementation
 
 procedure RGBToYUV(R, G, B: Byte; var Y, U, V: Byte);
@@ -149,11 +155,17 @@ procedure RGBToCMYK(R, G, B: Byte; var C, M, Y, K: Byte);
 begin
   RGBToCMY(R, G, B, C, M, Y);
   K := Min(C, Min(M, Y));
-  if K > 0 then
+  if K = 255 then
   begin
-    C := C - K;
-    M := M - K;
-    Y := Y - K;
+    C := 0;
+    M := 0;
+    Y := 0;
+  end
+  else
+  begin
+    C := ClampToByte(Round((C - K) / (255 - K) * 255));
+    M := ClampToByte(Round((M - K) / (255 - K) * 255));
+    Y := ClampToByte(Round((Y - K) / (255 - K) * 255));
   end;
 end;
 
@@ -168,11 +180,17 @@ procedure RGBToCMYK16(R, G, B: Word; var C, M, Y, K: Word);
 begin
   RGBToCMY16(R, G, B, C, M, Y);
   K := Min(C, Min(M, Y));
-  if K > 0 then
+  if K = 65535 then
   begin
-    C := C - K;
-    M := M - K;
-    Y := Y - K;
+    C := 0;
+    M := 0;
+    Y := 0;
+  end
+  else
+  begin
+    C := ClampToWord(Round((C - K) / (65535 - K) * 65535));
+    M := ClampToWord(Round((M - K) / (65535 - K) * 65535));
+    Y := ClampToWord(Round((Y - K) / (65535 - K) * 65535));
   end;
 end;
 
@@ -183,13 +201,34 @@ begin
   B := 65535 - (Y - MulDiv(Y, K, 65535) + K);
 end;
 
+procedure RGBToYCoCg(R, G, B: Byte; var Y, Co, Cg: Byte);
+begin
+  // C and Delphi's SHR behaviour differs for negative numbers, use div instead.
+  Y  := ClampToByte(( R +     G shl 1 + B       + 2) div 4);
+  Co := ClampToByte(( R shl 1         - B shl 1 + 2) div 4 + 128);
+  Cg := ClampToByte((-R +     G shl 1 - B       + 2) div 4 + 128);
+end;
+
+procedure YCoCgToRGB(Y, Co, Cg: Byte; var R, G, B: Byte);
+var
+  CoInt, CgInt: Integer;
+begin
+  CoInt := Co - 128;
+  CgInt := Cg - 128;
+  R := ClampToByte(Y + CoInt - CgInt);
+  G := ClampToByte(Y + CgInt);
+  B := ClampToByte(Y - CoInt - CgInt);
+end;
+
 {
   File Notes:
 
   -- TODOS ----------------------------------------------------
     - nothing now
 
-  -- 0.23 Changes/Bug Fixes -----------------------------------
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Added RGB<>YCoCg conversion functions.
+    - Fixed RGB>>CMYK conversions.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added RGB<>CMY(K) converion functions for 16 bit channels

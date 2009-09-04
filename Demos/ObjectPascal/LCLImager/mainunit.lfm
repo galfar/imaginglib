@@ -4,7 +4,7 @@ object MainForm: TMainForm
   Top = 82
   Width = 768
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
-  ClientHeight = 481
+  ClientHeight = 492
   ClientWidth = 768
   Constraints.MinHeight = 240
   Constraints.MinWidth = 320
@@ -89,10 +89,13 @@ object MainForm: TMainForm
   WindowState = wsMaximized
   object Image: TImage
     Cursor = crHandPoint
-    Height = 459
-    Width = 768
+    Left = 4
+    Height = 470
+    Width = 760
     Align = alClient
     AutoSize = True
+    BorderSpacing.Left = 4
+    BorderSpacing.Right = 4
     Center = True
     OnClick = ImageClick
     Proportional = True
@@ -100,7 +103,7 @@ object MainForm: TMainForm
   end
   object PanelStatus: TPanel
     Height = 22
-    Top = 459
+    Top = 470
     Width = 768
     Align = alBottom
     Alignment = taLeftJustify
@@ -188,6 +191,10 @@ object MainForm: TMainForm
         Caption = 'Rotate 90 CCW'
         OnClick = MenuItem24Click
       end
+      object MenuItem80: TMenuItem
+        Caption = 'Free Rotate'
+        OnClick = MenuItem80Click
+      end
       object MenuItem21: TMenuItem
         Caption = 'Resize To 50%'
         object MenuItem26: TMenuItem
@@ -216,6 +223,21 @@ object MainForm: TMainForm
         object MenuItem31: TMenuItem
           Caption = 'Bicubic'
           OnClick = MenuItem31Click
+        end
+      end
+      object MenuItem81: TMenuItem
+        Caption = 'Free Resize'
+        object MenuItem83: TMenuItem
+          Caption = 'Nearest'
+          OnClick = MenuItem83Click
+        end
+        object MenuItem84: TMenuItem
+          Caption = 'Bilinear'
+          OnClick = MenuItem84Click
+        end
+        object MenuItem85: TMenuItem
+          Caption = 'Bicubic'
+          OnClick = MenuItem85Click
         end
       end
       object MenuItem12: TMenuItem

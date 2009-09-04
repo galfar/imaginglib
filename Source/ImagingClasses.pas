@@ -81,8 +81,8 @@ type
     { Mirrors current image. Reverses the image along its vertical axis the left
       side becomes the right and vice versa.}
     procedure Mirror;
-    { Rotates image by 90, 180, 270, -90, -180, or -270 degrees counterclockwise.}
-    procedure Rotate(Angle: LongInt);
+    { Rotates image by Angle degrees counterclockwise.}
+    procedure Rotate(Angle: Single);
     { Copies rectangular part of SrcImage to DstImage. No blending is performed -
       alpha is simply copied to destination image. Operates also with
       negative X and Y coordinates.
@@ -451,7 +451,7 @@ begin
     DoPixelsChanged;
 end;
 
-procedure TBaseImage.Rotate(Angle: LongInt);
+procedure TBaseImage.Rotate(Angle: Single);
 begin
   if Valid and Imaging.RotateImage(FPData^, Angle) then
     DoPixelsChanged;

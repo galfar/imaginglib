@@ -11,9 +11,11 @@
                               // works in Free Pascal and Delphi 9+
 {$DEFINE USE_ASM}             // if defined, assembler versions of some
                               // functions will be used (only for x86)
-{$DEFINE DEBUG}               // if defined, debug info, range/IO/overflow
+{ $DEFINE DEBUG}               // if defined, debug info, range/IO/overflow
                               // checking, stack frames, assertions, and
                               // other debugging options will be turned on
+{ $DEFINE IMAGING_DEBUG_CONTROL} //
+
 
 (* File format support linking options.
   Define formats which you don't want to be registred automatically.
@@ -85,37 +87,39 @@
   {$ENDIF}
 {$IFEND}
 
-{$IFDEF DEBUG}
-  {$ASSERTIONS ON}
-  {$DEBUGINFO ON}
-  {$RANGECHECKS ON}
-  {$IOCHECKS ON}
-  {$OVERFLOWCHECKS ON}
-  {$IFDEF DCC}
-    {$OPTIMIZATION OFF}
-    {$STACKFRAMES ON}
-    {$LOCALSYMBOLS ON}
-    {$DEFINE MEMCHECK}
-  {$ENDIF}
-  {$IFDEF FPC}
-    {$S+}
-    {$CHECKPOINTER ON}
-  {$ENDIF}
-{$ELSE}
-  {$ASSERTIONS OFF}
-  {$DEBUGINFO OFF}
-  {$RANGECHECKS OFF}
-  {$IOCHECKS OFF}
-  {$OVERFLOWCHECKS OFF}
-  {$IFDEF DCC}
-    {$OPTIMIZATION ON}
-    {$STACKFRAMES OFF}
-    {$LOCALSYMBOLS OFF}
-  {$ENDIF}
-  {$IFDEF FPC}
-    {$S-}
-  {$ENDIF}
-{$ENDIF}
+{$IF Defined(IMAGING_DEBUG_CONTROL)}
+  {$IF Defined(DEBUG)}
+    {$ASSERTIONS ON}
+    {$DEBUGINFO ON}
+    {$RANGECHECKS ON}
+    {$IOCHECKS ON}
+    {$OVERFLOWCHECKS ON}
+    {$IFDEF DCC}
+      {$OPTIMIZATION OFF}
+      {$STACKFRAMES ON}
+      {$LOCALSYMBOLS ON}
+      {$DEFINE MEMCHECK}
+    {$ENDIF}
+    {$IFDEF FPC}
+      {$S+}
+      {$CHECKPOINTER ON}
+    {$ENDIF}
+  {$ELSE}
+    {$ASSERTIONS OFF}
+    {$DEBUGINFO OFF}
+    {$RANGECHECKS OFF}
+    {$IOCHECKS OFF}
+    {$OVERFLOWCHECKS OFF}
+    {$IFDEF DCC}
+      {$OPTIMIZATION ON}
+      {$STACKFRAMES OFF}
+      {$LOCALSYMBOLS OFF}
+    {$ENDIF}
+    {$IFDEF FPC}
+      {$S-}
+    {$ENDIF}
+  {$IFEND}
+{$IFEND}
 
 { Compiler capabilities }
 

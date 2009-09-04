@@ -361,7 +361,7 @@ function ImSplitImage(var Image: TImageData; var Chunks: TImageDataList;
 function ImMakePaletteForImages(var Images: TImageDataList; Pal: TPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean; external;
 [SuppressUnmanagedCodeSecurity, DllImport(LibraryName, CallingConvention = CallingConvention.Cdecl)]
-function ImRotateImage(var Image: TImageData; Angle: LongInt): Boolean; external;
+function ImRotateImage(var Image: TImageData; Angle: Single): Boolean; external;
 
 { Drawing/Pixel functions }
 
@@ -487,7 +487,7 @@ type
     class function MapImageToPalette(var Image: TImageData; Pal: TPalette32; Entries: LongInt): Boolean; static;
     class function SplitImage(var Image: TImageData; var Chunks: TDynImageDataArray; ChunkWidth, ChunkHeight: LongInt; var XChunks, YChunks: LongInt; PreserveSize: Boolean; Fill: TObject): Boolean; static;
     class function MakePaletteForImages(var Images: TDynImageDataArray; Pal: TPalette32; MaxColors: LongInt; ConvertImages: Boolean): Boolean; static;
-    class function RotateImage(var Image: TImageData; Angle: LongInt): Boolean; static;
+    class function RotateImage(var Image: TImageData; Angle: Single): Boolean; static;
     { Drawing/Pixel functions }
     class function CopyRect(const SrcImage: TImageData; SrcX, SrcY, Width, Height: LongInt; var DstImage: TImageData; DstX, DstY: LongInt): Boolean; static;
     class function FillRect(var Image: TImageData; X, Y, Width, Height: LongInt; Fill: TObject): Boolean; static;
@@ -824,7 +824,7 @@ begin
   end;
 end;
 
-class function Imaging.RotateImage(var Image: TImageData; Angle: LongInt): Boolean;
+class function Imaging.RotateImage(var Image: TImageData; Angle: Single): Boolean;
 begin
   Result := ImRotateImage(Image, Angle);
 end;
