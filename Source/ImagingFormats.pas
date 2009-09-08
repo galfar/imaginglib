@@ -1724,13 +1724,19 @@ procedure StretchResample(const SrcImage: TImageData; SrcX, SrcY, SrcWidth,
   DstHeight: LongInt; Filter: TFilterFunction; Radius: Single; WrapEdges: Boolean);
 const
   Channel8BitMax: Single = 255.0;
+type
+  TBufferItem = record
+    A, R, G, B: Integer;
+  end;
 var
   MapX, MapY: TMappingTable;
   I, J, X, Y: LongInt;
   XMinimum, XMaximum: LongInt;
-  LineBuffer: array of TColorFPRec;
+  LineBufferFP: array of TColorFPRec;
+  LineBufferInt: array of TBufferItem;
   ClusterX, ClusterY: TCluster;
   Weight, AccumA, AccumR, AccumG, AccumB: Single;
+  IWeight, IAccumA, IAccumR, IAccumG, IAccumB: Integer;
   DstLine: PByte;
   SrcColor: TColor32Rec;
   SrcFloat: TColorFPRec;
@@ -1760,10 +1766,10 @@ begin
   try
     // Find min and max X coords of pixels that will contribute to target image
     FindExtremes(MapX, XMinimum, XMaximum);
-    SetLength(LineBuffer, XMaximum - XMinimum + 1);
 
     if not UseOptimizedVersion then
     begin
+      SetLength(LineBufferFP, XMaximum - XMinimum + 1);
       // Following code works for the rest of data formats
       for J := 0 to DstHeight - 1 do
       begin
@@ -1774,10 +1780,10 @@ begin
         for X := XMinimum to XMaximum do
         begin
           // Clear accumulators
-          AccumA := 0.0;
-          AccumR := 0.0;
-          AccumG := 0.0;
-          AccumB := 0.0;
+          AccumA := 0;
+          AccumR := 0;
+          AccumG := 0;
+          AccumB := 0;
           // For each pixel in line compute weighted sum of pixels
           // in source column that will contribute to this pixel
           for Y := 0 to Length(ClusterY) - 1 do
@@ -1791,7 +1797,7 @@ begin
             AccumA := AccumA + SrcFloat.A * Weight;
           end;
           // Store accumulated value for this pixel in buffer
-          with LineBuffer[X - XMinimum] do
+          with LineBufferFP[X - XMinimum] do
           begin
             A := AccumA;
             R := AccumR;
@@ -1807,17 +1813,17 @@ begin
         begin
           ClusterX := MapX[I];
           // Clear accumulator
-          AccumA := 0.0;
-          AccumR := 0.0;
-          AccumG := 0.0;
-          AccumB := 0.0;
+          AccumA := 0;
+          AccumR := 0;
+          AccumG := 0;
+          AccumB := 0;
           // Compute weighted sum of values (which are already
           // computed weighted sums of pixels in source columns stored in LineBuffer)
           // that will contribute to the current target pixel
           for X := 0 to Length(ClusterX) - 1 do
           begin
             Weight := ClusterX[X].Weight;
-            with LineBuffer[ClusterX[X].Pos - XMinimum] do
+            with LineBufferFP[ClusterX[X].Pos - XMinimum] do
             begin
               AccumB := AccumB + B * Weight;
               AccumG := AccumG + G * Weight;
@@ -1839,37 +1845,35 @@ begin
     end
     else
     begin
+      SetLength(LineBufferInt, XMaximum - XMinimum + 1);
       // Following code is optimized for images with 8 bit channels
       for J := 0 to DstHeight - 1 do
       begin
         ClusterY := MapY[J];
         for X := XMinimum to XMaximum do
         begin
-          AccumA := 0.0;
-          AccumR := 0.0;
-          AccumG := 0.0;
-          AccumB := 0.0;
+          IAccumA := 0;
+          IAccumR := 0;
+          IAccumG := 0;
+          IAccumB := 0;
           for Y := 0 to Length(ClusterY) - 1 do
           begin
-            Weight := ClusterY[Y].Weight;
+            IWeight := Round(256 * ClusterY[Y].Weight);
             CopyPixel(
               @PByteArray(SrcImage.Bits)[(ClusterY[Y].Pos * SrcImage.Width + X) * Info.BytesPerPixel],
               @SrcColor, Info.BytesPerPixel);
 
-            AccumB := AccumB + SrcColor.B * Weight;
-            if Info.ChannelCount > 1 then
-              AccumG := AccumG + SrcColor.G * Weight;
-            if Info.ChannelCount > 2 then
-              AccumR := AccumR + SrcColor.R * Weight;
-            if Info.ChannelCount > 3 then
-              AccumA := AccumA + SrcColor.A * Weight;
+            IAccumB := IAccumB + SrcColor.B * IWeight;
+            IAccumG := IAccumG + SrcColor.G * IWeight;
+            IAccumR := IAccumR + SrcColor.R * IWeight;
+            IAccumA := IAccumA + SrcColor.A * IWeight;
           end;
-          with LineBuffer[X - XMinimum] do
+          with LineBufferInt[X - XMinimum] do
           begin
-            A := AccumA;
-            R := AccumR;
-            G := AccumG;
-            B := AccumB;
+            A := IAccumA;
+            R := IAccumR;
+            G := IAccumG;
+            B := IAccumB;
           end;
         end;
 
@@ -1878,31 +1882,26 @@ begin
         for I := 0 to DstWidth - 1 do
         begin
           ClusterX := MapX[I];
-          AccumA := 0.0;
-          AccumR := 0.0;
-          AccumG := 0.0;
-          AccumB := 0.0;
+          IAccumA := 0;
+          IAccumR := 0;
+          IAccumG := 0;
+          IAccumB := 0;
           for X := 0 to Length(ClusterX) - 1 do
           begin
-            Weight := ClusterX[X].Weight;
-            with LineBuffer[ClusterX[X].Pos - XMinimum] do
+            IWeight := Round(256 * ClusterX[X].Weight);
+            with LineBufferInt[ClusterX[X].Pos - XMinimum] do
             begin
-              AccumB := AccumB + B * Weight;
-              if Info.ChannelCount > 1 then
-                AccumG := AccumG + G * Weight;
-              if Info.ChannelCount > 2 then
-                AccumR := AccumR + R * Weight;
-              if Info.ChannelCount > 3 then
-                AccumA := AccumA + A * Weight;
+              IAccumB := IAccumB + B * IWeight;
+              IAccumG := IAccumG + G * IWeight;
+              IAccumR := IAccumR + R * IWeight;
+              IAccumA := IAccumA + A * IWeight;
             end;
           end;
-          SrcColor.B := ClampToByte(Round(AccumB));
-          if Info.ChannelCount > 1 then
-            SrcColor.G := ClampToByte(Round(AccumG));
-          if Info.ChannelCount > 2 then
-            SrcColor.R := ClampToByte(Round(AccumR));
-          if Info.ChannelCount > 3 then
-            SrcColor.A := ClampToByte(Round(AccumA));
+
+          SrcColor.B := ClampInt(IAccumB, 0, $00FF0000) shr 16;
+          SrcColor.G := ClampInt(IAccumG, 0, $00FF0000) shr 16;
+          SrcColor.R := ClampInt(IAccumR, 0, $00FF0000) shr 16;
+          SrcColor.A := ClampInt(IAccumA, 0, $00FF0000) shr 16;
 
           CopyPixel(@SrcColor, DstLine, Info.BytesPerPixel);
           Inc(DstLine, Info.BytesPerPixel);
@@ -4223,9 +4222,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
-    - rewrite StretchRect for 8bit channels to use integer math?
 
   -- 0.26.3 Changes/Bug Fixes -----------------------------------
+    - Filtered resampling ~10% faster now.
     - Fixed DXT3 alpha encoding.
     - ifIndex8 format now has HasAlphaChannel=True.
 

@@ -49,6 +49,7 @@ type
     ClipDst: TJvMovableBevel;
     Button5: TButton;
     Button6: TButton;
+    CheckGenCanvas: TCheckBox;
     procedure BtnLoadImagesClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -190,7 +191,7 @@ begin
         DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, SrcImage.Width, SrcImage.Height, DstClip);
       // Call image's stretch method
       SrcImage.StretchTo(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
-        Result, DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, rfBicubic);
+        Result, DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, rfBilinear);
     end
     else
     begin
@@ -204,8 +205,16 @@ begin
   end
   else
   begin
-    SrcCanvas := TImagingCanvas.CreateForImage(SrcImage);
-    DestCanvas := TImagingCanvas.CreateForImage(Result);
+    if CheckGenCanvas.Checked then
+    begin
+      SrcCanvas := TImagingCanvas.CreateForImage(SrcImage);
+      DestCanvas := TImagingCanvas.CreateForImage(Result);
+    end
+    else
+    begin
+      SrcCanvas := FindBestCanvasForImage(SrcImage).CreateForImage(SrcImage);
+      DestCanvas := FindBestCanvasForImage(Result).CreateForImage(Result);
+    end;
 
     if Stretch then
     begin
@@ -214,7 +223,8 @@ begin
         DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, SrcImage.Width, SrcImage.Height, DstClip);
       // Call stretch method
       SrcCanvas.StretchDrawAlpha(Rect(SrcBounds.Left, SrcBounds.Top, SrcBounds.Left + SrcBounds.Right, SrcBounds.Top + SrcBounds.Bottom),
-        DestCanvas, Rect(DstBounds.Left, DstBounds.Top, DstBounds.Left + DstBounds.Right, DstBounds.Top + DstBounds.Bottom), rfBicubic);
+        DestCanvas, Rect(DstBounds.Left, DstBounds.Top, DstBounds.Left + DstBounds.Right, DstBounds.Top + DstBounds.Bottom),
+        rfBilinear);
     end
     else
     begin

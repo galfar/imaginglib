@@ -19,14 +19,10 @@ type
   protected
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
-    function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: LongInt): Boolean; override;
-    procedure ConvertToSupported(var Image: TImageData;
-      const Info: TImageFormatInfo); override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
-  published  
+  published
   end;
 
 implementation
@@ -34,7 +30,6 @@ implementation
 const
   SNIFFormatName = 'NetImmerse Image';
   SNIFMasks      = '*.nif';
-  NIFSupportedFormats: TImageFormats = [ifR8G8B8, ifA8R8G8B8];
 
 type
   { NIF file header.}
@@ -53,7 +48,6 @@ begin
   FCanLoad := True;
   FCanSave := False;
   FIsMultiImageFormat := False;
-  FSupportedFormats := NIFSupportedFormats;
 
   AddMasks(SNIFMasks);
 end;
@@ -62,10 +56,7 @@ function TNIFFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Hdr: TNIFHeader;
-  I, PSize, PalSize: LongWord;
-  Pal: Pointer;
   FmtInfo: TImageFormatInfo;
-  WordValue: Word;
 begin
   SetLength(Images, 1);
   with GetIO, Images[0] do
@@ -95,36 +86,6 @@ begin
 
     Result := True;
   end;
-end;
-
-function TNIFFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: LongInt): Boolean;
-begin
-// not impl.
-end;
-
-procedure TNIFFileFormat.ConvertToSupported(var Image: TImageData;
-  const Info: TImageFormatInfo);
-var
-  ConvFormat: TImageFormat;
-begin
-  if Info.HasGrayChannel then
-    // Convert all grayscale images to Gray8 (preserve alpha of AxGrayx formats)
-    ConvFormat := IffFormat(not Info.HasAlphaChannel, ifGray8, ifA8R8G8B8)
-  else if Info.IsIndexed then
-    // Convert all indexed images to Index8
-    ConvFormat := ifIndex8
-  else if Info.HasAlphaChannel then
-    // Convert images with alpha channel to A8R8G8B8
-    ConvFormat := ifA8R8G8B8
-  else if Info.UsePixelFormat then
-    // Convert 16bit images (without alpha channel) to A1R5G5B5
-    ConvFormat := ifA1R5G5B5
-  else
-    // Convert all other formats to R8G8B8
-    ConvFormat := ifR8G8B8;
-
-  ConvertImage(Image, ConvFormat);
 end;
 
 function TNIFFileFormat.TestFormat(Handle: TImagingHandle): Boolean;

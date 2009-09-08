@@ -139,5 +139,13 @@ object MainForm: TMainForm
       TabOrder = 5
       OnClick = Button6Click
     end
+    object CheckGenCanvas: TCheckBox
+      Left = 704
+      Top = 24
+      Width = 209
+      Height = 17
+      Caption = 'Force generic canvas class'
+      TabOrder = 6
+    end
   end
 end

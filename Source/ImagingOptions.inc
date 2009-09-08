@@ -5,16 +5,20 @@
   Following defines and options can be changed by user.
 }
 
-{ Source options. }
+{ Source options }
 
-{$DEFINE USE_INLINE}          // use function inlining for some functions
-                              // works in Free Pascal and Delphi 9+
-{$DEFINE USE_ASM}             // if defined, assembler versions of some
-                              // functions will be used (only for x86)
-{ $DEFINE DEBUG}               // if defined, debug info, range/IO/overflow
+{$DEFINE USE_INLINE}          // Use function inlining for some functions
+                              // works in Free Pascal and Delphi 9+.
+{$DEFINE USE_ASM}             // Ff defined, assembler versions of some
+                              // functions will be used (only for x86).
+
+                              // Debug options: If none of these two are defined
+                              // your project settings are used.
+{ $DEFINE IMAGING_DEBUG}      // If defined, debug info, range/IO/overflow
                               // checking, stack frames, assertions, and
-                              // other debugging options will be turned on
-{ $DEFINE IMAGING_DEBUG_CONTROL} //
+                              // other debugging options will be turned on.
+{ $DEFINE IMAGING_RELEASE}    // If defined, all debug info is off.
+
 
 
 (* File format support linking options.
@@ -87,39 +91,38 @@
   {$ENDIF}
 {$IFEND}
 
-{$IF Defined(IMAGING_DEBUG_CONTROL)}
-  {$IF Defined(DEBUG)}
-    {$ASSERTIONS ON}
-    {$DEBUGINFO ON}
-    {$RANGECHECKS ON}
-    {$IOCHECKS ON}
-    {$OVERFLOWCHECKS ON}
-    {$IFDEF DCC}
-      {$OPTIMIZATION OFF}
-      {$STACKFRAMES ON}
-      {$LOCALSYMBOLS ON}
-      {$DEFINE MEMCHECK}
-    {$ENDIF}
-    {$IFDEF FPC}
-      {$S+}
-      {$CHECKPOINTER ON}
-    {$ENDIF}
-  {$ELSE}
-    {$ASSERTIONS OFF}
-    {$DEBUGINFO OFF}
-    {$RANGECHECKS OFF}
-    {$IOCHECKS OFF}
-    {$OVERFLOWCHECKS OFF}
-    {$IFDEF DCC}
-      {$OPTIMIZATION ON}
-      {$STACKFRAMES OFF}
-      {$LOCALSYMBOLS OFF}
-    {$ENDIF}
-    {$IFDEF FPC}
-      {$S-}
-    {$ENDIF}
-  {$IFEND}
+{$IF Defined(IMAGING_DEBUG)}
+  {$ASSERTIONS ON}
+  {$DEBUGINFO ON}
+  {$RANGECHECKS ON}
+  {$IOCHECKS ON}
+  {$OVERFLOWCHECKS ON}
+  {$IFDEF DCC}
+    {$OPTIMIZATION OFF}
+    {$STACKFRAMES ON}
+    {$LOCALSYMBOLS ON}
+    {$DEFINE MEMCHECK}
+  {$ENDIF}
+  {$IFDEF FPC}
+    {$S+}
+    {$CHECKPOINTER ON}
+  {$ENDIF}
+{$ELSEIF Defined(IMAGING_RELEASE)}
+  {$ASSERTIONS OFF}
+  {$DEBUGINFO OFF}
+  {$RANGECHECKS OFF}
+  {$IOCHECKS OFF}
+  {$OVERFLOWCHECKS OFF}
+  {$IFDEF DCC}
+    {$OPTIMIZATION ON}
+    {$STACKFRAMES OFF}
+    {$LOCALSYMBOLS OFF}
+  {$ENDIF}
+  {$IFDEF FPC}
+    {$S-}
+  {$ENDIF}
 {$IFEND}
+
 
 { Compiler capabilities }
 

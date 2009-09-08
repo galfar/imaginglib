@@ -308,6 +308,7 @@ begin
       end;
     end;
 
+    { TODO : YCbCr for 4-channel images too! }
     if (Info.ChannelCount = 3) and (image.color_space = CLRSPC_SYCC) then
     begin
       // Convert image from YCbCr colorspace to RGB if needed.

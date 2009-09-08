@@ -209,7 +209,8 @@ begin
   if Assigned(FImage) then
   begin
     FImage.CreateFromParams(CheckersDensity, CheckersDensity, ifA8R8G8B8, 1);
-    FImageCanvas.CreateForImage(FImage);
+    FImageCanvas.Free;
+    FImageCanvas := FindBestCanvasForImage(FImage).CreateForImage(FImage);
 
     Step := FImage.Width div CheckersDensity;
     for Y := 0 to CheckersDensity - 1 do
@@ -317,7 +318,7 @@ begin
   FImage := TMultiImage.Create;
   FImageCanvas := TImagingCanvas.Create;
   FBack := TSingleImage.CreateFromParams(128, 128, ifA8R8G8B8);
-  FBackCanvas := TImagingCanvas.CreateForImage(FBack);
+  FBackCanvas := FindBestCanvasForImage(FBack).CreateForImage(FBack);
   SetUnsupported;
 end;
 
@@ -337,7 +338,8 @@ begin
   // Scale image to fit the paint box
   R := ImagingUtility.ScaleRectToRect(FImage.BoundsRect, PaintBox.ClientRect);
   // Create canvas for current image frame
-  FImageCanvas.CreateForImage(FImage);
+  FImageCanvas.Free;
+  FImageCanvas := FindBestCanvasForImage(FImage).CreateForImage(FImage);
   // Stretch image over background canvas
   FImageCanvas.StretchDrawAlpha(FImage.BoundsRect, FBackCanvas, R, Filter);
 
@@ -360,6 +362,10 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Creates best canvas class for given image for faster
+      blending and scaling.
 
   -- 0.25.0 Changes/Bug Fixes ---------------------------------
     - Added alpha blended drawing with optional filtered stretching.
