@@ -250,7 +250,7 @@
       There is also option to show histogram of current image (R, G, B, and Gray
       values displayed).      
     </par>
-    <image url="lclimager.png"/>
+    <image url="lclimager.jpg"/>
     
     <!-- VAMPCONVERT DEMO   **************************** -->
     <lcap><anchor name="vampconvert">VampConvert</anchor></lcap>

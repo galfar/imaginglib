@@ -8,19 +8,24 @@
     <par>
       In the long term I'm planning to redesign and rewrite major parts
       (practically create new library - no compatibility with current version)
-      of library in
-      future to make it more compact and easier to use and extend.
+      of library in future to make it more compact and easier to use and extend.
     </par>
+    
     <par>
-      Since I don't have that much free time these days I cannot say when
-      new library will be ready.
-      First working version of this new design will be 0.30 (Imaging 0.3x branch in SVN).
-    </par>
-    <par>
-      Current 0.2x branch will still be updated from time to time
+      Current 0.2x branch is still be updated from time to time
       by minor release (like 0.24.2) or even larger release with more
       new functionality (like 0.26.0).
+      Eventually, this branch will be made into version 1.0 (maybe just 
+      after current 0.26.4 release).   
     </par>
+    
+    <par>
+      Since I don't have that much free time these days I cannot say when
+      new library will be ready. Although I have some desings done, it's
+      still far from usable code.
+      Working in progress version of Imaging 2.0 will be 1.9x branch in SVN 
+      when there is some code to show.
+    </par>    
     
     <par>Here is a list of some of the features I want to include in future
       Imaging releases:</par>

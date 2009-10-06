@@ -13,8 +13,7 @@
         <li><b>Windows</b> x86/AMD64</li>
         <li><b>Linux</b> x86/AMD64</li>
         <li><b>FreeBSD</b> x86/AMD64</li>
-        <li><b>DOS</b></li>
-        <li><b>.NET</b> (using unmanaged DLL)</li>
+        <li><b>Mac OS X</b> on Intel</li>
       </blist>
     </li>
     <li>
@@ -22,7 +21,7 @@
       <blist>
         <li> <b>BMP</b></li>
         <li> <b>JPEG</b>, <b>JPEG2000</b></li>
-        <li> <b>PNG</b>, <b>MNG</b>, <b>JNG</b></li>
+        <li> <b>PNG/APNG</b>, <b>MNG</b>, <b>JNG</b></li>
         <li> <b>GIF</b></li>
         <li> <b>TGA</b></li>
         <li> <b>DDS</b></li>

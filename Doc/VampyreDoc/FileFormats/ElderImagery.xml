@@ -64,6 +64,13 @@
         which I've not yet figured out (only blue channel known) so
         don't expect to get pretty results from it now.
       </li>
+      <li>
+        <keyword>SKY - Daggerfall Sky Images</keyword>
+        are used as backdrops in outdoor areas. There's about 200MB of 
+        sky images in Daggerfall installation. Each sky file (sky##.dat)
+        contains 64 images 512x220 pixels each. Images in one file 
+        are for one climate zone and each is used for certain time of the day.
+      </li>
     </blist>
 
     <note>

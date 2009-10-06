@@ -26,8 +26,7 @@
       For Linux there are precompiled objects for x86 and x86_64 architectures.
     </par>
     <par>
-      JPEG 2000
-      supports wide variety of data formats. You can have arbitrary number
+      JPEG 2000 supports wide variety of data formats. You can have arbitrary number
       of components/channels, each with different bitdepth and optional
       "signedness". JPEG 2000 images can be lossy or lossless compressed.
       Imaging can load most data formats (except multichannel images

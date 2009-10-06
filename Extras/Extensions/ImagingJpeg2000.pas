@@ -150,20 +150,146 @@ end;
 
 function TJpeg2000FileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
+type
+  TChannelInfo = record
+    DestOffset: Integer;
+    CompType: OPJ_COMPONENT_TYPE;
+    Shift: Integer;
+    SrcMaxValue: Integer;
+    DestMaxValue: Integer;
+  end;
 var
   FileType: TJpeg2000FileType;
-  Buffer, Pix, PixUp: PByte;
-  X, Y, Z, InvZ, SX, SY, WidthBytes, BufferSize, ChannelSize, Channel,
-    CY, CB, CR: LongInt;
+  Buffer: PByte;
+  BufferSize, ChannelSize, I: Integer;
   Info: TImageFormatInfo;
-  Signed: Boolean;
-  Col24: PColor24Rec;
-  Col48: PColor48Rec;
   dinfo: popj_dinfo_t;
   parameters: opj_dparameters_t;
   cio: popj_cio_t;
   image: popj_image_t;
   StartPos: Int64;
+  Channels: array of TChannelInfo;
+
+  procedure WriteSample(Dest: PByte; ChannelSize, Value: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
+  begin
+    case ChannelSize of
+      1: Dest^ := Value;
+      2: PWord(Dest)^ := Value;
+      4: PLongWord(Dest)^ := Value;
+    end;
+  end;
+
+  procedure CopySample(Src, Dest: PByte; ChannelSize: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
+  begin
+    case ChannelSize of
+      1: Dest^ := Src^;
+      2: PWord(Dest)^ := PWord(Src)^;
+      4: PLongWord(Dest)^ := PLongWord(Src)^;
+    end;
+  end;
+
+  procedure ReadChannel(const Image: TImageData; const Info: TChannelInfo; const Comp: opj_image_comp; BytesPerPixel: Integer);
+  var
+    X, Y, SX, SY, SrcIdx, LineBytes: Integer;
+    DestPtr, NewPtr, LineUpPtr: PByte;
+    DontScaleSamples: Boolean;
+  begin
+    DontScaleSamples := Info.SrcMaxValue = Info.DestMaxValue;
+    LineBytes := Image.Width * BytesPerPixel;
+    DestPtr := @PByteArray(Image.Bits)[Info.DestOffset];
+    SrcIdx := 0;
+
+    if (Comp.dx = 1) and (Comp.dy = 1) then
+    begin
+      // X and Y sample separation is 1 so just need to assign component values
+      // to image pixels one by one
+      for Y := 0 to Image.Height * Image.Width - 1 do
+      begin
+        if DontScaleSamples then
+          WriteSample(DestPtr, ChannelSize, Comp.data[SrcIdx] + Info.Shift)
+        else
+          WriteSample(DestPtr, ChannelSize, MulDiv(Comp.data[SrcIdx] + Info.Shift, Info.DestMaxValue, Info.SrcMaxValue));
+
+        Inc(SrcIdx);
+        Inc(DestPtr, BytesPerPixel);
+      end;
+    end
+    else
+    begin
+      // Sample separation is active - component is sub-sampled. Real component
+      // dimensions are [Comp.w * Comp.dx, Comp.h * Comp.dy]
+      for Y := 0 to Comp.h - 1 do
+      begin
+        LineUpPtr := @PByteArray(Image.Bits)[Y * Comp.dy * LineBytes + Info.DestOffset];
+        DestPtr := LineUpPtr;
+
+        for X := 0 to Comp.w - 1 do
+        begin
+          if DontScaleSamples then
+            WriteSample(DestPtr, ChannelSize, Comp.data[SrcIdx] + Info.Shift)
+          else
+            WriteSample(DestPtr, ChannelSize, MulDiv(Comp.data[SrcIdx] + Info.Shift, Info.DestMaxValue, Info.SrcMaxValue));
+
+          NewPtr := DestPtr;
+
+          for SX := 1 to Comp.dx - 1 do
+          begin
+            if X * Comp.dx + SX >= Image.Width then Break;
+            // Replicate pixels on line
+            Inc(NewPtr, BytesPerPixel);
+            CopySample(DestPtr, NewPtr, ChannelSize);
+          end;
+
+          Inc(SrcIdx);
+          Inc(DestPtr, BytesPerPixel * Comp.dx);
+        end;
+
+        for SY := 1 to Comp.dy - 1 do
+        begin
+          if Y * Comp.dy + SY >= Image.Height then Break;
+          // Replicate line
+          NewPtr := @PByteArray(Image.Bits)[(Y * Comp.dy + SY) * LineBytes + Info.DestOffset];
+          for X := 0 to Image.Width - 1 do
+          begin
+            CopySample(LineUpPtr, NewPtr, ChannelSize);
+            Inc(LineUpPtr, BytesPerPixel);
+            Inc(NewPtr, BytesPerPixel);
+          end;
+        end;
+      end;
+    end;
+  end;
+
+  procedure ConvertYCbCrToRGB(Pixels: PByte; NumPixels, BytesPerPixel: Integer);
+  var
+    I: Integer;
+    PixPtr: PByte;
+    CY, CB, CR: Byte;
+    CYW, CBW, CRW: Word;
+  begin
+    PixPtr := Pixels;
+    for I := 0 to NumPixels - 1 do
+    begin
+      if BytesPerPixel in [3, 4] then
+      with PColor24Rec(PixPtr)^ do
+      begin
+        CY := R;
+        CB := G;
+        CR := B;
+        YCbCrToRGB(CY, CB, CR, R, G, B);
+      end
+      else
+      with PColor48Rec(PixPtr)^ do
+      begin
+        CYW := R;
+        CBW := G;
+        CRW := B;
+        YCbCrToRGB16(CYW, CBW, CRW, R, G, B);
+      end;
+      Inc(PixPtr, BytesPerPixel);
+    end;
+  end;
+
 begin
   Result := False;
   image := nil;
@@ -227,117 +353,66 @@ begin
     if Format = ifUnknown then
       Exit;
 
-    NewImage(image.x1, image.y1, Format, Images[0]);
+    NewImage(image.x1 - image.x0, image.y1 - image.y0, Format, Images[0]);
     Info := GetFormatInfo(Format);
     ChannelSize := Info.BytesPerPixel div Info.ChannelCount;
+    SetLength(Channels, Info.ChannelCount);
+
+    // Get information about all channels/components of JP2 file
+    for I := 0 to Info.ChannelCount - 1 do
+    begin
+      // Get component type for this channel and based on this
+      // determine where in dest image bits write this channel's data
+      Channels[I].CompType := image.comps[I].comp_type;
+      case Channels[I].CompType of
+        COMPTYPE_UNKNOWN:
+          begin
+            if Info.ChannelCount <> 4 then
+            begin
+              // Missing CDEF box in file - usually BGR order
+              Channels[I].DestOffset := image.numcomps - I - 1
+            end
+            else
+            begin
+              // Missing CDEF box in file - usually ABGR order
+              if I = 3 then
+                Channels[I].DestOffset := 3
+              else
+                Channels[I].DestOffset := image.numcomps - I - 2
+            end;
+          end;
+        COMPTYPE_R:       Channels[I].DestOffset := 2;
+        COMPTYPE_G:       Channels[I].DestOffset := 1;
+        COMPTYPE_B:       Channels[I].DestOffset := 0;
+        COMPTYPE_CB:      Channels[I].DestOffset := 1;
+        COMPTYPE_CR:      Channels[I].DestOffset := 0;
+        COMPTYPE_OPACITY: Channels[I].DestOffset := 3;
+        COMPTYPE_Y:
+          case image.color_space of
+            CLRSPC_SYCC: Channels[I].DestOffset := 2; // Y is intensity part of YCC
+            CLRSPC_GRAY: Channels[I].DestOffset := 0; // Y is independent gray channel
+          end;
+      end;
+      // Scale channel offset
+      Channels[I].DestOffset := Channels[I].DestOffset * ChannelSize;
+      // Signed componets must be scaled to [0, 1] interval (depends on precision)
+      if image.comps[I].sgnd = 1 then
+        Channels[I].Shift := 1 shl (image.comps[I].prec - 1);
+      // Max channel values used to easier scaling of precisions
+      // not supported by Imaging to supported ones (like 12bits etc.).
+      Channels[I].SrcMaxValue := 1 shl image.comps[I].prec - 1;
+      Channels[I].DestMaxValue := 1 shl (ChannelSize * 8) - 1;
+    end;
 
     // Images components are stored separately in JP2, each can have
     // different dimensions, bitdepth, ...
-    for Channel := 0 to Info.ChannelCount - 1 do
-    begin
-      // Z and InvZ are used as component indices to output image channels and
-      // decoded image components. Following settings prevent later need for
-      // Red/Blue switch. Alpha channel is special case, channel orders
-      // are ARGB <-> ABGR (Channel at the lowest address of output image is Blue
-      // where as decoded image component at the lowest index is Red).   
-      Z := Channel;
-      InvZ := Info.ChannelCount - 1 - Z;
-      if Info.HasAlphaChannel then
-      begin
-        if Channel = Info.ChannelCount - 1 then
-          InvZ := Z
-        else
-          InvZ := Info.ChannelCount - 2 - Z;
-      end;
-      // Signed componets must be scaled to [0, 1] (later)
-      Signed := image.comps[Z].sgnd = 1;
-      if (image.comps[Z].dx = 1) and (image.comps[Z].dy = 1) then
-      begin
-        // X and Y sample separation is 1 so just need to assign component values
-        // to image pixels one by one
-        Pix := @PByteArray(Bits)[InvZ * ChannelSize];
-        for Y := 0 to Height - 1 do
-          for X := 0 to Width - 1 do
-            begin
-            case ChannelSize of
-              1: Pix^ := image.comps[Z].data[Y * Width + X] + Iff(Signed, $80, 0);
-              2: PWord(Pix)^ := image.comps[Z].data[Y * Width + X] + Iff(Signed, $8000, 0);
-              4: PLongWord(Pix)^ := image.comps[Z].data[Y * Width + X] + IffUnsigned(Signed, $80000000, 0);
-            end;
-            Inc(Pix, Info.BytesPerPixel);
-          end;
-      end
-      else
-      begin
-        // Sample separation is active - component is sub-sampled. Real component
-        // dimensions are [image.comps[Z].w * image.comps[Z].dx,
-        // image.comps[Z].h * image.comps[Z].dy
-        WidthBytes := Width * Info.BytesPerPixel;
-        for Y := 0 to image.comps[Z].h - 1 do
-        begin
-          Pix := @PByteArray(Bits)[Y * image.comps[Z].dy * WidthBytes + InvZ * ChannelSize];
-          for X := 0 to image.comps[Z].w - 1 do
-            for SX := 0 to image.comps[Z].dx - 1 do
-            begin
-              // Replicate pixels on line
-              case ChannelSize of
-                1: Pix^ := image.comps[Z].data[Y * image.comps[Z].w + X] + Iff(Signed, $80, 0);
-                2: PWord(Pix)^ := image.comps[Z].data[Y * image.comps[Z].w + X] + Iff(Signed, $8000, 0);
-                4: PLongWord(Pix)^ := image.comps[Z].data[Y * image.comps[Z].w + X] + IffUnsigned(Signed, $80000000, 0);
-              end;
-              Inc(Pix, Info.BytesPerPixel);
-            end;
+    for I := 0 to Info.ChannelCount - 1 do
+      ReadChannel(Images[0], Channels[I], image.comps[I], Info.BytesPerPixel);
 
-          for SY := 1 to image.comps[Z].dy - 1 do
-          begin
-            // Replicate lines
-            PixUp := @PByteArray(Bits)[Y * image.comps[Z].dy * WidthBytes + InvZ * ChannelSize];
-            Pix := @PByteArray(Bits)[(Y * image.comps[Z].dy + SY) * WidthBytes + InvZ * ChannelSize];
-            for X := 0 to Width - 1 do
-            begin
-              case ChannelSize of
-                1: Pix^ := PixUp^;
-                2: PWord(Pix)^ := PWord(PixUp)^;
-                4: PLongWord(Pix)^ := PLongWord(PixUp)^;
-              end;
-              Inc(Pix, Info.BytesPerPixel);
-              Inc(PixUp, Info.BytesPerPixel);
-            end;
-          end;
-        end;
-      end;
-    end;
+    // If we have YCbCr image we need to convert it to RGB
+    if (image.color_space = CLRSPC_SYCC) and (Info.ChannelCount in [3, 4]) then
+      ConvertYCbCrToRGB(Bits, Width * Height, Info.BytesPerPixel);
 
-    { TODO : YCbCr for 4-channel images too! }
-    if (Info.ChannelCount = 3) and (image.color_space = CLRSPC_SYCC) then
-    begin
-      // Convert image from YCbCr colorspace to RGB if needed.
-      Pix := Bits;
-      if Info.BytesPerPixel = 3 then
-      begin
-        for X := 0 to Width * Height - 1 do
-        with PColor24Rec(Pix)^ do
-        begin
-          CY := R;
-          CB := G;
-          CR := B;
-          YCbCrToRGB(CY, CB, CR, R, G, B);
-          Inc(Pix, Info.BytesPerPixel);
-        end;
-      end
-      else
-      begin
-        for X := 0 to Width * Height - 1 do
-        with PColor48Rec(Pix)^ do
-        begin
-          CY := R;
-          CB := G;
-          CR := B;
-          YCbCrToRGB16(CY, CB, CR, R, G, B);
-          Inc(Pix, Info.BytesPerPixel);
-        end;
-      end;
-    end;
     // Set the input position just after end of image
     Seek(Handle, StartPos + Cardinal(cio.bp) - Cardinal(cio.start), smFromBeginning);
 
@@ -530,6 +605,12 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.3 Changes/Bug Fixes -----------------------------------
+    - Rewritten JP2 loading part (based on PasJpeg2000) to be
+      more readable (it's a bit faster too) and handled more JP2 files better:
+      components with precisions like 12bit (not direct Imaging equivalent)
+      are properly scaled, images/components with offsets are loaded ok.
 
   -- 0.24.3 Changes/Bug Fixes -----------------------------------
     - Alpha channels are now saved properly in FPC (GCC optimization issue),

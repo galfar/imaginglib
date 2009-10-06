@@ -162,9 +162,9 @@ function StrTokenEnd(var S: string; Sep: Char): string;
   one of Seps characters.}
 procedure StrTokensToList(const S: string; Sep: Char; Tokens: TStrings);
 { Returns string representation of integer number (with digit grouping).}
-function IntToStrFmt(const I: Int64): string;
+function IntToStrFmt(const I: Int64): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns string representation of float number (with digit grouping).}
-function FloatToStrFmt(const F: Double; Precision: Integer = 2): string;
+function FloatToStrFmt(const F: Double; Precision: Integer = 2): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { Clamps integer value to range <Min, Max>}
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}

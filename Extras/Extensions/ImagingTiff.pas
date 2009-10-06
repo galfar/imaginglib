@@ -84,22 +84,22 @@ type
   end;
   PTiffIOWrapper = ^TTiffIOWrapper;
 
-function  TIFFReadProc(Fd: Cardinal; Buffer: Pointer; Size: Integer): Integer; cdecl;
+function TIFFReadProc(Fd: Cardinal; Buffer: Pointer; Size: Integer): Integer; cdecl;
 begin
   Result := PTiffIOWrapper(Fd).IO.Read(PTiffIOWrapper(Fd).Handle, Buffer, Size);
 end;
 
-function  TIFFWriteProc(Fd: Cardinal; Buffer: Pointer; Size: Integer): Integer; cdecl;
+function TIFFWriteProc(Fd: Cardinal; Buffer: Pointer; Size: Integer): Integer; cdecl;
 begin
   Result := PTiffIOWrapper(Fd).IO.Write(PTiffIOWrapper(Fd).Handle, Buffer, Size);
 end;
 
-function  TIFFSizeProc(Fd: Cardinal): Cardinal; cdecl;
+function TIFFSizeProc(Fd: Cardinal): Cardinal; cdecl;
 begin
   Result := ImagingIO.GetInputSize(PTiffIOWrapper(Fd).IO, PTiffIOWrapper(Fd).Handle);
 end;
 
-function  TIFFSeekProc(Fd: Cardinal; Offset: Cardinal; Where: Integer): Cardinal; cdecl;
+function TIFFSeekProc(Fd: Cardinal; Offset: Cardinal; Where: Integer): Cardinal; cdecl;
 const
   SEEK_SET = 0;
   SEEK_CUR = 1;

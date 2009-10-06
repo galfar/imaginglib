@@ -14,7 +14,7 @@
       and can be included in a C language file.
     </par>
     <par>
-      Imaging supports only loading of XPM files (not XPM2 or XBM).
+      Imaging supports loading and saving of XPM files (not XPM2 or XBM).
     </par>
     
     <table>
