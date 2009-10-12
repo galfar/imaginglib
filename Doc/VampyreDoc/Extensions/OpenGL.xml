@@ -13,7 +13,7 @@
       Headers from 
       <keyword>Delphi GL</keyword> (<icode>dglOpenGL.pas</icode>),
       <keyword>JEDI-SDL</keyword> (<icode>gl.pas</icode>), and 
-      <keyword>GLScene</keyword> (<icode>gl.pas</icode>)
+      <keyword>GLScene</keyword> (<icode>OpenGL1x.pas</icode>)
       were tested and they work.
       Extension is implemented in <ref>ImagingOpenGL.pas</ref> unit located
       in <keyword>(ImagingRoot)\Source\Extensions</keyword> directory.

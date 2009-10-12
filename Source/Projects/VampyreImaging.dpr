@@ -41,7 +41,7 @@ uses
   ImagingOpenGL,
 {$ENDIF}
   ImagingTypes,
-  ImagingExport in '..\ImagingExport.pas';
+  ImagingExport;
 
 {$IFDEF MSWINDOWS}
   {$R *.res}

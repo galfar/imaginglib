@@ -20,6 +20,7 @@ call :DELINDIR %ROOTDIR%\Extras\Extensions
 call :DELINDIR %ROOTDIR%\Extras\Extensions\LibTiff
 call :DELINTREE %ROOTDIR%\Extras\Demos
 call :DELINTREE %ROOTDIR%\Extras\Tools
+call :DELINTREE %ROOTDIR%\Extras\Contrib
 
 goto :END
 
