@@ -51,7 +51,8 @@
           (so you can get alpha blending, adding, modulate, ...).</li>
       <li>Linear filters (convolution) with custom kernels and some predefined.</li>
       <li>Nonlinear filters with custom functions and some predefined (min, max, median).</li>
-      <li>Point filters with custom functions and some predefined (contrast, gamma, thresholding, brightness, ...).</li>
+      <li>Point filters with custom functions and some predefined (contrast, gamma, thresholding, brightness, 
+        premultiply alpha, ...).</li>
     </blist>
     
     <par>

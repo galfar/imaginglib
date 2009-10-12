@@ -1618,8 +1618,7 @@ begin
     Result[0][0].Pos := (SrcLow + SrcHigh) div 2;
     Result[0][0].Weight := 1.0;
   end
-  else
-  if Scale < 1.0 then
+  else if Scale < 1.0 then
   begin
     // Sub-sampling - scales from bigger to smaller 
     Radius := Radius / Scale;
@@ -1650,8 +1649,7 @@ begin
         Result[I][0].Pos := Floor(Center);
         Result[I][0].Weight := 1.0;
       end
-      else
-      if Count <> 0.0 then
+      else if Count <> 0.0 then
         Result[I][K div 2].Weight := Result[I][K div 2].Weight - Count;
     end;
   end
@@ -1681,8 +1679,7 @@ begin
           begin
             if J < 0 then
               N := SrcImageWidth + J
-            else
-            if J >= SrcImageWidth then
+            else if J >= SrcImageWidth then
               N := J - SrcImageWidth
             else
               N := ClampInt(J, SrcLow, SrcHigh - 1);

@@ -14,6 +14,64 @@
       <link url="#legend">Changes Legend</link>.
     </par>
     
+    
+    <!-- VERSION 00.26.4 -->
+    <section>
+      <mediumcap>Version 0.26.4 - 11th October 2009</mediumcap>
+      <notes>
+        For complete list of changes see <keyword>File Notes</keyword>
+        section at the end of each source file.
+      </notes>
+      <bulletlist>
+        <li>
+          <keyword>[+]</keyword>
+          <b>APNG</b> file format (Animated PNG) loading, animating, and saving
+          added to existing PNG support. 
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Arbitrary angle image rotation. 
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Mac OS X (Intel) compatibility (garbled LCL bitmaps in Carbon, JPEG 2000 support, ...).
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          <b>XPM</b> file format saving added, <b>JPEG 2000</b> file format loading 
+          improved.  
+        </li>
+        <li>
+          <keyword>[+/F]</keyword>
+          New canvas methods: premultiply and unpremultiply alpha.
+          New methods for TFastARGB32Canvas: InvertColors, DrawAlpha/StretchDrawAlpha.
+          Fixed DrawAlpha/StretchDrawAlpha destination alpha calculation.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Three new extensions in <keyword>Extras/Extensions</keyword> directory:
+          <ref>ImagingJpegIJL.pas</ref> uses Intel Jpeg Library to load/save Jpegs (DLL needed),
+          <ref>ImagingSquishLib.pas</ref> uses Squish DXTC library with Imaging (DLL needed), 
+          <ref>ElderImagerySky.pas</ref> loads SKY images from Daggerfall.
+        </li>
+        <li>
+          <keyword>[+]</keyword>
+          Conversions between RGB and YCoCg colorspaces.
+        </li>        
+        <li>
+          <keyword>[F]</keyword>
+          Bug fixes: loading of some GIFs when using D2009+ failed, 
+          bugged XPM loading in Linux, indexed images resizing leak, 
+          PNM saving using D2009+, DXT3 alpha encoding, RGB>>CMYK conversion, 
+          garbled images in Lazarus GTK IDE.
+        </li>
+        <li>
+          <keyword>[*]</keyword>
+          Delphi 2010 and Lazarus 0.9.28 compatibility fixes.
+        </li>
+      </bulletlist>
+    </section>
+    
     <!-- VERSION 00.26.2 -->
     <section>
       <mediumcap>Version 0.26.2 - 28th December 2008</mediumcap>

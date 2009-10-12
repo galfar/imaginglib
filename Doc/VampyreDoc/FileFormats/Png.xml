@@ -22,6 +22,19 @@
       to compress and decompress PNG image data.
       It was translated to Pascal by Jacques Nomssi Nzali.
     </par>
+    
+    <par>
+      As of version 0.26.4, Imaging also supports APNG format.
+      APNG is unofficial extension of PNG image file format created by two guys from Mozilla Corporation.
+      The point of APNG is to allow storing simple animations in PNG files (hence the "A" for "Animated").
+      There is already PNG-like chunk based format for animations called MNG 
+      (already supported by Imaging - at least the basic features). 
+      However, MNG is quite complex format and its support among browsers and image viewers/editors is lacking. 
+      Code library supporting all MNG features is huge.
+      APNG on the other hand is just an extension of PNG and its implementation is not so complex.        Imaging can load APNG files, animate them (optional - put frames 
+      at desired positions, blend frames, apply disposal methods),
+      and also save multiple images as single APNG file.      
+    </par>     
 
     <table>
       <title>Portable Network Graphics File Format Support</title>
@@ -146,6 +159,16 @@
         <td>Sets ZLib compression level used when saving PNG images.
         Default value is <b>5</b>. </td>
       </row>
+      <row>
+        <td><ref>ImagingPNGLoadAnimated</ref></td>
+        <td><b>0 (false)</b> or <b>1 (true)</b></td>
+        <td>Boolean option that specifies whether PNG images with more frames (APNG format)
+            are animated by Imaging (according to frame disposal/blend methods) or just
+            raw frames are loaded and sent to user (if you want to animate APNG yourself).
+            Default value is <b>1</b>. </td>
+      </row>
+      
+      
     </table>
     
   </chapter>

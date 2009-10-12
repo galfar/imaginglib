@@ -40,15 +40,15 @@
       </Unit0>
       <Unit1>
         <Filename Value="mainunit.pas"/>
-        <ComponentName Value="MainForm"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="MainForm"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="MainUnit"/>
       </Unit1>
       <Unit2>
         <Filename Value="aboutunit.pas"/>
-        <ComponentName Value="AboutForm"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="AboutForm"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="AboutUnit"/>
       </Unit2>
@@ -79,7 +79,7 @@
       <SmallerCode Value="True"/>
       <Optimizations>
         <VariablesInRegisters Value="True"/>
-        <OptimizationLevel Value="0"/>
+        <OptimizationLevel Value="3"/>
       </Optimizations>
     </CodeGeneration>
     <Linking>
