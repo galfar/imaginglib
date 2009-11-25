@@ -32,7 +32,7 @@ type
     NextOut: PByte;
     AvailOut: Cardinal;
     TotalOut: Cardinal;
-    Msg: PChar;
+    Msg: PAnsiChar;
     State: Pointer;
     AllocFunc: Pointer;
     FreeFunc: Pointer;
@@ -61,7 +61,7 @@ uses
 
 function deflateInit(strm: Pointer; level: Integer): Integer;
 begin
-  Result:=deflateInit_(strm,level,PChar(ZLIB_VERSION),SizeOf(RZStream));
+  Result:=deflateInit_(strm,level,PAnsiChar(ZLIB_VERSION),SizeOf(RZStream));
 end;
 
 {inflate}

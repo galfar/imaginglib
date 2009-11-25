@@ -33,7 +33,7 @@ implementation
 
 function fputc(c: Integer; stream: Pointer): Integer; cdecl;
 var
-  m: array[0..1] of Char;
+  m: array[0..1] of AnsiChar;
   n: Cardinal;
   o: Cardinal;
 begin
@@ -45,7 +45,7 @@ begin
   end
   else
   begin
-    m[0]:=Char(c);
+    m[0]:=AnsiChar(c);
     n:=1;
   end;
   WriteFile(Cardinal(stream),m[0],n,o,nil);
@@ -142,7 +142,8 @@ var
   n: PByte;
   o: PByte;
   r: PByte;
-procedure Append(const p: String);
+
+procedure Append(const p: AnsiString);
 var
   q: Integer;
 begin
@@ -159,7 +160,7 @@ begin
     else
       Inc(o,Width-Length(p));
   end;
-  if buffer<>nil then CopyMemory(o,PChar(p),Length(p));
+  if buffer<>nil then CopyMemory(o,PAnsiChar(p),Length(p));
   Inc(o,Length(p));
 end;
 begin

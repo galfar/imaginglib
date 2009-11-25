@@ -45,22 +45,28 @@ type
     is planned.}
   TTiffFileFormat = class(TImageFileFormat)
   protected
-    FCompression: LongInt;
+    FCompression: Integer;
+    FJpegQuality: Integer;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: LongInt): Boolean; override;
+      Index: Integer): Boolean; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
   public
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
+
     { Specifies compression scheme used when saving TIFF images. Supported values
       are 0 (Uncompressed), 1 (LZW), 2 (PackBits RLE), 3 (Deflate - ZLib), 4 (JPEG).
       Default is 1 (LZW). Note that not all images can be stored with
       JPEG compression - these images will be saved with default compression if
       JPEG is set.}
-    property Compression: LongInt read FCompression write FCompression;
+    property Compression: Integer read FCompression write FCompression;
+    { Controls compression quality when selected TIFF compression is Jpeg.
+      It is number in range 1..100. 1 means small/ugly file,
+      100 means large/nice file. Accessible trough ImagingTiffJpegQuality option.}
+    property JpegQuality: Integer read FJpegQuality write FJpegQuality;
   end;
 
 implementation
@@ -72,6 +78,7 @@ const
     ifGray16, ifA16Gray16, ifGray32, ifR8G8B8, ifA8R8G8B8, ifR16G16B16,
     ifA16R16G16B16, ifR32F, ifA32R32G32B32F, ifR16F, ifA16R16G16B16F];
   TiffDefaultCompression = 1;
+  TiffDefaultJpegQuality = 90;
 
 const
   TiffBEMagic: TChar4 = 'MM'#0#42;
@@ -139,10 +146,10 @@ end;
 var
   LastError: string = 'None';
 
-procedure TIFFErrorHandler(const A, B: string);
+procedure TIFFErrorHandler(const A, B: AnsiString);
 begin
-  LastError := A + ': ' + B;
-end;  
+  LastError := string(A + ': ' + B);
+end;
 
 {
   TTiffFileFormat implementation
@@ -157,9 +164,11 @@ begin
   FIsMultiImageFormat := True;
   FSupportedFormats := TiffSupportedFormats;
   FCompression := TiffDefaultCompression;
+  FJpegQuality := TiffDefaultJpegQuality;
 
   AddMasks(STiffMasks);
   RegisterOption(ImagingTiffCompression, @FCompression);
+  RegisterOption(ImagingTiffJpegQuality, @FJpegQuality);
 end;
 
 function TTiffFileFormat.LoadData(Handle: TImagingHandle;
@@ -295,7 +304,7 @@ begin
       TiffResult := TIFFReadRGBAImageOriented(Tif, Images[Idx].Width, Images[Idx].Height,
         Images[Idx].Bits, Orientation, 0);
       if TiffResult = 0 then
-        Exit;
+        RaiseImaging(LastError, []);
     end
     else
     begin
@@ -405,6 +414,8 @@ begin
       TIFFSetField(Tif, TIFFTAG_SAMPLESPERPIXEL, SamplesPerPixel);
       TIFFSetField(Tif, TIFFTAG_SAMPLEFORMAT, SampleFormat);
       TIFFSetField(tif, TIFFTAG_COMPRESSION, CompressionScheme);
+      if CompressionScheme = COMPRESSION_JPEG then
+        TIFFSetField(tif, TIFFTAG_JPEGQUALITY, FJpegQuality);
       TIFFSetField(Tif, TIFFTAG_ROWSPERSTRIP, RowsPerStrip);
 
       if Format = ifIndex8 then
@@ -481,6 +492,10 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Unicode compatibility fixes in LibTiffDelphi.
+    - Added Jpeg compression quality setting.
 
   -- 0.24.3 Changes/Bug Fixes ---------------------------------
     - Fixed bug in loading and saving of 2 channel images - Imaging

@@ -338,6 +338,12 @@ type
   end;
   PIOFunctions = ^TIOFunctions;
 
+const
+  { Physical size of one pixel in micrometers.}
+  SMetaPhysicalPixelSizeX = 'PhysicalPixelSizeX';
+  SMetaPhysicalPixelSizeY = 'PhysicalPixelSizeY';
+
+type
   { Base class for various image file format loaders/savers which
     descend from this class. If you want to add support for new image file
     format the best way is probably to look at TImageFileFormat descendants'
@@ -347,6 +353,13 @@ type
   private
     FExtensions: TStringList;
     FMasks: TStringList;
+    FMetaData: TStringList;
+    FSaveMetaData: TStringList;
+    function GetMetaById(const Id: string): Variant;
+    function GetMetaByIdx(Index: Integer): Variant;
+    function GetMetaDataCount: Integer;
+    procedure AddMetaToList(List: TStringList; const Id: string; const Value: Variant; ImageIndex: Integer);
+    procedure ClearMetaList(List: TStringList);
     { Does various checks and actions before LoadData method is called.}
     function PrepareLoad(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstFrame: Boolean): Boolean;
@@ -438,7 +451,7 @@ type
       this file format). If image is cloned MustBeFreed is set to True
       to indicated that you must free Compatible after you are done with it.}
     function MakeCompatible(const Image: TImageData; var Compatible: TImageData;
-      out MustBeFreed: Boolean): Boolean;   
+      out MustBeFreed: Boolean): Boolean;
     { Returns True if data located in source identified by Handle
       represent valid image in current format.}
     function TestFormat(Handle: TImagingHandle): Boolean; virtual;
@@ -452,6 +465,9 @@ type
       constant Ids for SetOption/GetOption interface or accessible as properties
       of descendants) have valid values and make necessary changes.}
     procedure CheckOptionsValidity; virtual;
+
+    procedure AddMetaData(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
+    procedure AddMetaDataForSave(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
 
     { Description of this format.}
     property Name: string read FName;
@@ -471,6 +487,10 @@ type
     { Set of TImageFormats supported by saving functions of this format. Images
       can be saved only in one those formats.}
     property SupportedFormats: TImageFormats read GetSupportedFormats;
+
+    property MetaDataCount: Integer read GetMetaDataCount;
+    property MetaData[const Id: string]: Variant read GetMetaById;
+    property MetaDataByIdx[Index: Integer]: Variant read GetMetaByIdx;
   end;
   {$TYPEINFO OFF}
 
@@ -557,7 +577,7 @@ uses
 {$IFNDEF DONT_LINK_EXTRAS}
   ImagingExtras,
 {$ENDIF}
-  ImagingFormats, ImagingUtility, ImagingIO;
+  ImagingFormats, ImagingUtility, ImagingIO, Variants;
 
 resourcestring
   SImagingTitle = 'Vampyre Imaging Library';
@@ -610,12 +630,14 @@ resourcestring
   SErrorEmptyStream = 'Input stream has no data. Check Position property.';
 
 const
-  // initial size of array with options information
+  // Initial size of array with options information
   InitialOptions = 256;
-  // max depth of the option stack
+  // Max depth of the option stack
   OptionStackDepth = 8;
-  // do not change the default format now, its too late
+  // Do not change the default format now, its too late
   DefaultImageFormat: TImageFormat = ifA8R8G8B8;
+  // Format used to create metadata IDs for frames loaded form multiimages.
+  SMetaIdForSubImage = '%s-%.4d';
 
 type
   TOptionArray = array of PLongInt;
@@ -2941,18 +2963,25 @@ begin
   FName := SUnknownFormat;
   FExtensions := TStringList.Create;
   FMasks := TStringList.Create;
+  FMetaData := TStringList.Create;
+  FSaveMetaData := TStringList.Create;
 end;
 
 destructor TImageFileFormat.Destroy;
 begin
+  ClearMetaList(FMetaData);
+  ClearMetaList(FSaveMetaData);
   FExtensions.Free;
   FMasks.Free;
+  FMetaData.Free;
+  FSaveMetaData.Free;
   inherited Destroy;
 end;
 
 function TImageFileFormat.PrepareLoad(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstFrame: Boolean): Boolean;
 begin
+  ClearMetaList(FMetaData); // Clear old metadata
   FreeImagesInArray(Images);
   SetLength(Images, 0);
   Result := Handle <> nil;
@@ -3055,6 +3084,26 @@ begin
   Result := ImageFormatInfos[Format]^;
 end;
 
+function TImageFileFormat.GetMetaById(const Id: string): Variant;
+var
+  Idx: Integer;
+begin
+  if FMetaData.Find(Id, Idx) then
+    Result := (FMetaData.Objects[Idx] as TVariantHolder).Value
+  else
+    Result := Variants.Null;
+end;
+
+function TImageFileFormat.GetMetaByIdx(Index: Integer): Variant;
+begin
+  Result := (FMetaData.Objects[Index] as TVariantHolder).Value;
+end;
+
+function TImageFileFormat.GetMetaDataCount: Integer;
+begin
+  Result := FMetaData.Count;
+end;
+
 function TImageFileFormat.GetSupportedFormats: TImageFormats;
 begin
   Result := FSupportedFormats;
@@ -3101,7 +3150,7 @@ begin
       begin
         Result := PrepareLoad(Handle, Images, OnlyFirstLevel) and
           LoadData(Handle, Images, OnlyFirstlevel);
-        Result := Result and PostLoadCheck(Images, Result);
+        Result := PostLoadCheck(Images, Result);
       end
       else
         RaiseImaging(SFileNotValid, [FileName, Name]);
@@ -3132,7 +3181,7 @@ begin
       begin
         Result := PrepareLoad(Handle, Images, OnlyFirstLevel) and
           LoadData(Handle, Images, OnlyFirstlevel);
-        Result := Result and PostLoadCheck(Images, Result);
+        Result := PostLoadCheck(Images, Result);
       end
       else
         RaiseImaging(SStreamNotValid, [@Stream, Name]);
@@ -3141,6 +3190,7 @@ begin
     end;
   except
     Stream.Position := OldPosition;
+    FreeImagesInArray(Images);
     RaiseImaging(SErrorLoadingStream, [@Stream, FExtensions[0]]);
   end;
 end;
@@ -3164,7 +3214,7 @@ begin
       begin
         Result := PrepareLoad(Handle, Images, OnlyFirstLevel) and
           LoadData(Handle, Images, OnlyFirstlevel);
-        Result := Result and PostLoadCheck(Images, Result);
+        Result := PostLoadCheck(Images, Result);
       end
       else
         RaiseImaging(SMemoryNotValid, [Data, Size, Name]);
@@ -3201,6 +3251,7 @@ begin
         Result := PrepareSave(Handle, Images, Index) and SaveData(Handle, Images, Index);
       finally
         IO.Close(Handle);
+        ClearMetaList(FSaveMetaData); // Clear metadata for image just saved
       end;
     end
     else
@@ -3220,6 +3271,7 @@ begin
             Break;
         finally
           IO.Close(Handle);
+          ClearMetaList(FSaveMetaData); // Clear metadata for image just saved
         end;
       end;
     end;
@@ -3267,6 +3319,7 @@ begin
       end;
     finally
       IO.Close(Handle);
+      ClearMetaList(FSaveMetaData); // Clear metadata for image just saved
     end;
   except
     Stream.Position := OldPosition;
@@ -3314,6 +3367,7 @@ begin
       Size := IORec.Position;
     finally
       IO.Close(Handle);
+      ClearMetaList(FSaveMetaData); // Clear metadata for image just saved
     end;
   except
     RaiseImaging(SErrorSavingMemory, [Data, Size, FExtensions[0]]);
@@ -3380,8 +3434,46 @@ begin
   Result := False;
 end;
 
+procedure TImageFileFormat.AddMetaData(const Id: string; const Value: Variant; ImageIndex: Integer);
+begin
+  AddMetaToList(FMetaData, Id, Value, ImageIndex);
+end;
+
+procedure TImageFileFormat.AddMetaDataForSave(const Id: string;
+  const Value: Variant; ImageIndex: Integer);
+begin
+  AddMetaToList(FSaveMetaData, Id, Value, ImageIndex);
+end;
+
+procedure TImageFileFormat.AddMetaToList(List: TStringList; const Id: string;
+  const Value: Variant; ImageIndex: Integer);
+var
+  Holder: TVariantHolder;
+  Idx: Integer;
+  FullId: string;
+begin
+  FullId := Iff(ImageIndex = 0, Id, Format(SMetaIdForSubImage, [Id, ImageIndex]));
+  if List.Find(FullId, Idx) then
+    (List.Objects[Idx] as TVariantHolder).Value := Value
+  else
+  begin
+    Holder := TVariantHolder.Create;
+    Holder.Value := Value;
+    List.AddObject(FullId, Holder);
+  end;
+end;
+
 procedure TImageFileFormat.CheckOptionsValidity;
 begin
+end;
+
+procedure TImageFileFormat.ClearMetaList(List: TStringList);
+var
+  I: Integer;
+begin
+  for I := 0 to List.Count - 1 do
+    List.Objects[I].Free;
+  List.Clear;
 end;
 
 { TOptionStack  class implementation }
@@ -3455,6 +3547,10 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added support for simple image metadata to TImageFileFormat.
+    - Fixed some memory leaks caused by failures during image loading.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Extended RotateImage to allow arbitrary angle rotations.

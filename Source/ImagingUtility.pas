@@ -105,6 +105,11 @@ type
   TChar8 = array[0..7] of AnsiChar;
   TChar16 = array[0..15] of AnsiChar;
 
+  TVariantHolder = class
+  public
+    Value: Variant;
+  end;
+
   { Options for BuildFileList function:
     flFullNames - file names in result will have full path names
                 (ExtractFileDir(Path) + FileName)

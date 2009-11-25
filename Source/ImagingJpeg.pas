@@ -44,7 +44,8 @@ unit ImagingJpeg;
 { $DEFINE PASJPEG}
 
 { Automatically use FPC's PasJpeg when compiling with Lazarus. But not when
-  WINDOWS is defined. See http://galfar.vevb.net/imaging/smf/index.php/topic,90.0.html}
+  WINDOWS is defined. See http://galfar.vevb.net/imaging/smf/index.php/topic,90.0.html.
+  Fixed in FPC revision 13963: http://bugs.freepascal.org/view.php?id=14928 }
 {$IF Defined(LCL) and not Defined(WINDOWS)}
   {$UNDEF IMJPEGLIB}
   {$DEFINE PASJPEG}
@@ -559,6 +560,7 @@ initialization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Fixed loading of some JPEGs with certain APPN markers (bug in JpegLib).
     - Fixed swapped Red-Blue order when loading Jpegs with
       jc.d.jpeg_color_space = JCS_RGB.
 

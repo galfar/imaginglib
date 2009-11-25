@@ -375,7 +375,7 @@ type
   PTIFFRGBAImage = Pointer;
 
   TIFFErrorHandler = procedure(a: Pointer; b: Pointer; c: Pointer); cdecl;
-  LibTiffDelphiErrorHandler = procedure(const a,b: String);
+  LibTiffDelphiErrorHandler = procedure(const a,b: AnsiString);
   TIFFReadWriteProc = function(Fd: Cardinal; Buffer: Pointer; Size: Integer): Integer; cdecl;
   TIFFSeekProc = function(Fd: Cardinal; Off: Cardinal; Whence: Integer): Cardinal; cdecl;
   TIFFCloseProc = function(Fd: Cardinal): Integer; cdecl;
@@ -388,7 +388,7 @@ type
 
   PTIFFCodec = ^TIFFCodec;
   TIFFCodec = record
-    Name: PChar;
+    Name: PAnsiChar;
     Scheme: Word;
     Init: TIFFInitMethod;
   end;
@@ -402,7 +402,7 @@ type
     FieldBit: Word;                  { bit in fieldsset bit vector }
     FieldOkToChange: Byte;           { if true, can change while writing }
     FieldPassCount: Byte;            { if true, pass dir count on set }
-    FieldName: PChar;                { ASCII name }
+    FieldName: PAnsiChar;                { ASCII name }
   end;
 
   PTIFFTagValue = ^TIFFTagValue;
@@ -412,17 +412,17 @@ type
     Value: Pointer;
   end;
 
-function  LibTiffDelphiVersion: String;
-function  TIFFGetVersion: PChar; cdecl; external;
+function  LibTiffDelphiVersion: AnsiString;
+function  TIFFGetVersion: PAnsiChar; cdecl; external;
 function  TIFFFindCODEC(Scheme: Word): PTIFFCodec; cdecl; external;
-function  TIFFRegisterCODEC(Scheme: Word; Name: PChar; InitMethod: TIFFInitMethod): PTIFFCodec; cdecl; external;
+function  TIFFRegisterCODEC(Scheme: Word; Name: PAnsiChar; InitMethod: TIFFInitMethod): PTIFFCodec; cdecl; external;
 procedure TIFFUnRegisterCODEC(c: PTIFFCodec); cdecl; external;
 function  TIFFIsCODECConfigured(Scheme: Word): Integer; cdecl; external;
 function  TIFFGetConfiguredCODECs: PTIFFCodec; cdecl; external;
 
-function  TIFFOpen(const Name: String; const Mode: String): PTIFF;
-function  TIFFOpenStream(const Stream: TStream; const Mode: String): PTIFF;
-function  TIFFClientOpen(Name: PChar; Mode: PChar; ClientData: Cardinal;
+function  TIFFOpen(const Name: AnsiString; const Mode: AnsiString): PTIFF;
+function  TIFFOpenStream(const Stream: TStream; const Mode: AnsiString): PTIFF;
+function  TIFFClientOpen(Name: PAnsiChar; Mode: PAnsiChar; ClientData: Cardinal;
           ReadProc: TIFFReadWriteProc;
           WriteProc: TIFFReadWriteProc;
           SeekProc: TIFFSeekProc;
@@ -439,7 +439,7 @@ function  TIFFSetClientdata(Handle: PTIFF; Newvalue: Cardinal): Cardinal; cdecl;
 function  TIFFGetMode(Handle: PTIFF): Integer; cdecl; external;
 function  TIFFSetMode(Handle: PTIFF; Mode: Integer): Integer; cdecl; external;
 function  TIFFFileName(Handle: PTIFF): Pointer; cdecl; external;
-function  TIFFSetFileName(Handle: PTIFF; Name: PChar): PChar; cdecl; external;
+function  TIFFSetFileName(Handle: PTIFF; Name: PAnsiChar): PAnsiChar; cdecl; external;
 function  TIFFGetReadProc(Handle: PTIFF): TIFFReadWriteProc; cdecl; external;
 function  TIFFGetWriteProc(Handle: PTIFF): TIFFReadWriteProc; cdecl; external;
 function  TIFFGetSeekProc(Handle: PTIFF): TIFFSeekProc; cdecl; external;
@@ -486,17 +486,17 @@ function  TIFFGetTagListCount(Handle: PTIFF): Integer; cdecl; external;
 function  TIFFGetTagListEntry(Handle: PTIFF; TagIndex: Integer): Cardinal; cdecl; external;
 procedure TIFFMergeFieldInfo(Handle: PTIFF; Info: PTIFFFieldInfo; N: Integer); cdecl; external;
 function  TIFFFindFieldInfo(Handle: PTIFF; Tag: Cardinal; Dt: Integer): PTIFFFieldInfo; cdecl; external;
-function  TIFFFindFieldInfoByName(Handle: PTIFF; FIeldName: PChar; Dt: Integer): PTIFFFieldInfo; cdecl; external;
+function  TIFFFindFieldInfoByName(Handle: PTIFF; FIeldName: PAnsiChar; Dt: Integer): PTIFFFieldInfo; cdecl; external;
 function  TIFFFieldWithTag(Handle: PTIFF; Tag: Cardinal): PTIFFFieldInfo; cdecl; external;
-function  TIFFFieldWithName(Handle: PTIFF; FieldName: PChar): PTIFFFieldInfo; cdecl; external;
+function  TIFFFieldWithName(Handle: PTIFF; FieldName: PAnsiChar): PTIFFFieldInfo; cdecl; external;
 function  TIFFDataWidth(DataType: Integer): Integer; cdecl; external;
 
 function  TIFFReadRGBAImage(Handle: PTIFF; RWidth,RHeight: Cardinal; Raster: Pointer; Stop: Integer): Integer; cdecl; external;
 function  TIFFReadRGBAImageOriented(Handle: PTIFF; RWidth,RHeight: Cardinal; Raster: Pointer; Orientation: Integer; Stop: Integer): Integer; cdecl; external;
 function  TIFFReadRGBAStrip(Handle: PTIFF; Row: Cardinal; Raster: Pointer): Integer; cdecl; external;
 function  TIFFReadRGBATile(Handle: PTIFF; Col,Row: Cardinal; Raster: Pointer): Integer; cdecl; external;
-function  TIFFRGBAImageOk(Handle: PTIFF; Emsg: PChar): Integer; cdecl; external;
-function  TIFFRGBAImageBegin(Img: PTIFFRGBAImage; Handle: PTIFF; Stop: Integer; Emsg: PChar): Integer; cdecl; external;
+function  TIFFRGBAImageOk(Handle: PTIFF; Emsg: PAnsiChar): Integer; cdecl; external;
+function  TIFFRGBAImageBegin(Img: PTIFFRGBAImage; Handle: PTIFF; Stop: Integer; Emsg: PAnsiChar): Integer; cdecl; external;
 function  TIFFRGBAImageGet(Img: PTIFFRGBAImage; Raster: Pointer; W,H: Cardinal): Integer; cdecl; external;
 procedure TIFFRGBAImageEnd(Img: PTIFFRGBAImage); cdecl; external;
 
@@ -848,9 +848,9 @@ end;
 
 {LibTiffDelphi}
 
-function  LibTiffDelphiVersion: String;
+function  LibTiffDelphiVersion: AnsiString;
 var
-  m: String;
+  m: AnsiString;
   na,nb: Integer;
 begin
   Result:='';
@@ -875,28 +875,28 @@ end;
 procedure LibTiffDelphiWarningThrp(a: Pointer; b: Pointer; c: Pointer); cdecl;
 var
   m: Integer;
-  n: String;
+  n: AnsiString;
 begin
   if @FLibTiffDelphiWarningHandler<>nil then
   begin
     m:=sprintfsec(nil,b,@c);
     SetLength(n,m);
     sprintfsec(Pointer(n),b,@c);
-    FLibTiffDelphiWarningHandler(PChar(a),n);
+    FLibTiffDelphiWarningHandler(PAnsiChar(a),n);
   end;
 end;
 
 procedure LibTiffDelphiErrorThrp(a: Pointer; b: Pointer; c: Pointer); cdecl;
 var
   m: Integer;
-  n: String;
+  n: AnsiString;
 begin
   if @FLibTiffDelphiErrorHandler<>nil then
   begin
     m:=sprintfsec(nil,b,@c);
     SetLength(n,m);
     sprintfsec(Pointer(n),b,@c);
-    FLibTiffDelphiErrorHandler(PChar(a),n);
+    FLibTiffDelphiErrorHandler(PAnsiChar(a),n);
   end;
 end;
 
@@ -1067,7 +1067,7 @@ function  TIFFCIELabToRGBInit(cielab: Pointer; display: Pointer; refWhite: Point
 
 {tif_open}
 
-function  _TIFFgetMode(mode: PChar; module: PChar): Integer; cdecl; external;
+function  _TIFFgetMode(mode: PAnsiChar; module: PAnsiChar): Integer; cdecl; external;
 
 {$IFDEF LIBTIFF_DEBUG}
 {$L LibTiffDelphi\debug\tif_open.obj}
@@ -1626,9 +1626,9 @@ procedure TIFFNoUnmapProc(Fd: Cardinal; Base: Pointer; Size: Cardinal); cdecl;
 begin
 end;
 
-function TIFFOpen(const Name: String; const Mode: String): PTIFF;
+function TIFFOpen(const Name: AnsiString; const Mode: AnsiString): PTIFF;
 const
-  Module: String = 'TIFFOpen';
+  Module: AnsiString = 'TIFFOpen';
   O_RDONLY = 0;
   O_WRONLY = 1;
   O_RDWR = 2;
@@ -1641,7 +1641,7 @@ var
   FlagsAndAttributes: Cardinal;
   fd: THandle;
 begin
-  m:=_TIFFgetMode(PChar(Mode),PChar(Module));
+  m:=_TIFFgetMode(PAnsiChar(Mode),PAnsiChar(Module));
   if m=o_RDONLY then
     DesiredAccess:=GENERIC_READ
   else
@@ -1660,14 +1660,14 @@ begin
     FlagsAndAttributes:=FILE_ATTRIBUTE_READONLY
   else
     FlagsAndAttributes:=FILE_ATTRIBUTE_NORMAL;
-  fd:=CreateFile(PChar(Name),DesiredAccess,FILE_SHARE_READ,nil,CreateDisposition,FlagsAndAttributes,0);
+  fd:=CreateFileA(PAnsiChar(Name),DesiredAccess,FILE_SHARE_READ,nil,CreateDisposition,FlagsAndAttributes,0);
   if fd=INVALID_HANDLE_VALUE then
   begin
-    TiffError(PChar(Module),PChar('%s: Cannot open'),PChar(Name));
+    TiffError(PAnsiChar(Module),PAnsiChar('%s: Cannot open'),PAnsiChar(Name));
     Result:=nil;
     exit;
   end;
-  Result:=TIFFClientOpen(PChar(Name),PChar(Mode),fd,@TIFFFileReadProc,@TIFFFileWriteProc,@TIFFFileSeekProc,@TIFFFileCloseProc,
+  Result:=TIFFClientOpen(PAnsiChar(Name),PAnsiChar(Mode),fd,@TIFFFileReadProc,@TIFFFileWriteProc,@TIFFFileSeekProc,@TIFFFileCloseProc,
               @TIFFFileSizeProc,@TIFFNoMapProc,@TIFFNoUnmapProc);
   if Result<>nil then
     TIFFSetFileno(Result,fd)
@@ -1675,12 +1675,12 @@ begin
     CloseHandle(fd);
 end;
 
-function TIFFOpenStream(const Stream: TStream; const Mode: String): PTIFF;
+function TIFFOpenStream(const Stream: TStream; const Mode: AnsiString): PTIFF;
 var
-  m: String;
+  m: AnsiString;
 begin
   m:='Stream';
-  Result:=TIFFClientOpen(PChar(m),PChar(Mode),Cardinal(Stream),@TIFFStreamReadProc,@TIFFStreamWriteProc,@TIFFStreamSeekProc,@TIFFStreamCloseProc,
+  Result:=TIFFClientOpen(PAnsiChar(m),PAnsiChar(Mode),Cardinal(Stream),@TIFFStreamReadProc,@TIFFStreamWriteProc,@TIFFStreamSeekProc,@TIFFStreamCloseProc,
               @TIFFStreamSizeProc,@TIFFNoMapProc,@TIFFNoUnmapProc);
   if Result<>nil then TIFFSetFileno(Result,Cardinal(Stream));
 end;

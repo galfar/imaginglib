@@ -78,6 +78,10 @@ const
     JPEG compression - these images will be saved with default compression if
     JPEG is set.}
   ImagingTiffCompression             = 65;
+  { Controls compression quality when selected TIFF compression is Jpeg.
+    It is number in range 1..100. 1 means small/ugly file,
+    100 means large/nice file. Accessible trough ImagingTiffJpegQuality option.}
+  ImagingTiffJpegQuality             = 66;
   { If enabled image data is saved as layer of PSD file. This is required
     to get proper transparency when opened in Photoshop for images with
     alpha data (will be opened with one layer, RGB color channels, and transparency).
@@ -114,6 +118,9 @@ uses
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added ImagingTiffJpegQuality option.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Allowed JPEG2000 for Mac OS X x86

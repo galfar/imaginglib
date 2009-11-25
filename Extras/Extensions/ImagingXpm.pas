@@ -390,7 +390,7 @@ begin
     Contents := TStringList.Create;
     SetLength(S, GetInputSize(GetIO, Handle));
     Read(Handle, @S[1], Length(S));
-    Contents.Text := S;
+    Contents.Text := string(S);
     // Remove quotes and other stuff
     for I := Contents.Count - 1 downto 0 do
     begin

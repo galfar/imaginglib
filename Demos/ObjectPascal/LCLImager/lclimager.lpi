@@ -79,18 +79,21 @@
       <SmallerCode Value="True"/>
       <Optimizations>
         <VariablesInRegisters Value="True"/>
-        <OptimizationLevel Value="3"/>
+        <OptimizationLevel Value="0"/>
       </Optimizations>
     </CodeGeneration>
     <Linking>
       <Debugging>
-        <UseLineInfoUnit Value="False"/>
+        <GenerateDebugInfo Value="True"/>
         <StripSymbols Value="True"/>
       </Debugging>
       <LinkSmart Value="True"/>
     </Linking>
     <Other>
-      <CustomOptions Value="-dFULL_FEATURE_SET"/>
+      <Verbosity>
+        <ShoLineNum Value="True"/>
+      </Verbosity>
+      <CustomOptions Value="-dFULL_FEATURE_SET"/>
       <CompilerPath Value="$(CompPath)"/>
     </Other>
   </CompilerOptions>

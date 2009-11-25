@@ -61,7 +61,7 @@ type
     constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     procedure CheckOptionsValidity; override;
-  published  
+  published
     { Sets precompression filter used when saving images with lossless compression.
       Allowed values are: 0 (none), 1 (sub), 2 (up), 3 (average), 4 (paeth),
       5 (use 0 for indexed/gray images and 4 for RGB/ARGB images),
@@ -267,6 +267,14 @@ type
   end;
   PfcTL = ^TfcTL;
 
+  { pHYs chunk format - encodes the absolute or relative dimensions of pixels.}
+  TpHYs = packed record
+    PixelsPerUnitX: LongWord;
+    PixelsPerUnitY: LongWord;
+    UnitSpecifier: Byte;
+  end;
+  PpHYs = ^TpHYs;
+
 const
   { PNG file identifier.}
   PNGSignature: TChar8 = #$89'PNG'#$0D#$0A#$1A#$0A;
@@ -296,6 +304,7 @@ const
   acTLChunk: TChar4 = 'acTL';
   fcTLChunk: TChar4 = 'fcTL';
   fdATChunk: TChar4 = 'fdAT';
+  pHYsChunk: TChar4 = 'pHYs';
 
   { APNG frame dispose operations.}
   DisposeOpNone       = 0;
@@ -316,11 +325,13 @@ type
   { Helper class that holds information about MNG frame in PNG or JNG format.}
   TFrameInfo = class(TObject)
   public
+    Index: Integer;
     FrameWidth, FrameHeight: LongInt;
     IsJpegFrame: Boolean;
     IHDR: TIHDR;
     JHDR: TJHDR;
     fcTL: TfcTL;
+    pHYs: TpHYs;
     Palette: PPalette24;
     PaletteEntries: LongInt;
     Transparency: Pointer;
@@ -330,7 +341,7 @@ type
     IDATMemory: TMemoryStream;
     JDATMemory: TMemoryStream;
     JDAAMemory: TMemoryStream;
-    constructor Create;
+    constructor Create(AIndex: Integer);
     destructor Destroy; override;
     procedure AssignSharedProps(Source: TFrameInfo);
   end;
@@ -340,6 +351,7 @@ type
 
   TNGFileHandler = class(TObject)
   public
+    FileFormat: TNetworkGraphicsFileFormat;
     FileType: TNGFileType;
     Frames: array of TFrameInfo;
     MHDR: TMHDR; // Main header for MNG files
@@ -348,10 +360,12 @@ type
     GlobalPaletteEntries: LongInt;
     GlobalTransparency: Pointer;
     GlobalTransparencySize: LongInt;
+    constructor Create(AFileFormat: TNetworkGraphicsFileFormat);
     destructor Destroy; override;
     procedure Clear;
     function GetLastFrame: TFrameInfo;
     function AddFrameInfo: TFrameInfo;
+    procedure StoreMetaData;
   end;
 
   { Network Graphics file parser and frame converter.}
@@ -378,7 +392,7 @@ type
 {$IFNDEF DONT_LINK_JNG}
     procedure StoreImageToJNGFrame(const JHDR: TJHDR; const Image: TImageData; IDATStream, JDATStream, JDAAStream: TMemoryStream);
 {$ENDIF}
-    procedure SetFileOptions(FileFormat: TNetworkGraphicsFileFormat);
+    procedure SetFileOptions;
   end;
 
 {$IFNDEF DONT_LINK_JNG}
@@ -486,8 +500,9 @@ end;
 
 { TFrameInfo class implementation }
 
-constructor TFrameInfo.Create;
+constructor TFrameInfo.Create(AIndex: Integer);
 begin
+  Index := AIndex;
   IDATMemory := TMemoryStream.Create;
   JDATMemory := TMemoryStream.Create;
   JDAAMemory := TMemoryStream.Create;
@@ -537,6 +552,11 @@ begin
   GlobalTransparencySize := 0;
 end;
 
+constructor TNGFileHandler.Create(AFileFormat: TNetworkGraphicsFileFormat);
+begin
+  FileFormat := AFileFormat;
+end;
+
 function TNGFileHandler.GetLastFrame: TFrameInfo;
 var
   Len: LongInt;
@@ -548,13 +568,28 @@ begin
     Result := nil;
 end;
 
+procedure TNGFileHandler.StoreMetaData;
+var
+  I: Integer;
+begin
+  for I := 0 to High(Frames) do
+  begin
+    if Frames[I].pHYs.UnitSpecifier = 1 then
+    begin
+      // Store physical pixel dimensions, in PNG stored as pixels per meter DPM
+      FileFormat.AddMetaData(Imaging.SMetaPhysicalPixelSizeX, 1e06 / Frames[I].pHYs.PixelsPerUnitX);
+      FileFormat.AddMetaData(Imaging.SMetaPhysicalPixelSizeY, 1e06 / Frames[I].pHYs.PixelsPerUnitY);
+    end;
+  end;
+end;
+
 function TNGFileHandler.AddFrameInfo: TFrameInfo;
 var
   Len: LongInt;
 begin
   Len := Length(Frames);
   SetLength(Frames, Len + 1);
-  Result := TFrameInfo.Create;
+  Result := TFrameInfo.Create(Len);
   Frames[Len] := Result;
 end;
 
@@ -743,6 +778,16 @@ var
     SwapEndianLongWord(@acTL, SizeOf(acTL) div SizeOf(LongWord));
   end;
 
+  procedure LoadpHYs;
+  begin
+    ReadChunkData;
+    with GetLastFrame do
+    begin
+      pHYs := PpHYs(ChunkData)^;
+      SwapEndianLongWord(@pHYs, SizeOf(pHYs) div SizeOf(LongWord));
+    end;
+  end;
+
 begin
   Result := False;
   Clear;
@@ -777,6 +822,7 @@ begin
       else if Chunk.ChunkID = tRNSChunk then LoadtRNS
       else if Chunk.ChunkID = bKGDChunk then LoadbKGD
       else if Chunk.ChunkID = acTLChunk then HandleacTL
+      else if Chunk.ChunkID = pHYsChunk then LoadpHYs
       else SkipChunkData;
     until Eof(Handle) or (Chunk.ChunkID = MENDChunk) or
       ((FileType <> ngMNG) and (Chunk.ChunkID = IENDChunk));
@@ -1946,7 +1992,7 @@ begin
   end;
 end;
 
-procedure TNGFileSaver.SetFileOptions(FileFormat: TNetworkGraphicsFileFormat);
+procedure TNGFileSaver.SetFileOptions;
 begin
   PreFilter := FileFormat.FPreFilter;
   CompressLevel := FileFormat.FCompressLevel;
@@ -2194,7 +2240,7 @@ var
   NGFileLoader: TNGFileLoader;
 begin
   Result := False;
-  NGFileLoader := TNGFileLoader.Create;
+  NGFileLoader := TNGFileLoader.Create(Self);
   try
     // Use NG file parser to load file
     if NGFileLoader.LoadFile(Handle) and (Length(NGFileLoader.Frames) > 0) then
@@ -2216,6 +2262,7 @@ begin
         TAPNGAnimator.Animate(Images, NGFileLoader.acTL, NGFileLoader.Frames);
     end;
   finally
+    NGFileLoader.StoreMetaData; // Store metadata
     NGFileLoader.Free;
   end;
 end;
@@ -2235,7 +2282,7 @@ begin
   DefaultFormat := ifDefault;
   AnimWidth := 0;
   AnimHeight := 0;
-  NGFileSaver := TNGFileSaver.Create;
+  NGFileSaver := TNGFileSaver.Create(Self);
 
   // Save images with more frames as APNG format
   if Length(Images) > 1 then
@@ -2255,7 +2302,7 @@ begin
   end
   else
     NGFileSaver.FileType := ngPNG;
-  NGFileSaver.SetFileOptions(Self);
+  NGFileSaver.SetFileOptions;
 
   with NGFileSaver do
   try
@@ -2346,7 +2393,7 @@ var
   I, Len: LongInt;
 begin
   Result := False;
-  NGFileLoader := TNGFileLoader.Create;
+  NGFileLoader := TNGFileLoader.Create(Self);
   try
     // Use NG file parser to load file
     if NGFileLoader.LoadFile(Handle) then
@@ -2376,6 +2423,7 @@ begin
       Result := True;
     end;
   finally
+    NGFileLoader.StoreMetaData; // Store metadata
     NGFileLoader.Free;
   end;
 end;
@@ -2392,9 +2440,9 @@ begin
   LargestWidth := 0;
   LargestHeight := 0;
 
-  NGFileSaver := TNGFileSaver.Create;
+  NGFileSaver := TNGFileSaver.Create(Self);
   NGFileSaver.FileType := ngMNG;
-  NGFileSaver.SetFileOptions(Self);
+  NGFileSaver.SetFileOptions;
 
   with NGFileSaver do
   try
@@ -2461,7 +2509,7 @@ var
   NGFileLoader: TNGFileLoader;
 begin
   Result := False;
-  NGFileLoader := TNGFileLoader.Create;
+  NGFileLoader := TNGFileLoader.Create(Self);
   try
     // Use NG file parser to load file
     if NGFileLoader.LoadFile(Handle) and (Length(NGFileLoader.Frames) > 0) then
@@ -2476,6 +2524,7 @@ begin
       Result := True;
     end;
   finally
+    NGFileLoader.StoreMetaData; // Store metadata
     NGFileLoader.Free;
   end;
 end;
@@ -2491,11 +2540,11 @@ begin
   Result := MakeCompatible(Images[Index], ImageToSave, MustBeFreed);
   if Result then
   begin
-    NGFileSaver := TNGFileSaver.Create;
+    NGFileSaver := TNGFileSaver.Create(Self);
     with NGFileSaver do
     try
       FileType := ngJNG;
-      SetFileOptions(Self);
+      SetFileOptions;
       AddFrame(ImageToSave, True);
       SaveFile(Handle);
     finally
@@ -2524,6 +2573,9 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added loading of metadata from these chunks: pHYs.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Added APNG saving support.
