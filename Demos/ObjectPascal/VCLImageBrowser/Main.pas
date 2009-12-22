@@ -109,7 +109,7 @@ type
 
 const
   FillColor = $FFA6FFFF;
-  CheckersDensity = 8;
+  CheckersDensity = 32;
   SUnsupportedFormat = 'Selected item format not supported';
 
 var
@@ -173,9 +173,13 @@ begin
 end;
 
 procedure TMainForm.SetSupported;
+var
+  XRes, YRes: Single;
 begin
   // Update image info and enable previous/next buttons
   LabDim.Caption := Format('%dx%d pixels', [FImage.Width, FImage.Height]);
+  if GlobalMetadata.GetPhysicalPixelSize(ruDpi, XRes, YRes) then
+    LabDim.Caption := LabDim.Caption + Format(' (DPI %.0nx%.0n)', [XRes, YRes]);
   LabFileFormat.Caption := Imaging.FindImageFileFormatByName(FFileName).Name;
   LabDataFormat.Caption := Imaging.GetFormatName(FOriginalFormats[FImage.ActiveImage]);
   LabActImage.Caption := Format('%d/%d', [FImage.ActiveImage + 1, FImage.ImageCount]);
@@ -217,7 +221,7 @@ begin
       for X := 0 to CheckersDensity - 1 do
       begin
         FImageCanvas.FillColor32 := IffUnsigned((Odd(X) and not Odd(Y)) or (not Odd(X) and Odd(Y)),
-          pcWhite, pcBlack);
+          pcWhite, pcGray);
         FImageCanvas.FillRect(Rect(X * Step, Y * Step, (X + 1) * Step, (Y + 1) * Step));
       end;
   end;
@@ -362,6 +366,9 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Displays image physical resolution if present.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Creates best canvas class for given image for faster

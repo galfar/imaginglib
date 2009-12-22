@@ -58,6 +58,7 @@ type
   protected
     FPalette: TPalette24Size256;
     FARGBPalette: PPalette32;
+    procedure Define; override;
     { Decodes RLE compressed data.}
     procedure DagRLEDecode(InData: Pointer; OutSize: LongInt; out OutData: Pointer);
     function FindNoHeaderInfo(Size: LongInt; Infos: array of TNoHeaderFileInfo): LongInt;
@@ -68,7 +69,6 @@ type
       const Info: TImageFormatInfo); override;
     function IsSupported(const Image: TImageData): Boolean; override;
   public
-    constructor Create; override;
     destructor Destroy; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     { Current palette used when loading and saving images. Nearly all images
@@ -462,9 +462,9 @@ uses
 
 { TDaggerfallFileFormat class implementation }
 
-constructor TElderFileFormat.Create;
+procedure TElderFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FCanLoad := True;
   FCanSave := True;
   FIsMultiImageFormat := True;

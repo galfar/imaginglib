@@ -43,6 +43,7 @@ type
     Loading as well as saving is supported now. }
   TXPMFileFormat = class(TImageFileFormat)
   protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
@@ -50,7 +51,6 @@ type
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   end;
 
@@ -205,9 +205,9 @@ end;
   TXPMFileFormat implementation
 }
 
-constructor TXPMFileFormat.Create;
+procedure TXPMFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SXPMFormatName;
   FCanLoad := True;
   FCanSave := True;
@@ -234,7 +234,7 @@ var
   begin
     Result := '';
     SkipWhiteSpace(Line);
-    while (Length(Line) > 0) and not(Line[1] in WhiteSpaces) do
+    while (Length(Line) > 0) and not (Line[1] in WhiteSpaces) do
     begin
       SetLength(Result, Length(Result) + 1);
       Result[Length(Result)] := Line[1];

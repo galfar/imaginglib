@@ -7,7 +7,7 @@
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<DCC_DependencyCheckOutputName>..\..\Bin\ImgBrowser.exe</DCC_DependencyCheckOutputName>
 			<ProjectVersion>12.0</ProjectVersion>
-			<Config Condition="'$(Config)'==''">Debug</Config>
+			<Config Condition="'$(Config)'==''">Release</Config>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
 			<Base>true</Base>
@@ -53,7 +53,6 @@
 			<DelphiCompile Include="ImgBrowser.dpr">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
-			<DCCReference Include="Main.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
@@ -105,7 +104,7 @@
 					</VersionInfoKeys>
 					<Source>
 						<Source Name="MainSource">ImgBrowser.dpr</Source>
-					</Source>					
+					</Source>
 				</Delphi.Personality>
 				<ModelSupport>False</ModelSupport>
 			</BorlandProject>

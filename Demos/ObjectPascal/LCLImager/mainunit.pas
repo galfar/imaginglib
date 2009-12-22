@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   LCL Imager (ObjectPascal, high level/component sets/canvas, Win32/Linux/BSD)
-  tested in Lazarus 0.9.26 (Windows: Win32, Qt, Gtk2; Unix: Gtk)
+  tested in Lazarus 0.9.28 (Windows: Win32, Qt, Gtk2; Unix: Gtk)
   written by Marek Mauder
 
   Simple image manipulator program which shows usage of Imaging VCL/CLX/LCL
@@ -30,8 +30,8 @@ unit MainUnit;
 interface
 
 uses
-  Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs,
-  Menus, ExtCtrls, ExtDlgs, DemoUtils, AboutUnit, ActnList,
+  Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, Variants,
+  Menus, ExtCtrls, ExtDlgs, DemoUtils, AboutUnit, ActnList, StdCtrls,
   ImagingTypes,
   Imaging,
   ImagingClasses,
@@ -139,6 +139,7 @@ type
     MenuItem83: TMenuItem;
     MenuItem84: TMenuItem;
     MenuItem85: TMenuItem;
+    MenuItem86: TMenuItem;
     RedItem: TMenuItem;
     GreenItem: TMenuItem;
     BlueItem: TMenuItem;
@@ -229,6 +230,7 @@ type
     procedure MenuItem83Click(Sender: TObject);
     procedure MenuItem84Click(Sender: TObject);
     procedure MenuItem85Click(Sender: TObject);
+    procedure MenuItem86Click(Sender: TObject);
   private
     FBitmap: TImagingBitmap;
     FImage: TMultiImage;
@@ -828,6 +830,42 @@ begin
   FreeResizeInput;
 end;
 
+procedure TMainForm.MenuItem86Click(Sender: TObject);
+var
+  Form: TForm;
+  Memo: TMemo;
+  I: Integer;
+  Item: TMetadataItem;
+  S: string;
+begin
+  Form := TForm.Create(Self);
+  Form.BorderIcons := [biSystemMenu];
+  Form.Caption := 'Detected Image Metadata';
+  Form.Position := poOwnerFormCenter;
+  Form.Width := 512;
+  Form.Height := 512;
+  Memo := TMemo.Create(Form);
+  Memo.Parent := Form;
+  Memo.Align := alClient;
+  Memo.ReadOnly := True;
+
+  if GlobalMetadata.MetaItemCount > 0 then
+  begin
+    for I := 0 to GlobalMetadata.MetaItemCount - 1 do
+    begin
+      Item := GlobalMetadata.MetaItemsByIdx[I];
+      S := Format('%s (idx: %d, type: %s): %s', [Item.Id, Item.ImageIndex,
+        VarTypeAsText(VarType(Item.Value)), VarToStrDef(Item.Value, 'couldn''t convert Variant to string')]);
+      Memo.Lines.Add(S);
+    end;
+  end
+  else
+    Memo.Lines.Add('No metadata loaded for this image');
+
+  Form.ShowModal;
+  Form.Free;
+end;
+
 procedure TMainForm.ActViewRealSizeExecute(Sender: TObject);
 begin
   ActViewRealSize.Checked := True;
@@ -1030,6 +1068,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - add more canvas stuff when it will be avaiable
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added "Show Metadata" item to View menu + related functionality.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Added Free Resize and Free Rotate functions to Manipulate menu.

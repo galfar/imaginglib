@@ -51,7 +51,7 @@ type
     at least number of images to build cube/volume based on current
     Depth and MipMapCount settings.}
   TDDSFileFormat = class(TImageFileFormat)
-  protected
+  private
     FLoadedCubeMap: LongBool;
     FLoadedVolume: LongBool;
     FLoadedMipMapCount: LongInt;
@@ -62,6 +62,8 @@ type
     FSaveDepth: LongInt;
     procedure ComputeSubDimensions(Idx, Width, Height, MipMaps, Depth: LongInt;
       IsCubeMap, IsVolume: Boolean; var CurWidth, CurHeight: LongInt);
+  protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
@@ -69,7 +71,6 @@ type
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     procedure CheckOptionsValidity; override;
   published
@@ -209,9 +210,9 @@ type
 
 { TDDSFileFormat class implementation }
 
-constructor TDDSFileFormat.Create;
+procedure TDDSFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SDDSFormatName;
   FCanLoad := True;
   FCanSave := True;

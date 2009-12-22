@@ -57,8 +57,8 @@ type
     function GetSupportedFormats: TImageFormats; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
+    procedure Define; override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     procedure CheckOptionsValidity; override;
   published
@@ -105,12 +105,11 @@ type
   private
     FLoadAnimated: LongBool;
   protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-  public
-    constructor Create; override;
   published
     property LoadAnimated: LongBool read FLoadAnimated write FLoadAnimated;
   end;
@@ -131,12 +130,11 @@ type
     Many frame compression settings can be modified by options interface.}
   TMNGFileFormat = class(TNetworkGraphicsFileFormat)
   protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-  public
-    constructor Create; override;
   end;
 {$ENDIF}  
 
@@ -156,12 +154,11 @@ type
     with alpha = 0).}
   TJNGFileFormat = class(TNetworkGraphicsFileFormat)
   protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-  public
-    constructor Create; override;
   end;
 {$ENDIF}
 
@@ -323,7 +320,7 @@ const
 
 type
   { Helper class that holds information about MNG frame in PNG or JNG format.}
-  TFrameInfo = class(TObject)
+  TFrameInfo = class
   public
     Index: Integer;
     FrameWidth, FrameHeight: LongInt;
@@ -349,7 +346,7 @@ type
   { Defines type of Network Graphics file.}
   TNGFileType = (ngPNG, ngAPNG, ngMNG, ngJNG);
 
-  TNGFileHandler = class(TObject)
+  TNGFileHandler = class
   public
     FileFormat: TNetworkGraphicsFileFormat;
     FileType: TNGFileType;
@@ -365,7 +362,7 @@ type
     procedure Clear;
     function GetLastFrame: TFrameInfo;
     function AddFrameInfo: TFrameInfo;
-    procedure StoreMetaData;
+    procedure LoadMetaData;
   end;
 
   { Network Graphics file parser and frame converter.}
@@ -568,7 +565,7 @@ begin
     Result := nil;
 end;
 
-procedure TNGFileHandler.StoreMetaData;
+procedure TNGFileHandler.LoadMetaData;
 var
   I: Integer;
 begin
@@ -577,8 +574,8 @@ begin
     if Frames[I].pHYs.UnitSpecifier = 1 then
     begin
       // Store physical pixel dimensions, in PNG stored as pixels per meter DPM
-      FileFormat.AddMetaData(Imaging.SMetaPhysicalPixelSizeX, 1e06 / Frames[I].pHYs.PixelsPerUnitX);
-      FileFormat.AddMetaData(Imaging.SMetaPhysicalPixelSizeY, 1e06 / Frames[I].pHYs.PixelsPerUnitY);
+      FileFormat.FMetadata.SetPhysicalPixelSize(ruDpm, Frames[I].pHYs.PixelsPerUnitX,
+        Frames[I].pHYs.PixelsPerUnitY);
     end;
   end;
 end;
@@ -1857,6 +1854,25 @@ var
     GetIO.Write(Handle, @ChunkCrc, SizeOf(ChunkCrc));
   end;
 
+  procedure WriteMetaDataChunks(Frame: TFrameInfo);
+  var
+    XRes, YRes: Single;
+  begin
+    if FileFormat.FMetadata.GetPhysicalPixelSize(ruDpm, XRes, YRes, True) then
+    begin
+      // Save pHYs chunk
+      Frame.pHYs.UnitSpecifier := 1;
+      // PNG stores physical resolution as dots per meter
+      Frame.pHYs.PixelsPerUnitX := Round(XRes);
+      Frame.pHYs.PixelsPerUnitY := Round(YRes);
+
+      Chunk.DataSize := SizeOf(Frame.pHYs);
+      Chunk.ChunkID := pHYsChunk;
+      SwapEndianLongWord(@Frame.pHYs, SizeOf(Frame.pHYs) div SizeOf(LongWord));
+      WriteChunk(Chunk, @Frame.pHYs);
+    end;
+  end;
+
   procedure WritePNGMainImageChunks(Frame: TFrameInfo);
   begin
     with Frame do
@@ -1880,6 +1896,8 @@ var
         WriteChunk(Chunk, Transparency);
       end;
     end;
+    // Write metadata related chunks
+    WriteMetaDataChunks(Frames[I]);
   end;
 
 begin
@@ -1909,6 +1927,8 @@ begin
       Chunk.DataSize := SizeOf(JHDR);
       Chunk.ChunkID := JHDRChunk;
       WriteChunk(Chunk, @JHDR);
+      // Write metadata related chunks
+      WriteMetaDataChunks(Frames[I]);
       // Write JNG image data
       Chunk.DataSize := JDATMemory.Size;
       Chunk.ChunkID := JDATChunk;
@@ -2019,7 +2039,7 @@ var
     for I := 0 to Len - 1 do
     with SrcFrames[I] do
     begin
-      if (FrameWidth <> IHDR.Width) or (FrameHeight <> IHDR.Height) or (Len <> acTL.NumFrames) or
+      if (FrameWidth <> Integer(IHDR.Width)) or (FrameHeight <> Integer(IHDR.Height)) or (Len <> Integer(acTL.NumFrames)) or
         (not ((fcTL.DisposeOp = DisposeOpNone) and (fcTL.BlendOp = BlendOpSource)) and
         not ((fcTL.DisposeOp = DisposeOpBackground) and (fcTL.BlendOp = BlendOpSource)) and
         not ((fcTL.DisposeOp = DisposeOpBackground) and (fcTL.BlendOp = BlendOpOver))) then
@@ -2035,7 +2055,7 @@ begin
   if (Len = 0) or not AnimatingNeeded then
     Exit;
 
-  if (Len = acTL.NumFrames + 1) and (SrcFrames[0].fcTL.Width = 0) then
+  if (Len = Integer(acTL.NumFrames) + 1) and (SrcFrames[0].fcTL.Width = 0) then
   begin
     // If default image (stored in IDAT chunk) isn't part of animation we ignore it
     Offset := 1;
@@ -2120,9 +2140,9 @@ end;
 
 { TNetworkGraphicsFileFormat class implementation }
 
-constructor TNetworkGraphicsFileFormat.Create;
+procedure TNetworkGraphicsFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FCanLoad := True;
   FCanSave := True;
   FIsMultiImageFormat := False;
@@ -2218,9 +2238,9 @@ end;
 
 { TPNGFileFormat class implementation }
 
-constructor TPNGFileFormat.Create;
+procedure TPNGFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SPNGFormatName;
   FIsMultiImageFormat := True;
   FLoadAnimated := PNGDefaultLoadAnimated;
@@ -2262,7 +2282,7 @@ begin
         TAPNGAnimator.Animate(Images, NGFileLoader.acTL, NGFileLoader.Frames);
     end;
   finally
-    NGFileLoader.StoreMetaData; // Store metadata
+    NGFileLoader.LoadMetaData; // Store metadata
     NGFileLoader.Free;
   end;
 end;
@@ -2369,9 +2389,9 @@ end;
 
 { TMNGFileFormat class implementation }
 
-constructor TMNGFileFormat.Create;
+procedure TMNGFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SMNGFormatName;
   FIsMultiImageFormat := True;
   AddMasks(SMNGMasks);
@@ -2423,7 +2443,7 @@ begin
       Result := True;
     end;
   finally
-    NGFileLoader.StoreMetaData; // Store metadata
+    NGFileLoader.LoadMetaData; // Store metadata
     NGFileLoader.Free;
   end;
 end;
@@ -2487,9 +2507,9 @@ end;
 
 { TJNGFileFormat class implementation }
 
-constructor TJNGFileFormat.Create;
+procedure TJNGFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SJNGFormatName;
   AddMasks(SJNGMasks);
 
@@ -2501,6 +2521,7 @@ begin
   RegisterOption(ImagingJNGAlphaCompressLevel, @FCompressLevel);
   RegisterOption(ImagingJNGQuality, @FQuality);
   RegisterOption(ImagingJNGProgressive, @FProgressive);
+
 end;
 
 function TJNGFileFormat.LoadData(Handle: TImagingHandle;
@@ -2524,7 +2545,7 @@ begin
       Result := True;
     end;
   finally
-    NGFileLoader.StoreMetaData; // Store metadata
+    NGFileLoader.LoadMetaData; // Store metadata
     NGFileLoader.Free;
   end;
 end;
@@ -2575,7 +2596,7 @@ finalization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
-    - Added loading of metadata from these chunks: pHYs.
+    - Added loading and saving of metadata from these chunks: pHYs.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Added APNG saving support.

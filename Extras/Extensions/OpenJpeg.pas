@@ -62,7 +62,6 @@ unit OpenJpeg;
 
 {$IFDEF FPC}
   { Free Pascal settings }
-  {$MODE DELPHI}
   {$PACKRECORDS 8}
   {$PACKENUM 4}
 {$ELSE}

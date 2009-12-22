@@ -338,28 +338,18 @@ type
   end;
   PIOFunctions = ^TIOFunctions;
 
-const
-  { Physical size of one pixel in micrometers.}
-  SMetaPhysicalPixelSizeX = 'PhysicalPixelSizeX';
-  SMetaPhysicalPixelSizeY = 'PhysicalPixelSizeY';
-
 type
+  TMetadata = class;
+
   { Base class for various image file format loaders/savers which
     descend from this class. If you want to add support for new image file
     format the best way is probably to look at TImageFileFormat descendants'
     implementations that are already part of Imaging.}
-  {$TYPEINFO ON}
-  TImageFileFormat = class(TObject)
+{$TYPEINFO ON}
+  TImageFileFormat = class
   private
     FExtensions: TStringList;
     FMasks: TStringList;
-    FMetaData: TStringList;
-    FSaveMetaData: TStringList;
-    function GetMetaById(const Id: string): Variant;
-    function GetMetaByIdx(Index: Integer): Variant;
-    function GetMetaDataCount: Integer;
-    procedure AddMetaToList(List: TStringList; const Id: string; const Value: Variant; ImageIndex: Integer);
-    procedure ClearMetaList(List: TStringList);
     { Does various checks and actions before LoadData method is called.}
     function PrepareLoad(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstFrame: Boolean): Boolean;
@@ -376,6 +366,10 @@ type
     FIsMultiImageFormat: Boolean;
     FSupportedFormats: TImageFormats;
     FFirstIdx, FLastIdx: LongInt;
+    FMetadata: TMetadata;
+    { Descendants must override this method and define file format name and
+      capabilities.}
+    procedure Define; virtual;
     { Defines filename masks for this image file format. AMasks should be
       in format '*.ext1,*.ext2,umajo.*'.}
     procedure AddMasks(const AMasks: string);
@@ -389,7 +383,7 @@ type
       and contains data that passed TestFormat method's check.}
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstFrame: Boolean): Boolean; virtual;
-    { Method which must be overrided in descendants if they are be capable
+    { Method which must be overriden in descendants if they are be capable
       of saving images. Images are checked to have length >0 and
       that they contain valid images. For single-image file formats
       Index contain valid index to Images array (to image which should be saved).
@@ -409,7 +403,7 @@ type
       (proper widht and height for example).}
     function IsSupported(const Image: TImageData): Boolean; virtual;
   public
-    constructor Create; virtual;
+    constructor Create(AMetadata: TMetadata = nil); virtual;
     destructor Destroy; override;
 
     { Loads images from file source.}
@@ -466,9 +460,6 @@ type
       of descendants) have valid values and make necessary changes.}
     procedure CheckOptionsValidity; virtual;
 
-    procedure AddMetaData(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
-    procedure AddMetaDataForSave(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
-
     { Description of this format.}
     property Name: string read FName;
     { Indicates whether images in this format can be loaded.}
@@ -487,15 +478,70 @@ type
     { Set of TImageFormats supported by saving functions of this format. Images
       can be saved only in one those formats.}
     property SupportedFormats: TImageFormats read GetSupportedFormats;
-
-    property MetaDataCount: Integer read GetMetaDataCount;
-    property MetaData[const Id: string]: Variant read GetMetaById;
-    property MetaDataByIdx[Index: Integer]: Variant read GetMetaByIdx;
   end;
-  {$TYPEINFO OFF}
+{$TYPEINFO OFF}
 
   { Class reference for TImageFileFormat class}
   TImageFileFormatClass = class of TImageFileFormat;
+
+  { Physical resolution unit.}
+  TResolutionUnit = (
+    ruSizeInMicroMeters, // value is pixel size in micrometers
+    ruDpi,               // value is pixels/dots per inch
+    ruDpm,               // value is pixels/dots per meter
+    ruDpcm               // value is pixels/dots per centimeter
+  );
+
+  TMetadataItem = class
+  public
+    Id: string;
+    ImageIndex: Integer;
+    Value: Variant;
+  end;
+
+  TMetadata = class
+  private
+    FLoadMetaItems: TStringList;
+    FSaveMetaItems: TStringList;
+    procedure AddMetaToList(List: TStringList; const Id: string; const Value: Variant; ImageIndex: Integer);
+    procedure ClearMetaList(List: TStringList);
+    function GetMetaById(const Id: string): Variant;
+    function GetMetaByIdx(Index: Integer): TMetadataItem;
+    function GetMetaCount: Integer;
+    function GetSaveMetaById(const Id: string): Variant;
+    procedure TranslateUnits(ResolutionUnit: TResolutionUnit; var XRes, YRes: Single);
+  public
+    constructor Create;
+    destructor Destroy; override;
+
+    procedure AddMetaItem(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
+    procedure AddMetaItemForSave(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
+    function HasMetaItem(const Id: string; ImageIndex: Integer = 0): Boolean;
+    function HasMetaItemForSave(const Id: string; ImageIndex: Integer = 0): Boolean;
+    procedure ClearMetaItems;
+    procedure ClearMetaItemsForSave;
+    function GetMetaItemName(const Id: string; ImageIndex: Integer): string;
+
+    function GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
+      YSize: Single; MetaForSave: Boolean = False; ImageIndex: Integer = 0): Boolean;
+    procedure SetPhysicalPixelSize(ResUnit: TResolutionUnit; XSize, YSize: Single;
+      MetaForSave: Boolean = False; ImageIndex: Integer = 0);
+
+    property MetaItemCount: Integer read GetMetaCount;
+    property MetaItems[const Id: string]: Variant read GetMetaById;
+    property MetaItemsByIdx[Index: Integer]: TMetadataItem read GetMetaByIdx;
+    property MetaItemsForSave[const Id: string]: Variant read GetSaveMetaById;
+  end;
+
+const
+  { Metadata item id constants }
+
+  { Physical size of one pixel in micrometers. Type of value is Single.}
+  SMetaPhysicalPixelSizeX = 'PhysicalPixelSizeX';
+  SMetaPhysicalPixelSizeY = 'PhysicalPixelSizeY';
+
+var
+  GlobalMetadata: TMetadata;
 
 { Returns symbolic name of given format.}
 function GetFormatName(Format: TImageFormat): string;
@@ -505,13 +551,15 @@ function ImageToStr(const Image: TImageData): string;
 function GetVersionStr: string;
 { If Condition is True then TruePart is retured, otherwise FalsePart is returned.}
 function IffFormat(Condition: Boolean; const TruePart, FalsePart: TImageFormat): TImageFormat;
-{ Registers new image loader/saver so it can be used by LoadFrom/SaveTo
-  functions.}
-procedure RegisterImageFileFormat(AClass: TImageFileFormatClass);
+
 { Registers new option so it can be used by SetOption and GetOption functions.
   Returns True if registration was succesful - that is Id is valid and is
   not already taken by another option.}
 function RegisterOption(OptionId: LongInt; Variable: PLongInt): Boolean;
+
+{ Registers new image loader/saver so it can be used by LoadFrom/SaveTo
+  functions.}
+procedure RegisterImageFileFormat(AClass: TImageFileFormatClass);
 { Returns image format loader/saver according to given extension
   or nil if not found.}
 function FindImageFileFormatByExt(const Ext: string): TImageFileFormat;
@@ -545,6 +593,25 @@ function GetFilterIndexExtension(Index: LongInt; OpenFileFilter: Boolean): strin
   string is defined by GetImageFileFormatsFilter function.
   Returned index is in range 1..N (as FilterIndex property of TOpenDialog/TSaveDialog)}
 function GetFileNameFilterIndex(const FileName: string; OpenFileFilter: Boolean): LongInt;
+
+(*
+
+TODO:
+  Global: Metadata (stuff now in TImageFileFormat)
+  TFileFormat ma nastavitelny Metadata referenci, pokud nil tak bere
+  global, jinak user provided.
+  TFileFormat - dodal std LoadFromFile/Stream etc funkce,
+  aby ho slo rozumne pouzivat samostatne.
+
+  ext := determine(src)
+  filefmt := findfmt(ext).clone(mymeta)
+  try
+    filefmt.loadimageformfile(src)
+  finally
+    filefmt.free
+  end;
+*)
+
 { Returns current IO functions.}
 function GetIO: TIOFunctions;
 { Raises EImagingError with given message.}
@@ -637,7 +704,7 @@ const
   // Do not change the default format now, its too late
   DefaultImageFormat: TImageFormat = ifA8R8G8B8;
   // Format used to create metadata IDs for frames loaded form multiimages.
-  SMetaIdForSubImage = '%s-%.4d';
+  SMetaIdForSubImage = '%s/%d';
 
 type
   TOptionArray = array of PLongInt;
@@ -1429,7 +1496,7 @@ function ResizeImage(var Image: TImageData; NewWidth, NewHeight: LongInt;
 var
   WorkImage: TImageData;
 begin
-  Assert((NewWidth > 0) and (NewHeight > 0));
+  Assert((NewWidth > 0) and (NewHeight > 0), 'New width or height is zero.');
   Result := False;
   if TestImage(Image) and ((Image.Width <> NewWidth) or (Image.Height <> NewHeight)) then
   try
@@ -2307,6 +2374,7 @@ var
   Info: PImageFormatInfo;
   WorkImage: TImageData;
   OldFormat: TImageFormat;
+  Resampling: TSamplingFilter;
 begin
   Result := False;
   OldFormat := ifUnknown;
@@ -2348,13 +2416,20 @@ begin
       if Info.IsIndexed then
         Filter := rfNearest;
 
-      case Filter of
-        rfNearest: StretchNearest(WorkImage, SrcX, SrcY, SrcWidth, SrcHeight,
+      if Filter = rfNearest then
+      begin
+        StretchNearest(WorkImage, SrcX, SrcY, SrcWidth, SrcHeight,
           DstImage, DstX, DstY, DstWidth, DstHeight);
-        rfBilinear: StretchResample(WorkImage, SrcX, SrcY, SrcWidth, SrcHeight,
-          DstImage, DstX, DstY, DstWidth, DstHeight, sfLinear);
-        rfBicubic: StretchResample(WorkImage, SrcX, SrcY, SrcWidth, SrcHeight,
-          DstImage, DstX, DstY, DstWidth, DstHeight, sfCatmullRom);
+      end
+      else
+      begin
+        case Filter of
+          rfBilinear: Resampling := sfLinear;
+          rfBicubic:  Resampling := DefaultCubicFilter;
+          rfLanczos:  Resampling := sfLanczos;
+        end;
+        StretchResample(WorkImage, SrcX, SrcY, SrcWidth, SrcHeight,
+          DstImage, DstX, DstY, DstWidth, DstHeight, Resampling);
       end;
 
       // If dest image was in special format we convert it back
@@ -2702,6 +2777,8 @@ begin
   Assert(AClass <> nil);
   if ImageFileFormats = nil then
     ImageFileFormats := TList.Create;
+  if GlobalMetadata = nil then
+    GlobalMetadata := TMetadata.Create;
   if ImageFileFormats <> nil then
     ImageFileFormats.Add(AClass.Create);
 end;
@@ -2957,31 +3034,34 @@ end;
   TImageFileFormat class implementation
 }
 
-constructor TImageFileFormat.Create;
+constructor TImageFileFormat.Create(AMetadata: TMetadata);
 begin
   inherited Create;
   FName := SUnknownFormat;
   FExtensions := TStringList.Create;
   FMasks := TStringList.Create;
-  FMetaData := TStringList.Create;
-  FSaveMetaData := TStringList.Create;
+  if AMetadata = nil then
+    FMetadata := GlobalMetadata
+  else
+    FMetadata := AMetadata;
+  Define;
 end;
 
 destructor TImageFileFormat.Destroy;
 begin
-  ClearMetaList(FMetaData);
-  ClearMetaList(FSaveMetaData);
   FExtensions.Free;
   FMasks.Free;
-  FMetaData.Free;
-  FSaveMetaData.Free;
   inherited Destroy;
+end;
+
+procedure TImageFileFormat.Define;
+begin
 end;
 
 function TImageFileFormat.PrepareLoad(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstFrame: Boolean): Boolean;
 begin
-  ClearMetaList(FMetaData); // Clear old metadata
+  FMetadata.ClearMetaItems; // Clear old metadata
   FreeImagesInArray(Images);
   SetLength(Images, 0);
   Result := Handle <> nil;
@@ -3082,26 +3162,6 @@ end;
 function TImageFileFormat.GetFormatInfo(Format: TImageFormat): TImageFormatInfo;
 begin
   Result := ImageFormatInfos[Format]^;
-end;
-
-function TImageFileFormat.GetMetaById(const Id: string): Variant;
-var
-  Idx: Integer;
-begin
-  if FMetaData.Find(Id, Idx) then
-    Result := (FMetaData.Objects[Idx] as TVariantHolder).Value
-  else
-    Result := Variants.Null;
-end;
-
-function TImageFileFormat.GetMetaByIdx(Index: Integer): Variant;
-begin
-  Result := (FMetaData.Objects[Index] as TVariantHolder).Value;
-end;
-
-function TImageFileFormat.GetMetaDataCount: Integer;
-begin
-  Result := FMetaData.Count;
 end;
 
 function TImageFileFormat.GetSupportedFormats: TImageFormats;
@@ -3251,7 +3311,6 @@ begin
         Result := PrepareSave(Handle, Images, Index) and SaveData(Handle, Images, Index);
       finally
         IO.Close(Handle);
-        ClearMetaList(FSaveMetaData); // Clear metadata for image just saved
       end;
     end
     else
@@ -3271,7 +3330,6 @@ begin
             Break;
         finally
           IO.Close(Handle);
-          ClearMetaList(FSaveMetaData); // Clear metadata for image just saved
         end;
       end;
     end;
@@ -3319,7 +3377,6 @@ begin
       end;
     finally
       IO.Close(Handle);
-      ClearMetaList(FSaveMetaData); // Clear metadata for image just saved
     end;
   except
     Stream.Position := OldPosition;
@@ -3367,7 +3424,6 @@ begin
       Size := IORec.Position;
     finally
       IO.Close(Handle);
-      ClearMetaList(FSaveMetaData); // Clear metadata for image just saved
     end;
   except
     RaiseImaging(SErrorSavingMemory, [Data, Size, FExtensions[0]]);
@@ -3434,47 +3490,10 @@ begin
   Result := False;
 end;
 
-procedure TImageFileFormat.AddMetaData(const Id: string; const Value: Variant; ImageIndex: Integer);
-begin
-  AddMetaToList(FMetaData, Id, Value, ImageIndex);
-end;
-
-procedure TImageFileFormat.AddMetaDataForSave(const Id: string;
-  const Value: Variant; ImageIndex: Integer);
-begin
-  AddMetaToList(FSaveMetaData, Id, Value, ImageIndex);
-end;
-
-procedure TImageFileFormat.AddMetaToList(List: TStringList; const Id: string;
-  const Value: Variant; ImageIndex: Integer);
-var
-  Holder: TVariantHolder;
-  Idx: Integer;
-  FullId: string;
-begin
-  FullId := Iff(ImageIndex = 0, Id, Format(SMetaIdForSubImage, [Id, ImageIndex]));
-  if List.Find(FullId, Idx) then
-    (List.Objects[Idx] as TVariantHolder).Value := Value
-  else
-  begin
-    Holder := TVariantHolder.Create;
-    Holder.Value := Value;
-    List.AddObject(FullId, Holder);
-  end;
-end;
-
 procedure TImageFileFormat.CheckOptionsValidity;
 begin
 end;
 
-procedure TImageFileFormat.ClearMetaList(List: TStringList);
-var
-  I: Integer;
-begin
-  for I := 0 to List.Count - 1 do
-    List.Objects[I].Free;
-  List.Clear;
-end;
 
 { TOptionStack  class implementation }
 
@@ -3525,12 +3544,202 @@ begin
   end;
 end;
 
+{ TMetadata }
+
+procedure TMetadata.AddMetaItem(const Id: string; const Value: Variant;
+  ImageIndex: Integer);
+begin
+  AddMetaToList(FLoadMetaItems, Id, Value, ImageIndex);
+end;
+
+procedure TMetadata.AddMetaItemForSave(const Id: string; const Value: Variant;
+  ImageIndex: Integer);
+begin
+  AddMetaToList(FSaveMetaItems, Id, Value, ImageIndex);
+end;
+
+procedure TMetadata.AddMetaToList(List: TStringList; const Id: string;
+  const Value: Variant; ImageIndex: Integer);
+var
+  Item: TMetadataItem;
+  Idx: Integer;
+  FullId: string;
+begin
+  FullId := GetMetaItemName(Id, ImageIndex);
+  if List.Find(FullId, Idx) then
+    (List.Objects[Idx] as TMetadataItem).Value := Value
+  else
+  begin
+    Item := TMetadataItem.Create;
+    Item.Id := Id;
+    Item.ImageIndex := ImageIndex;
+    Item.Value := Value;
+    List.AddObject(FullId, Item);
+  end;
+end;
+
+procedure TMetadata.ClearMetaItems;
+begin
+  ClearMetaList(FLoadMetaItems);
+end;
+
+procedure TMetadata.ClearMetaItemsForSave;
+begin
+  ClearMetaList(FSaveMetaItems);
+end;
+
+procedure TMetadata.ClearMetaList(List: TStringList);
+var
+  I: Integer;
+begin
+  for I := 0 to List.Count - 1 do
+    List.Objects[I].Free;
+  List.Clear;
+end;
+
+constructor TMetadata.Create;
+begin
+  inherited;
+  FLoadMetaItems := TStringList.Create;
+  FSaveMetaItems := TStringList.Create;
+end;
+
+destructor TMetadata.Destroy;
+begin
+  ClearMetaItems;
+  ClearMetaItemsForSave;
+  FLoadMetaItems.Free;
+  FSaveMetaItems.Free;
+  inherited;
+end;
+
+function TMetadata.GetMetaById(const Id: string): Variant;
+var
+  Idx: Integer;
+begin
+  if FLoadMetaItems.Find(Id, Idx) then
+    Result := (FLoadMetaItems.Objects[Idx] as TMetadataItem).Value
+  else
+    Result := Variants.Null;
+end;
+
+function TMetadata.GetMetaByIdx(Index: Integer): TMetadataItem;
+begin
+  Result := FLoadMetaItems.Objects[Index] as TMetadataItem;
+end;
+
+function TMetadata.GetMetaCount: Integer;
+begin
+  Result := FLoadMetaItems.Count;
+end;
+
+function TMetadata.GetMetaItemName(const Id: string;
+  ImageIndex: Integer): string;
+begin
+  Result := Iff(ImageIndex = 0, Id, Format(SMetaIdForSubImage, [Id, ImageIndex]));
+end;
+
+function TMetadata.GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
+  YSize: Single; MetaForSave: Boolean; ImageIndex: Integer): Boolean;
+type
+  TGetter = function(const Id: string): Variant of object;
+var
+  Getter: TGetter;
+  XMeta, YMeta: Variant;
+begin
+  if MetaForSave then
+    Getter := GetSaveMetaById
+  else
+    Getter := GetMetaById;
+
+  XMeta := Getter(GetMetaItemName(SMetaPhysicalPixelSizeX, ImageIndex));
+  YMeta := Getter(GetMetaItemName(SMetaPhysicalPixelSizeY, ImageIndex));
+  XSize := -1;
+  YSize := -1;
+
+  Result := not VarIsNull(XMeta) or not VarIsNull(YMeta);
+
+  if not Result then
+    Exit;
+
+  if not VarIsNull(XMeta) then
+    XSize := XMeta;
+  if not VarIsNull(YMeta) then
+    YSize := YMeta;
+
+  if XSize < 0 then
+    XSize := YSize;
+  if YSize < 0 then
+    YSize := XSize;
+
+  TranslateUnits(ResUnit, XSize, YSize);
+end;
+
+procedure TMetadata.SetPhysicalPixelSize(ResUnit: TResolutionUnit; XSize,
+  YSize: Single; MetaForSave: Boolean; ImageIndex: Integer);
+type
+  TAdder = procedure(const Id: string; const Value: Variant; ImageIndex: Integer) of object;
+var
+  Adder: TAdder;
+begin
+  TranslateUnits(ResUnit, XSize, YSize);
+
+  if MetaForSave then
+    Adder := AddMetaItemForSave
+  else
+    Adder := AddMetaItem;
+
+  Adder(SMetaPhysicalPixelSizeX, XSize, ImageIndex);
+  Adder(SMetaPhysicalPixelSizeY, YSize, ImageIndex);
+end;
+
+procedure TMetadata.TranslateUnits(ResolutionUnit: TResolutionUnit; var XRes,
+  YRes: Single);
+var
+  UnitSize: Single;
+begin
+  case ResolutionUnit of
+    ruDpi: UnitSize := 25400;
+    ruDpm: UnitSize := 1e06;
+    ruDpcm: UnitSize := 1e04;
+  else
+    UnitSize := 1;
+  end;
+  if ResolutionUnit <> ruSizeInMicroMeters then
+  begin
+    XRes := UnitSize / XRes;
+    YRes := UnitSize / YRes;
+  end;
+end;
+
+function TMetadata.GetSaveMetaById(const Id: string): Variant;
+var
+  Idx: Integer;
+begin
+  if FSaveMetaItems.Find(Id, Idx) then
+    Result := (FSaveMetaItems.Objects[Idx] as TMetadataItem).Value
+  else
+    Result := Variants.Null;
+end;
+
+function TMetadata.HasMetaItem(const Id: string; ImageIndex: Integer): Boolean;
+begin
+  Result := GetMetaById(GetMetaItemName(Id, ImageIndex)) <> Variants.Null;
+end;
+
+function TMetadata.HasMetaItemForSave(const Id: string; ImageIndex: Integer): Boolean;
+begin
+  Result := GetSaveMetaById(GetMetaItemName(Id, ImageIndex)) <> Variants.Null;
+end;
+
 initialization
 {$IFDEF MEMCHECK}
   {$IF CompilerVersion >= 18}
     System.ReportMemoryLeaksOnShutdown := True;
   {$IFEND}
 {$ENDIF}
+  if GlobalMetadata = nil then
+    GlobalMetadata := TMetadata.Create;
   if ImageFileFormats = nil then
     ImageFileFormats := TList.Create;
   InitImageFormats;
@@ -3541,6 +3750,7 @@ initialization
 finalization
   FreeOptions;
   FreeImageFileFormats;
+  GlobalMetadata.Free;
 
 {
   File Notes:
@@ -3549,7 +3759,9 @@ finalization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
-    - Added support for simple image metadata to TImageFileFormat.
+    - Added support for simple image metadata loading/saving.
+    - Moved file format definition (name, exts, caps, ...) from
+      constructor to new Define method.
     - Fixed some memory leaks caused by failures during image loading.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------

@@ -45,10 +45,10 @@ type
     without sun, seconf set sky with sun. }
   TSKYFileFormat = class(TElderFileFormat)
   protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   end;
 
@@ -69,9 +69,9 @@ const
 
 { TSKYFileFormat class implementation }
 
-constructor TSKYFileFormat.Create;
+procedure TSKYFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FCanSave := False;
   FName := SSKYFormatName;
   AddMasks(SSKYMasks);

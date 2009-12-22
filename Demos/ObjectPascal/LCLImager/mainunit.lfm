@@ -85,12 +85,13 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poDesktopCenter
-  LCLVersion = '0.9.26.2'
+  LCLVersion = '0.9.28'
   WindowState = wsMaximized
   object Image: TImage
     Cursor = crHandPoint
     Left = 4
     Height = 470
+    Top = 0
     Width = 760
     Align = alClient
     AutoSize = True
@@ -102,6 +103,7 @@ object MainForm: TMainForm
     Stretch = True
   end
   object PanelStatus: TPanel
+    Left = 0
     Height = 22
     Top = 470
     Width = 768
@@ -143,6 +145,10 @@ object MainForm: TMainForm
       object MenuItem11: TMenuItem
         Action = ActViewInfo
         OnClick = ActViewInfoExecute
+      end
+      object MenuItem86: TMenuItem
+        Caption = 'Show Metadata'
+        OnClick = MenuItem86Click
       end
       object MenuItem16: TMenuItem
         Action = ActViewFitToWindow
@@ -474,18 +480,15 @@ object MainForm: TMainForm
     top = 83
     object ActViewFitToWindow: TAction
       Caption = 'Fit To Window'
-      DisableIfNoHandler = True
       OnExecute = ActViewFitToWindowExecute
     end
     object ActViewRealSize: TAction
       Caption = 'Real Size'
       Checked = True
-      DisableIfNoHandler = True
       OnExecute = ActViewRealSizeExecute
     end
     object ActViewInfo: TAction
       Caption = 'Image Info'
-      DisableIfNoHandler = True
       OnExecute = ActViewInfoExecute
     end
   end

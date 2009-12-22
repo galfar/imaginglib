@@ -22,7 +22,6 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_Define>FULL_FEATURE_SET;$(DCC_Define)</DCC_Define>
 			<DCC_DependencyCheckOutputName>..\..\Bin\VampyreImagingPackage.D2009.bpl</DCC_DependencyCheckOutputName>
 			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
 			<DCC_UnitSearchPath>..;..\JpegLib;..\ZLib;..\..\Extras\Extensions;..\..\Extras\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
@@ -90,7 +89,7 @@
 					</VersionInfoKeys>
 					<Source>
 						<Source Name="MainSource">VampyreImagingPackage.D2009.dpkw</Source>
-					</Source>					
+					</Source>
 				</Delphi.Personality>
 				<ModelSupport>False</ModelSupport>
 			</BorlandProject>

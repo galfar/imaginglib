@@ -82,6 +82,7 @@ type
     FQuality: LongInt;
     FProgressive: LongBool;
     procedure SetJpegIO(const JpegIO: TIOFunctions); virtual;
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
@@ -89,10 +90,9 @@ type
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     procedure CheckOptionsValidity; override;
-  published  
+  published
     { Controls Jpeg save compression quality. It is number in range 1..100.
       1 means small/ugly file, 100 means large/nice file. Accessible trough
       ImagingJpegQuality option.}
@@ -340,9 +340,8 @@ end;
 
 { TJpegFileFormat class implementation }
 
-constructor TJpegFileFormat.Create;
+procedure TJpegFileFormat.Define;
 begin
-  inherited Create;
   FName := SJpegFormatName;
   FCanLoad := True;
   FCanSave := True;
@@ -374,6 +373,24 @@ var
   Col32: PColor32Rec;
   NeedsRedBlueSwap: Boolean;
   Pix: PColor24Rec;
+
+  procedure LoadMetaData;
+  var
+    XDensity, YDensity: Single;
+    ResUnit: TResolutionUnit;
+  begin
+    // Density unit: 0 - undef, 1 - inch, 2 - cm
+    if jc.d.density_unit > 0 then
+    begin
+      XDensity := jc.d.X_density;
+      YDensity := jc.d.Y_density;
+      ResUnit := ruDpi;
+      if jc.d.density_unit = 2 then
+        ResUnit := ruDpcm;
+      FMetadata.SetPhysicalPixelSize(ResUnit, XDensity, YDensity);
+    end;
+  end;
+
 begin
   // Copy IO functions to global var used in JpegLib callbacks
   Result := False;
@@ -390,6 +407,7 @@ begin
     else
       Exit;
     end;
+
     NewImage(jc.d.image_width, jc.d.image_height, Format, Images[0]);
     jpeg_start_decompress(@jc.d);
     GetImageFormatInfo(Format, Info);
@@ -433,6 +451,9 @@ begin
       end;
     end;
 
+    // Store supported metadata
+    LoadMetaData;
+
     jpeg_finish_output(@jc.d);
     jpeg_finish_decompress(@jc.d);
     Result := True;
@@ -454,6 +475,19 @@ var
   I: LongInt;
   Pix: PColor24Rec;
 {$ENDIF}
+
+  procedure SaveMetaData;
+  var
+    XRes, YRes: Single;
+  begin
+    if FMetadata.GetPhysicalPixelSize(ruDpcm, XRes, YRes, True) then
+    begin
+      jc.c.density_unit := 2; // Dots per cm
+      jc.c.X_density := Round(XRes);
+      jc.c.Y_density := Round(YRes)
+    end;
+  end;
+
 begin
   Result := False;
   // Copy IO functions to global var used in JpegLib callbacks
@@ -484,6 +518,9 @@ begin
   {$IFDEF RGBSWAPPED}
     GetMem(Line, PtrInc);
   {$ENDIF}
+
+    // Save supported metadata
+    SaveMetaData;
 
     jpeg_start_compress(@jc.c, True);
     while (jc.c.next_scanline < jc.c.image_height) do
@@ -563,6 +600,7 @@ initialization
     - Fixed loading of some JPEGs with certain APPN markers (bug in JpegLib).
     - Fixed swapped Red-Blue order when loading Jpegs with
       jc.d.jpeg_color_space = JCS_RGB.
+    - Added loading and saving of physical pixel size metadata.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Changed the Jpeg error manager, messages were not properly formated.

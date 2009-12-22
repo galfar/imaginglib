@@ -55,11 +55,13 @@ type
     You can set various options when saving Jpeg-2000 images. Look at
     properties of TJpeg2000FileFormat for details.}
   TJpeg2000FileFormat = class(TImageFileFormat)
-  protected
+  private
     FQuality: LongInt;
     FCodeStreamOnly: LongBool;
     FLosslessCompression: LongBool;
     function GetFileType(Handle: TImagingHandle): TJpeg2000FileType;
+  protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
@@ -67,10 +69,9 @@ type
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     procedure CheckOptionsValidity; override;
-  published  
+  published
     { Controls JPEG 2000 lossy compression quality. It is number in range 1..100.
       1 means small/ugly file, 100 means large/nice file. Accessible trough
       ImagingJpeg2000Quality option. Default value is 80.}
@@ -101,9 +102,9 @@ const
   JP2Signature: TChar8 = #0#0#0#$0C#$6A#$50#$20#$20;
   J2KSignature: TChar4 = #$FF#$4F#$FF#$51;
 
-constructor TJpeg2000FileFormat.Create;
+procedure TJpeg2000FileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SJpeg2000FormatName;
   FCanLoad := True;
   FCanSave := True;

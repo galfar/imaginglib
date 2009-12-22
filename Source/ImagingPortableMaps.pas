@@ -65,12 +65,12 @@ type
   protected
     FIdNumbers: TChar2;
     FSaveBinary: LongBool;
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveDataInternal(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt; var MapInfo: TPortableMapInfo): Boolean;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   published  
     { If set to True images will be saved in binary format. If it is False
@@ -85,32 +85,30 @@ type
     PBM images can be loaded but not saved. Loaded images are returned in
     ifGray8 format (witch pixel values scaled from 1bit to 8bit).}
   TPBMFileFormat = class(TPortableMapFileFormat)
-  public
-    constructor Create; override;
+  protected
+    procedure Define; override;
   end;
 
   { Portable Gray Map is used to store grayscale 8bit or 16bit images.
     Raster data can be saved as text or binary data.}
   TPGMFileFormat = class(TPortableMapFileFormat)
   protected
+    procedure Define; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
-  public
-    constructor Create; override;
   end;
 
   { Portable Pixel Map is used to store RGB images with 8bit or 16bit channels.
     Raster data can be saved as text or binary data.}
   TPPMFileFormat = class(TPortableMapFileFormat)
   protected
+    procedure Define; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
-  public
-    constructor Create; override;
   end;
 
   { Portable Arbitrary Map is format that can store image data formats
@@ -120,12 +118,11 @@ type
     ifR8G8B8, ifR16G16R16, ifA8R8G8B8, and ifA16R16G16B16.}
   TPAMFileFormat = class(TPortableMapFileFormat)
   protected
+    procedure Define; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
-  public
-    constructor Create; override;
   end;
 
   { Portable Float Map is unofficial extension of PNM format family which
@@ -134,12 +131,11 @@ type
     or RGB images are supported by PFM format (so no alpha).}
   TPFMFileFormat = class(TPortableMapFileFormat)
   protected
+    procedure Define; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
-  public
-    constructor Create; override;
   end;
 
 implementation
@@ -183,9 +179,9 @@ const
 
 { TPortableMapFileFormat }
 
-constructor TPortableMapFileFormat.Create;
+procedure TPortableMapFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FCanLoad := True;
   FCanSave := True;
   FIsMultiImageFormat := False;
@@ -794,9 +790,9 @@ end;
 
 { TPBMFileFormat }
 
-constructor TPBMFileFormat.Create;
+procedure TPBMFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SPBMFormatName;
   FCanSave := False;
   AddMasks(SPBMMasks);
@@ -805,9 +801,9 @@ end;
 
 { TPGMFileFormat }
 
-constructor TPGMFileFormat.Create;
+procedure TPGMFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SPGMFormatName;
   FSupportedFormats := PGMSupportedFormats;
   AddMasks(SPGMMasks);
@@ -853,9 +849,9 @@ end;
 
 { TPPMFileFormat }
 
-constructor TPPMFileFormat.Create;
+procedure TPPMFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SPPMFormatName;
   FSupportedFormats := PPMSupportedFormats;
   AddMasks(SPPMMasks);
@@ -901,9 +897,9 @@ end;
 
 { TPAMFileFormat }
 
-constructor TPAMFileFormat.Create;
+procedure TPAMFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SPAMFormatName;
   FSupportedFormats := PAMSupportedFormats;
   AddMasks(SPAMMasks);
@@ -943,9 +939,9 @@ end;
 
 { TPFMFileFormat }
 
-constructor TPFMFileFormat.Create;
+procedure TPFMFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SPFMFormatName;
   AddMasks(SPFMMasks);
   FIdNumbers := 'Ff';

@@ -53,10 +53,10 @@ type
   private
     function IsMultiBSI(Handle: TImagingHandle): Boolean;
   protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   end;
 
@@ -109,9 +109,9 @@ const
 
 { TBSIFileFormat class implementation }
 
-constructor TBSIFileFormat.Create;
+procedure TBSIFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SBSIFormatName;
   FCanLoad := True;
   FCanSave := False;

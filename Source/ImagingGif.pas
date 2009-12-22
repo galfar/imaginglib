@@ -55,6 +55,7 @@ type
     procedure LZWCompress(const IO: TIOFunctions; Handle: TImagingHandle;
       Width, Height, BitCount: Integer; Interlaced: Boolean; Data: Pointer);
   protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
@@ -62,7 +63,6 @@ type
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   published
     property LoadAnimated: LongBool read FLoadAnimated write FLoadAnimated;
@@ -216,9 +216,9 @@ resourcestring
   TGIFFileFormat implementation
 }
 
-constructor TGIFFileFormat.Create;
+procedure TGIFFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SGIFFormatName;
   FCanLoad := True;
   FCanSave := True;

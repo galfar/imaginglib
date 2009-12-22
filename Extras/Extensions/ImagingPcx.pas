@@ -44,10 +44,10 @@ type
     to spread).}
   TPCXFileFormat = class(TImageFileFormat)
   protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   end;
 
@@ -77,9 +77,9 @@ type
 
 { TPCXFileFormat }
 
-constructor TPCXFileFormat.Create;
+procedure TPCXFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SPCXFormatName;
   FCanLoad := True;
   FCanSave := False;

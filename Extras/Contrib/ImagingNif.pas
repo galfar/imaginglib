@@ -1,4 +1,4 @@
-{ 
+{
   This unit contains image format loader for textures in NIF model files.
   Works for NIF version 3 (StarTrek Bridge Commander, ...).
   Author: Delfi
@@ -17,12 +17,11 @@ type
   { Class for loading and saving NIF images. It can load 24 bit RGB and 32 bit RGBA images}
   TNIFFileFormat = class(TImageFileFormat)
   protected
+    procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
   public
-    constructor Create; override;
     function TestFormat(Handle: TImagingHandle): Boolean; override;
-  published
   end;
 
 implementation
@@ -41,9 +40,9 @@ type
 
 { TNIFFileFormat class implementation }
 
-constructor TNIFFileFormat.Create;
+procedure TNIFFileFormat.Define;
 begin
-  inherited Create;
+  inherited;
   FName := SNIFFormatName;
   FCanLoad := True;
   FCanSave := False;

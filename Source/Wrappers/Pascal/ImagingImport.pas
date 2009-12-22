@@ -50,10 +50,10 @@ procedure ImInitImage(var Image: TImageData); cdecl; external LibraryName;
 function ImNewImage(Width, Height: LongInt; Format: TImageFormat; var Image: TImageData): Boolean; cdecl; external LibraryName;
 function ImTestImage(var Image: TImageData): Boolean; cdecl; external LibraryName;
 function ImFreeImage(var Image: TImageData): Boolean; cdecl; external LibraryName;
-function ImDetermineFileFormat(FileName, Ext: PChar): Boolean; cdecl; external LibraryName;
-function ImDetermineMemoryFormat(Data: Pointer; Size: LongInt; Ext: PChar): Boolean; cdecl; external LibraryName;
-function ImIsFileFormatSupported(FileName: PChar): Boolean; cdecl; external LibraryName;
-function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PChar; var CanSave, IsMultiImageFormat: Boolean): Boolean; cdecl; external LibraryName;
+function ImDetermineFileFormat(FileName, Ext: PAnsiChar): Boolean; cdecl; external LibraryName;
+function ImDetermineMemoryFormat(Data: Pointer; Size: LongInt; Ext: PAnsiChar): Boolean; cdecl; external LibraryName;
+function ImIsFileFormatSupported(FileName: PAnsiChar): Boolean; cdecl; external LibraryName;
+function ImEnumFileFormats(var Index: LongInt; Name, DefaultExt, Masks: PAnsiChar; var CanSave, IsMultiImageFormat: Boolean): Boolean; cdecl; external LibraryName;
 
 function ImInitImageList(Size: LongInt; var ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
 function ImGetImageListSize(ImageList: TImageDataList): LongInt; cdecl; external LibraryName;
@@ -63,15 +63,15 @@ function ImSetImageListElement(ImageList: TImageDataList; Index: LongInt; const 
 function ImTestImagesInList(ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
 function ImFreeImageList(var ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
 
-function ImLoadImageFromFile(FileName: PChar; var Image: TImageData): Boolean; cdecl; external LibraryName;
+function ImLoadImageFromFile(FileName: PAnsiChar; var Image: TImageData): Boolean; cdecl; external LibraryName;
 function ImLoadImageFromMemory(Data: Pointer; Size: LongInt; var Image: TImageData): Boolean; cdecl; external LibraryName;
-function ImLoadMultiImageFromFile(FileName: PChar; var ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
+function ImLoadMultiImageFromFile(FileName: PAnsiChar; var ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
 function ImLoadMultiImageFromMemory(Data: Pointer; Size: LongInt; var ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
 
-function ImSaveImageToFile(FileName: PChar; const Image: TImageData): Boolean; cdecl; external LibraryName;
-function ImSaveImageToMemory(Ext: PChar; Data: Pointer; var Size: LongInt; const Image: TImageData): Boolean; cdecl; external LibraryName;
-function ImSaveMultiImageToFile(FileName: PChar; ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
-function ImSaveMultiImageToMemory(Ext: PChar; Data: Pointer; Size: PLongInt; ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
+function ImSaveImageToFile(FileName: PAnsiChar; const Image: TImageData): Boolean; cdecl; external LibraryName;
+function ImSaveImageToMemory(Ext: PAnsiChar; Data: Pointer; var Size: LongInt; const Image: TImageData): Boolean; cdecl; external LibraryName;
+function ImSaveMultiImageToFile(FileName: PAnsiChar; ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
+function ImSaveMultiImageToMemory(Ext: PAnsiChar; Data: Pointer; Size: PLongInt; ImageList: TImageDataList): Boolean; cdecl; external LibraryName;
 
 function ImCloneImage(const Image: TImageData; var Clone: TImageData): Boolean; cdecl; external LibraryName;
 function ImConvertImage(var Image: TImageData; DestFormat: TImageFormat): Boolean; cdecl; external LibraryName;
@@ -84,7 +84,7 @@ function ImGenerateMipMaps(const Image: TImageData; Levels: LongInt; var MipMaps
 function ImMapImageToPalette(var Image: TImageData; Pal: PPalette32; Entries: LongInt): Boolean; cdecl; external LibraryName;
 function ImSplitImage(var Image: TImageData; var Chunks: TImageDataList; ChunkWidth, ChunkHeight: LongInt; var XChunks, YChunks: LongInt; PreserveSize: Boolean; Fill: Pointer): Boolean; cdecl; external LibraryName;
 function ImMakePaletteForImages(Images: TImageDataList; Pal: PPalette32; MaxColors: LongInt; ConvertImages: Boolean): Boolean; cdecl; external LibraryName;
-function ImRotateImage(var Image: TImageData; Angle: LongInt): Boolean; cdecl; external LibraryName;
+function ImRotateImage(var Image: TImageData; Angle: Single): Boolean; cdecl; external LibraryName;
 
 function ImCopyRect(const SrcImage: TImageData; SrcX, SrcY, Width, Height: LongInt; var DstImage: TImageData; DstX, DstY: LongInt): Boolean; cdecl; external LibraryName;
 function ImFillRect(var Image: TImageData; X, Y, Width, Height: LongInt; Fill: Pointer): Boolean; cdecl; external LibraryName;

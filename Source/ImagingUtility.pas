@@ -96,19 +96,18 @@ type
   TFloatHelper = record
     Data1: Int64;
     Data2: Int64;
-   end;
+  end;
   PFloatHelper = ^TFloatHelper;
+
+  TFloatRect = record
+    Left, Top, Right, Bottom: Single;
+  end;
 
   TChar2 = array[0..1] of AnsiChar;
   TChar3 = array[0..2] of AnsiChar;
   TChar4 = array[0..3] of AnsiChar;
   TChar8 = array[0..7] of AnsiChar;
   TChar16 = array[0..15] of AnsiChar;
-
-  TVariantHolder = class
-  public
-    Value: Variant;
-  end;
 
   { Options for BuildFileList function:
     flFullNames - file names in result will have full path names
@@ -170,6 +169,8 @@ procedure StrTokensToList(const S: string; Sep: Char; Tokens: TStrings);
 function IntToStrFmt(const I: Int64): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns string representation of float number (with digit grouping).}
 function FloatToStrFmt(const F: Double; Precision: Integer = 2): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Returns True if S contains at least one of substrings in SubStrs array. Case sensitive.}
+function ContainsAnySubStr(const S: string; const SubStrs: array of string): Boolean;
 
 { Clamps integer value to range <Min, Max>}
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -294,6 +295,15 @@ function ScaleRectToRect(const SourceRect, TargetRect: TRect): TRect;
 function RectInRect(const R1, R2: TRect): Boolean;
 { Returns True if R1 and R2 intersects.}
 function RectIntersects(const R1, R2: TRect): Boolean;
+
+{ Converts pixel size in micrometers to corrensponding DPI.}
+function PixelSizeToDpi(SizeInMicroMeters: Single): Single;
+{ Converts DPI to corrensponding pixel size in micrometers.}
+function DpiToPixelSize(Dpi: Single): Single;
+
+function FloatRect(ALeft, ATop, ARight, ABottom: Single): TFloatRect;
+function FloatRectWidth(const R: TFloatRect): Single;
+function FloatRectHeight(const R: TFloatRect): Single;
 
 { Formats given message for usage in Exception.Create(..). Use only
   in except block - returned message contains message of last raised exception.}
@@ -710,6 +720,19 @@ end;
 function FloatToStrFmt(const F: Double; Precision: Integer): string;
 begin
   Result := Format('%.' + IntToStr(Precision) + 'n', [F]);
+end;
+
+function ContainsAnySubStr(const S: string; const SubStrs: array of string): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 0 to High(SubStrs) do
+  begin
+    Result := Pos(SubStrs[I], S) > 0;
+    if Result then
+      Exit;
+  end;
 end;
 
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt;
@@ -1430,6 +1453,37 @@ begin
     not (R1.Bottom < R2.Top);
 end;
 
+function PixelSizeToDpi(SizeInMicroMeters: Single): Single;
+begin
+  Result := 25400 / SizeInMicroMeters;
+end;
+
+function DpiToPixelSize(Dpi: Single): Single;
+begin
+  Result := 1e03 / (Dpi / 25.4);
+end;
+
+function FloatRect(ALeft, ATop, ARight, ABottom: Single): TFloatRect;
+begin
+  with Result do
+  begin
+    Left := ALeft;
+    Top := ATop;
+    Right := ARight;
+    Bottom := ABottom;
+  end;
+end;
+
+function FloatRectWidth(const R: TFloatRect): Single;
+begin
+  Result := R.Right - R.Left;
+end;
+
+function FloatRectHeight(const R: TFloatRect): Single;
+begin
+  Result := R.Bottom - R.Top;
+end;
+
 function FormatExceptMsg(const Msg: string; const Args: array of const): string;
 begin
   Result := Format(Msg + SLineBreak + 'Message: ' + GetExceptObject.Message, Args);
@@ -1476,6 +1530,12 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.5 Changes/Bug Fixes -----------------------------------
+    - Added TFloatRect type and helper functions FloatRect, FloatRectWidth,
+      FloatRectHeight.
+    - Added string function ContainsAnySubStr.
+    - Added functions PixelSizeToDpi, DpiToPixelSize.
 
   -- 0.26.1 Changes/Bug Fixes -----------------------------------
     - Some formatting changes.
