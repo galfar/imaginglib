@@ -23,7 +23,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_Define>DONT_LINK_EXTRAS;$(DCC_Define)</DCC_Define>
 			<DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
 			<DCC_DependencyCheckOutputName>..\..\Bin\SDLDemo.exe</DCC_DependencyCheckOutputName>

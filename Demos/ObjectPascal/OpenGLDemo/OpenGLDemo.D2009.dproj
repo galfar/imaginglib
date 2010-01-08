@@ -7,7 +7,7 @@
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<DCC_DependencyCheckOutputName>..\..\Bin\OpenGLDemo.exe</DCC_DependencyCheckOutputName>
 			<ProjectVersion>12.0</ProjectVersion>
-			<Config Condition="'$(Config)'==''">Release</Config>
+			<Config Condition="'$(Config)'==''">Debug</Config>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
 			<Base>true</Base>
@@ -23,7 +23,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
-			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common;..\..\..\Source\Extensions;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_Define>DONT_LINK_EXTRAS;$(DCC_Define)</DCC_Define>
 			<DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
 			<DCC_DependencyCheckOutputName>..\..\Bin\OpenGLDemo.exe</DCC_DependencyCheckOutputName>

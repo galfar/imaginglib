@@ -51,8 +51,9 @@ type
     function GetBits: Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetPalette: PPalette32; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetPaletteEntries: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetScanLine(Index: LongInt): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetScanline(Index: LongInt): Pointer;
     function GetPixelPointer(X, Y: LongInt): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetScanlineSize: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetFormatInfo: TImageFormatInfo; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetValid: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetBoundsRect: TRect;
@@ -62,7 +63,6 @@ type
     procedure SetPointer; virtual; abstract;
     procedure DoDataSizeChanged; virtual;
     procedure DoPixelsChanged; virtual;
-  published
   public
     constructor Create; virtual;
     constructor CreateFromImage(AImage: TBaseImage);
@@ -132,9 +132,11 @@ type
     property PaletteEntries: LongInt read GetPaletteEntries;
     { Provides indexed access to each line of pixels. Does not work with special
       format images (like DXT).}
-    property ScanLine[Index: LongInt]: Pointer read GetScanLine;
+    property Scanline[Index: LongInt]: Pointer read GetScanline;
     { Returns pointer to image pixel at [X, Y] coordinates.}
-    property PixelPointers[X, Y: LongInt]: Pointer read GetPixelPointer;
+    property PixelPointer[X, Y: LongInt]: Pointer read GetPixelPointer;
+    { Size/length of one image scanline in bytes.}
+    property ScanlineSize: Integer read GetScanlineSize;
     { Extended image format information.}
     property FormatInfo: TImageFormatInfo read GetFormatInfo;
     { This gives complete access to underlying TImageData record.
@@ -327,7 +329,7 @@ begin
     Result := ifUnknown;
 end;
 
-function TBaseImage.GetScanLine(Index: LongInt): Pointer;
+function TBaseImage.GetScanline(Index: LongInt): Pointer;
 var
   Info: TImageFormatInfo;
 begin
@@ -341,6 +343,14 @@ begin
   end
   else
     Result := nil;
+end;
+
+function TBaseImage.GetScanlineSize: Integer;
+begin
+  if Valid then
+    Result := FormatInfo.GetPixelsSize(Format, Width, 1)
+  else
+    Result := 0;
 end;
 
 function TBaseImage.GetPixelPointer(X, Y: LongInt): Pointer;
@@ -940,6 +950,9 @@ end;
     - add SetPalette, create some pal wrapper first
     - put all low level stuff here like ReplaceColor etc, change
       CopyTo to Copy, and add overload Copy(SrcRect, DstX, DstY) ...
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added ScanlineSize property to TBaseImage.
 
   -- 0.24.3 Changes/Bug Fixes ---------------------------------
     - Added TMultiImage.ReverseImages method.

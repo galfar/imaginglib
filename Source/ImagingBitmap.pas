@@ -26,7 +26,9 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ This unit contains image format loader/saver for Windows Bitmap images.}
+{
+  This unit contains image format loader/saver for Windows Bitmap images.
+}
 unit ImagingBitmap;
 
 {$I ImagingOptions.inc}

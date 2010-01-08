@@ -492,6 +492,7 @@ type
     ruDpcm               // value is pixels/dots per centimeter
   );
 
+  { Class for storage of single metadata item.}
   TMetadataItem = class
   public
     Id: string;
@@ -499,6 +500,7 @@ type
     Value: Variant;
   end;
 
+  { Metadata manager class.}
   TMetadata = class
   private
     FLoadMetaItems: TStringList;
@@ -593,24 +595,6 @@ function GetFilterIndexExtension(Index: LongInt; OpenFileFilter: Boolean): strin
   string is defined by GetImageFileFormatsFilter function.
   Returned index is in range 1..N (as FilterIndex property of TOpenDialog/TSaveDialog)}
 function GetFileNameFilterIndex(const FileName: string; OpenFileFilter: Boolean): LongInt;
-
-(*
-
-TODO:
-  Global: Metadata (stuff now in TImageFileFormat)
-  TFileFormat ma nastavitelny Metadata referenci, pokud nil tak bere
-  global, jinak user provided.
-  TFileFormat - dodal std LoadFromFile/Stream etc funkce,
-  aby ho slo rozumne pouzivat samostatne.
-
-  ext := determine(src)
-  filefmt := findfmt(ext).clone(mymeta)
-  try
-    filefmt.loadimageformfile(src)
-  finally
-    filefmt.free
-  end;
-*)
 
 { Returns current IO functions.}
 function GetIO: TIOFunctions;
@@ -2423,6 +2407,7 @@ begin
       end
       else
       begin
+        Resampling := sfNearest;
         case Filter of
           rfBilinear: Resampling := sfLinear;
           rfBicubic:  Resampling := DefaultCubicFilter;
@@ -3876,7 +3861,7 @@ finalization
       channel bitcounts > 8
 
   -- 0.17 Changes/Bug Fixes -----------------------------------
-    - changed order of parameters of CopyRect function  
+    - changed order of parameters of CopyRect function
     - GenerateMipMaps now filters mipmap levels
     - ResizeImage functions was extended to allow bilinear and bicubic filtering
     - added StretchRect function to low level interface

@@ -39,7 +39,7 @@ const
   { Current Minor version of Imaging.}
   ImagingVersionMinor = 26;
   { Current patch of Imaging.}
-  ImagingVersionPatch = 4;
+  ImagingVersionPatch = 5;
 
   { Imaging Option Ids whose values can be set/get by SetOption/
     GetOption functions.}
@@ -241,7 +241,11 @@ type
     ifDXT5           = 222,
     ifBTC            = 223,
     ifATI1N          = 224,
-    ifATI2N          = 225);
+    ifATI2N          = 225{,
+    ifDXBC6            = 226,
+    ifDXBC7            = 227,
+    ifBinary         = 228}
+  );
 
   { Color value for 32 bit images.}
   TColor32 = LongWord;

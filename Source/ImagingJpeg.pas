@@ -186,8 +186,8 @@ begin
 
   if NBytes <= 0 then
   begin
-    PChar(Src.Buffer)[0] := #$FF;
-    PChar(Src.Buffer)[1] := Char(JPEG_EOI);
+    PByteArray(Src.Buffer)[0] := $FF;
+    PByteArray(Src.Buffer)[1] := JPEG_EOI;
     NBytes := 2;
   end;
   Src.Pub.next_input_byte := Src.Buffer;

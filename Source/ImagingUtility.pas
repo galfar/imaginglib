@@ -193,6 +193,8 @@ function Power(const Base, Exponent: Single): Single;
 function Log2Int(X: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns log base 2 of X.}
 function Log2(X: Single): Single;
+{ Returns log base 10 of X.}
+function Log10(X: Single): Single;
 { Returns largest integer <= Val (for 5.9 returns 5).}
 function Floor(Value: Single): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns smallest integer >= Val (for 5.1 returns 6).}
@@ -838,11 +840,36 @@ begin
 end;
 
 function Log2(X: Single): Single;
+{$IFDEF USE_ASM}
+asm
+  FLD1
+  FLD     X
+  FYL2X
+  FWAIT
+end;
+{$ELSE}
 const
   Ln2: Single = 0.6931471;
 begin
   Result := Ln(X) / Ln2;
 end;
+{$ENDIF}
+
+function Log10(X: Single): Single;
+{$IFDEF USE_ASM}
+asm
+  FLDLG2
+  FLD     X
+  FYL2X
+  FWAIT
+end;
+{$ELSE}
+const
+  Ln10: Single = 2.30258509299405;
+begin
+  Result := Ln(X) / Ln10;
+end;
+{$ENDIF}
 
 function Floor(Value: Single): LongInt;
 begin
@@ -1532,6 +1559,7 @@ initialization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes -----------------------------------
+    - Added Log10 function.
     - Added TFloatRect type and helper functions FloatRect, FloatRectWidth,
       FloatRectHeight.
     - Added string function ContainsAnySubStr.
