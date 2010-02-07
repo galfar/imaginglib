@@ -1,5 +1,5 @@
 {
-  $Id: ImagingCompare.pas 1 2009-12-22 19:23:47Z galfar $
+  $Id$
   Vampyre Imaging Library
   by Marek Mauder
   http://imaginglib.sourceforge.net

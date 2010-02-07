@@ -1,5 +1,5 @@
 {
-  $Id: ImagingSquishLib.pas 168 2009-08-22 18:50:21Z galfar $
+  $Id$
   Vampyre Imaging Library
   by Marek Mauder
   http://imaginglib.sourceforge.net
