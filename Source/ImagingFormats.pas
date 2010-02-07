@@ -134,18 +134,21 @@ procedure AddPadBytes(DataIn: Pointer; DataOut: Pointer; Width, Height,
 procedure RemovePadBytes(DataIn: Pointer; DataOut: Pointer; Width, Height,
   Bpp, WidthBytes: LongInt);
 
-{ Converts 1bit image data to 8bit (without scaling). Used by file
-  loaders for formats supporting 1bit images.}
-procedure Convert1To8(DataIn, DataOut: Pointer; Width, Height,
-  WidthBytes: LongInt);
-{ Converts 2bit image data to 8bit (without scaling). Used by file
-  loaders for formats supporting 2bit images.}
-procedure Convert2To8(DataIn, DataOut: Pointer; Width, Height,
-  WidthBytes: LongInt);
-{ Converts 4bit image data to 8bit (without scaling). Used by file
-  loaders for formats supporting 4bit images.}
-procedure Convert4To8(DataIn, DataOut: Pointer; Width, Height,
-  WidthBytes: LongInt);
+{ Converts 1bit image data to 8bit. Used mostly by file loaders for formats
+  supporting 1bit images. Scaling of pixel values to 8bits is optional
+  (indexed formats don't need this).}
+procedure Convert1To8(DataIn, DataOut: PByte; Width, Height,
+  WidthBytes: LongInt; ScaleTo8Bits: Boolean);
+{ Converts 2bit image data to 8bit. Used mostly by file loaders for formats
+  supporting 2bit images. Scaling of pixel values to 8bits is optional
+  (indexed formats don't need this).}
+procedure Convert2To8(DataIn, DataOut: PByte; Width, Height,
+  WidthBytes: LongInt; ScaleTo8Bits: Boolean);
+{ Converts 4bit image data to 8bit. Used mostly by file loaders for formats
+  supporting 4bit images. Scaling of pixel values to 8bits is optional
+  (indexed formats don't need this).}
+procedure Convert4To8(DataIn, DataOut: PByte; Width, Height,
+  WidthBytes: LongInt; ScaleTo8Bits: Boolean);
 
 { Helper function for image file loaders. Some 15 bit images (targas, bitmaps)
   may contain 1 bit alpha but there is no indication of it. This function checks
@@ -351,6 +354,8 @@ function GetDXTPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt
 procedure CheckDXTDimensions(Format: TImageFormat; var Width, Height: LongInt); forward;
 { Returns size in bytes of image in BTC format.}
 function GetBTCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
+{ Returns size in bytes of image in binary format (1bit image).}
+function GetBinaryPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
 
 { Optimized pixel readers/writers for 32bit and FP colors to be stored in TImageFormatInfo }
 
@@ -822,6 +827,16 @@ var
     CheckDimensions: CheckDXTDimensions;
     SpecialNearestFormat: ifA8R8G8B8);
 
+  BinaryInfo: TImageFormatInfo = (
+    Format: ifBinary;
+    Name: 'Binary';
+    ChannelCount: 1;
+    HasAlphaChannel: False;
+    IsSpecial: True;
+    GetPixelsSize: GetBinaryPixelsSize;
+    CheckDimensions: CheckStdDimensions;
+    SpecialNearestFormat: ifGray8);
+
 {$WARNINGS ON}
 
 function PixelFormat(ABitCount, RBitCount, GBitCount, BBitCount: Byte): TPixelFormatInfo; forward;
@@ -869,6 +884,7 @@ begin
   Infos[ifBTC] :=  @BTCInfo;
   Infos[ifATI1N] := @ATI1NInfo;
   Infos[ifATI2N] := @ATI2NInfo;
+  Infos[ifBinary] := @BinaryInfo;
 
   PFR3G3B2 := PixelFormat(0, 3, 3, 2);
   PFX5R1G1B1 := PixelFormat(0, 1, 1, 1);
@@ -2047,49 +2063,64 @@ begin
     Move(PByteArray(DataIn)[I * WidthBytes], PByteArray(DataOut)[I * W], W);
 end;
 
-procedure Convert1To8(DataIn, DataOut: Pointer; Width, Height,
-  WidthBytes: LongInt);
+procedure Convert1To8(DataIn, DataOut: PByte; Width, Height,
+  WidthBytes: LongInt; ScaleTo8Bits: Boolean);
 const
   Mask1: array[0..7] of Byte = ($80, $40, $20, $10, $08, $04, $02, $01);
   Shift1: array[0..7] of Byte = (7, 6, 5, 4, 3, 2, 1, 0);
+  Scaling: Byte = 255;
 var
   X, Y: LongInt;
+  InArray: PByteArray absolute DataIn;
 begin
   for Y := 0 to Height - 1 do
     for X := 0 to Width - 1 do
-      PByteArray(DataOut)[Y * Width + X] :=
-        (PByteArray(DataIn)[Y * WidthBytes + X shr 3] and
-        Mask1[X and 7]) shr Shift1[X and 7];
+    begin
+      DataOut^ := (InArray[Y * WidthBytes + X shr 3] and Mask1[X and 7]) shr Shift1[X and 7];
+      if ScaleTo8Bits then
+        DataOut^ := DataOut^ * Scaling;
+      Inc(DataOut);
+    end;
 end;
 
-procedure Convert2To8(DataIn, DataOut: Pointer; Width, Height,
-  WidthBytes: LongInt);
+procedure Convert2To8(DataIn, DataOut: PByte; Width, Height,
+  WidthBytes: LongInt; ScaleTo8Bits: Boolean);
 const
   Mask2: array[0..3] of Byte = ($C0, $30, $0C, $03);
   Shift2: array[0..3] of Byte = (6, 4, 2, 0);
+  Scaling: Byte = 85;
 var
   X, Y: LongInt;
+  InArray: PByteArray absolute DataIn;
 begin
   for Y := 0 to Height - 1 do
     for X := 0 to Width - 1 do
-      PByteArray(DataOut)[Y * Width + X] :=
-        (PByteArray(DataIn)[X shr 2] and Mask2[X and 3]) shr
-        Shift2[X and 3];
+    begin
+      DataOut^ := (InArray[Y * WidthBytes + X shr 2] and Mask2[X and 3]) shr Shift2[X and 3];
+      if ScaleTo8Bits then
+        DataOut^ := DataOut^ * Scaling;
+      Inc(DataOut);
+    end;
 end;
 
-procedure Convert4To8(DataIn, DataOut: Pointer; Width, Height,
-  WidthBytes: LongInt);
+procedure Convert4To8(DataIn, DataOut: PByte; Width, Height,
+  WidthBytes: LongInt; ScaleTo8Bits: Boolean);
 const
   Mask4: array[0..1] of Byte = ($F0, $0F);
   Shift4: array[0..1] of Byte = (4, 0);
+  Scaling: Byte = 17;
 var
   X, Y: LongInt;
+  InArray: PByteArray absolute DataIn;
 begin
   for Y := 0 to Height - 1 do
     for X := 0 to Width - 1 do
-      PByteArray(DataOut)[Y * Width + X] :=
-        (PByteArray(DataIn)[Y * WidthBytes + X shr 1] and
-        Mask4[X and 1]) shr Shift4[X and 1];
+    begin
+      DataOut^ := (InArray[Y * WidthBytes + X shr 1] and  Mask4[X and 1]) shr Shift4[X and 1];
+      if ScaleTo8Bits then
+        DataOut^ := DataOut^ * Scaling;
+      Inc(DataOut);
+    end;
 end;
 
 function Has16BitImageAlpha(NumPixels: LongInt; Data: PWord): Boolean;
@@ -3821,6 +3852,32 @@ begin
     end;
 end;
 
+procedure EncodeBinary(SrcBits: Pointer; DestBits: PByte; Width, Height: Integer);
+var
+  Src: PByte absolute SrcBits;
+  Bitmap: PByteArray absolute DestBits;
+  X, Y, WidthBytes: Integer;
+  PixelTresholded, Treshold: Byte;
+begin
+  Treshold := ClampToByte(GetOption(ImagingBinaryTreshold));
+  WidthBytes := (Width + 7) div 8;
+
+  for Y := 0 to Height - 1 do
+    for X := 0 to Width - 1 do
+    begin
+      if Src^ > Treshold then
+        PixelTresholded := 255
+      else
+        PixelTresholded := 0;
+
+      Bitmap[Y * WidthBytes + X div 8] := Bitmap[Y * WidthBytes + X div 8] or // OR current value of byte with following:
+        (PixelTresholded and 1)  // To make 1 from 255, 0 remains 0
+        shl (7 - (X mod 8));  // Put current bit to proper place in byte
+
+      Inc(Src);
+    end;
+end;
+
 procedure DecodeBTC(SrcBits, DestBits: PByte; Width, Height: Integer);
 var
   X, Y, I, J, K: Integer;
@@ -3921,6 +3978,11 @@ begin
   end;
 end;
 
+procedure DecodeBinary(SrcBits, DestBits: PByte; Width, Height: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
+begin
+  Convert1To8(SrcBits, DestBits, Width, Height, (Width + 7) div 8, True);
+end;
+
 procedure SpecialToUnSpecial(const SrcImage: TImageData; DestBits: Pointer;
   SpecialFormat: TImageFormat);
 begin
@@ -3931,6 +3993,7 @@ begin
     ifBTC:  DecodeBTC (SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
     ifATI1N: DecodeATI1N(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
     ifATI2N: DecodeATI2N(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
+    ifBinary: DecodeBinary(SrcImage.Bits, DestBits, SrcImage.Width, SrcImage.Height);
   end;
 end;
 
@@ -3944,6 +4007,7 @@ begin
     ifBTC:  EncodeBTC (SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
     ifATI1N: EncodeATI1N(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
     ifATI2N: EncodeATI2N(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
+    ifBinary: EncodeBinary(SrcBits, DestImage.Bits, DestImage.Width, DestImage.Height);
   end;
 end;
 
@@ -4040,6 +4104,12 @@ begin
   // multiples of four
   CheckDXTDimensions(Format, Width, Height);
   Result := Width * Height div 4; // 2bits/pixel
+end;
+
+function GetBinaryPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+begin
+  // Binary images are aligned on BYTE boundary
+  Result := ((Width + 7) div 8) * Height; // 1bit/pixel
 end;
 
 { Optimized pixel readers/writers for 32bit and FP colors to be stored in TImageFormatInfo }
@@ -4219,6 +4289,11 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.5 Changes/Bug Fixes -----------------------------------
+    - Added support functions for ifBinary data format.
+    - Added optional pixel scaling to Convert1To8, Convert2To8,
+      abd Convert4To8 functions.
 
   -- 0.26.3 Changes/Bug Fixes -----------------------------------
     - Filtered resampling ~10% faster now.

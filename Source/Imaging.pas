@@ -706,25 +706,27 @@ type
   end;
 
 var
-  // currently set IO functions
+  // Currently set IO functions
   IO: TIOFunctions;
-  // list with all registered TImageFileFormat classes
+  // List with all registered TImageFileFormat classes
   ImageFileFormats: TList = nil;
-  // array with registered options (pointers to their values)
+  // Aarray with registered options (pointers to their values)
   Options: TOptionArray = nil;
-  // array containing addional infomation about every image format
+  // Array containing addional infomation about every image format
   ImageFormatInfos: TImageFormatInfoArray;
-  // stack used by PushOptions/PopOtions functions
+  // Stack used by PushOptions/PopOtions functions
   OptionStack: TOptionStack = nil;
 var
-  // variable for ImagingColorReduction option
+  // Variable for ImagingColorReduction option
   ColorReductionMask: LongInt = $FF;
-  // variable for ImagingLoadOverrideFormat option
+  // Variable for ImagingLoadOverrideFormat option
   LoadOverrideFormat: TImageFormat = ifUnknown;
-  // variable for ImagingSaveOverrideFormat option
+  // Variable for ImagingSaveOverrideFormat option
   SaveOverrideFormat: TImageFormat = ifUnknown;
-  // variable for ImagingSaveOverrideFormat option
+  // Variable for ImagingSaveOverrideFormat option
   MipMapFilter: TSamplingFilter = sfLinear;
+  // Variable for ImagingBinaryTreshold option
+  BinaryTreshold: Integer = 128;
 
 
 { Internal unit functions }
@@ -3732,6 +3734,7 @@ initialization
   RegisterOption(ImagingLoadOverrideFormat, @LoadOverrideFormat);
   RegisterOption(ImagingSaveOverrideFormat, @SaveOverrideFormat);
   RegisterOption(ImagingMipMapFilter, @MipMapFilter);
+  RegisterOption(ImagingBinaryTreshold, @BinaryTreshold);
 finalization
   FreeOptions;
   FreeImageFileFormats;
@@ -3744,6 +3747,7 @@ finalization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Implemented ImagingBinaryTreshold option.
     - Added support for simple image metadata loading/saving.
     - Moved file format definition (name, exts, caps, ...) from
       constructor to new Define method.

@@ -525,12 +525,12 @@ begin
       // 1 and 4 bpp images are supported only for loading which is now
       // so we now convert them to 8bpp (and unalign scanlines).
       case BI.BitCount of
-        1: Convert1To8(Data, Bits, Width, Height, AlignedWidthBytes);
+        1: Convert1To8(Data, Bits, Width, Height, AlignedWidthBytes, False);
         4:
           begin
             // RLE4 bitmaps are translated to 8bit during RLE decoding
             if BI.Compression <> BI_RLE4 then
-               Convert4To8(Data, Bits, Width, Height, AlignedWidthBytes);
+               Convert4To8(Data, Bits, Width, Height, AlignedWidthBytes, False);
           end;
       end;
       // Enlarge palette

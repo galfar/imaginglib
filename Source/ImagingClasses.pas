@@ -73,6 +73,9 @@ type
     { Creates a new image data with the given size and format. Old image
       data is lost. Works only for the current image of TMultiImage.}
     procedure RecreateImageData(AWidth, AHeight: LongInt; AFormat: TImageFormat);
+    { Deletes current image and creates default 1x1 image.}
+    procedure Clear;
+
     { Resizes current image with optional resampling.}
     procedure Resize(NewWidth, NewHeight: LongInt; Filter: TResizeFilter);
     { Flips current image. Reverses the image along its horizontal axis the top
@@ -277,8 +280,8 @@ type
 implementation
 
 const
-  DefaultWidth  = 16;
-  DefaultHeight = 16;
+  DefaultWidth  = 1;
+  DefaultHeight = 1;
   DefaultImages = 1;
 
 function GetArrayFromImageData(const ImageData: TImageData): TDynImageDataArray;
@@ -443,6 +446,11 @@ begin
     DoDataSizeChanged;
 end;
 
+procedure TBaseImage.Clear;
+begin
+  RecreateImageData(DefaultWidth, DefaultHeight, ifDefault);
+end;
+
 procedure TBaseImage.Resize(NewWidth, NewHeight: LongInt; Filter: TResizeFilter);
 begin
   if Valid and Imaging.ResizeImage(FPData^, NewWidth, NewHeight, Filter) then
@@ -542,7 +550,7 @@ end;
 constructor TSingleImage.Create;
 begin
   inherited Create;
-  RecreateImageData(DefaultWidth, DefaultHeight, ifDefault);
+  Clear;
 end;
 
 constructor TSingleImage.CreateFromParams(AWidth, AHeight: LongInt; AFormat: TImageFormat);
@@ -952,6 +960,7 @@ end;
       CopyTo to Copy, and add overload Copy(SrcRect, DstX, DstY) ...
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added Clear method to TBaseImage.
     - Added ScanlineSize property to TBaseImage.
 
   -- 0.24.3 Changes/Bug Fixes ---------------------------------

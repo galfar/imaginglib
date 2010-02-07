@@ -263,7 +263,7 @@ begin
       else if FileDataFormat = ifMono then
       begin
         // Convert 1bit images to ifIndex8
-        Convert1To8(UncompData, Bits, Width, Height, Hdr.BytesPerLine);
+        Convert1To8(UncompData, Bits, Width, Height, Hdr.BytesPerLine, False);
       end
       else if FileDataFormat = ifIndex2 then
       begin
@@ -271,7 +271,7 @@ begin
         // usually use (from specs, I've never seen one myself) CGA palette
         // which is not array of RGB tripplets. So 2bit PCXs are loaded but
         // their colors would be wrong
-        Convert2To8(UncompData, Bits, Width, Height, Hdr.BytesPerLine);
+        Convert2To8(UncompData, Bits, Width, Height, Hdr.BytesPerLine, False);
       end
       else if FileDataFormat = ifIndex4 then
       begin
@@ -306,7 +306,7 @@ begin
         else if (Hdr.BitsPerPixel = 4) and (Hdr.Planes = 1) then
         begin
           // Convert 4bit images to ifIndex8 
-          Convert4To8(UncompData, Bits, Width, Height, Hdr.BytesPerLine);
+          Convert4To8(UncompData, Bits, Width, Height, Hdr.BytesPerLine, False);
         end
       end;
 

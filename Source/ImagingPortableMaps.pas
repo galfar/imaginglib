@@ -528,8 +528,8 @@ begin
         GetMem(MonoData, MonoSize);
         try
           Read(Handle, MonoData, MonoSize);
-          Convert1To8(MonoData, Bits, Width, Height, ScanLineSize);
-          // 1bit mono images must be scaled to 8bit (where 0=white, 1=black)
+          Convert1To8(MonoData, Bits, Width, Height, ScanLineSize, False);
+          // 1bit mono images must be scaled to 8bit, but inverted (where 0=white, 1=black)
           for I := 0 to Width * Height - 1 do
             PByteArray(Bits)[I] := 255 - PByteArray(Bits)[I] * 255;
         finally

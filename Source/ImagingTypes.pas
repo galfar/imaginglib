@@ -185,6 +185,10 @@ const
     <Ord(Low(ImagingFormats.TSamplingFilter)), Ord(High(ImagingFormats.TSamplingFilter))>
     and default value is 1 (linear filter).}
   ImagingMipMapFilter         = 131;
+  { Specifies treshold value used when automatically converting images to
+    ifBinary format. For adaptive tresholding see ImagingBinary.pas unit.
+    Default value is 128 and allowed range is 0..255.}
+  ImagingBinaryTreshold       = 132;
 
   { Returned by GetOption if given Option Id is invalid.}
   InvalidOption = -$7FFFFFFF;
@@ -241,10 +245,10 @@ type
     ifDXT5           = 222,
     ifBTC            = 223,
     ifATI1N          = 224,
-    ifATI2N          = 225{,
-    ifDXBC6            = 226,
-    ifDXBC7            = 227,
-    ifBinary         = 228}
+    ifATI2N          = 225,
+    ifBinary         = 226{,
+    ifDXBC6            = 227,
+    ifDXBC7            = 228}
   );
 
   { Color value for 32 bit images.}
@@ -462,6 +466,7 @@ implementation
     - add lookup tables to pixel formats for fast conversions
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added ifBinary image format and ImagingBinaryTreshold option.
     - Lanczos filter added to TResizeFilter enum.
 
   -- 0.24.3 Changes/Bug Fixes ---------------------------------
@@ -507,4 +512,4 @@ implementation
 
 }
 
-end. 
+end.

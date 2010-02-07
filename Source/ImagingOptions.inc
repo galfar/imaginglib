@@ -143,6 +143,16 @@
   {$DEFINE HAS_OPERATOR_OVERLOADING}
 {$IFEND}
 
+// Anonymous methods
+{$IF Defined(DCC) and (CompilerVersion >= 20) }
+  {$DEFINE HAS_ANON_METHODS}
+{$IFEND}
+
+// Generic types (Delphi and FPC implementations incompatible :(
+{$IF (Defined(DCC) and (CompilerVersion >= 20)) or Defined(FPC)}
+  {$DEFINE HAS_GENERICS}
+{$IFEND}
+
 { Imaging options check}
 
 {$IFNDEF HAS_INLINE}

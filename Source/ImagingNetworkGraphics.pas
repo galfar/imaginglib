@@ -452,33 +452,6 @@ begin
     end;
  end;
 
-const
-  { Helper constants for 1/2/4 bit to 8 bit conversions.}
-  Mask1: array[0..7] of Byte = ($80, $40, $20, $10, $08, $04, $02, $01);
-  Shift1: array[0..7] of Byte = (7, 6, 5, 4, 3, 2, 1, 0);
-  Mask2: array[0..3] of Byte = ($C0, $30, $0C, $03);
-  Shift2: array[0..3] of Byte = (6, 4, 2, 0);
-  Mask4: array[0..1] of Byte = ($F0, $0F);
-  Shift4: array[0..1] of Byte = (4, 0);
-
-function Get1BitPixel(Line: PByteArray; X: LongInt): Byte;
-begin
-  Result := (Line[X shr 3] and Mask1[X and 7]) shr
-    Shift1[X and 7];
-end;
-
-function Get2BitPixel(Line: PByteArray; X: LongInt): Byte;
-begin
-  Result := (Line[X shr 2] and Mask2[X and 3]) shr
-    Shift2[X and 3];
-end;
-
-function Get4BitPixel(Line: PByteArray; X: LongInt): Byte;
-begin
-  Result := (Line[X shr 1] and Mask4[X and 1]) shr
-    Shift4[X and 1];
-end;
-
 {$IFNDEF DONT_LINK_JNG}
 
 { TCustomIOJpegFileFormat class implementation }
@@ -824,7 +797,7 @@ begin
     until Eof(Handle) or (Chunk.ChunkID = MENDChunk) or
       ((FileType <> ngMNG) and (Chunk.ChunkID = IENDChunk));
 
-    Result := True;  
+    Result := True;
   finally
     FreeMemNil(ChunkData);
   end;
@@ -923,34 +896,6 @@ var
             Target[I] := (Line[I] + PaethPredictor(Target[I - BytesPerPixel], PrevLine[I], PrevLine[I - BytesPerPixel])) and $FF;
         end;
     end;
-  end;
-
-  procedure Convert124To8(DataIn: Pointer; DataOut: Pointer; Width, Height,
-    WidthBytes: LongInt; Indexed: Boolean);
-  var
-    X, Y, Mul: LongInt;
-    GetPixel: TGetPixelFunc;
-  begin
-    GetPixel := Get1BitPixel;
-    Mul := 255;
-    case IHDR.BitDepth of
-      2:
-        begin
-          Mul := 85;
-          GetPixel := Get2BitPixel;
-        end;
-      4:
-        begin
-          Mul := 17;
-          GetPixel := Get4BitPixel;
-        end;
-    end;
-    if Indexed then Mul := 1;
-
-    for Y := 0 to Height - 1 do
-      for X := 0 to Width - 1 do
-        PByteArray(DataOut)[Y * Width + X] :=
-          GetPixel(@PByteArray(DataIn)[Y * WidthBytes], X) * Mul;
   end;
 
   procedure TransformLOCOToRGB(Data: PByte; NumPixels, BytesPerPixel: LongInt);
@@ -1108,9 +1053,10 @@ begin
       // If source data size is different from size of image in assigned
       // format we must convert it (it is in 1/2/4 bit count)
       GetMem(Bits, Size);
-      case IHDR.ColorType of
-        0: Convert124To8(Data, Bits, Width, Height, BytesPerLine, False);
-        3: Convert124To8(Data, Bits, Width, Height, BytesPerLine, True);
+      case IHDR.BitDepth of
+        1: Convert1To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
+        2: Convert2To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
+        4: Convert4To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
       end;
       FreeMem(Data);
     end
@@ -2597,6 +2543,7 @@ finalization
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Added loading and saving of metadata from these chunks: pHYs.
+    - Simplified decoding of 1/2/4 bit images a bit (less code).
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Added APNG saving support.
