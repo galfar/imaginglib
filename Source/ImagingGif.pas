@@ -896,6 +896,7 @@ var
           FrameInfos[Idx].TransIndex := GraphicExt.TransparentColorIndex;
           Images[Idx].Palette[FrameInfos[Idx].TransIndex].A := 0;
         end;
+        FMetadata.AddMetaItem(SMetaFrameDelay, Integer(GraphicExt.DelayTime * 10), Idx);
       end
       else
         FrameInfos[Idx].HasTransparency := False;
@@ -1207,6 +1208,9 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Reads frame delays from GIF animations into metadata.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Fixed bug - loading of GIF with NETSCAPE app extensions

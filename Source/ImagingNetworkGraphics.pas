@@ -34,7 +34,7 @@ interface
 
 {$I ImagingOptions.inc}
 
-{ If MN support is enabled we must make sure PNG and JNG are enabled too.}
+{ If MNG support is enabled we must make sure PNG and JNG are enabled too.}
 {$IFNDEF DONT_LINK_MNG}
   {$UNDEF DONT_LINK_PNG}
   {$UNDEF DONT_LINK_JNG}
@@ -541,6 +541,7 @@ end;
 procedure TNGFileHandler.LoadMetaData;
 var
   I: Integer;
+  Delay, Denom: Integer;
 begin
   for I := 0 to High(Frames) do
   begin
@@ -549,6 +550,15 @@ begin
       // Store physical pixel dimensions, in PNG stored as pixels per meter DPM
       FileFormat.FMetadata.SetPhysicalPixelSize(ruDpm, Frames[I].pHYs.PixelsPerUnitX,
         Frames[I].pHYs.PixelsPerUnitY);
+    end;
+    if FileType = ngAPNG then
+    begin
+      // Store frame delay of APNG file frame
+      Denom := Frames[I].fcTL.DelayDenom;
+      if Denom = 0 then
+        Denom := 100;
+      Delay := Round(1000 * (Frames[I].fcTL.DelayNumer / Denom));
+      FileFormat.FMetadata.AddMetaItem(SMetaFrameDelay, Delay, I);
     end;
   end;
 end;
@@ -2542,6 +2552,7 @@ finalization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Reads frame delays from APNG files into metadata.
     - Added loading and saving of metadata from these chunks: pHYs.
     - Simplified decoding of 1/2/4 bit images a bit (less code).
 
