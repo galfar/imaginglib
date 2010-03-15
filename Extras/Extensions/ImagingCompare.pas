@@ -75,6 +75,7 @@ begin
 
   for I := 0 to Samples - 1 do
   begin
+    // Compute difference betwen pixels
     case Bps of
       1: Diff := Abs(PixelPtr2^ - PixelPtr1^);
       2:
@@ -93,6 +94,7 @@ begin
         end;
     end;
 
+    // Update metrics
     MAE := MAE + Diff;
     PAE := MaxFloat(PAE, Diff);
     MSE := MSE + Diff * Diff;
@@ -106,6 +108,7 @@ begin
   else
     MaxSample := Pow2Int(Bps * 8) - 1;
 
+  // Final metrics calculations
   MAE := MAE / Samples;
   MSE := MSE / Samples;
   RMSE := Sqrt(MSE);

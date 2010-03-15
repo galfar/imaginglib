@@ -26,7 +26,8 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ This unit is a wrapper to "The Image Debugger" library/utility.}
+{ This unit is a wrapper to "The Image Debugger" library/utility. Get the
+  debugger binaries at http://www.billbaxter.com/projects/imdebug/ .}
 unit ImagingDebug;
 
 {$I ImagingOptions.inc}
@@ -119,7 +120,7 @@ begin
         end;
       end;
     end;
-    imdebug(PChar(FmtString + ' w=%d h=%d %p'), DebugImg.Width, DebugImg.Height, DebugImg.Bits);
+    imdebug(PAnsiChar(AnsiString(FmtString + ' w=%d h=%d %p')), DebugImg.Width, DebugImg.Height, DebugImg.Bits);
 
     if DebugImg.Bits <> Img.Bits then
       FreeImage(DebugImg);

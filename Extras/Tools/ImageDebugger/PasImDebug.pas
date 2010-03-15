@@ -131,7 +131,7 @@ const
   DLLName = 'imdebug.so';
 {$ENDIF}
 
-procedure imdebug(const Format: PChar); cdecl; external DLLName; varargs;
+procedure imdebug(const Format: PAnsiChar); cdecl; external DLLName; varargs;
 
 implementation
 
