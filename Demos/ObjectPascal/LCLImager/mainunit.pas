@@ -161,6 +161,7 @@ type
     procedure ActViewRealSizeExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure FormDropFiles(Sender: TObject; const FileNames: array of String);
     procedure ImageClick(Sender: TObject);
     procedure MenuItem10Click(Sender: TObject);
     procedure MenuItem12Click(Sender: TObject);
@@ -848,6 +849,7 @@ begin
   Memo.Parent := Form;
   Memo.Align := alClient;
   Memo.ReadOnly := True;
+  Memo.ScrollBars := ssVertical;
 
   if GlobalMetadata.MetaItemCount > 0 then
   begin
@@ -898,6 +900,13 @@ begin
   FImageCanvas.Free;
   FBitmap.Free;
   FImage.Free;
+end;
+
+procedure TMainForm.FormDropFiles(Sender: TObject;
+  const FileNames: array of String);
+begin
+  if Length(FileNames) > 0 then
+    OpenFile(FileNames[0]);
 end;
 
 procedure TMainForm.ImageClick(Sender: TObject);
@@ -1070,6 +1079,7 @@ initialization
     - add more canvas stuff when it will be avaiable
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - You can drop file on the form to open it.
     - Added "Show Metadata" item to View menu + related functionality.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------

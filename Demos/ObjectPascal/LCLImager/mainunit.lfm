@@ -1,8 +1,9 @@
 object MainForm: TMainForm
-  Left = 473
+  Left = 216
   Height = 512
-  Top = 82
+  Top = 24
   Width = 768
+  AllowDropFiles = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
   ClientHeight = 492
   ClientWidth = 768
@@ -84,6 +85,7 @@ object MainForm: TMainForm
   Menu = MainMenu
   OnCreate = FormCreate
   OnDestroy = FormDestroy
+  OnDropFiles = FormDropFiles
   Position = poDesktopCenter
   LCLVersion = '0.9.28'
   WindowState = wsMaximized
@@ -144,10 +146,12 @@ object MainForm: TMainForm
       Caption = 'View'
       object MenuItem11: TMenuItem
         Action = ActViewInfo
+        ShortCut = 16457
         OnClick = ActViewInfoExecute
       end
       object MenuItem86: TMenuItem
         Caption = 'Show Metadata'
+        ShortCut = 16461
         OnClick = MenuItem86Click
       end
       object MenuItem16: TMenuItem

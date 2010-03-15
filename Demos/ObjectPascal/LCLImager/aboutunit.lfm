@@ -16,7 +16,7 @@ object AboutForm: TAboutForm
   Constraints.MinWidth = 286
   OnShow = FormShow
   Position = poMainFormCenter
-  LCLVersion = '0.9.26.2'
+  LCLVersion = '0.9.28'
   object Image: TImage
     Left = 48
     Height = 89
