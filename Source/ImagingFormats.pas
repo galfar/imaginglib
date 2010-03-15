@@ -156,8 +156,12 @@ procedure Convert4To8(DataIn, DataOut: PByte; Width, Height,
   alpha bit set it returns True, otherwise False.}
 function Has16BitImageAlpha(NumPixels: LongInt; Data: PWord): Boolean;
 { Helper function for image file loaders. This function checks is similar
-  to Has16BitImageAlpha but works with A8R8G8B8 format.}
+  to Has16BitImageAlpha but works with A8R8G8B8/X8R8G8B8 format.}
 function Has32BitImageAlpha(NumPixels: LongInt; Data: PLongWord): Boolean;
+{ Checks if there is any relevant alpha data (any entry has alpha <> 255)
+  in the given palette.}
+function PaletteHasAlpha(Palette: PPalette32; PaletteEntries: Integer): Boolean;
+
 { Provides indexed access to each line of pixels. Does not work with special
   format images.}
 function GetScanLine(ImageBits: Pointer; const FormatInfo: TImageFormatInfo;
@@ -2153,6 +2157,21 @@ begin
     end;
     Inc(Data);
   end;
+end;
+
+function PaletteHasAlpha(Palette: PPalette32; PaletteEntries: Integer): Boolean;
+var
+  I: Integer;
+begin
+  for I := 0 to PaletteEntries - 1 do
+  begin
+    if Palette[I].A <> 255 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+  Result := False;
 end;
 
 function GetScanLine(ImageBits: Pointer; const FormatInfo: TImageFormatInfo;
@@ -4291,6 +4310,7 @@ initialization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes -----------------------------------
+    - Added PaletteHasAlpha function.
     - Added support functions for ifBinary data format.
     - Added optional pixel scaling to Convert1To8, Convert2To8,
       abd Convert4To8 functions.

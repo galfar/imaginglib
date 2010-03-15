@@ -645,7 +645,10 @@ begin
   DestPix := DestInfo.GetPixelFP(DestPtr, DestInfo, nil);
   // Blend the two pixels (Src 'over' Dest alpha composition operation)
   DestPix.A := SrcPix.A + DestPix.A - SrcPix.A * DestPix.A;
-  SrcAlpha := IffFloat(DestPix.A = 0, 0, SrcPix.A / DestPix.A);
+  if DestPix.A = 0 then
+    SrcAlpha := 0
+  else
+    SrcAlpha := SrcPix.A / DestPix.A;
   DestAlpha := 1.0 - SrcAlpha;
   DestPix.R := SrcPix.R * SrcAlpha + DestPix.R * DestAlpha;
   DestPix.G := SrcPix.G * SrcAlpha + DestPix.G * DestAlpha;
@@ -2066,6 +2069,8 @@ finalization
     - more objects (arc, polygon)
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Fixed bug that could raise floating point error in DrawAlpha
+      and StretchDrawAlpha.
     - Fixed bug in TImagingCanvas.Line that caused not drawing
       of horz or vert lines.
 

@@ -316,6 +316,27 @@ procedure SetUserFileIO(OpenReadProc: TOpenReadProc; OpenWriteProc:
 { Sets file IO functions to Imaging default.}
 procedure ResetFileIO;
 
+{ Raw Image IO Functions }
+
+procedure ReadRawImageFromFile(const FileName: string; Width, Height: Integer;
+  Format: TImageFormat; var Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
+procedure ReadRawImageFromStream(Stream: TStream; Width, Height: Integer;
+  Format: TImageFormat; var Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
+procedure ReadRawImageFromMemory(Data: Pointer; DataSize: Integer; Width, Height: Integer;
+  Format: TImageFormat; var Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
+procedure ReadRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
+  var Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
+
+procedure WriteRawImageToFile(const FileName: string; const Image: TImageData;
+  Offset: Integer = 0; RowLength: Integer = 0);
+procedure WriteRawImageToStream(Stream: TStream; const Image: TImageData;
+  Offset: Integer = 0; RowLength: Integer = 0);
+procedure WriteRawImageToMemory(Data: Pointer; DataSize: Integer; const Image: TImageData;
+  Offset: Integer = 0; RowLength: Integer = 0);
+procedure WriteRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
+  const Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
+
+
 
 { ------------------------------------------------------------------------
                            Other Imaging Stuff
@@ -541,6 +562,9 @@ const
   { Physical size of one pixel in micrometers. Type of value is Single.}
   SMetaPhysicalPixelSizeX = 'PhysicalPixelSizeX';
   SMetaPhysicalPixelSizeY = 'PhysicalPixelSizeY';
+  { Delay for frame of animation (how long it should stay visible) in milliseconds.
+    Type of value is Integer.}
+  SMetaFrameDelay = 'FrameDelay';
 
 var
   GlobalMetadata: TMetadata;
@@ -2714,6 +2738,217 @@ begin
   FileIO := OriginalFileIO;
 end;
 
+{ Raw Image IO Functions }
+
+procedure ReadRawImage(Handle: TImagingHandle;  Width, Height: Integer;
+  Format: TImageFormat; out Image: TImageData; Offset, RowLength: Integer);
+var
+  WidthBytes, I: Integer;
+  Info: PImageFormatInfo;
+begin
+  Info := ImageFormatInfos[Format];
+  // Calc scanline size
+  WidthBytes := Info.GetPixelsSize(Format, Width, 1);
+  if RowLength = 0 then
+    RowLength := WidthBytes;
+  // Create new image if needed - don't need to allocate new one if there is already
+  // one with desired size and format
+  if (Image.Width <> Width) or (Image.Height <> Height) or (Image.Format <> Format) then
+    NewImage(Width, Height, Format, Image);
+  // Move past the header
+  IO.Seek(Handle, Offset, smFromCurrent);
+  // Read scanlines from input
+  for I := 0 to Height - 1 do
+  begin
+    IO.Read(Handle, @PByteArray(Image.Bits)[I * WidthBytes], WidthBytes);
+    IO.Seek(Handle, RowLength - WidthBytes, smFromCurrent);
+  end;
+end;
+
+procedure ReadRawImageFromFile(const FileName: string; Width, Height: Integer;
+  Format: TImageFormat; var Image: TImageData; Offset, RowLength: Integer);
+var
+  Handle: TImagingHandle;
+begin
+  Assert(FileName <> '');
+  // Set IO ops to file ops and open given file
+  SetFileIO;
+  Handle := IO.OpenRead(PChar(FileName));
+  try
+    ReadRawImage(Handle, Width, Height, Format, Image, Offset, RowLength);
+  finally
+    IO.Close(Handle);
+  end;
+end;
+
+procedure ReadRawImageFromStream(Stream: TStream; Width, Height: Integer;
+  Format: TImageFormat; var Image: TImageData; Offset, RowLength: Integer);
+var
+  Handle: TImagingHandle;
+begin
+  Assert(Stream <> nil);
+  if Stream.Size - Stream.Position = 0 then
+    RaiseImaging(SErrorEmptyStream, []);
+  // Set IO ops to stream ops and open given stream
+  SetStreamIO;
+  Handle := IO.OpenRead(Pointer(Stream));
+  try
+    ReadRawImage(Handle, Width, Height, Format, Image, Offset, RowLength);
+  finally
+    IO.Close(Handle);
+  end;
+end;
+
+procedure ReadRawImageFromMemory(Data: Pointer; DataSize: Integer; Width, Height: Integer;
+  Format: TImageFormat; var Image: TImageData; Offset, RowLength: Integer);
+var
+  Handle: TImagingHandle;
+  MemRec: TMemoryIORec;
+begin
+  Assert((Data <> nil) and (DataSize > 0));
+  // Set IO ops to memory ops and open given stream
+  SetMemoryIO;
+  MemRec := PrepareMemIO(Data, DataSize);
+  Handle := IO.OpenRead(@MemRec);
+  try
+    ReadRawImage(Handle, Width, Height, Format, Image, Offset, RowLength);
+  finally
+    IO.Close(Handle);
+  end;
+end;
+
+procedure ReadRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
+  var Image: TImageData; Offset, RowLength: Integer);
+var
+  DestScanBytes, RectBytes, I: Integer;
+  Info: PImageFormatInfo;
+  Src, Dest: PByte;
+begin
+  Assert(Data <> nil);
+  Assert((Left + Width <= Image.Width) and (Top + Height <= Image.Height));
+  Info := ImageFormatInfos[Image.Format];
+
+  // Calc scanline size
+  DestScanBytes := Info.GetPixelsSize(Info.Format, Image.Width, 1);
+  RectBytes := Info.GetPixelsSize(Info.Format, Width, 1);
+  if RowLength = 0 then
+    RowLength := RectBytes;
+
+  Src := Data;
+  Dest := @PByteArray(Image.Bits)[Top * DestScanBytes + Info.GetPixelsSize(Info.Format, Left, 1)];
+  // Move past the header
+  Inc(Src, Offset);
+
+  // Read lines into rect in the existing image
+  for I := 0 to Height - 1 do
+  begin
+    Move(Src^, Dest^, RectBytes);
+    Inc(Src, RowLength);
+    Inc(Dest, DestScanBytes);
+  end;
+end;
+
+procedure WriteRawImage(Handle: TImagingHandle; const Image: TImageData;
+  Offset, RowLength: Integer);
+var
+  WidthBytes, I: Integer;
+  Info: PImageFormatInfo;
+begin
+  Info := ImageFormatInfos[Image.Format];
+  // Calc scanline size
+  WidthBytes := Info.GetPixelsSize(Image.Format, Image.Width, 1);
+  if RowLength = 0 then
+    RowLength := WidthBytes;
+  // Move past the header
+  IO.Seek(Handle, Offset, smFromCurrent);
+  // Write scanlines to output
+  for I := 0 to Image.Height - 1 do
+  begin
+    IO.Write(Handle, @PByteArray(Image.Bits)[I * WidthBytes], WidthBytes);
+    IO.Seek(Handle, RowLength - WidthBytes, smFromCurrent);
+  end;
+end;
+
+procedure WriteRawImageToFile(const FileName: string; const Image: TImageData;
+  Offset, RowLength: Integer);
+var
+  Handle: TImagingHandle;
+begin
+  Assert(FileName <> '');
+  // Set IO ops to file ops and open given file
+  SetFileIO;
+  Handle := IO.OpenWrite(PChar(FileName));
+  try
+    WriteRawImage(Handle, Image, Offset, RowLength);
+  finally
+    IO.Close(Handle);
+  end;
+end;
+
+procedure WriteRawImageToStream(Stream: TStream; const Image: TImageData;
+  Offset, RowLength: Integer);
+var
+  Handle: TImagingHandle;
+begin
+  Assert(Stream <> nil);
+  // Set IO ops to stream ops and open given stream
+  SetStreamIO;
+  Handle := IO.OpenRead(Pointer(Stream));
+  try
+    WriteRawImage(Handle, Image, Offset, RowLength);
+  finally
+    IO.Close(Handle);
+  end;
+end;
+
+procedure WriteRawImageToMemory(Data: Pointer; DataSize: Integer; const Image: TImageData;
+  Offset, RowLength: Integer);
+var
+  Handle: TImagingHandle;
+  MemRec: TMemoryIORec;
+begin
+  Assert((Data <> nil) and (DataSize > 0));
+  // Set IO ops to memory ops and open given stream
+  SetMemoryIO;
+  MemRec := PrepareMemIO(Data, DataSize);
+  Handle := IO.OpenRead(@MemRec);
+  try
+    WriteRawImage(Handle, Image, Offset, RowLength);
+  finally
+    IO.Close(Handle);
+  end;
+end;
+
+procedure WriteRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
+  const Image: TImageData; Offset, RowLength: Integer);
+var
+  SrcScanBytes, RectBytes, I: Integer;
+  Info: PImageFormatInfo;
+  Src, Dest: PByte;
+begin
+  Assert(Data <> nil);
+  Assert((Left + Width <= Image.Width) and (Top + Height <= Image.Height));
+  Info := ImageFormatInfos[Image.Format];
+
+  // Calc scanline size
+  SrcScanBytes := Info.GetPixelsSize(Info.Format, Image.Width, 1);
+  RectBytes := Info.GetPixelsSize(Info.Format, Width, 1);
+  if RowLength = 0 then
+    RowLength := RectBytes;
+
+  Src := @PByteArray(Image.Bits)[Top * SrcScanBytes + Info.GetPixelsSize(Info.Format, Left, 1)];
+  Dest := Data;
+  // Move past the header
+  Inc(Dest, Offset);
+
+  // Write lines from rect of the existing image
+  for I := 0 to Height - 1 do
+  begin
+    Move(Src^, Dest^, RectBytes);
+    Inc(Dest, RowLength);
+    Inc(Src, SrcScanBytes);
+  end;
+end;
 
 { ------------------------------------------------------------------------
                            Other Imaging Stuff
@@ -3747,6 +3982,7 @@ finalization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added ReadRawXXX and WriteRawXXX functions for raw image bits IO.
     - Implemented ImagingBinaryTreshold option.
     - Added support for simple image metadata loading/saving.
     - Moved file format definition (name, exts, caps, ...) from

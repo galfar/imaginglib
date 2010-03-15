@@ -359,7 +359,7 @@ uses
 {$IF not Defined(DONT_LINK_PNG) or not Defined(DONT_LINK_MNG) or not Defined(DONT_LINK_JNG)}
   ImagingNetworkGraphics,
 {$IFEND}
-  ImagingUtility;
+  ImagingFormats, ImagingUtility;
 
 resourcestring
   SBadFormatDataToBitmap = 'Cannot find compatible bitmap format for image %s';
@@ -509,6 +509,14 @@ var
 begin
   PF := DataFormatToPixelFormat(Data.Format);
   GetImageFormatInfo(Data.Format, Info);
+
+  if (PF = pf8bit) and PaletteHasAlpha(Data.Palette, Info.PaletteEntries) then
+  begin
+    // Some indexed images may have valid alpha data, dont lose it!
+    // (e.g. transparent 8bit PNG or GIF images)
+    PF := pfCustom;
+  end;
+
   if PF = pfCustom then
   begin
     // Convert from formats not supported by Graphics unit
@@ -1216,6 +1224,11 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.26.3 Changes/Bug Fixes ---------------------------------
+    - Transparency of 8bit images (like loaded from 8bit PNG or GIF) is
+      kept intact during conversion to TBitmap in ConvertDataToBitmap
+      (32bit bitmap is created).
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Setting AlphaFormat property of TBitmap in ConvertDataToBitmap
