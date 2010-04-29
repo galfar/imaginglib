@@ -175,8 +175,8 @@ var
   { Standard behaviur if GL_ARB_texture_non_power_of_two extension is not supported
     is to rescale image to power of 2 dimensions. NPOT extension is exposed only
     when HW has full support for NPOT textures but some cards
-    (ATI Radeons, some other maybe) have partial NPOT support. Namely Radeons
-    can use NPOT textures but not mipmapped. If you know what you are doing
+    (pre-DX10 ATI Radeons, some other maybe) have partial NPOT support. 
+    Namely Radeons can use NPOT textures but not mipmapped. If you know what you are doing
     you can disable NPOT support check so the image won't be rescaled to POT
     by seting DisableNPOTSupportCheck to True.}
   DisableNPOTSupportCheck: Boolean = False;
@@ -302,10 +302,10 @@ var
   ExtensionBuffer: string = '';
 
 {$IFDEF MSWINDOWS}
-function wglGetProcAddress(ProcName: PChar): Pointer; stdcall; external GLLibName;
+function wglGetProcAddress(ProcName: PAnsiChar): Pointer; stdcall; external GLLibName;
 {$ENDIF}
 {$IFDEF UNIX}
-function glXGetProcAddress(ProcName: PChar): Pointer; cdecl; external GLLibName;
+function glXGetProcAddress(ProcName: PAnsiChar): Pointer; cdecl; external GLLibName;
 {$ENDIF}
 
 function IsGLExtensionSupported(const Extension: string): Boolean;
@@ -327,10 +327,10 @@ end;
 function GetGLProcAddress(const ProcName: string): Pointer;
 begin
 {$IFDEF MSWINDOWS}
-  Result := wglGetProcAddress(PChar(ProcName));
+  Result := wglGetProcAddress(PAnsiChar(AnsiString(ProcName)));
 {$ENDIF}
 {$IFDEF UNIX}
-  Result := glXGetProcAddress(PChar(ProcName));
+  Result := glXGetProcAddress(PAnsiChar(AnsiString(ProcName)));
 {$ENDIF}
 end;
 
@@ -886,6 +886,10 @@ initialization
     - use internal format of texture in CreateMultiImageFromGLTexture
       not only A8R8G8B8
     - support for cube and 3D maps
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Fixed GetGLProcAddress in Unicode Delphi. Compressed
+      textures didn't work because of this.
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - Added support for GLScene's OpenGL header.

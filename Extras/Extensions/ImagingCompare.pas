@@ -50,7 +50,7 @@ implementation
 procedure ComputeErrorMetrics(const Image1, Image2: TImageData;
   var PSNR, MSE, RMSE, PAE, MAE: Single);
 var
-  I, J: Integer;
+  I: Integer;
   Info: TImageFormatInfo;
   Samples, Bps: Integer;
   PixelPtr1, PixelPtr2: PByte;

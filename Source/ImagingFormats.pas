@@ -1741,32 +1741,23 @@ procedure StretchResample(const SrcImage: TImageData; SrcX, SrcY, SrcWidth,
   DstHeight: LongInt; Filter: TFilterFunction; Radius: Single; WrapEdges: Boolean);
 const
   Channel8BitMax: Single = 255.0;
-type
-  TBufferItem = record
-    A, R, G, B: Integer;
-  end;
 var
   MapX, MapY: TMappingTable;
   I, J, X, Y: LongInt;
   XMinimum, XMaximum: LongInt;
   LineBufferFP: array of TColorFPRec;
-  LineBufferInt: array of TBufferItem;
   ClusterX, ClusterY: TCluster;
   Weight, AccumA, AccumR, AccumG, AccumB: Single;
-  IWeight, IAccumA, IAccumR, IAccumG, IAccumB: Integer;
   DstLine: PByte;
-  SrcColor: TColor32Rec;
   SrcFloat: TColorFPRec;
   Info: TImageFormatInfo;
   BytesPerChannel: LongInt;
   ChannelValueMax, InvChannelValueMax: Single;
-  UseOptimizedVersion: Boolean;
 begin
   GetImageFormatInfo(SrcImage.Format, Info);
   Assert(SrcImage.Format = DstImage.Format);
   Assert(not Info.IsSpecial and not Info.IsIndexed);
   BytesPerChannel := Info.BytesPerPixel div Info.ChannelCount;
-  UseOptimizedVersion := (BytesPerChannel = 1) and not Info.UsePixelFormat;
 
   // Create horizontal and vertical mapping tables
   MapX := BuildMappingTable(DstX, DstX + DstWidth, SrcX, SrcX + SrcWidth,
@@ -1784,145 +1775,77 @@ begin
     // Find min and max X coords of pixels that will contribute to target image
     FindExtremes(MapX, XMinimum, XMaximum);
 
-    if not UseOptimizedVersion then
+    SetLength(LineBufferFP, XMaximum - XMinimum + 1);
+    // Following code works for the rest of data formats
+    for J := 0 to DstHeight - 1 do
     begin
-      SetLength(LineBufferFP, XMaximum - XMinimum + 1);
-      // Following code works for the rest of data formats
-      for J := 0 to DstHeight - 1 do
+      // First for each pixel in the current line sample vertically
+      // and store results in LineBuffer. Then sample horizontally
+      // using values in LineBuffer.
+      ClusterY := MapY[J];
+      for X := XMinimum to XMaximum do
       begin
-        // First for each pixel in the current line sample vertically
-        // and store results in LineBuffer. Then sample horizontally
-        // using values in LineBuffer.
-        ClusterY := MapY[J];
-        for X := XMinimum to XMaximum do
+        // Clear accumulators
+        AccumA := 0;
+        AccumR := 0;
+        AccumG := 0;
+        AccumB := 0;
+        // For each pixel in line compute weighted sum of pixels
+        // in source column that will contribute to this pixel
+        for Y := 0 to Length(ClusterY) - 1 do
         begin
-          // Clear accumulators
-          AccumA := 0;
-          AccumR := 0;
-          AccumG := 0;
-          AccumB := 0;
-          // For each pixel in line compute weighted sum of pixels
-          // in source column that will contribute to this pixel
-          for Y := 0 to Length(ClusterY) - 1 do
-          begin
-            // Accumulate this pixel's weighted value
-            Weight := ClusterY[Y].Weight;
-            SrcFloat := Info.GetPixelFP(@PByteArray(SrcImage.Bits)[(ClusterY[Y].Pos * SrcImage.Width + X) * Info.BytesPerPixel], @Info, nil);
-            AccumB := AccumB + SrcFloat.B * Weight;
-            AccumG := AccumG + SrcFloat.G * Weight;
-            AccumR := AccumR + SrcFloat.R * Weight;
-            AccumA := AccumA + SrcFloat.A * Weight;
-          end;
-          // Store accumulated value for this pixel in buffer
-          with LineBufferFP[X - XMinimum] do
-          begin
-            A := AccumA;
-            R := AccumR;
-            G := AccumG;
-            B := AccumB;
-          end;
+          // Accumulate this pixel's weighted value
+          Weight := ClusterY[Y].Weight;
+          SrcFloat := Info.GetPixelFP(@PByteArray(SrcImage.Bits)[(ClusterY[Y].Pos * SrcImage.Width + X) * Info.BytesPerPixel], @Info, nil);
+          AccumB := AccumB + SrcFloat.B * Weight;
+          AccumG := AccumG + SrcFloat.G * Weight;
+          AccumR := AccumR + SrcFloat.R * Weight;
+          AccumA := AccumA + SrcFloat.A * Weight;
         end;
-
-        DstLine := @PByteArray(DstImage.Bits)[((J + DstY) * DstImage.Width + DstX) * Info.BytesPerPixel];
-        // Now compute final colors for targte pixels in the current row
-        // by sampling horizontally
-        for I := 0 to DstWidth - 1 do
+        // Store accumulated value for this pixel in buffer
+        with LineBufferFP[X - XMinimum] do
         begin
-          ClusterX := MapX[I];
-          // Clear accumulator
-          AccumA := 0;
-          AccumR := 0;
-          AccumG := 0;
-          AccumB := 0;
-          // Compute weighted sum of values (which are already
-          // computed weighted sums of pixels in source columns stored in LineBuffer)
-          // that will contribute to the current target pixel
-          for X := 0 to Length(ClusterX) - 1 do
-          begin
-            Weight := ClusterX[X].Weight;
-            with LineBufferFP[ClusterX[X].Pos - XMinimum] do
-            begin
-              AccumB := AccumB + B * Weight;
-              AccumG := AccumG + G * Weight;
-              AccumR := AccumR + R * Weight;
-              AccumA := AccumA + A * Weight;
-            end;
-          end;
-
-          // Now compute final color to be written to dest image
-          SrcFloat.A := AccumA;
-          SrcFloat.R := AccumR;
-          SrcFloat.G := AccumG;
-          SrcFloat.B := AccumB;
-
-          Info.SetPixelFP(DstLine, @Info, nil, SrcFloat);
-          Inc(DstLine, Info.BytesPerPixel);
+          A := AccumA;
+          R := AccumR;
+          G := AccumG;
+          B := AccumB;
         end;
       end;
-    end
-    else
-    begin
-      SetLength(LineBufferInt, XMaximum - XMinimum + 1);
-      // Following code is optimized for images with 8 bit channels
-      for J := 0 to DstHeight - 1 do
+
+      DstLine := @PByteArray(DstImage.Bits)[((J + DstY) * DstImage.Width + DstX) * Info.BytesPerPixel];
+      // Now compute final colors for targte pixels in the current row
+      // by sampling horizontally
+      for I := 0 to DstWidth - 1 do
       begin
-        ClusterY := MapY[J];
-        for X := XMinimum to XMaximum do
+        ClusterX := MapX[I];
+        // Clear accumulator
+        AccumA := 0;
+        AccumR := 0;
+        AccumG := 0;
+        AccumB := 0;
+        // Compute weighted sum of values (which are already
+        // computed weighted sums of pixels in source columns stored in LineBuffer)
+        // that will contribute to the current target pixel
+        for X := 0 to Length(ClusterX) - 1 do
         begin
-          IAccumA := 0;
-          IAccumR := 0;
-          IAccumG := 0;
-          IAccumB := 0;
-          for Y := 0 to Length(ClusterY) - 1 do
+          Weight := ClusterX[X].Weight;
+          with LineBufferFP[ClusterX[X].Pos - XMinimum] do
           begin
-            IWeight := Round(256 * ClusterY[Y].Weight);
-            CopyPixel(
-              @PByteArray(SrcImage.Bits)[(ClusterY[Y].Pos * SrcImage.Width + X) * Info.BytesPerPixel],
-              @SrcColor, Info.BytesPerPixel);
-
-            IAccumB := IAccumB + SrcColor.B * IWeight;
-            IAccumG := IAccumG + SrcColor.G * IWeight;
-            IAccumR := IAccumR + SrcColor.R * IWeight;
-            IAccumA := IAccumA + SrcColor.A * IWeight;
-          end;
-          with LineBufferInt[X - XMinimum] do
-          begin
-            A := IAccumA;
-            R := IAccumR;
-            G := IAccumG;
-            B := IAccumB;
+            AccumB := AccumB + B * Weight;
+            AccumG := AccumG + G * Weight;
+            AccumR := AccumR + R * Weight;
+            AccumA := AccumA + A * Weight;
           end;
         end;
 
-        DstLine := @PByteArray(DstImage.Bits)[((J + DstY) * DstImage.Width + DstX)* Info.BytesPerPixel];
+        // Now compute final color to be written to dest image
+        SrcFloat.A := AccumA;
+        SrcFloat.R := AccumR;
+        SrcFloat.G := AccumG;
+        SrcFloat.B := AccumB;
 
-        for I := 0 to DstWidth - 1 do
-        begin
-          ClusterX := MapX[I];
-          IAccumA := 0;
-          IAccumR := 0;
-          IAccumG := 0;
-          IAccumB := 0;
-          for X := 0 to Length(ClusterX) - 1 do
-          begin
-            IWeight := Round(256 * ClusterX[X].Weight);
-            with LineBufferInt[ClusterX[X].Pos - XMinimum] do
-            begin
-              IAccumB := IAccumB + B * IWeight;
-              IAccumG := IAccumG + G * IWeight;
-              IAccumR := IAccumR + R * IWeight;
-              IAccumA := IAccumA + A * IWeight;
-            end;
-          end;
-
-          SrcColor.B := ClampInt(IAccumB, 0, $00FF0000) shr 16;
-          SrcColor.G := ClampInt(IAccumG, 0, $00FF0000) shr 16;
-          SrcColor.R := ClampInt(IAccumR, 0, $00FF0000) shr 16;
-          SrcColor.A := ClampInt(IAccumA, 0, $00FF0000) shr 16;
-
-          CopyPixel(@SrcColor, DstLine, Info.BytesPerPixel);
-          Inc(DstLine, Info.BytesPerPixel);
-        end;
+        Info.SetPixelFP(DstLine, @Info, nil, SrcFloat);
+        Inc(DstLine, Info.BytesPerPixel);
       end;
     end;
 
@@ -4310,6 +4233,8 @@ initialization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes -----------------------------------
+    - Removed optimized codepatch for few data formats from StretchResample
+      function. It was quite buggy and not so much faster anyway.
     - Added PaletteHasAlpha function.
     - Added support functions for ifBinary data format.
     - Added optional pixel scaling to Convert1To8, Convert2To8,

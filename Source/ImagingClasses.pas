@@ -40,6 +40,8 @@ type
   { Base abstract high level class wrapper to low level Imaging structures and
     functions.}
   TBaseImage = class(TPersistent)
+  private
+    function GetEmpty: Boolean;
   protected
     FPData: PImageData;
     FOnDataSizeChanged: TNotifyEvent;
@@ -149,6 +151,8 @@ type
     { Indicates whether the current image is valid (proper format,
       allowed dimensions, right size, ...).}
     property Valid: Boolean read GetValid;
+    { Indicates whether image containst any data (size in bytes > 0).}
+    property Empty: Boolean read GetEmpty;
     {{ Specifies the bounding rectangle of the image.}
     property BoundsRect: TRect read GetBoundsRect;
     { This event occurs when the image data size has just changed. That means
@@ -280,8 +284,8 @@ type
 implementation
 
 const
-  DefaultWidth  = 1;
-  DefaultHeight = 1;
+  DefaultWidth  = 16;
+  DefaultHeight = 16;
   DefaultImages = 1;
 
 function GetArrayFromImageData(const ImageData: TImageData): TDynImageDataArray;
@@ -411,6 +415,11 @@ begin
   Result := Rect(0, 0, GetWidth, GetHeight);
 end;
 
+function TBaseImage.GetEmpty: Boolean;
+begin
+  Result := FPData.Size = 0;
+end;
+
 procedure TBaseImage.SetWidth(const Value: LongInt);
 begin
   Resize(Value, GetHeight, rfNearest);
@@ -448,7 +457,7 @@ end;
 
 procedure TBaseImage.Clear;
 begin
-  RecreateImageData(DefaultWidth, DefaultHeight, ifDefault);
+  FreeImage(FPData^);
 end;
 
 procedure TBaseImage.Resize(NewWidth, NewHeight: LongInt; Filter: TResizeFilter);
@@ -960,6 +969,7 @@ end;
       CopyTo to Copy, and add overload Copy(SrcRect, DstX, DstY) ...
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added Empty property to TBaseImage.
     - Added Clear method to TBaseImage.
     - Added ScanlineSize property to TBaseImage.
 

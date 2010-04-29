@@ -2054,6 +2054,7 @@ var
     // 1st shear (horizontal)
     DstWidth := Trunc(SrcWidth + SrcHeight * Abs(AngleTan) + 0.5);
     DstHeight := SrcHeight;
+    InitImage(TempImage1);
     NewImage(DstWidth, DstHeight, TempFormat, TempImage1);
 
     for I := 0 to DstHeight - 1 do
@@ -2068,6 +2069,7 @@ var
     // 2nd shear  (vertical)
     FreeImage(Image);
     DstHeight := Trunc(SrcWidth * Abs(AngleSin) + SrcHeight * AngleCos + 0.5) + 1;
+    InitImage(TempImage2);
     NewImage(DstWidth, DstHeight, TempFormat, TempImage2);
 
     if AngleSin >= 0 then
@@ -3982,6 +3984,7 @@ finalization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Fixed possible AV in Rotate45 subproc of RotateImage.
     - Added ReadRawXXX and WriteRawXXX functions for raw image bits IO.
     - Implemented ImagingBinaryTreshold option.
     - Added support for simple image metadata loading/saving.
