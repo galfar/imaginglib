@@ -220,6 +220,9 @@ begin
     Exit;
 
   NumDirectories := TIFFNumberOfDirectories(Tiff);
+  if OnlyFirstLevel then
+    NumDirectories := Min(1, NumDirectories);
+
   SetLength(Images, NumDirectories);
 
   for Idx := 0 to NumDirectories - 1 do
@@ -538,6 +541,8 @@ initialization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Fix: All pages of multipage TIFF were loaded even when
+      OnlyFirstLevel was True.
     - Loading and saving of physical resolution metadata.
     - Unicode compatibility fixes in LibTiffDelphi.
     - Added Jpeg compression quality setting.

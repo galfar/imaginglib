@@ -34,23 +34,42 @@ unit ImagingGraphics32;
 interface
 
 uses
-  Types, ImagingTypes, Imaging, ImagingFormats, ImagingUtility, ImagingClasses, GR32;
+  Types, GR32, ImagingTypes, Imaging, ImagingFormats, ImagingUtility, ImagingClasses;
 
-
+{ Converts image from TImageData record to GR32's bitmap. Bitmap32 must be already
+  instantiated.}
 procedure ConvertImageDataToBitmap32(const Image: TImageData; Bitmap32: TCustomBitmap32);
+{ Converts image from TBaseImage instance to GR32's bitmap. Bitmap32 must be already
+  instantiated.}
 procedure ConvertImageToBitmap32(Image: TBaseImage; Bitmap32: TCustomBitmap32);
 
+{ Converts image data from GR32's bitmap to TImageData record.}
 procedure ConvertBitmap32ToImageData(Bitmap32: TCustomBitmap32; var Image: TImageData);
+{ Converts image data from GR32's bitmap to existing TBaseImage instance.}
 procedure ConvertBitmap32ToImage(Bitmap32: TCustomBitmap32; Image: TBaseImage);
 
+{ Copies pixels from TImageData record (with all the necessary conversion if
+  the format is not 32bit) to existing GR32's bitmap. Both Image and Bitmap32 must
+  have the same width and height. }
 procedure CopyImageDataToBitmap32(const Image: TImageData; Bitmap32: TCustomBitmap32);
+{ Copies pixels from TBaseImage instance (with all the necessary conversion if
+  the format is not 32bit) to existing GR32's bitmap. Both Image and Bitmap32 must
+  have the same width and height. }
 procedure CopyImageToBitmap32(Image: TBaseImage; Bitmap32: TCustomBitmap32);
 
+{ Copies rectangular area of pixels from TImageData record to existing GR32's bitmap.}
 procedure CopyRectToBitmap32(const Image: TImageData; Bitmap32: TCustomBitmap32;
   SrcX, SrcY, Width, Height, DstX, DstY: Integer); overload;
+{ Copies rectangular area of pixels from TBaseImage instance to existing GR32's bitmap.}
 procedure CopyRectToBitmap32(Image: TBaseImage; Bitmap32: TCustomBitmap32;
   SrcX, SrcY, Width, Height, DstX, DstY: Integer); overload;
 
+{ Maps GR32 bitmap on TImageData record so that they'll both share
+  the same pixels in memory (Bitmap32.Bits and Image.Bits point to the same
+  memory address). Usefull if you wan to e.g. save Bitmap32 using Imaging
+  and don't want to needlesly duplicate the entire image in memory.
+  Note that you must not call FreeImage on Image after the mapping or
+  the memory of Bitmap32 would be freed too.}
 procedure MapBitmap32ToImageData(Bitmap32: TCustomBitmap32; var Image: TImageData);
 
 implementation
@@ -104,7 +123,7 @@ begin
   ClipCopyBounds(SrcX, SrcY, Width, Height, DstX, DstY, Image.Width, Image.Height,
     Rect(0, 0, Bitmap32.Width, Bitmap32.Height));
 
-  if Image.Format in [ifIndex8, ifGray8, ifGray16, ifR8G8B8, ifA8R8G8B8,
+  if Image.Format in [ifIndex8, ifGray8, ifA8Gray8, ifGray16, ifR8G8B8, ifA8R8G8B8,
     ifR16G16B16, ifA16R16G16B16] then
   begin
     GetImageFormatInfo(Image.Format, Info);
@@ -112,8 +131,8 @@ begin
     SrcWidthBytes := Image.Width * Bpp;
     DstWidth := Bitmap32.Width;
     MoveBytes := Width * Bpp;
-    SrcPtr := @PByteArray(Image.Bits)[SrcY * SrcWidthBytes +  SrcX * Bpp];
-    DstPtr := @PColor32RecArray(Bitmap32.Bits)[DstY * DstWidth +  DstX];
+    SrcPtr := @PByteArray(Image.Bits)[SrcY * SrcWidthBytes + SrcX * Bpp];
+    DstPtr := @PColor32RecArray(Bitmap32.Bits)[DstY * DstWidth + DstX];
 
     for Y := 0 to Height - 1 do
     begin
@@ -132,6 +151,16 @@ begin
             DstPtr.G := SrcPtr^;
             DstPtr.B := SrcPtr^;
             DstPtr.A := 255;
+            Inc(DstPtr);
+            Inc(SrcPtr, Bpp);
+          end;
+        ifA8Gray8:
+          for X := 0 to Width - 1 do
+          begin
+            DstPtr.R := SrcPtr^;
+            DstPtr.G := SrcPtr^;
+            DstPtr.B := SrcPtr^;
+            DstPtr.A := PWordRec(SrcPtr).High;
             Inc(DstPtr);
             Inc(SrcPtr, Bpp);
           end;
@@ -156,6 +185,8 @@ begin
         ifA8R8G8B8:
           begin
             Move(SrcPtr^, DstPtr^, MoveBytes);
+            Inc(DstPtr, Width);
+            Inc(SrcPtr, MoveBytes);
           end;
         ifR16G16B16:
           for X := 0 to Width - 1 do
@@ -189,8 +220,7 @@ begin
     CloneImage(Image, TempImage);
     ConvertImage(TempImage, ifA8R8G8B8);
     try
-      CopyRectToBitmap32(Image, Bitmap32, SrcX, SrcY, Width, Height, DstX, DstY);
-      ConvertImageDataToBitmap32(TempImage, Bitmap32);
+      CopyRectToBitmap32(TempImage, Bitmap32, SrcX, SrcY, Width, Height, DstX, DstY);
     finally
       FreeImage(TempImage);
     end;
@@ -212,8 +242,16 @@ begin
   Image.Width := Bitmap32.Width;
   Image.Height := Bitmap32.Height;
   Image.Format := ifA8R8G8B8;
+  Image.Size := Image.Width * Image.Height * 4;
 
   Image.Bits := Bitmap32.Bits;
 end;
+
+{
+  File Notes:
+
+  -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Created with initial stuff.
+}
 
 end.
