@@ -810,6 +810,12 @@ begin
 end;
 {$ENDIF}
 
+function UpdateExceptMessage(E: Exception; const MsgToPrepend: string; const Args: array of const): Exception;
+begin
+  Result := E;
+  E.Message := Format(MsgToPrepend, Args) +  ' ' + SExceptMsg + ': ' + E.Message
+end;
+
 { ------------------------------------------------------------------------
                        Low Level Interface Functions
   ------------------------------------------------------------------------}
@@ -864,7 +870,13 @@ begin
     end;
     Result := TestImage(Image);
   except
-    RaiseImaging(SErrorNewImage, [Width, Height, GetFormatName(Format)]);
+    on E: Exception do
+    begin
+      FreeMem(Image.Bits);
+      FreeMem(Image.Palette);
+      InitImage(Image);
+      raise UpdateExceptMessage(E, SErrorNewImage, [Width, Height, GetFormatName(Format)]);
+    end;
   end;
 end;
 
@@ -878,7 +890,7 @@ begin
       (ImageFormatInfos[Image.Format].GetPixelsSize(Image.Format,
       Image.Width, Image.Height) = Image.Size));
   except
-    // Possible int overflows or other errors 
+    // Possible int overflows or other errors
     Result := False;
   end;
 end;
@@ -893,7 +905,7 @@ begin
     end;
     InitImage(Image);
   except
-    RaiseImaging(SErrorFreeImage, [ImageToStr(Image)]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorFreeImage, [ImageToStr(Image)]);
   end;
 end;
 
@@ -1303,7 +1315,7 @@ begin
     Move(Image.Bits^, Clone.Bits^, Clone.Size);
     Result := True;
   except
-    RaiseImaging(SErrorCloneImage, [ImageToStr(Image)]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorCloneImage, [ImageToStr(Image)]);
   end;
 end;
 
@@ -1414,7 +1426,7 @@ begin
 
     Result := True;
   except
-    RaiseImaging(SErrorConvertImage, [GetFormatName(DestFormat), ImageToStr(Image)]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorConvertImage, [GetFormatName(DestFormat), ImageToStr(Image)]);
   end;
 end;
 
@@ -1526,7 +1538,7 @@ begin
     Image := WorkImage;
     Result := True;
   except
-    RaiseImaging(SErrorResizeImage, [ImageToStr(Image)]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorResizeImage, [ImageToStr(Image)]);
   end;
 end;
 
@@ -1802,7 +1814,7 @@ begin
     FreeImage(CloneARGB);
     Result := True;
   except
-    RaiseImaging(SErrorMapImage, [ImageToStr(Image)]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorMapImage, [ImageToStr(Image)]);
   end;
 end;
 
@@ -1881,7 +1893,8 @@ begin
 
     Result := True;
   except
-    RaiseImaging(SErrorSplitImage, [ImageToStr(Image), ChunkWidth, ChunkHeight]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorSplitImage,
+      [ImageToStr(Image), ChunkWidth, ChunkHeight]);
   end;
 end;
 
@@ -2209,7 +2222,7 @@ begin
 
     Result := True;
   except
-    RaiseImaging(SErrorRotateImage, [ImageToStr(Image), Angle]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorRotateImage, [ImageToStr(Image), Angle]);
   end;
 end;
 
@@ -3558,7 +3571,7 @@ begin
       end;
     end;
   except
-    RaiseImaging(SErrorSavingFile, [FileName, FExtensions[0]]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorSavingFile, [FileName, FExtensions[0]]);
   end;
 end;
 
@@ -3604,7 +3617,7 @@ begin
     end;
   except
     Stream.Position := OldPosition;
-    RaiseImaging(SErrorSavingStream, [@Stream, FExtensions[0]]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorSavingStream, [@Stream, FExtensions[0]]);
   end;
 end;
 
@@ -3650,7 +3663,7 @@ begin
       IO.Close(Handle);
     end;
   except
-    RaiseImaging(SErrorSavingMemory, [Data, Size, FExtensions[0]]);
+    raise UpdateExceptMessage(GetExceptObject, SErrorSavingMemory, [Data, Size, FExtensions[0]]);
   end;
 end;
 
@@ -3984,6 +3997,9 @@ finalization
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Started reworking exception raising to keep the original class type
+      (e.g. in NewImage EOutOfMemory could be raised but was hidden
+      by EImagingError raised afterwards in NewImage try/except).
     - Fixed possible AV in Rotate45 subproc of RotateImage.
     - Added ReadRawXXX and WriteRawXXX functions for raw image bits IO.
     - Implemented ImagingBinaryTreshold option.

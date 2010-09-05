@@ -180,7 +180,7 @@ const
   NGDefaultQuality = 90;
   NGLosslessFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8, ifGray16,
     ifA16Gray16, ifR8G8B8, ifA8R8G8B8, ifR16G16B16, ifA16R16G16B16, ifB16G16R16,
-    ifA16B16G16R16];
+    ifA16B16G16R16, ifBinary];
   NGLossyFormats: TImageFormats = [ifGray8, ifA8Gray8, ifR8G8B8, ifA8R8G8B8];
   PNGDefaultLoadAnimated = True;
 
@@ -823,6 +823,7 @@ var
   Data, TotalBuffer, ZeroLine, PrevLine: Pointer;
   BitCount, TotalSize, TotalPos, BytesPerPixel, I, Pass,
   SrcDataSize, BytesPerLine, InterlaceLineBytes, InterlaceWidth: LongInt;
+  Info: TImageFormatInfo;
 
   procedure DecodeAdam7;
   const
@@ -938,8 +939,9 @@ begin
       begin
         // Gray scale image
         case IHDR.BitDepth of
-          1, 2, 4, 8: Image.Format := ifGray8;
-          16: Image.Format := ifGray16;
+          1:       Image.Format := ifBinary;
+          2, 4, 8: Image.Format := ifGray8;
+          16:      Image.Format := ifGray16;
         end;
         BitCount := IHDR.BitDepth;
       end;
@@ -980,13 +982,16 @@ begin
       end;
   end;
 
-  // Start decoding
+  GetImageFormatInfo(Image.Format, Info);
+  BytesPerPixel := (BitCount + 7) div 8;
+
   LineBuffer[True] := nil;
   LineBuffer[False] := nil;
   TotalBuffer := nil;
   ZeroLine := nil;
-  BytesPerPixel := (BitCount + 7) div 8;
   ActLine := True;
+
+  // Start decoding
   with Image do
   try
     BytesPerLine := (Width * BitCount + 7) div 8;
@@ -1056,7 +1061,7 @@ begin
       end;
     end;
 
-    Size := Width * Height * BytesPerPixel;
+    Size := Info.GetPixelsSize(Info.Format, Width, Height);
 
     if Size <> SrcDataSize then
     begin
@@ -1064,7 +1069,12 @@ begin
       // format we must convert it (it is in 1/2/4 bit count)
       GetMem(Bits, Size);
       case IHDR.BitDepth of
-        1: Convert1To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
+        1:
+          begin
+            // Convert only indexed, keep black and white in ifBinary
+            if IHDR.ColorType <> 0 then
+              Convert1To8(Data, Bits, Width, Height, BytesPerLine, False);
+          end;
         2: Convert2To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
         4: Convert4To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
       end;
@@ -1441,46 +1451,59 @@ begin
   Filter := 0;
   case PreFilter of
     6:
-      if not ((IHDR.BitDepth < 8) or (IHDR.ColorType = 3))
-        then Adaptive := True;
+      if not ((IHDR.BitDepth < 8) or (IHDR.ColorType = 3)) then
+        Adaptive := True;
     0..4: Filter := PreFilter;
   else
     if IHDR.ColorType in [2, 6] then
       Filter := 4
   end;
+
   // Prepare data for compression
   CompBuffer := nil;
   FillChar(FilterLines, SizeOf(FilterLines), 0);
-  BytesPerPixel := FmtInfo.BytesPerPixel;
-  BytesPerLine := LongInt(IHDR.Width) * BytesPerPixel;
+  BytesPerPixel := Max(1, FmtInfo.BytesPerPixel);
+  BytesPerLine := FmtInfo.GetPixelsSize(FmtInfo.Format, LongInt(IHDR.Width), 1);
   TotalSize := (BytesPerLine + 1) * LongInt(IHDR.Height);
   GetMem(TotalBuffer, TotalSize);
   GetMem(ZeroLine, BytesPerLine);
   FillChar(ZeroLine^, BytesPerLine, 0);
+  PrevLine := ZeroLine;
+
   if Adaptive then
+  begin
     for I := 0 to 4 do
       GetMem(FilterLines[I], BytesPerLine);
-  PrevLine := ZeroLine;
+  end;
+
   try
     // Process next scanlines
     for I := 0 to IHDR.Height - 1 do
     begin
       // Filter scanline
       if Adaptive then
+      begin
         AdaptiveFilter(Filter, BytesPerPixel, @PByteArray(Bits)[I * BytesPerLine],
-          PrevLine, @PByteArray(TotalBuffer)[I * (BytesPerLine + 1) + 1])
+          PrevLine, @PByteArray(TotalBuffer)[I * (BytesPerLine + 1) + 1]);
+      end
       else
+      begin
         FilterScanline(Filter, BytesPerPixel, @PByteArray(Bits)[I * BytesPerLine],
           PrevLine, @PByteArray(TotalBuffer)[I * (BytesPerLine + 1) + 1]);
+      end;
       PrevLine := @PByteArray(Bits)[I * BytesPerLine];
       // Swap red and blue if necessary
       if (IHDR.ColorType in [2, 6]) and not FmtInfo.IsRBSwapped then
+      begin
         SwapRGB(@PByteArray(TotalBuffer)[I * (BytesPerLine + 1) + 1],
-          IHDR.Width, IHDR.BitDepth, FmtInfo.BytesPerPixel);
+          IHDR.Width, IHDR.BitDepth, BytesPerPixel);
+      end;
       // Images with 16 bit channels must be swapped because of PNG's big endianess
       if IHDR.BitDepth = 16 then
+      begin
         SwapEndianWord(@PByteArray(TotalBuffer)[I * (BytesPerLine + 1) + 1],
           BytesPerLine div SizeOf(Word));
+      end;
       // Set filter used for this scanline
       PByteArray(TotalBuffer)[I * (BytesPerLine + 1)] := Filter;
     end;
@@ -1703,21 +1726,22 @@ begin
           IHDR.BitDepth := IHDR.BitDepth div 2;
         end;
       end
+      else if FmtInfo.Format = ifBinary then
+      begin
+        IHDR.ColorType := 0;
+        IHDR.BitDepth := 1;
+      end
+      else if FmtInfo.IsIndexed then
+        IHDR.ColorType := 3
+      else if FmtInfo.HasAlphaChannel then
+      begin
+        IHDR.ColorType := 6;
+        IHDR.BitDepth := IHDR.BitDepth div 4;
+      end
       else
       begin
-        if FmtInfo.IsIndexed then
-          IHDR.ColorType := 3
-        else
-          if FmtInfo.HasAlphaChannel then
-          begin
-            IHDR.ColorType := 6;
-            IHDR.BitDepth := IHDR.BitDepth div 4;
-          end
-          else
-          begin
-            IHDR.ColorType := 2;
-            IHDR.BitDepth := IHDR.BitDepth div 3;
-          end;
+        IHDR.ColorType := 2;
+        IHDR.BitDepth := IHDR.BitDepth div 3;
       end;
 
       if FileType = ngAPNG then
@@ -2550,6 +2574,10 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77 Changes/Bug Fixes -----------------------------------
+    - Added loading and saving of ifBinary (1bit black and white)
+      format images.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Reads frame delays from APNG files into metadata.

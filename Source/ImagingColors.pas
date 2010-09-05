@@ -73,6 +73,8 @@ procedure RGBToYCoCg(R, G, B: Byte; var Y, Co, Cg: Byte);
 { Converts YCoCg to RGB color.}
 procedure YCoCgToRGB(Y, Co, Cg: Byte; var R, G, B: Byte);
 
+//procedure RGBToHSL(R, G, B: Byte; var H, S, L: Byte);
+//procedure HSLToRGB(H, S, L: Byte; var R, G, B: Byte);
 
 implementation
 

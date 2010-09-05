@@ -75,6 +75,10 @@ type
     { Creates a new image data with the given size and format. Old image
       data is lost. Works only for the current image of TMultiImage.}
     procedure RecreateImageData(AWidth, AHeight: LongInt; AFormat: TImageFormat);
+    { Maps underlying image data to given TImageData record. Both TBaseImage and
+      TImageData now share some image memory (bits). So don't call FreeImage
+      on TImageData afterwards since this TBaseImage would get really broken.}
+    procedure MapImageData(const ImageData: TImageData);
     { Deletes current image and creates default 1x1 image.}
     procedure Clear;
 
@@ -453,6 +457,17 @@ procedure TBaseImage.RecreateImageData(AWidth, AHeight: LongInt; AFormat: TImage
 begin
   if Assigned(FPData) and Imaging.NewImage(AWidth, AHeight, AFormat, FPData^) then
     DoDataSizeChanged;
+end;
+
+procedure TBaseImage.MapImageData(const ImageData: TImageData);
+begin
+  Clear;
+  FPData.Width := ImageData.Width;
+  FPData.Height := ImageData.Height;
+  FPData.Format := ImageData.Format;
+  FPData.Size := ImageData.Size;
+  FPData.Bits := ImageData.Bits;
+  FPData.Palette := ImageData.Palette;
 end;
 
 procedure TBaseImage.Clear;
@@ -969,6 +984,7 @@ end;
       CopyTo to Copy, and add overload Copy(SrcRect, DstX, DstY) ...
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added MapImageData method to TBaseImage
     - Added Empty property to TBaseImage.
     - Added Clear method to TBaseImage.
     - Added ScanlineSize property to TBaseImage.
