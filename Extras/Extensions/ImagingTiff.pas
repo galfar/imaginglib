@@ -76,7 +76,7 @@ const
   STiffMasks      = '*.tif,*.tiff';
   TiffSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8, 
     ifGray16, ifA16Gray16, ifGray32, ifR8G8B8, ifA8R8G8B8, ifR16G16B16,
-    ifA16R16G16B16, ifR32F, ifA32R32G32B32F, ifR16F, ifA16R16G16B16F];
+    ifA16R16G16B16, ifR32F, ifA32R32G32B32F, ifR16F, ifA16R16G16B16F, ifBinary];
   TiffDefaultCompression = 1;
   TiffDefaultJpegQuality = 90;
 
@@ -176,12 +176,13 @@ function TTiffFileFormat.LoadData(Handle: TImagingHandle;
 var
   Tiff: PTIFF;
   IOWrapper: TTiffIOWrapper;
-  I, Idx, TiffResult, ScanLineSize, NumDirectories: Integer;
+  I, Idx, TiffResult, ScanLineSize, NumDirectories, X: Integer;
   RowsPerStrip: LongWord;
   Orientation, BitsPerSample, SamplesPerPixel, Photometric,
     PlanarConfig, SampleFormat: Word;
   DataFormat: TImageFormat;
   CanAccessScanlines: Boolean;
+  Ptr: PByte;
   Red, Green, Blue: PWordRecArray;
 
   procedure LoadMetadata(Tiff: PTiff; TiffPage: Integer);
@@ -231,6 +232,7 @@ begin
 
     // Set defaults for TIFF fields
     DataFormat := ifUnknown;
+    ScanLineSize := 0;
 
     // Read some TIFF fields with basic image info
     TIFFGetField(Tiff, TIFFTAG_IMAGEWIDTH, @Images[Idx].Width);
@@ -252,11 +254,14 @@ begin
     begin
       // We can copy scanlines so we try to find data format that best matches
       // TIFFs internal data format
-      if Photometric = PHOTOMETRIC_MINISBLACK then
+      if (Photometric = PHOTOMETRIC_MINISBLACK) or (Photometric = PHOTOMETRIC_MINISWHITE) then
       begin
-        if (SampleFormat = SAMPLEFORMAT_UINT) then
+        if SampleFormat = SAMPLEFORMAT_UINT then
         begin
           case BitsPerSample of
+             1:
+               if SamplesPerPixel = 1 then
+                 DataFormat := ifBinary;
              8:
                case SamplesPerPixel of
                  1: DataFormat := ifGray8;
@@ -272,7 +277,7 @@ begin
                  DataFormat := ifGray32;
           end;
         end
-        else if (SampleFormat = SAMPLEFORMAT_IEEEFP) then
+        else if SampleFormat = SAMPLEFORMAT_IEEEFP then
         begin
           case BitsPerSample of
             16:
@@ -286,7 +291,7 @@ begin
       end
       else if Photometric = PHOTOMETRIC_RGB then
       begin
-        if (SampleFormat = SAMPLEFORMAT_UINT) then
+        if SampleFormat = SAMPLEFORMAT_UINT then
         begin
           case BitsPerSample of
              8:
@@ -301,7 +306,7 @@ begin
                end;
           end;
         end
-        else if (SampleFormat = SAMPLEFORMAT_IEEEFP) then
+        else if SampleFormat = SAMPLEFORMAT_IEEEFP then
         begin
           case BitsPerSample of
             16:
@@ -352,12 +357,25 @@ begin
           B := Blue[I].High;
         end;
       end;
-    end;
 
-    // TIFF uses BGR order so we must swap it, but not images we got
-    // from TiffLib RGBA interface.
-    if (Photometric = PHOTOMETRIC_RGB) or (DataFormat = ifUnknown) then
-      SwapChannels(Images[Idx], ChannelRed, ChannelBlue);
+      // TIFF uses BGR order so we must swap it (but not images we got
+      // from TiffLib RGBA interface)
+      if Photometric = PHOTOMETRIC_RGB then
+        SwapChannels(Images[Idx], ChannelRed, ChannelBlue);
+
+      // We need to negate 'MinIsWhite' formats to get common grayscale
+      // formats where min sample value is black
+      if Photometric = PHOTOMETRIC_MINISWHITE then
+        for I := 0 to Images[Idx].Height - 1 do
+        begin
+          Ptr := @PByteArray(Images[Idx].Bits)[I * ScanLineSize];
+          for X := 0 to ScanLineSize - 1 do
+          begin
+            Ptr^ := not Ptr^;
+            Inc(Ptr);
+          end;
+        end;
+    end;
   end;
 
   TIFFClose(Tiff);
@@ -367,8 +385,8 @@ end;
 function TTiffFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer): Boolean;
 const
-  Compressions: array[0..4] of Word = (COMPRESSION_NONE, COMPRESSION_LZW,
-    COMPRESSION_PACKBITS, COMPRESSION_DEFLATE, COMPRESSION_JPEG);
+  Compressions: array[0..5] of Word = (COMPRESSION_NONE, COMPRESSION_LZW,
+    COMPRESSION_PACKBITS, COMPRESSION_DEFLATE, COMPRESSION_JPEG, COMPRESSION_CCITTFAX4);
 var
   Tiff: PTIFF;
   IOWrapper: TTiffIOWrapper;
@@ -380,6 +398,7 @@ var
     PlanarConfig, SampleFormat, CompressionScheme: Word;
   RowsPerStrip: LongWord;
   Red, Green, Blue: array[Byte] of TWordRec;
+  CompressionMismatch: Boolean;
 
   procedure SaveMetadata(Tiff: PTiff; TiffPage: Integer);
   var
@@ -405,7 +424,7 @@ begin
   Result := False;
   LibTiffDelphiSetErrorHandler(TIFFErrorHandler);
 
-  if not (FCompression in [0..4]) then
+  if not (FCompression in [0..5]) then
     FCompression := TiffDefaultCompression;
 
   // Set up IO wrapper and open TIFF
@@ -431,16 +450,23 @@ begin
       // Set Tag values
       Orientation := ORIENTATION_TOPLEFT;
       BitsPerSample := Info.BytesPerPixel div Info.ChannelCount * 8;
+      if Info.Format = ifBinary then
+        BitsPerSample := 1;
       SamplesPerPixel := Info.ChannelCount;
       SampleFormat := Iff(not Info.IsFloatingPoint, SAMPLEFORMAT_UINT, SAMPLEFORMAT_IEEEFP);
       PlanarConfig := PLANARCONFIG_CONTIG;
       CompressionScheme := Compressions[FCompression];
-      if (CompressionScheme = COMPRESSION_JPEG) and ((BitsPerSample <> 8) or
-        not (SamplesPerPixel in [1, 3]) or Info.IsIndexed or Info.IsFloatingPoint) then
-      begin
-        // JPEG compression only for some data formats
+
+      // Check if selected compression scheme can be used for current image
+      CompressionMismatch := (CompressionScheme = COMPRESSION_JPEG) and ((BitsPerSample <> 8) or
+        not (SamplesPerPixel in [1, 3]) or Info.IsIndexed or Info.IsFloatingPoint);
+      CompressionMismatch := CompressionMismatch or ((CompressionScheme = COMPRESSION_CCITTFAX4) and (Info.Format <> ifBinary));
+      if CompressionMismatch then
         CompressionScheme := Compressions[TiffDefaultCompression];
-      end;
+      // If we have some compression scheme selected and it's not Fax then select it automatically - better comp ratios!
+      if (Info.Format = ifBinary) and (CompressionScheme <> COMPRESSION_NONE) and (CompressionScheme <> COMPRESSION_CCITTFAX4) then
+        CompressionScheme := COMPRESSION_CCITTFAX4;
+
       RowsPerStrip := TIFFDefaultStripSize(Tiff, Height);
       if Info.IsIndexed then
         Photometric := PHOTOMETRIC_PALETTE
@@ -478,7 +504,7 @@ begin
         TIFFSetField(Tiff, TIFFTAG_COLORMAP, Red, Green, Blue);
       end;
 
-      ScanLineSize := Width * Info.BytesPerPixel;
+      ScanLineSize := Info.GetPixelsSize(Info.Format, Width, 1);
 
       if Photometric = PHOTOMETRIC_RGB then
         SwapChannels(ImageToSave, ChannelRed, ChannelBlue);
@@ -539,6 +565,12 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77 Changes/Bug Fixes -----------------------------------
+    - Images in ifBinary format are now supported for loading/saving
+      (optional Group 4 fax encoding added).
+    - PHOTOMETRIC_MINISWHITE is now properly read as Grayscale/Binary
+      instead of using unefficient RGBA interface.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Fix: All pages of multipage TIFF were loaded even when

@@ -99,6 +99,7 @@ type
     FFileName: string;
     FLastTime: LongInt;
     FOriginalFormats: array of TImageFormat;
+    FOriginalSizes: array of Integer;
     FSupported: Boolean;
   public
     procedure SetSupported;
@@ -146,12 +147,16 @@ begin
 
       FLastTime := (ImagingUtility.GetTimeMicroseconds - T) div 1000;
       StatusBar.SimpleText := Format('Last image loaded in: %.0n ms', [FLastTime * 1.0]);
-      // Store original data formats for later use
+
+      // Store original data formats and sizes for later use
       SetLength(FOriginalFormats, FImage.ImageCount);
+      SetLength(FOriginalSizes, FImage.ImageCount);
+
       for I := 0 to FImage.ImageCount - 1 do
       begin
         FImage.ActiveImage := I;
         FOriginalFormats[I] := FImage.Format;
+        FOriginalSizes[I] := FImage.Size;
         // Convert image to 32bit ARGB format if current format is not supported
         // by canvas class
         if not (FImage.Format in TImagingCanvas.GetSupportedFormats) then
@@ -175,13 +180,19 @@ end;
 procedure TMainForm.SetSupported;
 var
   XRes, YRes: Single;
+  ImgSize: Integer;
 begin
   // Update image info and enable previous/next buttons
+  ImgSize := FOriginalSizes[FImage.ActiveImage];
+  if ImgSize > 8192 then
+    ImgSize := ImgSize div 1024;
   LabDim.Caption := Format('%dx%d pixels', [FImage.Width, FImage.Height]);
   if GlobalMetadata.GetPhysicalPixelSize(ruDpi, XRes, YRes) then
     LabDim.Caption := LabDim.Caption + Format(' (DPI %.0nx%.0n)', [XRes, YRes]);
   LabFileFormat.Caption := Imaging.FindImageFileFormatByName(FFileName).Name;
   LabDataFormat.Caption := Imaging.GetFormatName(FOriginalFormats[FImage.ActiveImage]);
+  LabDataFormat.Caption := LabDataFormat.Caption +
+    Format('   (Size in memory: %s %s)', [IntToStrFmt(ImgSize), Iff(ImgSize = FOriginalSizes[FImage.ActiveImage], 'B', 'KiB')]);
   LabActImage.Caption := Format('%d/%d', [FImage.ActiveImage + 1, FImage.ImageCount]);
   BtnPrev.Enabled := True;
   BtnNext.Enabled := True;
@@ -366,6 +377,9 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77 Changes/Bug Fixes ---------------------------------
+    - Displays size of image in memory.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Displays image physical resolution if present.

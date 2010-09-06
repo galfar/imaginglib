@@ -929,6 +929,14 @@ var
     end;
   end;
 
+  function CheckBinaryPalette: Boolean;
+  begin
+    with GetLastFrame do
+      Result := (PaletteEntries = 2) and
+        (Palette[0].R = 0) and (Palette[0].G = 0) and (Palette[0].B = 0) and
+        (Palette[1].R = 255) and (Palette[1].G = 255) and (Palette[1].B = 255);
+  end;
+
 begin
   Image.Width := FrameWidth;
   Image.Height := FrameHeight;
@@ -957,9 +965,10 @@ begin
     3:
       begin
         // Indexed image
-        case IHDR.BitDepth of
-          1, 2, 4, 8: Image.Format := ifIndex8;
-        end;
+        if (IHDR.BitDepth = 1) and CheckBinaryPalette  then
+          Image.Format := ifBinary
+        else
+          Image.Format := ifIndex8;
         BitCount := IHDR.BitDepth;
       end;
     4:
@@ -2577,7 +2586,9 @@ finalization
 
   -- 0.77 Changes/Bug Fixes -----------------------------------
     - Added loading and saving of ifBinary (1bit black and white)
-      format images.
+      format images. During loading grayscale 1bpp and indexed 1bpp
+      (with only black and white colors in palette) are treated as ifBinary.
+      ifBinary are saved as 1bpp grayscale PNGs.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Reads frame delays from APNG files into metadata.

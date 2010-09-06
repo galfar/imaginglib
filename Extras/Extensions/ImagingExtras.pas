@@ -73,7 +73,8 @@ const
     Default value is False (0).}
   ImagingJpeg2000LosslessCompression = 57;
   { Specifies compression scheme used when saving TIFF images. Supported values
-    are 0 (Uncompressed), 1 (LZW), 2 (PackBits RLE), 3 (Deflate - ZLib), 4 (JPEG).
+    are 0 (Uncompressed), 1 (LZW), 2 (PackBits RLE), 3 (Deflate - ZLib), 4 (JPEG),
+    5 (CCITT Group 4 fax encoding - for binary images only).
     Default is 1 (LZW). Note that not all images can be stored with
     JPEG compression - these images will be saved with default compression if
     JPEG is set.}
@@ -120,6 +121,7 @@ uses
     - nothing now
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
+    - Added Group 4 Fax encoding as compression for TIFF files.
     - Added ImagingTiffJpegQuality option.
 
   -- 0.26.3 Changes/Bug Fixes ---------------------------------

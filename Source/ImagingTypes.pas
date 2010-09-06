@@ -246,9 +246,9 @@ type
     ifBTC            = 223,
     ifATI1N          = 224,
     ifATI2N          = 225,
-    ifBinary         = 226{,
-    ifDXBC6            = 227,
-    ifDXBC7            = 228}
+    {ifDXBC6         = 227,
+    ifDXBC7          = 228}
+    ifBinary         = 235
   );
 
   { Color value for 32 bit images.}
