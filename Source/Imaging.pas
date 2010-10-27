@@ -529,9 +529,11 @@ type
     procedure AddMetaToList(List: TStringList; const Id: string; const Value: Variant; ImageIndex: Integer);
     procedure ClearMetaList(List: TStringList);
     function GetMetaById(const Id: string): Variant;
-    function GetMetaByIdx(Index: Integer): TMetadataItem;
+    function GetMetaByIdMulti(const Id: string; ImageIndex: Integer): Variant;
     function GetMetaCount: Integer;
+    function GetMetaByIdx(Index: Integer): TMetadataItem;
     function GetSaveMetaById(const Id: string): Variant;
+    function GetSaveMetaByIdMulti(const Id: string; ImageIndex: Integer): Variant;
     procedure TranslateUnits(ResolutionUnit: TResolutionUnit; var XRes, YRes: Single);
   public
     constructor Create;
@@ -544,16 +546,23 @@ type
     procedure ClearMetaItems;
     procedure ClearMetaItemsForSave;
     function GetMetaItemName(const Id: string; ImageIndex: Integer): string;
+    { Copies loaded meta items to items-for-save stack. Use this when you want to
+      save metadata that have been just loaded (e.g. resaving image in
+      different file format but keeping the metadata).}
+    procedure CopyMetaItems;
 
     function GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
       YSize: Single; MetaForSave: Boolean = False; ImageIndex: Integer = 0): Boolean;
     procedure SetPhysicalPixelSize(ResUnit: TResolutionUnit; XSize, YSize: Single;
       MetaForSave: Boolean = False; ImageIndex: Integer = 0);
 
-    property MetaItemCount: Integer read GetMetaCount;
-    property MetaItems[const Id: string]: Variant read GetMetaById;
+    { Number of loaded metadata items.}
+    property MetaItems[const Id: string]: Variant read GetMetaById;
+    property MetaItemsMulti[const Id: string; ImageIndex: Integer]: Variant read GetMetaByIdMulti;
+    property MetaItemCount: Integer read GetMetaCount;
     property MetaItemsByIdx[Index: Integer]: TMetadataItem read GetMetaByIdx;
     property MetaItemsForSave[const Id: string]: Variant read GetSaveMetaById;
+    property MetaItemsForSaveMulti[const Id: string; ImageIndex: Integer]: Variant read GetSaveMetaByIdMulti;
   end;
 
 const
@@ -565,6 +574,12 @@ const
   { Delay for frame of animation (how long it should stay visible) in milliseconds.
     Type of value is Integer.}
   SMetaFrameDelay = 'FrameDelay';
+  { Number of times animation should be looped (0 = infinite looping).}
+  SMetaAnimationLoops = 'AnimationLoops';
+
+  SMetaExifBlob = 'ExifBlob';
+  SMetaXmpBlob  = 'XmpBlob';
+  SMetaIptcBlob = 'IptcBlob';
 
 var
   GlobalMetadata: TMetadata;
@@ -3834,11 +3849,31 @@ begin
   List.Clear;
 end;
 
+procedure TMetadata.CopyMetaItems;
+var
+  I: Integer;
+  Copy, Orig: TMetadataItem;
+begin
+  ClearMetaItemsForSave;
+  for I := 0 to FLoadMetaItems.Count - 1 do
+  begin
+    Orig := TMetadataItem(FLoadMetaItems.Objects[I]);
+
+    Copy := TMetadataItem.Create;
+    Copy.Id := Orig.Id;
+    Copy.ImageIndex := Orig.ImageIndex;
+    Copy.Value := Orig.Value;
+    FSaveMetaItems.AddObject(GetMetaItemName(Copy.Id, Copy.ImageIndex), Copy);
+  end;
+end;
+
 constructor TMetadata.Create;
 begin
   inherited;
   FLoadMetaItems := TStringList.Create;
+  FLoadMetaItems.Sorted := True;
   FSaveMetaItems := TStringList.Create;
+  FSaveMetaItems.Sorted := True;
 end;
 
 destructor TMetadata.Destroy;
@@ -3860,6 +3895,27 @@ begin
     Result := Variants.Null;
 end;
 
+function TMetadata.GetMetaByIdMulti(const Id: string; ImageIndex: Integer): Variant;
+begin
+  Result := GetMetaById(GetMetaItemName(Id, ImageIndex));
+end;
+
+function TMetadata.GetSaveMetaById(const Id: string): Variant;
+var
+  Idx: Integer;
+begin
+  if FSaveMetaItems.Find(Id, Idx) then
+    Result := (FSaveMetaItems.Objects[Idx] as TMetadataItem).Value
+  else
+    Result := Variants.Null;
+end;
+
+function TMetadata.GetSaveMetaByIdMulti(const Id: string;
+  ImageIndex: Integer): Variant;
+begin
+  Result := GetSaveMetaById(GetMetaItemName(Id, ImageIndex));
+end;
+
 function TMetadata.GetMetaByIdx(Index: Integer): TMetadataItem;
 begin
   Result := FLoadMetaItems.Objects[Index] as TMetadataItem;
@@ -3879,18 +3935,18 @@ end;
 function TMetadata.GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
   YSize: Single; MetaForSave: Boolean; ImageIndex: Integer): Boolean;
 type
-  TGetter = function(const Id: string): Variant of object;
+  TGetter = function(const Id: string; ImageIndex: Integer): Variant of object;
 var
   Getter: TGetter;
   XMeta, YMeta: Variant;
 begin
   if MetaForSave then
-    Getter := GetSaveMetaById
+    Getter := GetSaveMetaByIdMulti
   else
-    Getter := GetMetaById;
+    Getter := GetMetaByIdMulti;
 
-  XMeta := Getter(GetMetaItemName(SMetaPhysicalPixelSizeX, ImageIndex));
-  YMeta := Getter(GetMetaItemName(SMetaPhysicalPixelSizeY, ImageIndex));
+  XMeta := Getter(SMetaPhysicalPixelSizeX, ImageIndex);
+  YMeta := Getter(SMetaPhysicalPixelSizeY, ImageIndex);
   XSize := -1;
   YSize := -1;
 
@@ -3949,24 +4005,14 @@ begin
   end;
 end;
 
-function TMetadata.GetSaveMetaById(const Id: string): Variant;
-var
-  Idx: Integer;
-begin
-  if FSaveMetaItems.Find(Id, Idx) then
-    Result := (FSaveMetaItems.Objects[Idx] as TMetadataItem).Value
-  else
-    Result := Variants.Null;
-end;
-
 function TMetadata.HasMetaItem(const Id: string; ImageIndex: Integer): Boolean;
 begin
-  Result := GetMetaById(GetMetaItemName(Id, ImageIndex)) <> Variants.Null;
+  Result := GetMetaByIdMulti(Id, ImageIndex) <> Variants.Null;
 end;
 
 function TMetadata.HasMetaItemForSave(const Id: string; ImageIndex: Integer): Boolean;
 begin
-  Result := GetSaveMetaById(GetMetaItemName(Id, ImageIndex)) <> Variants.Null;
+  Result := GetSaveMetaByIdMulti(Id, ImageIndex) <> Variants.Null;
 end;
 
 initialization
@@ -3995,6 +4041,9 @@ finalization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77 Changes/Bug Fixes -----------------------------------
+    - Metadata support fxes and extensions (frame delays, animation loops).
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Started reworking exception raising to keep the original class type

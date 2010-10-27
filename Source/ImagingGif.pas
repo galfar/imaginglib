@@ -84,6 +84,7 @@ type
 const
   GIFSignature: TChar3 = 'GIF';
   GIFVersions: array[TGIFVersion] of TChar3 = ('87a', '89a');
+  GIFDefaultDelay = 65;
 
   // Masks for accessing fields in PackedFields of TGIFHeader
   GIFGlobalColorTable = $80;
@@ -110,6 +111,11 @@ const
   GIFTransparent    = $01;
   GIFUserInput      = $02;
   GIFDisposalMethod = $1C;
+
+const
+  // Netscape sub block types
+  GIFAppLoopExtension   = 1;
+  GIFAppBufferExtension = 2;
 
 type
   TGIFHeader = packed record
@@ -148,11 +154,6 @@ type
     TransparentColorIndex: Byte;
     Terminator: Byte;
   end;
-
-const
-  // Netscape sub block types
-  GIFAppLoopExtension = 1;
-  GIFAppBufferExtension = 2;
 
 type
   TGIFIdentifierCode = array[0..7] of AnsiChar;
@@ -735,7 +736,8 @@ var
           if BlockSize >= SizeOf(AppRec) then
           begin
             Read(Handle, @AppRec, SizeOf(AppRec));
-            if (AppRec.Identifier = 'NETSCAPE') and (AppRec.Authentication = '2.0') then
+            if ((AppRec.Identifier = 'NETSCAPE') and (AppRec.Authentication = '2.0')) or
+              ((AppRec.Identifier = 'ANIMEXTS') and (AppRec.Authentication = '1.0')) then
             begin
               Read(Handle, @BlockSize, SizeOf(BlockSize));
               while BlockSize <> 0 do
@@ -750,6 +752,8 @@ var
                       // Read loop count
                       Read(Handle, @LoopCount, SizeOf(LoopCount));
                       Dec(BlockSize, SizeOf(LoopCount));
+                      Inc(LoopCount); // Netscape extension is really "repeats" not "loops"
+                      FMetadata.AddMetaItem(SMetaAnimationLoops, LoopCount);
                     end;
                   GIFAppBufferExtension:
                     begin
@@ -1125,6 +1129,42 @@ var
     end;
   end;
 
+  procedure SetFrameDelay(Idx: Integer; var Ext: TGraphicControlExtension);
+  begin
+    if FMetadata.HasMetaItemForSave(SMetaFrameDelay, Idx) then
+      Ext.DelayTime := FMetadata.MetaItemsForSaveMulti[SMetaFrameDelay, Idx] div 10
+    else
+      Ext.DelayTime := GIFDefaultDelay;
+  end;
+
+  procedure SaveGlobalMetadata;
+  var
+    AppExt: TGIFApplicationRec;
+    BlockSize, LoopExtId: Byte;
+    Repeats: Word;
+  begin
+    if FMetadata.HasMetaItem(SMetaAnimationLoops) then
+    with GetIO do
+    begin
+      FillChar(AppExt, SizeOf(AppExt), 0);
+      AppExt.Identifier := 'NETSCAPE';
+      AppExt.Authentication := '2.0';
+      Repeats := FMetadata.MetaItemsForSave[SMetaAnimationLoops] - 1;
+      LoopExtId := GIFAppLoopExtension;
+
+      Write(Handle, @GIFExtensionIntroducer, SizeOf(GIFExtensionIntroducer));
+      Write(Handle, @GIFApplicationExtension, SizeOf(GIFApplicationExtension));
+      BlockSize := 11;
+      Write(Handle, @BlockSize, SizeOf(BlockSize));
+      Write(Handle, @AppExt, SizeOf(AppExt));
+      BlockSize := 3;
+      Write(Handle, @BlockSize, SizeOf(BlockSize));
+      Write(Handle, @LoopExtId, SizeOf(LoopExtId));
+      Write(Handle, @Repeats, SizeOf(Repeats));
+      Write(Handle, @GIFBlockTerminator, SizeOf(GIFBlockTerminator));
+    end;
+  end;
+
 begin
   // Fill header with data, select size of largest image in array as
   // logical screen size
@@ -1137,8 +1177,10 @@ begin
 
   // Prepare default GC extension with delay
   FillChar(GraphicExt, Sizeof(GraphicExt), 0);
-  GraphicExt.DelayTime := 65;
+  GraphicExt.DelayTime := GIFDefaultDelay;
   GraphicExt.BlockSize := 4;
+
+  SaveGlobalMetadata;
 
   for I := FFirstIdx to FLastIdx do
   begin
@@ -1148,6 +1190,7 @@ begin
       // Write Graphic Control Extension with default delay
       Write(Handle, @GIFExtensionIntroducer, SizeOf(GIFExtensionIntroducer));
       Write(Handle, @GIFGraphicControlExtension, SizeOf(GIFGraphicControlExtension));
+      SetFrameDelay(I, GraphicExt);
       Write(Handle, @GraphicExt, SizeOf(GraphicExt));
       // Write frame marker and fill and write image descriptor for this frame
       Write(Handle, @GIFImageDescriptor, SizeOf(GIFImageDescriptor));
@@ -1165,7 +1208,7 @@ begin
         Write(Handle, @Palette[J].B, SizeOf(Palette[J].B));
       end;
 
-      // Fonally compress image data 
+      // Finally compress image data
       LZWCompress(GetIO, Handle, Width, Height, 8, False, Bits);
 
     finally
@@ -1208,6 +1251,10 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77 Changes/Bug Fixes -----------------------------------
+    - Writes frame delays of GIF animations from metadata
+    - Reads and writes looping of GIF animations stored into/from metadata.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Reads frame delays from GIF animations into metadata.
