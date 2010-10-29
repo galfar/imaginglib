@@ -752,7 +752,8 @@ var
                       // Read loop count
                       Read(Handle, @LoopCount, SizeOf(LoopCount));
                       Dec(BlockSize, SizeOf(LoopCount));
-                      Inc(LoopCount); // Netscape extension is really "repeats" not "loops"
+                      if LoopCount > 0 then
+                        Inc(LoopCount); // Netscape extension is really "repeats" not "loops"
                       FMetadata.AddMetaItem(SMetaAnimationLoops, LoopCount);
                     end;
                   GIFAppBufferExtension:
@@ -1149,7 +1150,9 @@ var
       FillChar(AppExt, SizeOf(AppExt), 0);
       AppExt.Identifier := 'NETSCAPE';
       AppExt.Authentication := '2.0';
-      Repeats := FMetadata.MetaItemsForSave[SMetaAnimationLoops] - 1;
+      Repeats := FMetadata.MetaItemsForSave[SMetaAnimationLoops];
+      if Repeats > 0 then
+        Dec(Repeats);
       LoopExtId := GIFAppLoopExtension;
 
       Write(Handle, @GIFExtensionIntroducer, SizeOf(GIFExtensionIntroducer));
