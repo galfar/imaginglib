@@ -336,7 +336,7 @@ implementation
 uses
 {$IF Defined(LCL)}
   {$IF Defined(LCLGTK2)}
-    GLib2, GDK2, GTK2, GTKDef, GTKProc,
+    GLib2, GDK2, GTK2, GTK2Def, GTK2Proc,
   {$ELSEIF Defined(LCLGTK)}
     GDK, GTK, GTKDef, GTKProc,
   {$IFEND}
@@ -778,15 +778,18 @@ begin
 end;
 {$ELSEIF Defined(LCLGTK) or Defined(LCLGTK2)}
 
+  type
+    TDeviceContext = {$IF Defined(LCLGTK2)}TGtk2DeviceContext{$ELSE}TGtkDeviceContext{$IFEND};
+
   procedure GDKDrawBitmap(Dest: HDC; DstX, DstY: Integer; SrcX, SrcY,
     SrcWidth, SrcHeight: Integer; ImageData: TImageData);
   var
     P: TPoint;
   begin
-    P := TGtkDeviceContext(Dest).Offset;
+    P := TDeviceContext(Dest).Offset;
     Inc(DstX, P.X);
     Inc(DstY, P.Y);
-    gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
+    gdk_draw_rgb_32_image(TDeviceContext(Dest).Drawable, TDeviceContext(Dest).GC,
       DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
       @PLongWordArray(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);
   end;
