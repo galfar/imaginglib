@@ -2123,12 +2123,9 @@ const
 
 
 {
-
   Half/Float conversions inspired by half class from OpenEXR library.
 
-
   Float (Pascal Single type) is an IEEE 754 single-precision
-
   floating point number.
 
   Bit layout of Single:
@@ -2156,20 +2153,19 @@ const
   S is the sign-bit, e is the exponent and m is the significand (mantissa).
 }
 
-
 function HalfToFloat(Half: THalfFloat): Single;
 var
   Dst, Sign, Mantissa: LongWord;
   Exp: LongInt;
 begin
-  // extract sign, exponent, and mantissa from half number
+  // Extract sign, exponent, and mantissa from half number
   Sign := Half shr 15;
   Exp := (Half and $7C00) shr 10;
   Mantissa := Half and 1023;
 
   if (Exp > 0) and (Exp < 31) then
   begin
-    // common normalized number
+    // Common normalized number
     Exp := Exp + (127 - 15);
     Mantissa := Mantissa shl 13;
     Dst := (Sign shl 31) or (LongWord(Exp) shl 23) or Mantissa;
@@ -2177,12 +2173,12 @@ begin
   end
   else if (Exp = 0) and (Mantissa = 0) then
   begin
-    // zero - preserve sign
+    // Zero - preserve sign
     Dst := Sign shl 31;
   end
   else if (Exp = 0) and (Mantissa <> 0) then
   begin
-    // denormalized number - renormalize it
+    // Denormalized number - renormalize it
     while (Mantissa and $00000400) = 0 do
     begin
       Mantissa := Mantissa shl 1;
@@ -2190,7 +2186,7 @@ begin
     end;
     Inc(Exp);
     Mantissa := Mantissa and not $00000400;
-    // now assemble normalized number
+    // Now assemble normalized number
     Exp := Exp + (127 - 15);
     Mantissa := Mantissa shl 13;
     Dst := (Sign shl 31) or (LongWord(Exp) shl 23) or Mantissa;
@@ -2203,11 +2199,11 @@ begin
   end
   else //if (Exp = 31) and (Mantisa <> 0) then
   begin
-    // not a number - preserve sign and mantissa
+    // Not a number - preserve sign and mantissa
     Dst := (Sign shl 31) or $7F800000 or (Mantissa shl 13);
   end;
 
-  // reinterpret LongWord as Single
+  // Reinterpret LongWord as Single
   Result := PSingle(@Dst)^;
 end;
 
@@ -2217,29 +2213,29 @@ var
   Sign, Exp, Mantissa: LongInt;
 begin
   Src := PLongWord(@Float)^;
-  // extract sign, exponent, and mantissa from Single number
+  // Extract sign, exponent, and mantissa from Single number
   Sign := Src shr 31;
   Exp := LongInt((Src and $7F800000) shr 23) - 127 + 15;
   Mantissa := Src and $007FFFFF;
 
   if (Exp > 0) and (Exp < 30) then
   begin
-    // simple case - round the significand and combine it with the sign and exponent
+    // Simple case - round the significand and combine it with the sign and exponent
     Result := (Sign shl 15) or (Exp shl 10) or ((Mantissa + $00001000) shr 13);
   end
   else if Src = 0 then
   begin
-    // input float is zero - return zero
+    // Input float is zero - return zero
     Result := 0;
   end
   else
   begin
-    // difficult case - lengthy conversion
+    // Difficult case - lengthy conversion
     if Exp <= 0 then
     begin
       if Exp < -10 then
       begin
-        // input float's value is less than HalfMin, return zero
+        // Input float's value is less than HalfMin, return zero
         Result := 0;
       end
       else
@@ -2247,10 +2243,10 @@ begin
         // Float is a normalized Single whose magnitude is less than HalfNormMin.
         // We convert it to denormalized half.
         Mantissa := (Mantissa or $00800000) shr (1 - Exp);
-        // round to nearest
+        // Round to nearest
         if (Mantissa and $00001000) > 0 then
           Mantissa := Mantissa + $00002000;
-        // assemble Sign and Mantissa (Exp is zero to get denotmalized number)
+        // Assemble Sign and Mantissa (Exp is zero to get denormalized number)
         Result := (Sign shl 15) or (Mantissa shr 13);
       end;
     end
@@ -2258,12 +2254,12 @@ begin
     begin
       if Mantissa = 0 then
       begin
-        // input float is infinity, create infinity half with original sign
+        // Input float is infinity, create infinity half with original sign
         Result := (Sign shl 15) or $7C00;
       end
       else
       begin
-        // input float is NaN, create half NaN with original sign and mantissa
+        // Input float is NaN, create half NaN with original sign and mantissa
         Result := (Sign shl 15) or $7C00 or (Mantissa shr 13);
       end;
     end
@@ -2271,7 +2267,7 @@ begin
     begin
       // Exp is > 0 so input float is normalized Single
 
-      // round to nearest
+      // Round to nearest
       if (Mantissa and $00001000) > 0 then
       begin
         Mantissa := Mantissa + $00002000;
@@ -2284,11 +2280,11 @@ begin
 
       if Exp > 30 then
       begin
-        // exponent overflow - return infinity half
+        // Exponent overflow - return infinity half
         Result := (Sign shl 15) or $7C00;
       end
       else
-        // assemble normalized half
+        // Assemble normalized half
         Result := (Sign shl 15) or (Exp shl 10) or (Mantissa shr 13);
     end;
   end;

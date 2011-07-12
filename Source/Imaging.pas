@@ -189,12 +189,12 @@ function MapImageToPalette(var Image: TImageData; Pal: PPalette32;
 { Splits image into XChunks x YChunks subimages. Default size of each chunk is
   ChunkWidth x ChunkHeight. If PreserveSize si True chunks at the edges of
   the image are also ChunkWidth x ChunkHeight sized and empty space is filled
-  with Fill pixels. After calling this function XChunks contains number of
+  with optional Fill pixels. After calling this function XChunks contains number of
   chunks along x axis and YChunks along y axis. To access chunk [X, Y] use this
   index: Chunks[Y * XChunks + X].}
 function SplitImage(var Image: TImageData; var Chunks: TDynImageDataArray;
   ChunkWidth, ChunkHeight: LongInt; var XChunks, YChunks: LongInt;
-  PreserveSize: Boolean; Fill: Pointer): Boolean;
+  PreserveSize: Boolean; Fill: Pointer = nil): Boolean;
 { Creates palette with MaxColors based on the colors of images in Images array.
   Use it when you want to convert several images to indexed format using
   single palette for all of them. If ConvertImages is True images in array
@@ -1884,8 +1884,8 @@ begin
         else
         begin
           // Create smaller edge chunk
-          XTrunc := Image.Width - (Image.Width div ChunkWidth) * ChunkWidth;
-          YTrunc := Image.Height - (Image.Height div ChunkHeight) * ChunkHeight;
+          XTrunc := Image.Width - X * ChunkWidth;
+          YTrunc := Image.Height - Y * ChunkHeight;
           NewImage(XTrunc, YTrunc, Image.Format, Chunks[Y * XChunks + X]);
           CopyRect(Image, X * ChunkWidth, Y * ChunkHeight, XTrunc, YTrunc,
             Chunks[Y * XChunks + X], 0, 0);
@@ -4043,7 +4043,8 @@ finalization
     - nothing now
 
   -- 0.77 Changes/Bug Fixes -----------------------------------
-    - Metadata support fxes and extensions (frame delays, animation loops).
+    - Fixed bug in SplitImage that could cause wrong size of edge chunks.
+    - Metadata support fixes and extensions (frame delays, animation loops).
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Started reworking exception raising to keep the original class type

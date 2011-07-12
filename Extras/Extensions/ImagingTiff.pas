@@ -232,7 +232,6 @@ begin
 
     // Set defaults for TIFF fields
     DataFormat := ifUnknown;
-    ScanLineSize := 0;
 
     // Read some TIFF fields with basic image info
     TIFFGetField(Tiff, TIFFTAG_IMAGEWIDTH, @Images[Idx].Width);
