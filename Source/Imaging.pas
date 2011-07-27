@@ -1,5 +1,4 @@
 {
-  $Id$
   Vampyre Imaging Library
   by Marek Mauder 
   http://imaginglib.sourceforge.net
@@ -543,21 +542,34 @@ type
     procedure AddMetaItemForSave(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
     function HasMetaItem(const Id: string; ImageIndex: Integer = 0): Boolean;
     function HasMetaItemForSave(const Id: string; ImageIndex: Integer = 0): Boolean;
-    procedure ClearMetaItems;
-    procedure ClearMetaItemsForSave;
-    function GetMetaItemName(const Id: string; ImageIndex: Integer): string;
-    { Copies loaded meta items to items-for-save stack. Use this when you want to
-      save metadata that have been just loaded (e.g. resaving image in
-      different file format but keeping the metadata).}
-    procedure CopyMetaItems;
 
-    function GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
-      YSize: Single; MetaForSave: Boolean = False; ImageIndex: Integer = 0): Boolean;
-    procedure SetPhysicalPixelSize(ResUnit: TResolutionUnit; XSize, YSize: Single;
-      MetaForSave: Boolean = False; ImageIndex: Integer = 0);
+    procedure ClearMetaItems;
 
-    { Number of loaded metadata items.}
-    property MetaItems[const Id: string]: Variant read GetMetaById;
+    procedure ClearMetaItemsForSave;
+
+    function GetMetaItemName(const Id: string; ImageIndex: Integer): string;
+
+    { Copies loaded meta items to items-for-save stack. Use this when you want to
+
+      save metadata that have been just loaded (e.g. resaving image in
+
+      different file format but keeping the metadata).}
+
+    procedure CopyMetaItems;
+
+
+    function GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
+
+      YSize: Single; MetaForSave: Boolean = False; ImageIndex: Integer = 0): Boolean;
+
+    procedure SetPhysicalPixelSize(ResUnit: TResolutionUnit; XSize, YSize: Single;
+
+      MetaForSave: Boolean = False; ImageIndex: Integer = 0);
+
+
+    { Number of loaded metadata items.}
+
+    property MetaItems[const Id: string]: Variant read GetMetaById;
     property MetaItemsMulti[const Id: string; ImageIndex: Integer]: Variant read GetMetaByIdMulti;
     property MetaItemCount: Integer read GetMetaCount;
     property MetaItemsByIdx[Index: Integer]: TMetadataItem read GetMetaByIdx;

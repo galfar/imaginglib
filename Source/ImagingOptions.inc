@@ -1,5 +1,3 @@
-{ $Id$ }
-
 {
   User Options
   Following defines and options can be changed by user.

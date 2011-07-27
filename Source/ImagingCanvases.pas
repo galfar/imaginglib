@@ -1,5 +1,4 @@
 {
-  $Id$
   Vampyre Imaging Library
   by Marek Mauder
   http://imaginglib.sourceforge.net
@@ -26,9 +25,7 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{
-  This unit contains canvas classes for drawing and applying effects.
-}
+{ This unit contains canvas classes for drawing and applying effects.}
 unit ImagingCanvases;
 
 {$I ImagingOptions.inc}

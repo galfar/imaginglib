@@ -1,5 +1,4 @@
-/*
-  $Id$
+/*  
   Vampyre Imaging Library
   by Marek Mauder 
   http://imaginglib.sourceforge.net
