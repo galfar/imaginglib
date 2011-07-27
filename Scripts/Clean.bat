@@ -3,7 +3,7 @@ echo Deleting ugly files...
 
 set ROOTDIR=..
 set EXTS=*.dcu *.ppu *.a *.dpu *.o *.rst *.bak *.bk? *.~* *.*~ *.or *.obj
-set EXTS=%EXTS% *.tgs *.tgw *.identcache *.local *.stat
+set EXTS=%EXTS% *.tgs *.tgw *.identcache *.local *.stat *.dcpil
 
 del /q /f %ROOTDIR%\Demos\Bin\_BenchOut.* 2>nul 1>nul
 

@@ -4,7 +4,7 @@ echo "Deleting ugly files..."
 
 ROOTDIR=".."
 EXTS="*.dcu *.ppu *.a *.dpu *.o *.rst *.bak *.bk? *.~* *.*~ *.or *.obj"
-EXTS=$EXTS" *.tgs *.tgw *.identcache *.local"
+EXTS=$EXTS" *.tgs *.tgw *.identcache *.local *.dcpil"
 
 delindir()
 {
