@@ -1,9 +1,9 @@
 object MainForm: TMainForm
   Left = 167
   Top = 103
-  Caption = 'Vampyre Imaging Library Demo - VCL Image Browser'
-  ClientHeight = 600
-  ClientWidth = 800
+  Caption = 'VCL Image Browser - Vampyre Imaging Library Demo'
+  ClientHeight = 791
+  ClientWidth = 1026
   Color = clWhite
   Font.Charset = EASTEUROPE_CHARSET
   Font.Color = clWindowText
@@ -17,15 +17,17 @@ object MainForm: TMainForm
   PixelsPerInch = 96
   TextHeight = 13
   object Splitter1: TSplitter
-    Left = 200
+    Left = 249
     Top = 0
-    Height = 600
+    Height = 791
+    ExplicitLeft = 200
+    ExplicitHeight = 600
   end
   object LeftPanel: TPanel
     Left = 0
     Top = 0
-    Width = 200
-    Height = 600
+    Width = 249
+    Height = 791
     Align = alLeft
     BevelOuter = bvNone
     Color = clWhite
@@ -33,13 +35,13 @@ object MainForm: TMainForm
     object Tree: TShellTreeView
       Left = 0
       Top = 0
-      Width = 200
-      Height = 600
+      Width = 249
+      Height = 791
       ObjectTypes = [otFolders, otNonFolders, otHidden]
       Root = 'rfMyComputer'
       UseShellImages = True
       Align = alClient
-      AutoRefresh = True
+      AutoRefresh = False
       Indent = 19
       ParentColor = False
       RightClickSelect = True
@@ -47,30 +49,35 @@ object MainForm: TMainForm
       TabOrder = 0
       OnKeyDown = TreeKeyDown
       OnChange = TreeChange
+      ExplicitWidth = 205
     end
   end
   object RightPanel: TPanel
-    Left = 203
+    Left = 252
     Top = 0
-    Width = 597
-    Height = 600
+    Width = 774
+    Height = 791
     Align = alClient
     BevelOuter = bvNone
     Color = clWhite
     Constraints.MinHeight = 300
     Constraints.MinWidth = 400
     TabOrder = 1
+    ExplicitLeft = 203
+    ExplicitWidth = 597
+    ExplicitHeight = 600
     object InfoPanel: TPanel
       Left = 0
       Top = 0
-      Width = 597
+      Width = 774
       Height = 97
       Align = alTop
       BevelOuter = bvNone
       Color = clWhite
       TabOrder = 0
+      ExplicitWidth = 597
       DesignSize = (
-        597
+        774
         97)
       object LabDataFormat: TLabel
         Left = 136
@@ -366,7 +373,7 @@ object MainForm: TMainForm
         OnClick = BtnLastClick
       end
       object BtnSave: TButton
-        Left = 464
+        Left = 641
         Top = 3
         Width = 129
         Height = 25
@@ -374,9 +381,10 @@ object MainForm: TMainForm
         Caption = 'Save Image Copy'
         TabOrder = 0
         OnClick = BtnSaveClick
+        ExplicitLeft = 464
       end
       object CheckFilter: TCheckBox
-        Left = 464
+        Left = 641
         Top = 39
         Width = 121
         Height = 17
@@ -386,36 +394,43 @@ object MainForm: TMainForm
         State = cbChecked
         TabOrder = 1
         OnClick = CheckFilterClick
+        ExplicitLeft = 464
       end
     end
     object ViewPanel: TPanel
       Left = 0
       Top = 97
-      Width = 597
-      Height = 503
+      Width = 774
+      Height = 694
       Align = alClient
       BevelOuter = bvNone
       Color = 16777126
       TabOrder = 1
       OnResize = ViewPanelResize
+      ExplicitWidth = 597
+      ExplicitHeight = 503
       object PaintBox: TPaintBox
         Left = 0
         Top = 0
-        Width = 597
-        Height = 484
+        Width = 774
+        Height = 675
         Align = alClient
-        Color = 16777126
+        Color = 16773862
         ParentColor = False
         OnPaint = PaintBoxPaint
+        ExplicitWidth = 597
+        ExplicitHeight = 484
       end
       object StatusBar: TStatusBar
         Left = 0
-        Top = 484
-        Width = 597
+        Top = 675
+        Width = 774
         Height = 19
         Color = clWhite
         Panels = <>
         SimplePanel = True
+        ExplicitTop = 484
+        ExplicitWidth = 597
       end
     end
   end

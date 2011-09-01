@@ -109,7 +109,7 @@ type
   end;
 
 const
-  FillColor = $FFA6FFFF;
+  FillColor = $FFE6F2FF;
   CheckersDensity = 32;
   SUnsupportedFormat = 'Selected item format not supported';
 

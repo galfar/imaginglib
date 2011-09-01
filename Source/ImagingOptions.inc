@@ -70,15 +70,7 @@
 {$ENDIF}
 
 {$IFDEF DCC}
-  {$IFDEF LINUX}
-    {$DEFINE KYLIX}       // using Kylix
-  {$ENDIF}
-{$ENDIF}
-
-{$IFDEF DCC}
-  {$IFNDEF KYLIX}
-    {$DEFINE DELPHI}      // using Delphi
-  {$ENDIF}
+  {$DEFINE DELPHI}
 {$ENDIF}
 
 {$IF (Defined(DCC) and (CompilerVersion >= 18.5))}
@@ -121,6 +113,21 @@
   {$ENDIF}
 {$IFEND}
 
+{$IF Defined (CPU86) and not Defined(CPUX86)}
+  {$DEFINE CPUX86} // Compatibility with Delphi
+{$IFEND}
+
+{$IF Defined (CPUX86_64) and not Defined(CPUX64)}
+  {$DEFINE CPUX64} // Compatibility with Delphi
+{$IFEND}
+
+{$IF Defined (DARWIN) and not Defined(MACOSX)}
+  {$DEFINE MACOSX} // Compatibility with Delphi
+{$IFEND}
+
+{$IF Defined(DCC) and (CompilerVersion < 23)}
+  {$DEFINE CPUX86} // Compatibility with older Delphi
+{$IFEND}
 
 { Compiler capabilities }
 
@@ -131,7 +138,7 @@
 {$IFEND}
 
 // Define if compiler supports advanced records with methods
-{$IF (Defined(DCC) and (CompilerVersion >= 18)) }
+{$IF (Defined(DCC) and (CompilerVersion >= 18))}
   {$DEFINE HAS_ADVANCED_RECORDS}
 {$IFEND}
 
@@ -157,11 +164,9 @@
   {$UNDEF USE_INLINE}
 {$ENDIF}
 
-{$IFDEF FPC}
-  {$IFNDEF CPU86}
-    {$UNDEF USE_ASM}
-  {$ENDIF}
-{$ENDIF}
+{$IF not Defined(CPUX86)}
+  {$UNDEF USE_ASM}
+{$IFEND}
 
 {$IFDEF FPC}
   {$DEFINE COMPONENT_SET_LCL}

@@ -7,7 +7,7 @@ LazarusResources.Add('TAboutForm','FORMDATA',[
   +'ClientWidth'#3#30#1#5'Color'#7#8'clWindow'#21'Constraints.MaxHeight'#3' '#1
   +#20'Constraints.MaxWidth'#3#30#1#21'Constraints.MinHeight'#3' '#1#20'Constra'
   +'ints.MinWidth'#3#30#1#6'OnShow'#7#8'FormShow'#8'Position'#7#16'poMainFormCe'
-  +'nter'#10'LCLVersion'#6#6'0.9.28'#0#6'TImage'#5'Image'#4'Left'#2'0'#6'Height'
+  +'nter'#10'LCLVersion'#6#6'0.9.30'#0#6'TImage'#5'Image'#4'Left'#2'0'#6'Height'
   +#2'Y'#3'Top'#2#16#5'Width'#3#188#0#0#0#6'TImage'#6'Image2'#4'Left'#2'X'#6'He'
   +'ight'#2'0'#3'Top'#3#184#0#5'Width'#2'0'#12'Picture.Data'#10#200#28#0#0#5'TI'
   +'con'#190#28#0#0#0#0#1#0#1#0'00'#0#0#0#0#0#0#168#28#0#0#22#0#0#0'('#0#0#0'0'

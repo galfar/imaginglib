@@ -43,16 +43,17 @@ unit ImagingExtras;
   {$DEFINE DONT_LINK_ELDER}        // link support for Elder Imagery images
 {$ENDIF}
 
-{$IF not (Defined(DELPHI) or
+{$IF not (
+  (Defined(DCC) and Defined(CPUX86)) or
   (Defined(FPC) and not Defined(MSDOS) and
-  ((Defined(CPU86) and (Defined(LINUX) or Defined(WIN32) or Defined(DARWIN)) or
-   (Defined(CPUX86_64) and Defined(LINUX)))))
+    ((Defined(CPUX86) and (Defined(LINUX) or Defined(WIN32) or Defined(MACOSX)) or
+     (Defined(CPUX64) and Defined(LINUX)))))
   )}
   // JPEG2000 only for 32bit Windows/Linux/OSX and for 64bit Unix with FPC
   {$DEFINE DONT_LINK_JPEG2000}
 {$IFEND}
 
-{$IF not Defined(DELPHI)}
+{$IF not (Defined(DCC) and Defined(CPUX86))}
   {$DEFINE DONT_LINK_TIFF} // Only for Delphi now
 {$IFEND}
 
