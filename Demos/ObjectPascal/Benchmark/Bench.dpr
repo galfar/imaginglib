@@ -70,7 +70,7 @@ var
 procedure WriteTimeDiff(const Msg: string; const OldTime: Int64);
 begin
   WriteLn(Output, Format('%-58s %16.0n us', [Msg, GetTimeMicroseconds -
-    OldTime * 1.0]));
+    OldTime * 1.0], GetUSFormatSettings));
 end;
 
 function GetImageName(const Ext: string): string;
@@ -342,7 +342,6 @@ begin
   WriteLn(Output, 'Vampyre Imaging Library Benchmark Demo version ',
     Imaging.GetVersionStr);
   WriteLn(Output);
-  SysUtils.ThousandSeparator := ' ';
 
   if not DirectoryExists(GetDataDir) then
   begin

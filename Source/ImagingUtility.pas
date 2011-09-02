@@ -164,10 +164,14 @@ function StrTokenEnd(var S: string; Sep: Char): string;
 { Fills instance of TStrings with tokens from string S where tokens are separated by
   one of Seps characters.}
 procedure StrTokensToList(const S: string; Sep: Char; Tokens: TStrings);
-{ Returns string representation of integer number (with digit grouping).}
+{ Returns string representation of integer number (with digit grouping).
+  Uses current locale.}
 function IntToStrFmt(const I: Int64): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Returns string representation of float number (with digit grouping).}
+{ Returns string representation of float number (with digit grouping).
+  Uses current locale.}
 function FloatToStrFmt(const F: Double; Precision: Integer = 2): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Returns US format settings. Useful when fomatting/parsing floats etc.}
+function GetUSFormatSettings: TFormatSettings;
 { Returns True if S contains at least one of substrings in SubStrs array. Case sensitive.}
 function ContainsAnySubStr(const S: string; const SubStrs: array of string): Boolean;
 
@@ -316,16 +320,13 @@ procedure DebugMsg(const Msg: string; const Args: array of const);
 implementation
 
 uses
-{$IFDEF MSWINDOWS}
+{$IF Defined(MSWINDOWS)}
   Windows;
-{$ENDIF}
-{$IFDEF UNIX}
-  {$IFDEF KYLIX}
-  Libc;
-  {$ELSE}
+{$ELSEIF Defined(FPC)}
   Dos, BaseUnix, Unix;
-  {$ENDIF}
-{$ENDIF}
+{$ELSEIF Defined(DELPHI)}
+  Posix.SysTime;
+{$IFEND}
 
 procedure FreeAndNil(var Obj);
 var
@@ -353,7 +354,7 @@ begin
   Result := Exception(ExceptObject);
 end;
 
-{$IFDEF MSWINDOWS}
+{$IF Defined(MSWINDOWS)}
 var
   PerfFrequency: Int64;
   InvPerfFrequency: Single;
@@ -365,56 +366,23 @@ begin
   QueryPerformanceCounter(Time);
   Result := Round(1000000 * InvPerfFrequency * Time);
 end;
-{$ENDIF}
-
-{$IFDEF UNIX}
+{$ELSEIF Defined(DELPHI)}
+function GetTimeMicroseconds: Int64;
+var
+  Time: TimeVal;
+begin
+  Posix.SysTime.GetTimeOfDay(Time, nil);
+  Result := Int64(Time.tv_sec) * 1000000 + Time.tv_usec;
+end;
+{$ELSEIF Defined(FPC)}
 function GetTimeMicroseconds: Int64;
 var
   TimeVal: TTimeVal;
 begin
-  {$IFDEF KYLIX}
-  GetTimeOfDay(TimeVal, nil);
-  {$ELSE}
   fpGetTimeOfDay(@TimeVal, nil);
-  {$ENDIF}
   Result := Int64(TimeVal.tv_sec) * 1000000 + TimeVal.tv_usec;
 end;
-{$ENDIF}
-
-{$IFDEF MSDOS}
-function GetTimeMicroseconds: Int64;
-asm
-  XOR    EAX, EAX
-  CLI
-  OUT    $43, AL
-  MOV    EDX, FS:[$46C]
-  IN     AL, $40
-  DB     $EB, 0, $EB, 0, $EB, 0
-  MOV    AH, AL
-  IN     AL, $40
-  DB     $EB, 0, $EB, 0, $EB, 0
-  XCHG   AL, AH
-  NEG    AX
-  MOVZX  EDI, AX
-  STI
-  MOV    EBX, $10000
-  MOV    EAX, EDX
-  XOR    EDX, EDX
-  MUL    EBX
-  ADD    EAX, EDI
-  ADC    EDX, 0
-  PUSH   EDX
-  PUSH   EAX
-  MOV    ECX, $82BF1000
-  MOVZX  EAX, WORD PTR FS:[$470]
-  MUL    ECX
-  MOV    ECX, EAX
-  POP    EAX
-  POP    EDX
-  ADD    EAX, ECX
-  ADC    EDX, 0
-end;
-{$ENDIF}
+{$IFEND}
 
 function GetTimeMilliseconds: Int64;
 begin
@@ -429,29 +397,22 @@ begin
 end;
 
 function GetAppExe: string;
-{$IFDEF MSWINDOWS}
+{$IF Defined(MSWINDOWS)}
 var
   FileName: array[0..MAX_PATH] of Char;
 begin
   SetString(Result, FileName,
     Windows.GetModuleFileName(MainInstance, FileName, SizeOf(FileName)));
-{$ENDIF}
-{$IFDEF UNIX}
-  {$IFDEF KYLIX}
+{$ELSEIF Defined(DELPHI)} // Delphi non Win targets
 var
-  FileName: array[0..FILENAME_MAX] of Char;
+  FileName: array[0..1024] of Char;
 begin
   SetString(Result, FileName,
     System.GetModuleFileName(MainInstance, FileName, SizeOf(FileName)));
-  {$ELSE}
-begin
-  Result := FExpand(ParamStr(0));
-  {$ENDIF}
-{$ENDIF}
-{$IFDEF MSDOS}
+{$ELSE}
 begin
   Result := ParamStr(0);
-{$ENDIF}
+{$IFEND}
 end;
 
 function GetAppDir: string;
@@ -721,6 +682,15 @@ end;
 function FloatToStrFmt(const F: Double; Precision: Integer): string;
 begin
   Result := Format('%.' + IntToStr(Precision) + 'n', [F]);
+end;
+
+function GetUSFormatSettings: TFormatSettings;
+begin
+{$IF Defined(DELPHI) and (CompilerVersion >= 23)}
+  Result := TFormatSettings.Create('en-US');
+{$ELSE}
+  GetLocaleFormatSettings(1033, Result);
+{$IFEND}
 end;
 
 function ContainsAnySubStr(const S: string; const SubStrs: array of string): Boolean;
@@ -1556,6 +1526,10 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77.1 Changes/Bug Fixes -----------------------------------
+    - Delphi XE2 new targets (Win64, OSX32) compatibility changes.
+    - Added GetUSFormatSettings function (for formatting floats etc.).
 
   -- 0.26.5 Changes/Bug Fixes -----------------------------------
     - Added Log10 function.

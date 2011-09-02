@@ -64,6 +64,7 @@ type
   protected
     FIdNumbers: TChar2;
     FSaveBinary: LongBool;
+    FUSFormat: TFormatSettings;
     procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
@@ -185,6 +186,7 @@ begin
   FCanSave := True;
   FIsMultiImageFormat := False;
   FSaveBinary := PortableMapDefaultBinary;
+  FUSFormat := GetUSFormatSettings;
 end;
 
 function TPortableMapFileFormat.LoadData(Handle: TImagingHandle;
@@ -291,7 +293,6 @@ var
     I: TTupleType;
     TupleTypeName: string;
     Scale: Single;
-    OldSeparator: Char;
   begin
     Result := False;
     with GetIO do
@@ -363,10 +364,7 @@ var
         // Read header of PFM file
         MapInfo.Width := ReadIntValue;
         MapInfo.Height := ReadIntValue;
-        OldSeparator := DecimalSeparator;
-        DecimalSeparator := '.';
-        Scale := StrToFloatDef(ReadString, 0);
-        DecimalSeparator := OldSeparator;
+        Scale := StrToFloatDef(ReadString, 0, FUSFormat);
         MapInfo.IsBigEndian := Scale > 0.0;
         if Id[1] = 'F' then
           MapInfo.TupleType := ttRGBFP
@@ -406,6 +404,7 @@ begin
   LineEnd := 0;
   LinePos := 0;
   SetLength(Images, 1);
+
   with GetIO, Images[0] do
   begin
     Format := ifUnknown;
@@ -590,8 +589,6 @@ var
   end;
 
   procedure WriteHeader;
-  var
-    OldSeparator: Char;
   begin
     WriteString('P' + MapInfo.FormatId);
     if not MapInfo.HasPAMHeader then
@@ -603,11 +600,8 @@ var
         ttGrayScale, ttRGB: WriteString(IntToStr(Pow2Int(MapInfo.BitCount) - 1));
         ttGrayScaleFP, ttRGBFP:
           begin
-            OldSeparator := DecimalSeparator;
-            DecimalSeparator := '.';
             // Negative value indicates that raster data is saved in little endian
-            WriteString(FloatToStr(-1.0));
-            DecimalSeparator := OldSeparator;
+            WriteString(FloatToStr(-1.0, FUSFormat));
           end;
       end;
     end
@@ -991,6 +985,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77.1 Changes/Bug Fixes -----------------------------------
+    - String to float formatting changes (don't change global settings).
 
   -- 0.26.3 Changes/Bug Fixes -----------------------------------
     - Fixed D2009 Unicode related bug in PNM saving.

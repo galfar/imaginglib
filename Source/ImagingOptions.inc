@@ -122,7 +122,7 @@
 {$IFEND}
 
 {$IF Defined (DARWIN) and not Defined(MACOSX)}
-  {$DEFINE MACOSX} // Compatibility with Delphi
+  {$DEFINE MACOS} // Compatibility with Delphi
 {$IFEND}
 
 {$IF Defined(DCC) and (CompilerVersion < 23)}
@@ -180,9 +180,9 @@
 
 { Platform options }
 
-{$IFDEF WIN32}
+{$IF Defined(WIN32) or Defined(WIN64)}
   {$DEFINE MSWINDOWS}
-{$ENDIF}
+{$IFEND}
 
 {$IFDEF DPMI}
   {$DEFINE MSDOS}

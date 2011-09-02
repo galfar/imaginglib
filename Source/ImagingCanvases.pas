@@ -1900,8 +1900,8 @@ end;
 procedure TFastARGB32Canvas.StretchDrawAlpha(const SrcRect: TRect;
   DestCanvas: TImagingCanvas; const DestRect: TRect; Filter: TResizeFilter);
 var
-  X, Y, ScaleX, ScaleY, Yp, Xp, Weight1, Weight2, Weight3, Weight4,
-    FracX, FracY, InvFracY, T1, T2: Integer;
+  X, Y, ScaleX, ScaleY, Yp, Xp, Weight1, Weight2, Weight3, Weight4, InvFracY, T1, T2: Integer;
+  FracX, FracY: Cardinal;
   SrcX, SrcY, SrcWidth, SrcHeight: Integer;
   DestX, DestY, DestWidth, DestHeight: Integer;
   SrcLine, SrcLine2: PColor32RecArray;
