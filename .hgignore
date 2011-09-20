@@ -29,6 +29,7 @@ __history
 *.dcpil
 *.bak
 *.exe
+*.deployproj
 
 Doc/*.chm
 Doc/*.chw

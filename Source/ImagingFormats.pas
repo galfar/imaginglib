@@ -122,6 +122,10 @@ procedure TranslatePixel(SrcPixel, DstPixel: Pointer; SrcFormat,
   DstFormat: TImageFormat; SrcPalette, DstPalette: PPalette32);
 { Clamps floating point pixel channel values to [0.0, 1.0] range.}
 procedure ClampFloatPixel(var PixF: TColorFPRec); {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Helper function that converts pixel in any format to 32bit ARGB pixel.
+  For common formats it's faster than calling GetPixel32 etc.}
+procedure ConvertToPixel32(SrcPix: PByte; DestPix: PColor32Rec;
+  const SrcInfo: TImageFormatInfo; SrcPalette: PPalette32 = nil); {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { Adds padding bytes at the ends of scanlines. Bpp is the number of bytes per
   pixel of source and WidthBytes is the number of bytes per scanlines of dest.}
@@ -1922,11 +1926,9 @@ begin
   case BytesPerPixel of
     1: Result := PByte(PixelA)^ = PByte(PixelB)^;
     2: Result := PWord(PixelA)^ = PWord(PixelB)^;
-    3: Result := (PWord(PixelA)^ = PWord(PixelB)^) and
-         (PColor24Rec(PixelA).R = PColor24Rec(PixelB).R);
+    3: Result := (PWord(PixelA)^ = PWord(PixelB)^) and (PColor24Rec(PixelA).R = PColor24Rec(PixelB).R);
     4: Result := PLongWord(PixelA)^ = PLongWord(PixelB)^;
-    6: Result := (PLongWord(PixelA)^ = PLongWord(PixelB)^) and
-         (PColor48Rec(PixelA).R = PColor48Rec(PixelB).R);
+    6: Result := (PLongWord(PixelA)^ = PLongWord(PixelB)^) and (PColor48Rec(PixelA).R = PColor48Rec(PixelB).R);
     8: Result := PInt64(PixelA)^ = PInt64(PixelB)^;
     16: Result := (PFloatHelper(PixelA).Data2 = PFloatHelper(PixelB).Data2) and
           (PFloatHelper(PixelA).Data1 = PFloatHelper(PixelB).Data1);
@@ -1967,6 +1969,63 @@ begin
     PixF.G := 0.0;
   if PixF.B < 0.0 then
     PixF.B := 0.0;
+end;
+
+procedure ConvertToPixel32(SrcPix: PByte; DestPix: PColor32Rec;
+  const SrcInfo: TImageFormatInfo; SrcPalette: PPalette32);
+begin
+  case SrcInfo.Format of
+    ifIndex8:
+      begin
+        DestPix^ := SrcPalette[SrcPix^];
+      end;
+    ifGray8:
+      begin
+        DestPix.R := SrcPix^;
+        DestPix.G := SrcPix^;
+        DestPix.B := SrcPix^;
+        DestPix.A := 255;
+      end;
+    ifA8Gray8:
+      begin
+        DestPix.R := SrcPix^;
+        DestPix.G := SrcPix^;
+        DestPix.B := SrcPix^;
+        DestPix.A := PWordRec(SrcPix).High;
+      end;
+    ifGray16:
+      begin
+        DestPix.R := PWord(SrcPix)^ shr 8;
+        DestPix.G := DestPix.R;
+        DestPix.B := DestPix.R;
+        DestPix.A := 255;
+      end;
+    ifR8G8B8:
+      begin
+        DestPix.Color24Rec := PColor24Rec(SrcPix)^;
+        DestPix.A := 255;
+      end;
+    ifA8R8G8B8:
+      begin
+        DestPix^ := PColor32Rec(SrcPix)^;
+      end;
+    ifR16G16B16:
+      begin
+        DestPix.R := PColor48Rec(SrcPix).R shr 8;
+        DestPix.G := PColor48Rec(SrcPix).G shr 8;
+        DestPix.B := PColor48Rec(SrcPix).B shr 8;
+        DestPix.A := 255;
+      end;
+    ifA16R16G16B16:
+      begin
+        DestPix.R := PColor64Rec(SrcPix).R shr 8;
+        DestPix.G := PColor64Rec(SrcPix).G shr 8;
+        DestPix.B := PColor64Rec(SrcPix).B shr 8;
+        DestPix.A := PColor64Rec(SrcPix).A shr 8;
+      end;
+  else
+    DestPix^ := SrcInfo.GetPixel32(SrcPix, @SrcInfo, SrcPalette);
+  end;
 end;
 
 procedure AddPadBytes(DataIn: Pointer; DataOut: Pointer; Width, Height,
@@ -4226,6 +4285,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77 Changes/Bug Fixes -------------------------------------
+    - Added ConvertToPixel32 helper function.
 
   -- 0.26.5 Changes/Bug Fixes -----------------------------------
     - Removed optimized codepatch for few data formats from StretchResample
