@@ -238,6 +238,8 @@ type
     ifR16F           = 173,
     ifA16R16G16B16F  = 174,
     ifA16B16G16R16F  = 175,
+    ifR32G32B32F     = 176,
+    ifB32G32R32F     = 177,
     { Special formats.}
     ifDXT1           = 220,
     ifDXT3           = 221,
@@ -245,9 +247,10 @@ type
     ifBTC            = 223,
     ifATI1N          = 224,
     ifATI2N          = 225,
-    {ifDXBC6         = 227,
-    ifDXBC7          = 228}
+    //ifDXBC6         = 227,
+    //ifDXBC7         = 228
     ifBinary         = 235
+    //ifRGBE         = 236
   );
 
   { Color value for 32 bit images.}
@@ -306,12 +309,24 @@ type
   TColor64RecArray = array[0..MaxInt div SizeOf(TColor64Rec) - 1] of TColor64Rec;
   PColor64RecArray = ^TColor64RecArray;
 
+  { Color record for 96 bit floating point images, which allows access to
+    individual color channels.}
+  TColor96FPRec = packed record
+    case Integer of
+      0: (B, G, R: Single);
+      1: (Channels: array[0..2] of Single);
+  end;
+  PColor96FPRec = ^TColor96FPRec;
+  TColor96FPRecArray = array[0..MaxInt div SizeOf(TColor96FPRec) - 1] of TColor96FPRec;
+  PColor96FPRecArray = ^TColor96FPRecArray;
+
   { Color record for 128 bit floating point images, which allows access to
     individual color channels.}
   TColorFPRec = packed record
     case LongInt of
       0: (B, G, R, A: Single);
       1: (Channels: array[0..3] of Single);
+      2: (Color96Rec: TColor96FPRec);
   end;
   PColorFPRec = ^TColorFPRec;
   TColorFPRecArray = array[0..MaxInt div SizeOf(TColorFPRec) - 1] of TColorFPRec;
@@ -386,7 +401,7 @@ type
     Palette: PPalette32;const Color: TColor32Rec);
   { Procedure for setting pixel colors. Input FP ARGB color is translated to
     native format and then written to Image.}
-  TSetPixelFPProc = procedure(Bits: Pointer; Info: PImageFormatInfo; 
+  TSetPixelFPProc = procedure(Bits: Pointer; Info: PImageFormatInfo;
     Palette: PPalette32; const Color: TColorFPRec);
 
   { Additional information for each TImageFormat value.}
@@ -463,6 +478,10 @@ implementation
 
   -- TODOS ----------------------------------------------------
     - add lookup tables to pixel formats for fast conversions
+
+  -- 0.77.1 ---------------------------------------------------
+    - Added new image data formats and related structures:
+      ifR32G32B32F, ifB32G32G32F.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Added ifBinary image format and ImagingBinaryTreshold option.

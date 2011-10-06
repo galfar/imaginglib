@@ -34,6 +34,7 @@
 //{$DEFINE DONT_LINK_MNG}         // link support for MNG images
 //{$DEFINE DONT_LINK_JNG}         // link support for JNG images
 //{$DEFINE DONT_LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
+//{$DEFINE DONT_LINK_RADHDR}      // link support for Radiance HDR/RGBE file format
 
 //{$DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
                              // Extras package. Exactly which formats will be

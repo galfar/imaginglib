@@ -93,8 +93,10 @@ type
   PInt64RecArray = ^TInt64RecArray;
 
   TFloatHelper = record
-    Data1: Int64;
-    Data2: Int64;
+    Data: Int64;
+    case Integer of
+      0: (Data64: Int64);
+      1: (Data32: LongWord);
   end;
   PFloatHelper = ^TFloatHelper;
 
@@ -107,6 +109,7 @@ type
   TChar4 = array[0..3] of AnsiChar;
   TChar8 = array[0..7] of AnsiChar;
   TChar16 = array[0..15] of AnsiChar;
+  TAnsiCharSet = set of AnsiChar;
 
   { Options for BuildFileList function:
     flFullNames - file names in result will have full path names
@@ -139,10 +142,10 @@ function GetAppExe: string;
 { Returns directory where application's exceutable is located without
   path delimiter at the end.}
 function GetAppDir: string;
-{ Returns True if FileName matches given Mask with optional case sensitivity.
+{ Returns True if Subject matches given Mask with optional case sensitivity.
   Mask can contain ? and * special characters: ? matches
   one character, * matches zero or more characters.}
-function MatchFileNameMask(const FileName, Mask: string; CaseSensitive: Boolean = False): Boolean;
+function StrMaskMatch(const Subject, Mask: string; CaseSensitive: Boolean = False): Boolean;
 { This function fills Files string list with names of files found
   with FindFirst/FindNext functions (See details on Path/Atrr here).
   - BuildFileList('c:\*.*', faAnyFile, List, [flRecursive]) returns
@@ -170,10 +173,14 @@ function IntToStrFmt(const I: Int64): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns string representation of float number (with digit grouping).
   Uses current locale.}
 function FloatToStrFmt(const F: Double; Precision: Integer = 2): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Returns US format settings. Useful when fomatting/parsing floats etc.}
-function GetUSFormatSettings: TFormatSettings;
+{ Returns format settings for parsing floats (dot as decimal separator).
+  Useful when fomatting/parsing floats etc.}
+function GetFormatSettingsForFloats: TFormatSettings;
 { Returns True if S contains at least one of substrings in SubStrs array. Case sensitive.}
 function ContainsAnySubStr(const S: string; const SubStrs: array of string): Boolean;
+{ Extracts substring starting at IdxStart ending at IdxEnd.
+  S[IdxEnd] is not included in the result.}
+function SubString(const S: string; IdxStart, IdxEnd: Integer): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { Clamps integer value to range <Min, Max>}
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -328,6 +335,9 @@ uses
   Posix.SysTime;
 {$IFEND}
 
+var
+  FloatFormatSettings: TFormatSettings;
+
 procedure FreeAndNil(var Obj);
 var
   Temp: TObject;
@@ -420,7 +430,7 @@ begin
   Result := ExtractFileDir(GetAppExe);
 end;
 
-function MatchFileNameMask(const FileName, Mask: string; CaseSensitive: Boolean): Boolean;
+function StrMaskMatch(const Subject, Mask: string; CaseSensitive: Boolean): Boolean;
 var
   MaskLen, KeyLen : LongInt;
 
@@ -463,7 +473,7 @@ var
             Exit;
           end;
         else
-          if not CharMatch(Mask[MaskPos], FileName[KeyPos]) then
+          if not CharMatch(Mask[MaskPos], Subject[KeyPos]) then
           begin
             Result := False;
             Exit;
@@ -489,7 +499,7 @@ var
 
 begin
   MaskLen := Length(Mask);
-  KeyLen := Length(FileName);
+  KeyLen := Length(Subject);
   if MaskLen = 0 then
   begin
     Result := True;
@@ -684,13 +694,9 @@ begin
   Result := Format('%.' + IntToStr(Precision) + 'n', [F]);
 end;
 
-function GetUSFormatSettings: TFormatSettings;
+function GetFormatSettingsForFloats: TFormatSettings;
 begin
-{$IF Defined(DELPHI) and (CompilerVersion >= 23)}
-  Result := TFormatSettings.Create('en-US');
-{$ELSE}
-  GetLocaleFormatSettings(1033, Result);
-{$IFEND}
+  Result := FloatFormatSettings;
 end;
 
 function ContainsAnySubStr(const S: string; const SubStrs: array of string): Boolean;
@@ -704,6 +710,11 @@ begin
     if Result then
       Exit;
   end;
+end;
+
+function SubString(const S: string; IdxStart, IdxEnd: Integer): string;
+begin
+  Result := Copy(S, IdxStart, IdxEnd - IdxStart);
 end;
 
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt;
@@ -1510,16 +1521,17 @@ initialization
   QueryPerformanceFrequency(PerfFrequency);
   InvPerfFrequency := 1.0 / PerfFrequency;
 {$ENDIF}
-{$IFDEF MSDOS}
-  // reset PIT
-  asm
-    MOV    EAX, $34
-    OUT    $43, AL
-    XOR    EAX, EAX
-    OUT    $40, AL
-    OUT    $40, AL
-  end;
-{$ENDIF}
+
+{$IF Defined(DELPHI)}
+  {$IF CompilerVersion >= 23}
+  FloatFormatSettings := TFormatSettings.Create('en-US');
+  {$ELSE}
+  FloatFormatSettings := GetLocaleFormatSettings(1033, Result);
+  {$IFEND}
+{$ELSE FPC}
+  FloatFormatSettings := DefaultFormatSettings;
+  FloatFormatSettings.DecimalSeparator := '.';
+{$IFEND}
 
 {
   File Notes:
@@ -1528,8 +1540,11 @@ initialization
     - nothing now
 
   -- 0.77.1 Changes/Bug Fixes -----------------------------------
+    - Added Substring function.
+    - Renamed MatchFileNameMask to StrMaskMatch (it's for general use not
+      just filenames).
     - Delphi XE2 new targets (Win64, OSX32) compatibility changes.
-    - Added GetUSFormatSettings function (for formatting floats etc.).
+    - Added GetFormatSettingsForFloats function.
 
   -- 0.26.5 Changes/Bug Fixes -----------------------------------
     - Added Log10 function.
@@ -1586,4 +1601,5 @@ initialization
 
 }
 end.
+
 

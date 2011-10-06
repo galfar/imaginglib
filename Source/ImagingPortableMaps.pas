@@ -157,7 +157,7 @@ const
     ifR8G8B8, ifR16G16B16, ifA8R8G8B8, ifA16R16G16B16];
   SPFMFormatName = 'Portable Float Map';
   SPFMMasks =      '*.pfm';
-  PFMSupportedFormats = [ifR32F, ifA32B32G32R32F];
+  PFMSupportedFormats = [ifR32F, ifB32G32R32F];
 
 const
   { TAB, CR, LF, and Space are used as seperators in Portable map headers and data.}
@@ -186,7 +186,7 @@ begin
   FCanSave := True;
   FIsMultiImageFormat := False;
   FSaveBinary := PortableMapDefaultBinary;
-  FUSFormat := GetUSFormatSettings;
+  FUSFormat := GetFormatSettingsForFloats;
 end;
 
 function TPortableMapFileFormat.LoadData(Handle: TImagingHandle;
@@ -196,7 +196,7 @@ var
   Dest: PByte;
   MonoData: Pointer;
   Info: TImageFormatInfo;
-  PixelFP: TColorFPRec;
+  PixelFP: TColor96FPRec;
   LineBuffer: array[0..LineBufferCapacity - 1] of AnsiChar;
   LineEnd, LinePos: LongInt;
   MapInfo: TPortableMapInfo;
@@ -419,7 +419,7 @@ begin
       ttRGB:                Format := IffFormat(MapInfo.BitCount = 8, ifR8G8B8, ifR16G16B16);
       ttRGBAlpha:           Format := IffFormat(MapInfo.BitCount = 8, ifA8R8G8B8, ifA16R16G16B16);
       ttGrayScaleFP:        Format := ifR32F;
-      ttRGBFP:              Format := ifA32B32G32R32F;
+      ttRGBFP:              Format := ifB32G32R32F;
     end;
     // Exit if no matching data format was found
     if Format = ifUnknown then Exit;
@@ -476,27 +476,9 @@ begin
           // FP images are in BGR order and endian swap maybe needed.
           // Some programs store scanlines in bottom-up order but
           // I will stick with Photoshops behaviour here
-          for I := 0 to Width * Height - 1 do
-          begin
-            Read(Handle, @PixelFP, MapInfo.BitCount div 8);
-            if MapInfo.TupleType = ttRGBFP then
-            with PColorFPRec(Dest)^ do
-            begin
-              A := 1.0;
-              R := PixelFP.R;
-              G := PixelFP.G;
-              B := PixelFP.B;
-              if MapInfo.IsBigEndian then
-                SwapEndianLongWord(PLongWord(Dest), 3);
-            end
-            else
-            begin
-              PSingle(Dest)^ := PixelFP.B;
-              if MapInfo.IsBigEndian then
-                SwapEndianLongWord(PLongWord(Dest), 1);
-            end;
-            Inc(Dest, Info.BytesPerPixel);
-          end;
+          Read(Handle, Bits, Size);
+          if MapInfo.IsBigEndian then
+            SwapEndianLongWord(PLongWord(Dest), Size div SizeOf(LongWord));
         end;
 
         if MapInfo.TupleType in [ttBlackAndWhite, ttBlackAndWhiteAlpha] then
@@ -688,7 +670,7 @@ begin
           end
           else
           begin
-            // 8bit RGB/ARGB images: read and blue must be swapped and
+            // 8bit RGB/ARGB images: red and blue must be swapped and
             // 3 or 4 bytes must be written
             Src := Bits;
             for I := 0 to Width * Height - 1 do
@@ -739,23 +721,7 @@ begin
       begin
         // Floating point images (no need to swap endian here - little
         // endian is specified in file header)
-        if MapInfo.TupleType = ttGrayScaleFP then
-        begin
-          // Grayscale images can be written in one Write call
-          Write(Handle, Bits, Size);
-        end
-        else
-        begin
-          // Expected data format of PFM RGB file is B32G32R32F which is not
-          // supported by Imaging. We must write pixels one by one and
-          // write only RGB part of A32B32G32B32 image.
-          Src := Bits;
-          for I := 0 to Width * Height - 1 do
-          begin
-            Write(Handle, Src, SizeOf(Single) * 3);
-            Inc(Src, Info.BytesPerPixel);
-          end;
-        end;
+        Write(Handle, Bits, Size);
       end;
     end;
     Result := True;
@@ -968,7 +934,7 @@ procedure TPFMFileFormat.ConvertToSupported(var Image: TImageData;
   const Info: TImageFormatInfo);
 begin
   if (Info.ChannelCount > 1) or Info.IsIndexed then
-    ConvertImage(Image, ifA32B32G32R32F)
+    ConvertImage(Image, ifB32G32R32F)
   else
     ConvertImage(Image, ifR32F);
 end;
@@ -987,6 +953,8 @@ initialization
     - nothing now
 
   -- 0.77.1 Changes/Bug Fixes -----------------------------------
+    - Native RGB floating point format of PFM is now supported by Imaging
+      so we use it now for saving instead of A32B32G32B32.
     - String to float formatting changes (don't change global settings).
 
   -- 0.26.3 Changes/Bug Fixes -----------------------------------
@@ -997,7 +965,7 @@ initialization
     - Changes for better thread safety.
 
   -- 0.21 Changes/Bug Fixes -----------------------------------
-    - Made modifications to ASCII PNM loading to be more "stream-safe". 
+    - Made modifications to ASCII PNM loading to be more "stream-safe".
     - Fixed bug: indexed images saved as grayscale in PFM.
     - Changed converting to supported formats little bit.
     - Added scaling of channel values (non-FP and non-mono images) according

@@ -773,6 +773,35 @@ var
     SetPixel32: SetPixel32Generic;
     SetPixelFP: SetPixelFPGeneric);
 
+  R32G32B32FInfo: TImageFormatInfo = (
+    Format: ifR32G32B32F;
+    Name: 'R32G32B32F';
+    BytesPerPixel: 12;
+    ChannelCount: 3;
+    IsFloatingPoint: True;
+    RBSwapFormat: ifB32G32R32F;
+    GetPixelsSize: GetStdPixelsSize;
+    CheckDimensions: CheckStdDimensions;
+    GetPixel32: GetPixel32Generic;
+    GetPixelFP: GetPixelFPFloat32;
+    SetPixel32: SetPixel32Generic;
+    SetPixelFP: SetPixelFPFloat32);
+
+  B32G32R32FInfo: TImageFormatInfo = (
+    Format: ifB32G32R32F;
+    Name: 'B32G32R32F';
+    BytesPerPixel: 12;
+    ChannelCount: 3;
+    IsFloatingPoint: True;
+    IsRBSwapped: True;
+    RBSwapFormat: ifR32G32B32F;
+    GetPixelsSize: GetStdPixelsSize;
+    CheckDimensions: CheckStdDimensions;
+    GetPixel32: GetPixel32Generic;
+    GetPixelFP: GetPixelFPFloat32;
+    SetPixel32: SetPixel32Generic;
+    SetPixelFP: SetPixelFPFloat32);
+
   // special formats
   DXT1Info: TImageFormatInfo = (
     Format: ifDXT1;
@@ -884,6 +913,8 @@ begin
   Infos[ifR16F] := @R16FInfo;
   Infos[ifA16R16G16B16F] := @A16R16G16B16FInfo;
   Infos[ifA16B16G16R16F] := @A16B16G16R16FInfo;
+  Infos[ifR32G32B32F] := @R32G32B32FInfo;
+  Infos[ifB32G32R32F] := @B32G32R32FInfo;
   // special formats
   Infos[ifDXT1] := @DXT1Info;
   Infos[ifDXT3] := @DXT3Info;
@@ -963,12 +994,12 @@ procedure PFGetARGB(const PF: TPixelFormatInfo; Color: LongWord;
   var A, R, G, B: Byte); {$IFDEF USE_INLINE}inline;{$ENDIF}
 begin
   with PF do
-   begin
-     A := (Color and ABitMask shr AShift) * 255 div ARecDiv;
-     R := (Color and RBitMask shr RShift) * 255 div RRecDiv;
-     G := (Color and GBitMask shr GShift) * 255 div GRecDiv;
-     B := (Color and BBitMask shl BShift) * 255 div BRecDiv;
-    end;
+  begin
+    A := (Color and ABitMask shr AShift) * 255 div ARecDiv;
+    R := (Color and RBitMask shr RShift) * 255 div RRecDiv;
+    G := (Color and GBitMask shr GShift) * 255 div GRecDiv;
+    B := (Color and BBitMask shl BShift) * 255 div BRecDiv;
+  end;
 end;
 
 function PFSetColor(const PF: TPixelFormatInfo; ARGB: TColor32): LongWord;
@@ -986,12 +1017,12 @@ function PFGetColor(const PF: TPixelFormatInfo; Color: LongWord): TColor32;
 {$IFDEF USE_INLINE}inline;{$ENDIF}
 begin
   with PF, TColor32Rec(Result) do
-   begin
-     A := (Color and ABitMask shr AShift) * 255 div ARecDiv;
-     R := (Color and RBitMask shr RShift) * 255 div RRecDiv;
-     G := (Color and GBitMask shr GShift) * 255 div GRecDiv;
-     B := (Color and BBitMask shl BShift) * 255 div BRecDiv;
-    end;
+  begin
+    A := (Color and ABitMask shr AShift) * 255 div ARecDiv;
+    R := (Color and RBitMask shr RShift) * 255 div RRecDiv;
+    G := (Color and GBitMask shr GShift) * 255 div GRecDiv;
+    B := (Color and BBitMask shl BShift) * 255 div BRecDiv;
+  end;
 end;
 
 
@@ -1917,6 +1948,7 @@ begin
     4: PLongWord(Dest)^ := PLongWord(Src)^;
     6: PColor48Rec(Dest)^ := PColor48Rec(Src)^;
     8: PInt64(Dest)^ := PInt64(Src)^;
+    12: PColor96FPRec(Dest)^ := PColor96FPRec(Src)^;
     16: PColorFPRec(Dest)^ := PColorFPRec(Src)^;
   end;
 end;
@@ -1930,8 +1962,10 @@ begin
     4: Result := PLongWord(PixelA)^ = PLongWord(PixelB)^;
     6: Result := (PLongWord(PixelA)^ = PLongWord(PixelB)^) and (PColor48Rec(PixelA).R = PColor48Rec(PixelB).R);
     8: Result := PInt64(PixelA)^ = PInt64(PixelB)^;
-    16: Result := (PFloatHelper(PixelA).Data2 = PFloatHelper(PixelB).Data2) and
-          (PFloatHelper(PixelA).Data1 = PFloatHelper(PixelB).Data1);
+    12: Result := (PFloatHelper(PixelA).Data = PFloatHelper(PixelB).Data) and
+          (PFloatHelper(PixelA).Data32 = PFloatHelper(PixelB).Data32);
+    16: Result := (PFloatHelper(PixelA).Data = PFloatHelper(PixelB).Data) and
+          (PFloatHelper(PixelA).Data64 = PFloatHelper(PixelB).Data64);
   else
     Result := False;
   end;
@@ -2555,18 +2589,21 @@ procedure FloatGetSrcPixel(Src: PByte; SrcInfo: PImageFormatInfo;
 var
   PixHF: TColorHFRec;
 begin
-  if SrcInfo.BytesPerPixel in [4, 16] then
+  Assert(SrcInfo.BytesPerPixel in [2, 4, 8, 12, 16]);
+
+  if SrcInfo.BytesPerPixel in [4, 12, 16] then
   begin
     // IEEE 754 single-precision channels
     FillChar(Pix, SizeOf(Pix), 0);
     case SrcInfo.BytesPerPixel of
       4: Pix.R := PSingle(Src)^;
+      12: Pix.Color96Rec := PColor96FPRec(Src)^;
       16: Pix := PColorFPRec(Src)^;
     end;
   end
   else
   begin
-    // half float channels
+    // Half float channels
     FillChar(PixHF, SizeOf(PixHF), 0);
     case SrcInfo.BytesPerPixel of
       2: PixHF.R := PHalfFloat(Src)^;
@@ -2574,7 +2611,8 @@ begin
     end;
     Pix := ColorHalfToFloat(PixHF);
   end;
-  // if src has no alpha, we set it to max (otherwise we would have to
+
+  // If src has no alpha, we set it to max (otherwise we would have to
   // test if dest has alpha or not in each FloatToXXX function)
   if not SrcInfo.HasAlphaChannel then
     Pix.A := 1.0;
@@ -2588,13 +2626,17 @@ var
   PixW: TColorFPRec;
   PixHF: TColorHFRec;
 begin
+  Assert(DstInfo.BytesPerPixel in [2, 4, 8, 12, 16]);
+
   PixW := Pix;
   if DstInfo.IsRBSwapped then
     SwapValues(PixW.R, PixW.B);
-  if DstInfo.BytesPerPixel in [4, 16] then
+
+  if DstInfo.BytesPerPixel in [4, 12, 16] then
   begin
     case DstInfo.BytesPerPixel of
-      4: PSingle(Dst)^ := PixW.R;
+      4:  PSingle(Dst)^ := PixW.R;
+      12: PColor96FPRec(Dst)^:= PixW.Color96Rec;
       16: PColorFPRec(Dst)^ := PixW;
     end;
   end
@@ -2918,6 +2960,7 @@ begin
       PWordArray(Dst)[I] := PByteArray(Src)[I] shl 8;
   end
   else
+  begin
     if (DstInfo.Format = ifGray8) and (SrcInfo.Format = ifGray16) then
     begin
       for I := 0 to NumPixels - 1 do
@@ -2932,6 +2975,7 @@ begin
         Inc(Src, SrcInfo.BytesPerPixel);
         Inc(Dst, DstInfo.BytesPerPixel);
       end;
+  end;
 end;
 
 procedure GrayToChannel(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
@@ -4219,14 +4263,14 @@ end;
 function GetPixelFPFloat32(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32): TColorFPRec;
 begin
   case Info.Format of
-    ifA32R32G32B32F:
+    ifA32R32G32B32F, ifA32B32G32R32F:
       begin
         Result := PColorFPRec(Bits)^;
       end;
-    ifA32B32G32R32F:
+    ifR32G32B32F, ifB32G32R32F:
       begin
-        Result := PColorFPRec(Bits)^;
-        SwapValues(Result.R, Result.B);
+        Result.A := 1.0;
+        Result.Color96Rec := PColor96FPRec(Bits)^;
       end;
     ifR32F:
       begin
@@ -4236,25 +4280,28 @@ begin
         Result.B := 0.0;
       end;
   end;
+  if Info.IsRBSwapped then
+    SwapValues(Result.R, Result.B);
 end;
 
 procedure SetPixelFPFloat32(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32; const Color: TColorFPRec);
 begin
   case Info.Format of
-    ifA32R32G32B32F:
+    ifA32R32G32B32F, ifA32B32G32R32F:
       begin
         PColorFPRec(Bits)^ := Color;
       end;
-    ifA32B32G32R32F:
+    ifR32G32B32F, ifB32G32R32F:
       begin
-        PColorFPRec(Bits)^ := Color;
-        SwapValues(PColorFPRec(Bits).R, PColorFPRec(Bits).B);
+        PColor96FPRec(Bits)^ := Color.Color96Rec;
       end;
     ifR32F:
       begin
         PSingle(Bits)^ := Color.R;
       end;
   end;
+  if Info.IsRBSwapped then
+    SwapValues(PColor96FPRec(Bits).R, PColor96FPRec(Bits).B);
 end;
 
 initialization

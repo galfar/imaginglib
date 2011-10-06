@@ -156,7 +156,7 @@ function SaveMultiImageToMemory(const Ext: string; Data: Pointer;
 function CloneImage(const Image: TImageData; var Clone: TImageData): Boolean;
 { Converts image to the given format.}
 function ConvertImage(var Image: TImageData; DestFormat: TImageFormat): Boolean;
-{ Flips given image. Reverses the image along its horizontal axis — the top
+{ Flips given image. Reverses the image along its horizontal axis - the top
   becomes the bottom and vice versa.}
 function FlipImage(var Image: TImageData): Boolean;
 { Mirrors given image. Reverses the image along its vertical axis — the left
@@ -544,33 +544,21 @@ type
     function HasMetaItemForSave(const Id: string; ImageIndex: Integer = 0): Boolean;
 
     procedure ClearMetaItems;
-
     procedure ClearMetaItemsForSave;
-
     function GetMetaItemName(const Id: string; ImageIndex: Integer): string;
-
     { Copies loaded meta items to items-for-save stack. Use this when you want to
-
       save metadata that have been just loaded (e.g. resaving image in
-
       different file format but keeping the metadata).}
-
     procedure CopyMetaItems;
 
-
     function GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
-
       YSize: Single; MetaForSave: Boolean = False; ImageIndex: Integer = 0): Boolean;
-
     procedure SetPhysicalPixelSize(ResUnit: TResolutionUnit; XSize, YSize: Single;
-
       MetaForSave: Boolean = False; ImageIndex: Integer = 0);
-
-
-    { Number of loaded metadata items.}
 
     property MetaItems[const Id: string]: Variant read GetMetaById;
     property MetaItemsMulti[const Id: string; ImageIndex: Integer]: Variant read GetMetaByIdMulti;
+    { Number of loaded metadata items.}
     property MetaItemCount: Integer read GetMetaCount;
     property MetaItemsByIdx[Index: Integer]: TMetadataItem read GetMetaByIdx;
     property MetaItemsForSave[const Id: string]: Variant read GetSaveMetaById;
@@ -580,7 +568,7 @@ type
 const
   { Metadata item id constants }
 
-  { Physical size of one pixel in micrometers. Type of value is Single.}
+  { Physical size of one pixel in micrometers. Type of value is Float.}
   SMetaPhysicalPixelSizeX = 'PhysicalPixelSizeX';
   SMetaPhysicalPixelSizeY = 'PhysicalPixelSizeY';
   { Delay for frame of animation (how long it should stay visible) in milliseconds.
@@ -588,9 +576,15 @@ const
   SMetaFrameDelay = 'FrameDelay';
   { Number of times animation should be looped (0 = infinite looping).}
   SMetaAnimationLoops = 'AnimationLoops';
-
+  { Gamma correction value. Type is Float.}
+  SMetaGamma = 'Gamma';
+  { Exposure value for HDR etc. Type is Float.}
+  SMetaExposure = 'Exposure';
+  { EXIF image metadata raw blob.}
   SMetaExifBlob = 'ExifBlob';
+  { XMP image metadata raw blob.}
   SMetaXmpBlob  = 'XmpBlob';
+  { IPTC image metadata raw blob.}
   SMetaIptcBlob = 'IptcBlob';
 
 var
@@ -650,7 +644,8 @@ function GetFileNameFilterIndex(const FileName: string; OpenFileFilter: Boolean)
 { Returns current IO functions.}
 function GetIO: TIOFunctions;
 { Raises EImagingError with given message.}
-procedure RaiseImaging(const Msg: string; const Args: array of const);
+procedure RaiseImaging(const Msg: string; const Args: array of const); overload;
+procedure RaiseImaging(const Msg: string); overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 implementation
 
@@ -675,6 +670,9 @@ uses
 {$ENDIF}
 {$IFNDEF DONT_LINK_PNM}
   ImagingPortableMaps,
+{$ENDIF}
+{$IFNDEF DONT_LINK_RADHDR}
+  ImagingRadiance,
 {$ENDIF}
 {$IFNDEF DONT_LINK_EXTRAS}
   ImagingExtras,
@@ -799,43 +797,6 @@ procedure FreeImageFileFormats; forward;
 procedure InitOptions; forward;
 { Frees options array and stack.}
 procedure FreeOptions; forward;
-
-{$IFDEF USE_INLINE}
-{ Those inline functions are copied here from ImagingFormats
-  because Delphi 9/10 cannot inline them if they are declared in
-  circularly dependent units.}
-
-procedure CopyPixel(Src, Dest: Pointer; BytesPerPixel: LongInt); inline;
-begin
-  case BytesPerPixel of
-    1: PByte(Dest)^ := PByte(Src)^;
-    2: PWord(Dest)^ := PWord(Src)^;
-    3: PColor24Rec(Dest)^ := PColor24Rec(Src)^;
-    4: PLongWord(Dest)^ := PLongWord(Src)^;
-    6: PColor48Rec(Dest)^ := PColor48Rec(Src)^;
-    8: PInt64(Dest)^ := PInt64(Src)^;
-    16: PColorFPRec(Dest)^ := PColorFPRec(Src)^;
-  end;
-end;
-
-function ComparePixels(PixelA, PixelB: Pointer; BytesPerPixel: LongInt): Boolean; inline;
-begin
-  case BytesPerPixel of
-    1: Result := PByte(PixelA)^ = PByte(PixelB)^;
-    2: Result := PWord(PixelA)^ = PWord(PixelB)^;
-    3: Result := (PWord(PixelA)^ = PWord(PixelB)^) and
-         (PColor24Rec(PixelA).R = PColor24Rec(PixelB).R);
-    4: Result := PLongWord(PixelA)^ = PLongWord(PixelB)^;
-    6: Result := (PLongWord(PixelA)^ = PLongWord(PixelB)^) and
-         (PColor48Rec(PixelA).R = PColor48Rec(PixelB).R);
-    8: Result := PInt64(PixelA)^ = PInt64(PixelB)^;
-    16: Result := (PFloatHelper(PixelA).Data2 = PFloatHelper(PixelB).Data2) and
-          (PFloatHelper(PixelA).Data1 = PFloatHelper(PixelB).Data1);
-  else
-    Result := False;
-  end;
-end;
-{$ENDIF}
 
 function UpdateExceptMessage(E: Exception; const MsgToPrepend: string; const Args: array of const): Exception;
 begin
@@ -3230,9 +3191,16 @@ var
 begin
   WholeMsg := Msg;
   if GetExceptObject <> nil then
+  begin
     WholeMsg := WholeMsg + ' ' + SExceptMsg + ': ' +
       GetExceptObject.Message;
+  end;
   raise EImagingError.CreateFmt(WholeMsg, Args);
+end;
+
+procedure RaiseImaging(const Msg: string);
+begin
+  RaiseImaging(Msg, []);
 end;
 
 { Internal unit functions }
@@ -3746,7 +3714,7 @@ begin
   OnlyName := ExtractFileName(FileName);
   // For each mask test if filename matches it 
   for I := 0 to FMasks.Count - 1 do
-    if MatchFileNameMask(OnlyName, FMasks[I], False) then
+    if StrMaskMatch(OnlyName, FMasks[I], False) then
     begin
       Result := True;
       Exit;

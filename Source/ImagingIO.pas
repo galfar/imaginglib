@@ -55,6 +55,9 @@ var
 function GetInputSize(IOFunctions: TIOFunctions; Handle: TImagingHandle): LongInt;
 { Helper function that initializes TMemoryIORec with given params.}
 function PrepareMemIO(Data: Pointer; Size: LongInt): TMemoryIORec;
+{ Reads one text line from input (CR+LF, CR, or LF as line delimiter).}
+function ReadLine(IOFunctions: TIOFunctions; Handle: TImagingHandle;
+  out Line: string; FailOnControlChars: Boolean = False): Boolean;
 
 implementation
 
@@ -512,6 +515,62 @@ begin
   Result.Size := Size;
 end;
 
+function ReadLine(IOFunctions: TIOFunctions; Handle: TImagingHandle;
+  out Line: string; FailOnControlChars: Boolean): Boolean;
+const
+  MaxLine = 1024;
+var
+  EolPos, Pos: Integer;
+  C: AnsiChar;
+  EolReached: Boolean;
+  Endings: set of AnsiChar;
+begin
+  Line := '';
+  Pos := 0;
+  EolPos := 0;
+  EolReached := False;
+  Endings := [#10, #13];
+  Result := True;
+
+  while not IOFunctions.Eof(Handle) do
+  begin
+    IOFunctions.Read(Handle, @C, SizeOf(C));
+
+    if FailOnControlChars and (Byte(C) < $20) then
+    begin
+      Break;
+    end;
+
+    if not (C in Endings) then
+    begin
+      if EolReached then
+      begin
+        IOFunctions.Seek(Handle, EolPos, smFromBeginning);
+        Exit;
+      end
+      else
+      begin
+        SetLength(Line, Length(Line) + 1);
+        Line[Length(Line)] := Char(C);
+      end;
+    end
+    else if not EolReached then
+    begin
+      EolReached := True;
+      EolPos := IOFunctions.Tell(Handle);
+    end;
+
+    Inc(Pos);
+    if Pos >= MaxLine then
+    begin
+      Break;
+    end;
+  end;
+
+  Result := False;
+  IOFunctions.Seek(Handle, -Pos, smFromCurrent);
+end;
+
 initialization
   OriginalFileIO.OpenRead := FileOpenRead;
   OriginalFileIO.OpenWrite := FileOpenWrite;
@@ -547,6 +606,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77.1 ---------------------------------------------------
+   - Added ReadLine function.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added merge between buffered read-only and write-only file

@@ -304,7 +304,7 @@ var
     RawCode := Context.Buf[Word(ByteIndex)] +
       (Word(Context.Buf[Word(ByteIndex + 1)]) shl 8);
     if Context.CodeSize > 8 then
-      RawCode := RawCode + (LongInt(Context.Buf[ByteIndex + 2]) shl 16);
+      RawCode := RawCode + (Integer(Context.Buf[ByteIndex + 2]) shl 16);
     RawCode := RawCode shr (Context.Inx and 7);
     Context.Inx := Context.Inx + Byte(Context.CodeSize);
     Result := RawCode and Context.ReadMask;
@@ -1232,7 +1232,7 @@ end;
 function TGIFFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
 var
   Header: TGIFHeader;
-  ReadCount: LongInt;
+  ReadCount: Integer;
 begin
   Result := False;
   if Handle <> nil then
