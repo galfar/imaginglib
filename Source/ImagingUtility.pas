@@ -486,7 +486,7 @@ var
       end;
     end;  
 
-    while (MaskPos <= MaskLen) and (Mask[MaskPos] in ['?', '*']) do
+    while (MaskPos <= MaskLen) and (AnsiChar(Mask[MaskPos]) in ['?', '*']) do
       Inc(MaskPos);
     if (MaskPos <= MaskLen) or (KeyPos <= KeyLen) then
     begin

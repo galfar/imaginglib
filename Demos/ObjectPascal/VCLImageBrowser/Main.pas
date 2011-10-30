@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   VCL Image Browser (ObjectPascal, high level/component sets/canvas, Win32)
-  tested in Delphi 7/2007/2009/2010
+  tested in Delphi 7/2007/2009/2010/XE2
   written by Marek Mauder
 
   This simple viewer application shows usage of high level class interface
@@ -10,7 +10,7 @@
 
   In the left part of the window is shell tree view component. Here you can
   select files located in your computer. If the selected file is in one of the
-  supported formats (JPG, BMP, TGA, DDS, PNG, MNG, JNG) it is displayed in the viewer
+  supported formats it is displayed in the viewer
   area and some information about the file is displayed in the info area.
   If image file contains subimages you can view them too. Select active subimage
   by clicking on buttons with arrows (Previous/Next).
