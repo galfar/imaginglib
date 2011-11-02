@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   LCL Imager (ObjectPascal, high level/component sets/canvas, Win32/Linux/BSD)
-  tested in Lazarus 0.9.28 (Windows: Win32, Qt, Gtk2; Unix: Gtk)
+  tested in Lazarus 0.9.30 (Windows: Win32, Qt, Gtk2; Unix: Gtk)
   written by Marek Mauder
 
   Simple image manipulator program which shows usage of Imaging VCL/CLX/LCL
@@ -31,14 +31,9 @@ interface
 
 uses
   Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, Variants,
-  Menus, ExtCtrls, ExtDlgs, DemoUtils, AboutUnit, ActnList, StdCtrls,
-  ImagingTypes,
-  Imaging,
-  ImagingClasses,
-  ImagingComponents,
-  ImagingCanvases,
-  ImagingBinary,
-  ImagingUtility;
+  Menus, ExtCtrls, ExtDlgs, DemoUtils, AboutUnit, ActnList, StdCtrls, ComCtrls,
+  PairSplitter, ImagingTypes, Imaging, ImagingClasses, ImagingComponents,
+  ImagingCanvases, ImagingBinary, ImagingUtility;
 
 type
 
@@ -58,7 +53,7 @@ type
     ActViewInfo: TAction;
     ActViewFitToWindow: TAction;
     ActViewRealSize: TAction;
-    ActionList1: TActionList;
+    ActionList: TActionList;
     Image: TImage;
     MainMenu: TMainMenu;
     MenuItem1: TMenuItem;
@@ -140,6 +135,11 @@ type
     MenuItem84: TMenuItem;
     MenuItem85: TMenuItem;
     MenuItem86: TMenuItem;
+    MenuItem87: TMenuItem;
+    MenuItemConvertAll: TMenuItem;
+    PairSplitter: TPairSplitter;
+    PairSplitterSideLeft: TPairSplitterSide;
+    PairSplitterSideRight: TPairSplitterSide;
     RedItem: TMenuItem;
     GreenItem: TMenuItem;
     BlueItem: TMenuItem;
@@ -153,9 +153,10 @@ type
     MenuItem7: TMenuItem;
     MenuItem8: TMenuItem;
     MenuItem9: TMenuItem;
-    OpenD: TOpenPictureDialog;
-    PanelStatus: TPanel;
-    SaveD: TSavePictureDialog;
+    OpenDialog: TOpenPictureDialog;
+    SaveDialog: TSavePictureDialog;
+    StatusBar: TStatusBar;
+    TreeImage: TTreeView;
     procedure ActViewFitToWindowExecute(Sender: TObject);
     procedure ActViewInfoExecute(Sender: TObject);
     procedure ActViewRealSizeExecute(Sender: TObject);
@@ -232,6 +233,7 @@ type
     procedure MenuItem84Click(Sender: TObject);
     procedure MenuItem85Click(Sender: TObject);
     procedure MenuItem86Click(Sender: TObject);
+    procedure TreeImageSelectionChanged(Sender: TObject);
   private
     FBitmap: TImagingBitmap;
     FImage: TMultiImage;
@@ -241,7 +243,7 @@ type
     procedure OpenFile(const FileName: string);
     procedure SaveFile(const FileName: string);
     procedure SelectSubimage(Index: LongInt);
-    procedure UpdateView;
+    procedure UpdateView(RebuildTree: Boolean);
     function CheckCanvasFormat: Boolean;
     procedure ApplyConvolution(Kernel: Pointer; Size: LongInt; NeedsBlur: Boolean);
     procedure ApplyPointTransform(Transform: TPointTransform);
@@ -251,6 +253,7 @@ type
     procedure MeasureTime(const Msg: string; const OldTime: Int64);
     procedure FreeResizeInput;
     function InputInteger(const ACaption, APrompt: string; var Value: Integer): Boolean;
+    procedure BuildImageTree;
   public
 
   end; 
@@ -505,7 +508,7 @@ begin
       FImageCanvas.ApplyConvolution5x5(TConvolutionFilter5x5(Kernel^));
       
     MeasureTime('Image convolved in:', T);
-    UpdateView;
+    UpdateView(False);
   end;
 end;
 
@@ -534,7 +537,7 @@ begin
     end;
 
     MeasureTime('Point transform done in:', T);
-    UpdateView;
+    UpdateView(False);
   end;
 end;
 
@@ -554,7 +557,7 @@ begin
     end;
 
     MeasureTime('Point transform done in:', T);
-    UpdateView;
+    UpdateView(False);
   end;
 end;
 
@@ -592,7 +595,7 @@ begin
       end;
   end;
   MeasureTime('Morphology operation applied in:', T);
-  UpdateView;
+  UpdateView(True);
 end;
 
 procedure TMainForm.ApplyManipulation(ManipType: TManipulationType);
@@ -619,7 +622,7 @@ begin
     mtReduce2:          ReduceColors(FImage.ImageDataPointer^, 2);
   end;
   MeasureTime('Image manipulated in:', T);
-  UpdateView;
+  UpdateView(False);
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
@@ -691,13 +694,18 @@ end;
 procedure TMainForm.FormatChangeClick(Sender: TObject);
 var
   T: Int64;
+  Fmt: TImageFormat;
 begin
   with Sender as TMenuItem do
   begin
     T := GetTimeMicroseconds;
-    FImage.Format := TImageFormat(Tag);
+    Fmt := TImageFormat(Tag);
+    if MenuItemConvertAll.Checked then
+      FImage.ConvertImages(Fmt)
+    else
+      FImage.Format := Fmt;
     MeasureTime('Image converted in:', T);
-    UpdateView;
+    UpdateView(True);
   end;
 end;
 
@@ -726,7 +734,7 @@ begin
     MeasureTime('Channel filled in:', T);
 
     Canvas.Free;
-    UpdateView;
+    UpdateView(False);
   end;
 end;
 
@@ -751,6 +759,8 @@ var
   StrVal: string;
 begin
   Result := False;
+  StrVal := '';
+
   if Dialogs.InputQuery(ACaption, APrompt, StrVal) then
   begin
     if TryStrToInt(StrVal, Value) then
@@ -786,8 +796,8 @@ begin
     Canvas.GetHistogram(Red, Green, Blue, Alpha, Gray);
     MeasureTime('Histograms computed in:', T);
 
-    FImage.RecreateImageData(1024, 256, ifA8R8G8B8);
-    Canvas.UpdateCanvasState;
+    FImage.ActiveImage := FImage.AddImage(1024, 256, ifA8R8G8B8);
+    Canvas.CreateForImage(FImage);
     Canvas.FillColor32 := pcBlack;
     Canvas.FillRect(FImage.BoundsRect);
 
@@ -809,7 +819,7 @@ begin
     VisualizeHistogram(Gray, pcGray, 768);
 
     Canvas.Free;
-    UpdateView;
+    UpdateView(True);
   end;
 end;
 
@@ -868,6 +878,15 @@ begin
   Form.Free;
 end;
 
+procedure TMainForm.TreeImageSelectionChanged(Sender: TObject);
+var
+  Node: TTreeNode;
+begin
+  Node := TreeImage.Selected;
+  if Node <> nil then
+    SelectSubimage(PtrInt(Node.Data));
+end;
+
 procedure TMainForm.ActViewRealSizeExecute(Sender: TObject);
 begin
   ActViewRealSize.Checked := True;
@@ -916,19 +935,19 @@ end;
 
 procedure TMainForm.MenuItem3Click(Sender: TObject);
 begin
-  OpenD.Filter := GetImageFileFormatsFilter(True);
-  if OpenD.Execute then
-    OpenFile(OpenD.FileName);
+  OpenDialog.Filter := GetImageFileFormatsFilter(True);
+  if OpenDialog.Execute then
+    OpenFile(OpenDialog.FileName);
 end;
 
 procedure TMainForm.MenuItem5Click(Sender: TObject);
 begin
-  SaveD.Filter := GetImageFileFormatsFilter(False);
-  SaveD.FileName := ChangeFileExt(ExtractFileName(FFileName), '');
-  SaveD.FilterIndex := GetFileNameFilterIndex(FFileName, False);
-  if SaveD.Execute then
+  SaveDialog.Filter := GetImageFileFormatsFilter(False);
+  SaveDialog.FileName := ChangeFileExt(ExtractFileName(FFileName), '');
+  SaveDialog.FilterIndex := GetFileNameFilterIndex(FFileName, False);
+  if SaveDialog.Execute then
   begin
-    FFileName := ChangeFileExt(SaveD.FileName, '.' + GetFilterIndexExtension(SaveD.FilterIndex, False));
+    FFileName := ChangeFileExt(SaveDialog.FileName, '.' + GetFilterIndexExtension(SaveDialog.FilterIndex, False));
     SaveFile(FFileName);
   end;
 end;
@@ -1031,12 +1050,35 @@ begin
   try
     T := GetTimeMicroseconds;
     FImage.LoadMultiFromFile(FileName);
+    BuildImageTree;
     MeasureTime(Format('File %s opened in:', [ExtractFileName(FileName)]), T);
   except
     MessageDlg(GetExceptObject.Message, mtError, [mbOK], 0);
     FImage.CreateFromParams(32, 32, ifA8R8G8B8, 1);
+    TreeImage.Items.Clear;
   end;
   SelectSubimage(0);
+end;
+
+procedure TMainForm.BuildImageTree;
+var
+  Root, Node: TTreeNode;
+  I: Integer;
+  Lab: string;
+  Data: TImageData;
+begin
+  TreeImage.Items.Clear;
+
+  Lab := Format('%s (%d images)', [ExtractFileName(FFileName), FImage.ImageCount]);
+  Root := TreeImage.Items.Add(nil, Lab);
+
+  for I := 0 to FImage.ImageCount - 1 do
+  begin
+    Data := FImage.Images[I];
+    Lab := Format('Img%.2d %dx%d %s', [I, Data.Width, Data.Height, GetFormatName(Data.Format)]);
+    Node := TreeImage.Items.AddChild(Root, Lab);
+    Node.Data := Pointer(I);
+  end;
 end;
 
 procedure TMainForm.SaveFile(const FileName: string);
@@ -1056,17 +1098,19 @@ procedure TMainForm.SelectSubimage(Index: LongInt);
 begin
   FImage.ActiveImage := Index;
   MenuItemActSubImage.Caption := Format('Active Subimage: %d/%d', [FImage.ActiveImage + 1, FImage.ImageCount]);
-  UpdateView;
+  UpdateView(False);
 end;
 
-procedure TMainForm.UpdateView;
+procedure TMainForm.UpdateView(RebuildTree: Boolean);
 begin
   Image.Picture.Graphic.Assign(FImage);
+  if RebuildTree then
+    BuildImageTree;
 end;
 
 procedure TMainForm.MeasureTime(const Msg: string; const OldTime: Int64);
 begin
-  PanelStatus.Caption := Format('  %s %.0n ms', [Msg, (GetTimeMicroseconds - OldTime) / 1000.0]);
+  StatusBar.SimpleText := Format('  %s %.0n ms', [Msg, (GetTimeMicroseconds - OldTime) / 1000.0]);
 end;
 
 initialization
@@ -1077,6 +1121,11 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - add more canvas stuff when it will be avaiable
+
+  -- 0.77.1 Changes/Bug Fixes ---------------------------------
+    - Added option to convert data format of all subimages by default.
+    - UI enhancements: added TreeView with image/subimage list,
+      added StatusBar instead of simple Panel.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - You can drop file on the form to open it.

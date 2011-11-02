@@ -4022,7 +4022,7 @@ finalization
   -- TODOS ----------------------------------------------------
     - nothing now
 
-  -- 0.77 Changes/Bug Fixes -----------------------------------
+  -- 0.77.1 ---------------------------------------------------
     - Fixed bug in SplitImage that could cause wrong size of edge chunks.
     - Metadata support fixes and extensions (frame delays, animation loops).
 

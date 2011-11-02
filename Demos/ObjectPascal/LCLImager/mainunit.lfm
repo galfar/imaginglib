@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 216
+  Left = 491
   Height = 512
-  Top = 24
+  Top = 243
   Width = 768
   AllowDropFiles = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
@@ -87,32 +87,70 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   OnDropFiles = FormDropFiles
   Position = poDesktopCenter
-  LCLVersion = '0.9.28'
+  LCLVersion = '0.9.30'
   WindowState = wsMaximized
-  object Image: TImage
-    Cursor = crHandPoint
-    Left = 4
-    Height = 470
-    Top = 0
-    Width = 760
-    Align = alClient
-    AutoSize = True
-    BorderSpacing.Left = 4
-    BorderSpacing.Right = 4
-    Center = True
-    OnClick = ImageClick
-    Proportional = True
-    Stretch = True
-  end
-  object PanelStatus: TPanel
+  object StatusBar: TStatusBar
     Left = 0
-    Height = 22
-    Top = 470
+    Height = 23
+    Top = 469
     Width = 768
-    Align = alBottom
-    Alignment = taLeftJustify
-    BevelWidth = 2
-    TabOrder = 0
+    Panels = <>
+  end
+  object PairSplitter: TPairSplitter
+    Left = 0
+    Height = 469
+    Top = 0
+    Width = 768
+    Align = alClient
+    Position = 180
+    object PairSplitterSideLeft: TPairSplitterSide
+      Cursor = crArrow
+      Left = 0
+      Height = 469
+      Top = 0
+      Width = 180
+      ClientWidth = 180
+      ClientHeight = 469
+      object TreeImage: TTreeView
+        Left = 0
+        Height = 469
+        Top = 0
+        Width = 180
+        Align = alClient
+        AutoExpand = True
+        DefaultItemHeight = 17
+        HotTrack = True
+        ReadOnly = True
+        RightClickSelect = True
+        TabOrder = 0
+        OnSelectionChanged = TreeImageSelectionChanged
+        Options = [tvoAutoExpand, tvoAutoItemHeight, tvoHideSelection, tvoHotTrack, tvoKeepCollapsedNodes, tvoReadOnly, tvoRightClickSelect, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
+      end
+    end
+    object PairSplitterSideRight: TPairSplitterSide
+      Cursor = crArrow
+      Left = 185
+      Height = 469
+      Top = 0
+      Width = 583
+      ClientWidth = 583
+      ClientHeight = 469
+      object Image: TImage
+        Cursor = crHandPoint
+        Left = 4
+        Height = 469
+        Top = 0
+        Width = 575
+        Align = alClient
+        AutoSize = True
+        BorderSpacing.Left = 4
+        BorderSpacing.Right = 4
+        Center = True
+        OnClick = ImageClick
+        Proportional = True
+        Stretch = True
+      end
+    end
   end
   object MainMenu: TMainMenu
     left = 112
@@ -154,6 +192,9 @@ object MainForm: TMainForm
         ShortCut = 16461
         OnClick = MenuItem86Click
       end
+      object MenuItem87: TMenuItem
+        Caption = '-'
+      end
       object MenuItem16: TMenuItem
         Action = ActViewFitToWindow
         Checked = True
@@ -182,6 +223,12 @@ object MainForm: TMainForm
     end
     object FormatItem: TMenuItem
       Caption = 'Format'
+      object MenuItemConvertAll: TMenuItem
+        AutoCheck = True
+        Caption = 'Convert all subimages'
+        Checked = True
+        GlyphShowMode = gsmNever
+      end
     end
     object MenuItem8: TMenuItem
       Caption = 'Manipulate'
@@ -472,16 +519,16 @@ object MainForm: TMainForm
       end
     end
   end
-  object OpenD: TOpenPictureDialog
+  object OpenDialog: TOpenPictureDialog
     Filter = 'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDraw Surface (*.dds)|*.dds|True'
     FilterIndex = 0
     Options = [ofFileMustExist, ofEnableSizing, ofViewDetail, ofAutoPreview]
-    left = 152
-    top = 40
+    left = 232
+    top = 104
   end
-  object ActionList1: TActionList
+  object ActionList: TActionList
     left = 112
-    top = 83
+    top = 104
     object ActViewFitToWindow: TAction
       Caption = 'Fit To Window'
       OnExecute = ActViewFitToWindowExecute
@@ -496,13 +543,13 @@ object MainForm: TMainForm
       OnExecute = ActViewInfoExecute
     end
   end
-  object SaveD: TSavePictureDialog
+  object SaveDialog: TSavePictureDialog
     Title = 'Save file as'
     DefaultExt = '.png'
     Filter = 'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDraw Surface (*.dds)|*.dds|True'
     FilterIndex = 0
     Options = [ofOverwritePrompt, ofHideReadOnly, ofExtensionDifferent, ofPathMustExist, ofEnableSizing, ofViewDetail, ofAutoPreview]
-    left = 152
-    top = 83
+    left = 232
+    top = 40
   end
 end

@@ -264,7 +264,7 @@ object AboutForm: TAboutForm
   end
   object ImLabel: TLabel
     Left = 8
-    Height = 13
+    Height = 16
     Top = 128
     Width = 264
     Alignment = taCenter
@@ -290,15 +290,17 @@ object AboutForm: TAboutForm
   end
   object ImLabel1: TLabel
     Left = 8
-    Height = 13
+    Height = 18
     Top = 144
     Width = 264
     Alignment = taCenter
     AutoSize = False
     Caption = 'http://imaginglib.sourceforge.net'
     Font.Color = clBlue
+    Layout = tlCenter
     ParentColor = False
     ParentFont = False
+    OptimalFill = True
   end
   object BitBtn1: TBitBtn
     Left = 104

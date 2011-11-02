@@ -1526,7 +1526,7 @@ initialization
   {$IF CompilerVersion >= 23}
   FloatFormatSettings := TFormatSettings.Create('en-US');
   {$ELSE}
-  FloatFormatSettings := GetLocaleFormatSettings(1033, Result);
+  FloatFormatSettings := GetLocaleFormatSettings(1033, FloatFormatSettings);
   {$IFEND}
 {$ELSE FPC}
   FloatFormatSettings := DefaultFormatSettings;

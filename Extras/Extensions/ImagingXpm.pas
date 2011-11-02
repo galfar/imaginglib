@@ -120,7 +120,7 @@ var
 begin
   Result := '';
   if FindItem(AKey, Bucket, Index) then
-    Result := FBuckets[Bucket].Items[Index].Data;
+    Result := string(FBuckets[Bucket].Items[Index].Data);
 end;
 
 procedure TSimpleBucketList.SetData(AKey: TColor32; const AData: string);
@@ -143,7 +143,7 @@ begin
   end;
 
   Result := FBuckets[FABucket].Items[FAIndex].Key;
-  AData := FBuckets[FABucket].Items[FAIndex].Data;
+  AData := string(FBuckets[FABucket].Items[FAIndex].Data);
   Inc(FAIndex);
 end;
 
@@ -225,7 +225,7 @@ var
 
   procedure SkipWhiteSpace(var Line: string);
   begin
-    while (Length(Line) > 0) and (Line[1] in WhiteSpaces) do
+    while (Length(Line) > 0) and (AnsiChar(Line[1]) in WhiteSpaces) do
       Delete(Line, 1, 1);
   end;
 
@@ -233,7 +233,7 @@ var
   begin
     Result := '';
     SkipWhiteSpace(Line);
-    while (Length(Line) > 0) and not (Line[1] in WhiteSpaces) do
+    while (Length(Line) > 0) and not (AnsiChar(Line[1]) in WhiteSpaces) do
     begin
       SetLength(Result, Length(Result) + 1);
       Result[Length(Result)] := Line[1];

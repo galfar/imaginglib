@@ -33,7 +33,7 @@ unit ImagingRadiance;
 interface
 
 uses
-  SysUtils, Classes, Imaging, ImagingTypes;
+  SysUtils, Classes, Imaging, ImagingTypes, ImagingUtility;
 
 type
   { Radiance is a suite of tools for performing lighting simulation. It's
@@ -65,7 +65,7 @@ type
 implementation
 
 uses
-  Math, ImagingUtility, ImagingIO;
+  Math, ImagingIO;
 
 const
   SHdrFormatName = 'Radiance HDR/RGBE';
@@ -338,7 +338,7 @@ var
 
   procedure EncodeRgbe(const Src: TColor96FPRec; var Dest: TRgbe); {$IFDEF USE_INLINE}inline;{$ENDIF}
   var
-    V, M: {$IFDEF FPC}Float{$ELSE}Single{$ENDIF};
+    V, M: {$IFDEF FPC}Float{$ELSE}Extended{$ENDIF};
     E: Integer;
   begin
     V := Src.R;

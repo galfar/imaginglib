@@ -46,21 +46,21 @@ type
     FOnDataSizeChanged: TNotifyEvent;
     FOnPixelsChanged: TNotifyEvent;
     function GetFormat: TImageFormat; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetHeight: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetSize: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetWidth: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetHeight: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetSize: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetWidth: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetBits: Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetPalette: PPalette32; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetPaletteEntries: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetScanline(Index: LongInt): Pointer;
-    function GetPixelPointer(X, Y: LongInt): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetPaletteEntries: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetScanline(Index: Integer): Pointer;
+    function GetPixelPointer(X, Y: Integer): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetScanlineSize: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetFormatInfo: TImageFormatInfo; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetValid: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetBoundsRect: TRect;
     procedure SetFormat(const Value: TImageFormat); {$IFDEF USE_INLINE}inline;{$ENDIF}
-    procedure SetHeight(const Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
-    procedure SetWidth(const Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
+    procedure SetHeight(const Value: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
+    procedure SetWidth(const Value: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetPointer; virtual; abstract;
     procedure DoDataSizeChanged; virtual;
     procedure DoPixelsChanged; virtual;
@@ -73,7 +73,7 @@ type
 
     { Creates a new image data with the given size and format. Old image
       data is lost. Works only for the current image of TMultiImage.}
-    procedure RecreateImageData(AWidth, AHeight: LongInt; AFormat: TImageFormat);
+    procedure RecreateImageData(AWidth, AHeight: Integer; AFormat: TImageFormat);
     { Maps underlying image data to given TImageData record. Both TBaseImage and
       TImageData now share some image memory (bits). So don't call FreeImage
       on TImageData afterwards since this TBaseImage would get really broken.}
@@ -82,7 +82,7 @@ type
     procedure Clear;
 
     { Resizes current image with optional resampling.}
-    procedure Resize(NewWidth, NewHeight: LongInt; Filter: TResizeFilter);
+    procedure Resize(NewWidth, NewHeight: Integer; Filter: TResizeFilter);
     { Flips current image. Reverses the image along its horizontal axis the top
       becomes the bottom and vice versa.}
     procedure Flip;
@@ -96,21 +96,21 @@ type
       negative X and Y coordinates.
       Note that copying is fastest for images in the same data format
       (and slowest for images in special formats).}
-    procedure CopyTo(SrcX, SrcY, Width, Height: LongInt; DstImage: TBaseImage; DstX, DstY: LongInt);
+    procedure CopyTo(SrcX, SrcY, Width, Height: Integer; DstImage: TBaseImage; DstX, DstY: Integer);
     { Stretches the contents of the source rectangle to the destination rectangle
       with optional resampling. No blending is performed - alpha is
       simply copied/resampled to destination image. Note that stretching is
       fastest for images in the same data format (and slowest for
       images in special formats).}
-    procedure StretchTo(SrcX, SrcY, SrcWidth, SrcHeight: LongInt; DstImage: TBaseImage; DstX, DstY, DstWidth, DstHeight: LongInt; Filter: TResizeFilter);
+    procedure StretchTo(SrcX, SrcY, SrcWidth, SrcHeight: Integer; DstImage: TBaseImage; DstX, DstY, DstWidth, DstHeight: Integer; Filter: TResizeFilter);
     { Replaces pixels with OldPixel in the given rectangle by NewPixel.
       OldPixel and NewPixel should point to the pixels in the same format
       as the given image is in.}
-    procedure ReplaceColor(X, Y, Width, Height: LongInt; OldColor, NewColor: Pointer);
+    procedure ReplaceColor(X, Y, Width, Height: Integer; OldColor, NewColor: Pointer);
     { Swaps SrcChannel and DstChannel color or alpha channels of image.
       Use ChannelRed, ChannelBlue, ChannelGreen, ChannelAlpha constants to
       identify channels.}
-    procedure SwapChannels(SrcChannel, DstChannel: LongInt);
+    procedure SwapChannels(SrcChannel, DstChannel: Integer);
 
     { Loads current image data from file.}
     procedure LoadFromFile(const FileName: string); virtual;
@@ -124,25 +124,25 @@ type
     procedure SaveToStream(const Ext: string; Stream: TStream);
 
     { Width of current image in pixels.}
-    property Width: LongInt read GetWidth write SetWidth;
+    property Width: Integer read GetWidth write SetWidth;
     { Height of current image in pixels.}
-    property Height: LongInt read GetHeight write SetHeight;
+    property Height: Integer read GetHeight write SetHeight;
     { Image data format of current image.}
     property Format: TImageFormat read GetFormat write SetFormat;
     { Size in bytes of current image's data.}
-    property Size: LongInt read GetSize;
+    property Size: Integer read GetSize;
     { Pointer to memory containing image bits.}
     property Bits: Pointer read GetBits;
     { Pointer to palette for indexed format images. It is nil for others.
       Max palette entry is at index [PaletteEntries - 1].}
     property Palette: PPalette32 read GetPalette;
     { Number of entries in image's palette}
-    property PaletteEntries: LongInt read GetPaletteEntries;
+    property PaletteEntries: Integer read GetPaletteEntries;
     { Provides indexed access to each line of pixels. Does not work with special
       format images (like DXT).}
-    property Scanline[Index: LongInt]: Pointer read GetScanline;
+    property Scanline[Index: Integer]: Pointer read GetScanline;
     { Returns pointer to image pixel at [X, Y] coordinates.}
-    property PixelPointer[X, Y: LongInt]: Pointer read GetPixelPointer;
+    property PixelPointer[X, Y: Integer]: Pointer read GetPixelPointer;
     { Size/length of one image scanline in bytes.}
     property ScanlineSize: Integer read GetScanlineSize;
     { Extended image format information.}
@@ -156,7 +156,7 @@ type
     property Valid: Boolean read GetValid;
     { Indicates whether image containst any data (size in bytes > 0).}
     property Empty: Boolean read GetEmpty;
-    {{ Specifies the bounding rectangle of the image.}
+    { Specifies the bounding rectangle of the image.}
     property BoundsRect: TRect read GetBoundsRect;
     { This event occurs when the image data size has just changed. That means
       image width, height, or format has been changed.}
@@ -173,7 +173,7 @@ type
     procedure SetPointer; override;
   public
     constructor Create; override;
-    constructor CreateFromParams(AWidth, AHeight: LongInt; AFormat: TImageFormat = ifDefault);
+    constructor CreateFromParams(AWidth, AHeight: Integer; AFormat: TImageFormat = ifDefault);
     constructor CreateFromData(const AData: TImageData);
     constructor CreateFromFile(const FileName: string);
     constructor CreateFromStream(Stream: TStream);
@@ -192,20 +192,20 @@ type
   TMultiImage = class(TBaseImage)
   protected
     FDataArray: TDynImageDataArray;
-    FActiveImage: LongInt;
-    procedure SetActiveImage(Value: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetImageCount: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    procedure SetImageCount(Value: LongInt);
+    FActiveImage: Integer;
+    procedure SetActiveImage(Value: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetImageCount: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    procedure SetImageCount(Value: Integer);
     function GetAllImagesValid: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetImage(Index: LongInt): TImageData; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    procedure SetImage(Index: LongInt; Value: TImageData); {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetImage(Index: Integer): TImageData; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    procedure SetImage(Index: Integer; Value: TImageData); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetPointer; override;
-    function PrepareInsert(Index, Count: LongInt): Boolean;
-    procedure DoInsertImages(Index: LongInt; const Images: TDynImageDataArray);
-    procedure DoInsertNew(Index: LongInt; AWidth, AHeight: LongInt; AFormat: TImageFormat);
+    function PrepareInsert(Index, Count: Integer): Boolean;
+    procedure DoInsertImages(Index: Integer; const Images: TDynImageDataArray);
+    procedure DoInsertNew(Index: Integer; AWidth, AHeight: Integer; AFormat: TImageFormat);
   public
     constructor Create; override;
-    constructor CreateFromParams(AWidth, AHeight: LongInt; AFormat: TImageFormat; Images: LongInt);
+    constructor CreateFromParams(AWidth, AHeight: Integer; AFormat: TImageFormat; Images: Integer);
     constructor CreateFromArray(ADataArray: TDynImageDataArray);
     constructor CreateFromFile(const FileName: string);
     constructor CreateFromStream(Stream: TStream);
@@ -214,12 +214,12 @@ type
     procedure Assign(Source: TPersistent); override;
 
     { Adds new image at the end of the image array. }
-    procedure AddImage(AWidth, AHeight: LongInt; AFormat: TImageFormat = ifDefault); overload;
+    function AddImage(AWidth, AHeight: Integer; AFormat: TImageFormat = ifDefault): Integer; overload;
     { Adds existing image at the end of the image array. }
-    procedure AddImage(const Image: TImageData); overload;
+    function AddImage(const Image: TImageData): Integer; overload;
     { Adds existing image (Active image of a TmultiImage)
       at the end of the image array. }
-    procedure AddImage(Image: TBaseImage); overload;
+    function AddImage(Image: TBaseImage): Integer; overload;
     { Adds existing image array ((all images of a multi image))
       at the end of the image array. }
     procedure AddImages(const Images: TDynImageDataArray); overload;
@@ -227,29 +227,29 @@ type
     procedure AddImages(Images: TMultiImage); overload;
 
     { Inserts new image image at the given position in the image array. }
-    procedure InsertImage(Index, AWidth, AHeight: LongInt; AFormat: TImageFormat = ifDefault); overload;
+    procedure InsertImage(Index, AWidth, AHeight: Integer; AFormat: TImageFormat = ifDefault); overload;
     { Inserts existing image at the given position in the image array. }
-    procedure InsertImage(Index: LongInt; const Image: TImageData); overload;
+    procedure InsertImage(Index: Integer; const Image: TImageData); overload;
     { Inserts existing image (Active image of a TmultiImage)
       at the given position in the image array. }
-    procedure InsertImage(Index: LongInt; Image: TBaseImage); overload;
+    procedure InsertImage(Index: Integer; Image: TBaseImage); overload;
     { Inserts existing image at the given position in the image array. }
-    procedure InsertImages(Index: LongInt; const Images: TDynImageDataArray); overload;
+    procedure InsertImages(Index: Integer; const Images: TDynImageDataArray); overload;
     { Inserts existing images (all images of a TmultiImage) at
       the given position in the image array. }
-    procedure InsertImages(Index: LongInt; Images: TMultiImage); overload;
+    procedure InsertImages(Index: Integer; Images: TMultiImage); overload;
 
     { Exchanges two images at the given positions in the image array. }
-    procedure ExchangeImages(Index1, Index2: LongInt);
+    procedure ExchangeImages(Index1, Index2: Integer);
     { Deletes image at the given position in the image array.}
-    procedure DeleteImage(Index: LongInt);
+    procedure DeleteImage(Index: Integer);
     { Rearranges images so that the first image will become last and vice versa.}
     procedure ReverseImages;
 
     { Converts all images to another image data format.}
     procedure ConvertImages(Format: TImageFormat);
     { Resizes all images.}
-    procedure ResizeImages(NewWidth, NewHeight: LongInt; Filter: TResizeFilter);
+    procedure ResizeImages(NewWidth, NewHeight: Integer; Filter: TResizeFilter);
 
     { Overloaded loading method that will add new image to multiimage if
       image array is empty bero loading. }
@@ -270,9 +270,9 @@ type
 
     { Indicates active image of this multi image. All methods inherited
       from TBaseImage operate on this image only.}
-    property ActiveImage: LongInt read FActiveImage write SetActiveImage;
+    property ActiveImage: Integer read FActiveImage write SetActiveImage;
     { Number of images of this multi image.}
-    property ImageCount: LongInt read GetImageCount write SetImageCount;
+    property ImageCount: Integer read GetImageCount write SetImageCount;
     { This value is True if all images of this TMultiImage are valid.}
     property AllImagesValid: Boolean read GetAllImagesValid;
     { This gives complete access to underlying TDynImageDataArray.
@@ -281,7 +281,7 @@ type
     property DataArray: TDynImageDataArray read FDataArray;
     { Array property for accessing individual images of TMultiImage. When you
       set image at given index the old image is freed and the source is cloned.}
-    property Images[Index: LongInt]: TImageData read GetImage write SetImage; default;
+    property Images[Index: Integer]: TImageData read GetImage write SetImage; default;
   end;
 
 implementation
@@ -315,7 +315,7 @@ begin
   inherited Destroy;
 end;
 
-function TBaseImage.GetWidth: LongInt;
+function TBaseImage.GetWidth: Integer;
 begin
   if Valid then
     Result := FPData.Width
@@ -323,7 +323,7 @@ begin
     Result := 0;
 end;
 
-function TBaseImage.GetHeight: LongInt;
+function TBaseImage.GetHeight: Integer;
 begin
   if Valid then
     Result := FPData.Height
@@ -339,7 +339,7 @@ begin
     Result := ifUnknown;
 end;
 
-function TBaseImage.GetScanline(Index: LongInt): Pointer;
+function TBaseImage.GetScanline(Index: Integer): Pointer;
 var
   Info: TImageFormatInfo;
 begin
@@ -363,7 +363,7 @@ begin
     Result := 0;
 end;
 
-function TBaseImage.GetPixelPointer(X, Y: LongInt): Pointer;
+function TBaseImage.GetPixelPointer(X, Y: Integer): Pointer;
 begin
   if Valid then
     Result := @PByteArray(FPData.Bits)[(Y * FPData.Width + X) * GetFormatInfo.BytesPerPixel]
@@ -371,7 +371,7 @@ begin
     Result := nil;
 end;
 
-function TBaseImage.GetSize: LongInt;
+function TBaseImage.GetSize: Integer;
 begin
   if Valid then
     Result := FPData.Size
@@ -395,7 +395,7 @@ begin
     Result := nil;
 end;
 
-function TBaseImage.GetPaletteEntries: LongInt;
+function TBaseImage.GetPaletteEntries: Integer;
 begin
   Result := GetFormatInfo.PaletteEntries;
 end;
@@ -423,12 +423,12 @@ begin
   Result := FPData.Size = 0;
 end;
 
-procedure TBaseImage.SetWidth(const Value: LongInt);
+procedure TBaseImage.SetWidth(const Value: Integer);
 begin
   Resize(Value, GetHeight, rfNearest);
 end;
 
-procedure TBaseImage.SetHeight(const Value: LongInt);
+procedure TBaseImage.SetHeight(const Value: Integer);
 begin
   Resize(GetWidth, Value, rfNearest);
 end;
@@ -452,7 +452,7 @@ begin
     FOnPixelsChanged(Self);
 end;
 
-procedure TBaseImage.RecreateImageData(AWidth, AHeight: LongInt; AFormat: TImageFormat);
+procedure TBaseImage.RecreateImageData(AWidth, AHeight: Integer; AFormat: TImageFormat);
 begin
   if Assigned(FPData) and Imaging.NewImage(AWidth, AHeight, AFormat, FPData^) then
     DoDataSizeChanged;
@@ -474,7 +474,7 @@ begin
   FreeImage(FPData^);
 end;
 
-procedure TBaseImage.Resize(NewWidth, NewHeight: LongInt; Filter: TResizeFilter);
+procedure TBaseImage.Resize(NewWidth, NewHeight: Integer; Filter: TResizeFilter);
 begin
   if Valid and Imaging.ResizeImage(FPData^, NewWidth, NewHeight, Filter) then
     DoDataSizeChanged;
@@ -498,8 +498,8 @@ begin
     DoPixelsChanged;
 end;
 
-procedure TBaseImage.CopyTo(SrcX, SrcY, Width, Height: LongInt;
-  DstImage: TBaseImage; DstX, DstY: LongInt);
+procedure TBaseImage.CopyTo(SrcX, SrcY, Width, Height: Integer;
+  DstImage: TBaseImage; DstX, DstY: Integer);
 begin
   if Valid and Assigned(DstImage) and DstImage.Valid then
   begin
@@ -508,8 +508,8 @@ begin
   end;
 end;
 
-procedure TBaseImage.StretchTo(SrcX, SrcY, SrcWidth, SrcHeight: LongInt;
-  DstImage: TBaseImage; DstX, DstY, DstWidth, DstHeight: LongInt; Filter: TResizeFilter);
+procedure TBaseImage.StretchTo(SrcX, SrcY, SrcWidth, SrcHeight: Integer;
+  DstImage: TBaseImage; DstX, DstY, DstWidth, DstHeight: Integer; Filter: TResizeFilter);
 begin
   if Valid and Assigned(DstImage) and DstImage.Valid then
   begin
@@ -576,7 +576,7 @@ begin
   Clear;
 end;
 
-constructor TSingleImage.CreateFromParams(AWidth, AHeight: LongInt; AFormat: TImageFormat);
+constructor TSingleImage.CreateFromParams(AWidth, AHeight: Integer; AFormat: TImageFormat);
 begin
   inherited Create;
   RecreateImageData(AWidth, AHeight, AFormat);
@@ -647,10 +647,10 @@ begin
   SetActiveImage(0);
 end;
 
-constructor TMultiImage.CreateFromParams(AWidth, AHeight: LongInt;
-  AFormat: TImageFormat; Images: LongInt);
+constructor TMultiImage.CreateFromParams(AWidth, AHeight: Integer;
+  AFormat: TImageFormat; Images: Integer);
 var
-  I: LongInt;
+  I: Integer;
 begin
   Imaging.FreeImagesInArray(FDataArray);
   SetLength(FDataArray, Images);
@@ -661,7 +661,7 @@ end;
 
 constructor TMultiImage.CreateFromArray(ADataArray: TDynImageDataArray);
 var
-  I: LongInt;
+  I: Integer;
 begin
   Imaging.FreeImagesInArray(FDataArray);
   SetLength(FDataArray, Length(ADataArray));
@@ -692,20 +692,20 @@ begin
   inherited Destroy;
 end;
 
-procedure TMultiImage.SetActiveImage(Value: LongInt);
+procedure TMultiImage.SetActiveImage(Value: Integer);
 begin
   FActiveImage := Value;
   SetPointer;
 end;
 
-function TMultiImage.GetImageCount: LongInt;
+function TMultiImage.GetImageCount: Integer;
 begin
   Result := Length(FDataArray);
 end;
 
-procedure TMultiImage.SetImageCount(Value: LongInt);
+procedure TMultiImage.SetImageCount(Value: Integer);
 var
-  I, OldCount: LongInt;
+  I, OldCount: Integer;
 begin
   if Value > GetImageCount then
   begin
@@ -730,13 +730,13 @@ begin
   Result := (GetImageCount > 0) and TestImagesInArray(FDataArray);
 end;
 
-function TMultiImage.GetImage(Index: LongInt): TImageData;
+function TMultiImage.GetImage(Index: Integer): TImageData;
 begin
   if (Index >= 0) and (Index < GetImageCount) then
     Result := FDataArray[Index];
 end;
 
-procedure TMultiImage.SetImage(Index: LongInt; Value: TImageData);
+procedure TMultiImage.SetImage(Index: Integer; Value: TImageData);
 begin
   if (Index >= 0) and (Index < GetImageCount) then
     Imaging.CloneImage(Value, FDataArray[Index]);
@@ -756,9 +756,9 @@ begin
   end;
 end;
 
-function TMultiImage.PrepareInsert(Index, Count: LongInt): Boolean;
+function TMultiImage.PrepareInsert(Index, Count: Integer): Boolean;
 var
-  I: LongInt;
+  I: Integer;
 begin
   // Inserting to empty image will add image at index 0
   if GetImageCount = 0 then
@@ -782,9 +782,9 @@ begin
     Result := False;
 end;
 
-procedure TMultiImage.DoInsertImages(Index: LongInt; const Images: TDynImageDataArray);
+procedure TMultiImage.DoInsertImages(Index: Integer; const Images: TDynImageDataArray);
 var
-  I, Len: LongInt;
+  I, Len: Integer;
 begin
   Len := Length(Images);
   if PrepareInsert(Index, Len) then
@@ -794,7 +794,7 @@ begin
   end;
 end;
 
-procedure TMultiImage.DoInsertNew(Index, AWidth, AHeight: LongInt;
+procedure TMultiImage.DoInsertNew(Index, AWidth, AHeight: Integer;
   AFormat: TImageFormat);
 begin
   if PrepareInsert(Index, 1) then
@@ -825,20 +825,27 @@ begin
     inherited Assign(Source);
 end;
 
-procedure TMultiImage.AddImage(AWidth, AHeight: LongInt; AFormat: TImageFormat);
+function TMultiImage.AddImage(AWidth, AHeight: Integer; AFormat: TImageFormat): Integer;
 begin
-  DoInsertNew(GetImageCount, AWidth, AHeight, AFormat);
+  Result := GetImageCount;
+  DoInsertNew(Result, AWidth, AHeight, AFormat);
 end;
 
-procedure TMultiImage.AddImage(const Image: TImageData);
+function TMultiImage.AddImage(const Image: TImageData): Integer;
 begin
-  DoInsertImages(GetImageCount, GetArrayFromImageData(Image));
+  Result := GetImageCount;
+  DoInsertImages(Result, GetArrayFromImageData(Image));
 end;
 
-procedure TMultiImage.AddImage(Image: TBaseImage);
+function TMultiImage.AddImage(Image: TBaseImage): Integer;
 begin
   if Assigned(Image) and Image.Valid then
-    DoInsertImages(GetImageCount, GetArrayFromImageData(Image.FPData^));
+  begin
+    Result := GetImageCount;
+    DoInsertImages(Result, GetArrayFromImageData(Image.FPData^));
+  end
+  else
+    Result := -1;
 end;
 
 procedure TMultiImage.AddImages(const Images: TDynImageDataArray);
@@ -851,35 +858,35 @@ begin
   DoInsertImages(GetImageCount, Images.FDataArray);
 end;
 
-procedure TMultiImage.InsertImage(Index, AWidth, AHeight: LongInt;
+procedure TMultiImage.InsertImage(Index, AWidth, AHeight: Integer;
   AFormat: TImageFormat);
 begin
   DoInsertNew(Index, AWidth, AHeight, AFormat);
 end;
 
-procedure TMultiImage.InsertImage(Index: LongInt; const Image: TImageData);
+procedure TMultiImage.InsertImage(Index: Integer; const Image: TImageData);
 begin
   DoInsertImages(Index, GetArrayFromImageData(Image));
 end;
 
-procedure TMultiImage.InsertImage(Index: LongInt; Image: TBaseImage);
+procedure TMultiImage.InsertImage(Index: Integer; Image: TBaseImage);
 begin
   if Assigned(Image) and Image.Valid then
     DoInsertImages(Index, GetArrayFromImageData(Image.FPData^));
 end;
 
-procedure TMultiImage.InsertImages(Index: LongInt;
+procedure TMultiImage.InsertImages(Index: Integer;
   const Images: TDynImageDataArray);
 begin
   DoInsertImages(Index, FDataArray);
 end;
 
-procedure TMultiImage.InsertImages(Index: LongInt; Images: TMultiImage);
+procedure TMultiImage.InsertImages(Index: Integer; Images: TMultiImage);
 begin
   DoInsertImages(Index, Images.FDataArray);
 end;
 
-procedure TMultiImage.ExchangeImages(Index1, Index2: LongInt);
+procedure TMultiImage.ExchangeImages(Index1, Index2: Integer);
 var
   TempData: TImageData;
 begin
@@ -892,9 +899,9 @@ begin
   end;
 end;
 
-procedure TMultiImage.DeleteImage(Index: LongInt);
+procedure TMultiImage.DeleteImage(Index: Integer);
 var
-  I: LongInt;
+  I: Integer;
 begin
   if (Index >= 0) and (Index < GetImageCount) then
   begin
@@ -914,16 +921,16 @@ end;
 
 procedure TMultiImage.ConvertImages(Format: TImageFormat);
 var
-  I: LongInt;
+  I: Integer;
 begin
   for I := 0 to GetImageCount - 1 do
     Imaging.ConvertImage(FDataArray[I], Format);
 end;
 
-procedure TMultiImage.ResizeImages(NewWidth, NewHeight: LongInt;
+procedure TMultiImage.ResizeImages(NewWidth, NewHeight: Integer;
   Filter: TResizeFilter);
 var
-  I: LongInt;
+  I: Integer;
 begin
   for I := 0 to GetImageCount do
     Imaging.ResizeImage(FDataArray[I], NewWidth, NewHeight, Filter);
@@ -978,9 +985,9 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now
-    - add SetPalette, create some pal wrapper first
-    - put all low level stuff here like ReplaceColor etc, change
-      CopyTo to Copy, and add overload Copy(SrcRect, DstX, DstY) ...
+
+  -- 0.77.1 ---------------------------------------------------
+    - TMultiImage.AddImage now returns index of newly added image.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Added MapImageData method to TBaseImage

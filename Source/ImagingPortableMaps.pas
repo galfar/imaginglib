@@ -196,7 +196,6 @@ var
   Dest: PByte;
   MonoData: Pointer;
   Info: TImageFormatInfo;
-  PixelFP: TColor96FPRec;
   LineBuffer: array[0..LineBufferCapacity - 1] of AnsiChar;
   LineEnd, LinePos: LongInt;
   MapInfo: TPortableMapInfo;
