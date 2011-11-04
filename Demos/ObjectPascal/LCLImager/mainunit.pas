@@ -32,7 +32,7 @@ interface
 uses
   Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, Variants,
   Menus, ExtCtrls, ExtDlgs, DemoUtils, AboutUnit, ActnList, StdCtrls, ComCtrls,
-  PairSplitter, ImagingTypes, Imaging, ImagingClasses, ImagingComponents,
+  PairSplitter, FileUtil, ImagingTypes, Imaging, ImagingClasses, ImagingComponents,
   ImagingCanvases, ImagingBinary, ImagingUtility;
 
 type
@@ -239,6 +239,7 @@ type
     FImage: TMultiImage;
     FImageCanvas: TImagingCanvas;
     FFileName: string;
+    FFileSize: Integer;
     FParam1, FParam2, FParam3: Integer;
     procedure OpenFile(const FileName: string);
     procedure SaveFile(const FileName: string);
@@ -1050,6 +1051,7 @@ begin
   try
     T := GetTimeMicroseconds;
     FImage.LoadMultiFromFile(FileName);
+    FFileSize := FileSize(FileName);
     BuildImageTree;
     MeasureTime(Format('File %s opened in:', [ExtractFileName(FileName)]), T);
   except

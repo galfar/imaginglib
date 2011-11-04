@@ -48,7 +48,8 @@ type
     The pixel data may be stored uncompressed or using run length encoding.
 
     Imaging translates RGBE pixels to original float values and stores them
-    in ifR32G32B32F data format.}
+    in ifR32G32B32F data format. It can read both compressed and uncompressed
+    files, and saves files as compressed.}
   THdrFileFormat = class(TImageFileFormat)
   protected
     procedure Define; override;
@@ -336,7 +337,7 @@ var
     WriteLine(IO, Handle, AnsiString(Format(SSizeFmt, [ImageToSave.Height, ImageToSave.Width])), LineEnd);
   end;
 
-  procedure EncodeRgbe(const Src: TColor96FPRec; var Dest: TRgbe); {$IFDEF USE_INLINE}inline;{$ENDIF}
+  procedure EncodeRgbe(const Src: TColor96FPRec; var DestR, DestG, DestB, DestE: Byte); {$IFDEF USE_INLINE}inline;{$ENDIF}
   var
     V, M: {$IFDEF FPC}Float{$ELSE}Extended{$ENDIF};
     E: Integer;
@@ -349,35 +350,98 @@ var
 
     if V < 1e-32 then
     begin
-      Dest.R := 0;
-      Dest.G := 0;
-      Dest.B := 0;
-      Dest.E := 0;
+      DestR := 0;
+      DestG := 0;
+      DestB := 0;
+      DestE := 0;
     end
     else
     begin
       Frexp(V, M, E);
       V := M * 256.0 / V;
-      Dest.R := ClampToByte(Round(Src.R * V));
-      Dest.G := ClampToByte(Round(Src.G * V));
-      Dest.B := ClampToByte(Round(Src.B * V));
-      Dest.E := ClampToByte(E + 128);
+      DestR := ClampToByte(Round(Src.R * V));
+      DestG := ClampToByte(Round(Src.G * V));
+      DestB := ClampToByte(Round(Src.B * V));
+      DestE := ClampToByte(E + 128);
+    end;
+  end;
+
+  procedure WriteRleLine(const Line: array of Byte; Width: Integer);
+  const
+    MinRunLength = 4;
+  var
+    Cur, BeginRun, RunCount, OldRunCount, NonRunCount: Integer;
+    Buf: array[0..1] of Byte;
+  begin
+    Cur := 0;
+    while Cur < Width do
+    begin
+      BeginRun := Cur;
+      RunCount := 0;
+      OldRunCount := 0;
+      while (RunCount < MinRunLength) and (BeginRun < Width) do
+      begin
+        Inc(BeginRun, RunCount);
+        OldRunCount := RunCount;
+        RunCount := 1;
+        while (BeginRun + RunCount < Width) and (RunCount < 127) and (Line[BeginRun] = Line[BeginRun + RunCount]) do
+          Inc(RunCount);
+      end;
+      if (OldRunCount > 1) and (OldRunCount = BeginRun - Cur) then
+      begin
+        Buf[0] := 128 + OldRunCount;
+        Buf[1] := Line[Cur];
+        IO.Write(Handle, @Buf, 2);
+        Cur := BeginRun;
+      end;
+      while Cur < BeginRun do
+      begin
+        NonRunCount := Min(128, BeginRun - Cur);
+        Buf[0] := NonRunCount;
+        IO.Write(Handle, @Buf, 1);
+        IO.Write(Handle, @Line[Cur], NonRunCount);
+        Inc(Cur, NonRunCount);
+      end;
+      if RunCount >= MinRunLength then
+      begin
+        Buf[0] := 128 + RunCount;
+        Buf[1] := Line[BeginRun];
+        IO.Write(Handle, @Buf, 2);
+        Inc(Cur, RunCount);
+      end;
     end;
   end;
 
   procedure SavePixels;
   var
-    Y, X: Integer;
-    Line: TDynRgbeArray;
-    Ptr: PColor96FPRecArray;
+    Y, X, I, Width: Integer;
+    SrcPtr: PColor96FPRecArray;
+    Components: array of array of Byte;
+    StartLine: array[0..3] of Byte;
   begin
-    SetLength(Line, ImageToSave.Width);
+    Width := ImageToSave.Width;
+    // Save using RLE, each component is compressed separately
+    SetLength(Components, 4, Width);
+
     for Y := 0 to ImageToSave.Height - 1 do
     begin
-      Ptr := @PColor96FPRecArray(ImageToSave.Bits)[ImageToSave.Width * Y];
-      for X := 0 to ImageToSave.Width - 1 do
-        EncodeRgbe(Ptr[X], Line[X]);
-      IO.Write(Handle, @Line[0], ImageToSave.Width * SizeOf(TRgbe));
+      SrcPtr := @PColor96FPRecArray(ImageToSave.Bits)[ImageToSave.Width * Y];
+
+      // Identify line as using "new" RLE scheme (separate components)
+      StartLine[0] := 2;
+      StartLine[1] := 2;
+      StartLine[2] := Width shr 8;
+      StartLine[3] := Width and $FF;
+      IO.Write(Handle, @StartLine, SizeOf(StartLine));
+
+      for X := 0 to Width - 1 do
+      begin
+        EncodeRgbe(SrcPtr[X], Components[0, X], Components[1, X],
+          Components[2, X], Components[3, X]);
+      end;
+
+      for I := 0 to 3 do
+        WriteRleLine(Components[I], Width);
     end;
   end;
 
@@ -426,6 +490,7 @@ initialization
   File Notes:
 
   -- 0.77.1 ---------------------------------------------------
+    - Added RLE compression to saving.
     - Added image saving.
     - Unit created with initial stuff (loading only).
 

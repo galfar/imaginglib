@@ -120,8 +120,10 @@ object MainForm: TMainForm
         AutoExpand = True
         DefaultItemHeight = 17
         HotTrack = True
+        ParentShowHint = False
         ReadOnly = True
         RightClickSelect = True
+        ShowHint = True
         TabOrder = 0
         OnSelectionChanged = TreeImageSelectionChanged
         Options = [tvoAutoExpand, tvoAutoItemHeight, tvoHideSelection, tvoHotTrack, tvoKeepCollapsedNodes, tvoReadOnly, tvoRightClickSelect, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
