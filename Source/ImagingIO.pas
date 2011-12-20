@@ -351,8 +351,14 @@ begin
 
   case Mode of
     omReadOnly:  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
-    omCreate:    Stream := TFileStream.Create(FileName, fmCreate or fmShareDenyWrite);
-    omReadWrite: Stream := TFileStream.Create(FileName, fmOpenReadWrite or fmShareDenyWrite);
+    omCreate:    Stream := TFileStream.Create(FileName, fmCreate);
+    omReadWrite:
+      begin
+        if FileExists(FileName) then
+          Stream := TFileStream.Create(FileName, fmOpenReadWrite or fmShareExclusive)
+        else
+          Stream := TFileStream.Create(FileName, fmCreate);
+      end;
   end;
 
   Assert(Stream <> nil);

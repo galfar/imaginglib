@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   LCL Imager (ObjectPascal, high level/component sets/canvas, Win32/Linux/BSD)
-  tested in Lazarus 0.9.30 (Windows: Win32, Qt, Gtk2; Unix: Gtk)
+  tested in Lazarus 0.9.30.2 (Windows: Win32; Linux: Gtk2, Qt; OSX: Carbon)
   written by Marek Mauder
 
   Simple image manipulator program which shows usage of Imaging VCL/CLX/LCL
@@ -36,7 +36,6 @@ uses
   ImagingCanvases, ImagingBinary, ImagingUtility;
 
 type
-
   TManipulationType = (mtFlip, mtMirror, mtRotate90CW, mtRotate90CCW,
     mtFreeRotate, mtResize50, mtResize200, mtFreeResize,
     mtSwapRB, mtSwapRG, mtSwapGB, mtReduce1024,
@@ -46,7 +45,6 @@ type
     ptLevelsHigh, ptAlphaPreMult, ptAlphaUnPreMult);
   TNonLinearFilter = (nfMedian, nfMin, nfMax);
   TMorphology = (mpErode, mpDilate, mpOpen, mpClose);
-    
 
   { TMainForm }
   TMainForm = class(TForm)
@@ -136,6 +134,9 @@ type
     MenuItem85: TMenuItem;
     MenuItem86: TMenuItem;
     MenuItem87: TMenuItem;
+    MenuItem88: TMenuItem;
+    MenuItem89: TMenuItem;
+    MenuItem90: TMenuItem;
     MenuItemConvertAll: TMenuItem;
     PairSplitter: TPairSplitter;
     PairSplitterSideLeft: TPairSplitterSide;
@@ -163,6 +164,7 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormDropFiles(Sender: TObject; const FileNames: array of String);
+    procedure FormShow(Sender: TObject);
     procedure ImageClick(Sender: TObject);
     procedure MenuItem10Click(Sender: TObject);
     procedure MenuItem12Click(Sender: TObject);
@@ -233,6 +235,9 @@ type
     procedure MenuItem84Click(Sender: TObject);
     procedure MenuItem85Click(Sender: TObject);
     procedure MenuItem86Click(Sender: TObject);
+    procedure MenuItem88Click(Sender: TObject);
+    procedure MenuItem89Click(Sender: TObject);
+    procedure MenuItem90Click(Sender: TObject);
     procedure TreeImageSelectionChanged(Sender: TObject);
   private
     FBitmap: TImagingBitmap;
@@ -689,7 +694,7 @@ begin
   if (ParamCount > 0) and FileExists(ParamStr(1)) then
     OpenFile(ParamStr(1))
   else
-    OpenFile(GetDataDir + PathDelim + 'Tigers.jpg')
+    OpenFile(GetDataDir + PathDelim + 'Tigers.jpg');
 end;
 
 procedure TMainForm.FormatChangeClick(Sender: TObject);
@@ -879,6 +884,24 @@ begin
   Form.Free;
 end;
 
+procedure TMainForm.MenuItem88Click(Sender: TObject);
+begin
+  FParam1 := Ord(rfLanczos);
+  ApplyManipulation(mtResize50);
+end;
+
+procedure TMainForm.MenuItem89Click(Sender: TObject);
+begin
+  FParam1 := Ord(rfLanczos);
+  ApplyManipulation(mtResize200);
+end;
+
+procedure TMainForm.MenuItem90Click(Sender: TObject);
+begin
+  FParam1 := Ord(rfLanczos);
+  FreeResizeInput;
+end;
+
 procedure TMainForm.TreeImageSelectionChanged(Sender: TObject);
 var
   Node: TTreeNode;
@@ -927,6 +950,12 @@ procedure TMainForm.FormDropFiles(Sender: TObject;
 begin
   if Length(FileNames) > 0 then
     OpenFile(FileNames[0]);
+end;
+
+procedure TMainForm.FormShow(Sender: TObject);
+begin
+  if ClientWidth > 600 then
+    PairSplitterSideLeft.Width := 280;
 end;
 
 procedure TMainForm.ImageClick(Sender: TObject);
@@ -1125,6 +1154,7 @@ initialization
     - add more canvas stuff when it will be avaiable
 
   -- 0.77.1 Changes/Bug Fixes ---------------------------------
+    - Added Lanczos filtering option to resize image functions.
     - Added option to convert data format of all subimages by default.
     - UI enhancements: added TreeView with image/subimage list,
       added StatusBar instead of simple Panel.

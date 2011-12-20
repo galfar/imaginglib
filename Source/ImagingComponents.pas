@@ -336,8 +336,6 @@ uses
 {$IF Defined(LCL)}
   {$IF Defined(LCLGTK2)}
     GLib2, GDK2, GTK2, GTK2Def, GTK2Proc,
-  {$ELSEIF Defined(LCLGTK)}
-    GDK, GTK, GTKDef, GTKProc,
   {$IFEND}
 {$IFEND}
 {$IFNDEF DONT_LINK_BITMAP}
@@ -700,9 +698,14 @@ begin
       RawImage.Description.LineEnd);
     // Copy scanlines
     for I := 0 to Data.Height - 1 do
+    begin
       Move(PByteArray(RawImage.Data)[I * LineLazBytes],
         PByteArray(Data.Bits)[I * LineBytes], LineBytes);
-    { If you get complitation error here upgrade to Lazarus 0.9.24+ }
+    end;
+    // May need to swap RB order, depends on wifget set
+    if RawImage.Description.BlueShift > RawImage.Description.RedShift then
+      SwapChannels(Data, ChannelRed, ChannelBlue);
+
     RawImage.FreeData;
   end;
 {$ENDIF}
@@ -775,10 +778,9 @@ procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const Image
 begin
   DisplayImageDataOnDC(DstCanvas.Handle, DstRect, ImageData, SrcRect);
 end;
-{$ELSEIF Defined(LCLGTK) or Defined(LCLGTK2)}
-
+{$ELSEIF Defined(LCLGTK2)}
   type
-    TDeviceContext = {$IF Defined(LCLGTK2)}TGtk2DeviceContext{$ELSE}TGtkDeviceContext{$IFEND};
+    TDeviceContext = TGtk2DeviceContext;
 
   procedure GDKDrawBitmap(Dest: HDC; DstX, DstY: Integer; SrcX, SrcY,
     SrcWidth, SrcHeight: Integer; ImageData: TImageData);
@@ -1227,6 +1229,11 @@ finalization
   -- TODOS ----------------------------------------------------
     - nothing now
 
+  -- 0.77.1 ---------------------------------------------------
+    - Fixed bug in ConvertBitmapToData causing images from GTK2 bitmaps
+      to have swapped RB channels.
+    - LCL: Removed GTK1 support (deprecated).
+
   -- 0.26.3 Changes/Bug Fixes ---------------------------------
     - Transparency of 8bit images (like loaded from 8bit PNG or GIF) is
       kept intact during conversion to TBitmap in ConvertDataToBitmap
@@ -1284,4 +1291,4 @@ finalization
 }
 
 end.
-
+

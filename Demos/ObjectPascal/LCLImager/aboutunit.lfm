@@ -1,22 +1,18 @@
 object AboutForm: TAboutForm
-  Left = 786
-  Height = 288
-  Top = 409
+  Left = 358
+  Height = 320
+  Top = 253
   Width = 286
   ActiveControl = BitBtn1
   BorderIcons = []
   BorderStyle = bsSingle
   Caption = 'About'
-  ClientHeight = 288
+  ClientHeight = 320
   ClientWidth = 286
   Color = clWindow
-  Constraints.MaxHeight = 288
-  Constraints.MaxWidth = 286
-  Constraints.MinHeight = 288
-  Constraints.MinWidth = 286
   OnShow = FormShow
   Position = poMainFormCenter
-  LCLVersion = '0.9.30'
+  LCLVersion = '0.9.30.2'
   object Image: TImage
     Left = 48
     Height = 89
@@ -24,9 +20,9 @@ object AboutForm: TAboutForm
     Width = 188
   end
   object Image2: TImage
-    Left = 88
+    Left = 56
     Height = 48
-    Top = 184
+    Top = 208
     Width = 48
     Picture.Data = {
       055449636F6EBE1C00000000010001003030000000000000A81C000016000000
@@ -262,24 +258,24 @@ object AboutForm: TAboutForm
       FFFFFFFFFFFF0000
     }
   end
-  object ImLabel: TLabel
+  object labImaging: TLabel
     Left = 8
-    Height = 16
-    Top = 128
-    Width = 264
+    Height = 32
+    Top = 120
+    Width = 272
     Alignment = taCenter
     AutoSize = False
-    Caption = 'Vampyre Imaging Library version '
+    Caption = 'Vampyre Imaging Library'
     Font.Color = clBlack
     Font.Style = [fsBold]
     ParentColor = False
     ParentFont = False
   end
   object Label1: TLabel
-    Left = 144
-    Height = 46
-    Top = 188
-    Width = 72
+    Left = 112
+    Height = 56
+    Top = 208
+    Width = 136
     AutoSize = False
     Caption = 'Lazarus Imager Demo'
     Font.Color = clBlack
@@ -291,12 +287,13 @@ object AboutForm: TAboutForm
   object ImLabel1: TLabel
     Left = 8
     Height = 18
-    Top = 144
-    Width = 264
+    Top = 176
+    Width = 272
     Alignment = taCenter
     AutoSize = False
     Caption = 'http://imaginglib.sourceforge.net'
     Font.Color = clBlue
+    Font.Height = 13
     Layout = tlCenter
     ParentColor = False
     ParentFont = False
@@ -305,7 +302,7 @@ object AboutForm: TAboutForm
   object BitBtn1: TBitBtn
     Left = 104
     Height = 30
-    Top = 248
+    Top = 280
     Width = 75
     BorderSpacing.InnerBorder = 2
     Caption = '&Close'
@@ -313,4 +310,16 @@ object AboutForm: TAboutForm
     NumGlyphs = 0
     TabOrder = 0
   end
-end
+  object labVersion: TLabel
+    Left = 0
+    Height = 32
+    Top = 148
+    Width = 280
+    Alignment = taCenter
+    AutoSize = False
+    Caption = 'version'
+    Font.Color = clBlack
+    ParentColor = False
+    ParentFont = False
+  end
+end

@@ -16,8 +16,9 @@ type
     BitBtn1: TBitBtn;
     Image: TImage;
     Image2: TImage;
-    ImLabel: TLabel;
+    labImaging: TLabel;
     ImLabel1: TLabel;
+    labVersion: TLabel;
     Label1: TLabel;
     procedure FormShow(Sender: TObject);
   private
@@ -35,14 +36,16 @@ implementation
 
 procedure TAboutForm.FormShow(Sender: TObject);
 begin
-  ImLabel.Caption := 'Vampyre Imaging Library version ' + Imaging.GetVersionStr;
+  labVersion.Caption := 'version ' + Imaging.GetVersionStr;
   if Image.Picture.Graphic = nil then
+  begin
     Image.Picture.LoadFromFile(GetRootDir + PathDelim + 'Doc' + PathDelim +
       'Common' + PathDelim + 'logo.png');
+  end;
 end;
 
 initialization
   {$I aboutunit.lrs}
 
 end.
-
+

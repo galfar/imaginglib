@@ -583,7 +583,7 @@ const
   { Delay for frame of animation (how long it should stay visible) in milliseconds.
     Type of value is Integer.}
   SMetaFrameDelay = 'FrameDelay';
-  { Number of times animation should be looped (0 = infinite looping).}
+  { Number of times animation should be looped (0 = infinite looping). Type is Int. }
   SMetaAnimationLoops = 'AnimationLoops';
   { Gamma correction value. Type is Float.}
   SMetaGamma = 'Gamma';

@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 491
+  Left = 576
   Height = 512
-  Top = 243
+  Top = 344
   Width = 768
   AllowDropFiles = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
@@ -86,8 +86,10 @@ object MainForm: TMainForm
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnDropFiles = FormDropFiles
+  OnShow = FormShow
   Position = poDesktopCenter
-  LCLVersion = '0.9.30'
+  LCLVersion = '0.9.30.2'
+  Visible = True
   WindowState = wsMaximized
   object StatusBar: TStatusBar
     Left = 0
@@ -268,6 +270,10 @@ object MainForm: TMainForm
           Caption = 'Bicubic'
           OnClick = MenuItem28Click
         end
+        object MenuItem88: TMenuItem
+          Caption = 'Lanczos'
+          OnClick = MenuItem88Click
+        end
       end
       object MenuItem22: TMenuItem
         Caption = 'Resize To 200%'
@@ -283,6 +289,10 @@ object MainForm: TMainForm
           Caption = 'Bicubic'
           OnClick = MenuItem31Click
         end
+        object MenuItem89: TMenuItem
+          Caption = 'Lanczos'
+          OnClick = MenuItem89Click
+        end
       end
       object MenuItem81: TMenuItem
         Caption = 'Free Resize'
@@ -297,6 +307,10 @@ object MainForm: TMainForm
         object MenuItem85: TMenuItem
           Caption = 'Bicubic'
           OnClick = MenuItem85Click
+        end
+        object MenuItem90: TMenuItem
+          Caption = 'Lanczos'
+          OnClick = MenuItem90Click
         end
       end
       object MenuItem12: TMenuItem

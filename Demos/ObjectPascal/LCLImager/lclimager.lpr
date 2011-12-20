@@ -12,12 +12,11 @@ program LCLImager;
 uses
   Interfaces, // this includes the LCL widgetset
   Forms
-  { add your units here }, MainUnit, AboutUnit, LResources;
+  { add your units here }, MainUnit, AboutUnit;
 
 {$IFDEF WINDOWS}{$R lclimager.rc}{$ENDIF}
 
 begin
-  {$I lclimager.lrs}
   Application.Title := 'LCL Imager';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);

@@ -1141,7 +1141,7 @@ var
     BlockSize, LoopExtId: Byte;
     Repeats: Word;
   begin
-    if FMetadata.HasMetaItem(SMetaAnimationLoops) then
+    if FMetadata.HasMetaItemForSave(SMetaAnimationLoops) then
     with GetIO do
     begin
       FillChar(AppExt, SizeOf(AppExt), 0);
@@ -1253,7 +1253,8 @@ initialization
     - nothing now
 
   -- 0.77 Changes/Bug Fixes -----------------------------------
-    - Writes frame delays of GIF animations from metadata
+    - Fixed crash when resaving GIF with animation metadata.
+    - Writes frame delays of GIF animations from metadata.
     - Reads and writes looping of GIF animations stored into/from metadata.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
@@ -1287,4 +1288,4 @@ initialization
     - Unit created with initial stuff!
 }
 
-end.
+end.
