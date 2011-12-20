@@ -342,9 +342,7 @@ end;
 procedure TJpegFileFormat.Define;
 begin
   FName := SJpegFormatName;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad, ffSave];
   FSupportedFormats := JpegSupportedFormats;
 
   FQuality := JpegDefaultQuality;

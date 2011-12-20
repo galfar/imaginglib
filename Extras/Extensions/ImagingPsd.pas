@@ -128,9 +128,7 @@ procedure TPSDFileFormat.Define;
 begin
   inherited;
   FName := SPSDFormatName;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad, ffSave];
   FSupportedFormats := PSDSupportedFormats;
   AddMasks(SPSDMasks);
 

@@ -119,7 +119,7 @@ type
 procedure TTextureFileFormat.Define;
 begin
   inherited;
-  FCanSave := False;
+  FFeatures := [ffLoad, ffMultiImage];
   FName := STextureFormatName;
   AddMasks(STextureMasks);
 end;

@@ -220,9 +220,7 @@ procedure TGIFFileFormat.Define;
 begin
   inherited;
   FName := SGIFFormatName;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := True;
+  FFeatures := [ffLoad, ffSave, ffMultiImage];
   FSupportedFormats := GIFSupportedFormats;
   FLoadAnimated := GIFDefaultLoadAnimated;
 

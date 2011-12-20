@@ -83,6 +83,10 @@ const
     It is number in range 1..100. 1 means small/ugly file,
     100 means large/nice file. Accessible trough ImagingTiffJpegQuality option.}
   ImagingTiffJpegQuality             = 66;
+  { When activated (True = 1) existing TIFF files are not overwritten when saving but
+    new images are instead appended thus producing multipage TIFFs.
+    Default value is False (0).}
+  ImagingTiffAppendMode              = 67;
   { If enabled image data is saved as layer of PSD file. This is required
     to get proper transparency when opened in Photoshop for images with
     alpha data (will be opened with one layer, RGB color channels, and transparency).
@@ -117,8 +121,11 @@ uses
 {
   File Notes:
 
- -- TODOS ----------------------------------------------------
+ -- TODOS -----------------------------------------------------
     - nothing now
+
+  -- 0.77 -----------------------------------------------------
+    - Added ImagingTiffAppendMode option.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Added Group 4 Fax encoding as compression for TIFF files.

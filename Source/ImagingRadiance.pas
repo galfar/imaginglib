@@ -107,8 +107,7 @@ procedure THdrFileFormat.Define;
 begin
   inherited;
   FName := SHdrFormatName;
-  FCanLoad := True;
-  FCanSave := True;
+  FFeatures := [ffLoad, ffSave];
   FSupportedFormats := HdrSupportedFormats;
 
   AddMasks(SHdrMasks);

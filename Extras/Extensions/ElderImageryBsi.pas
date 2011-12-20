@@ -112,9 +112,7 @@ procedure TBSIFileFormat.Define;
 begin
   inherited;
   FName := SBSIFormatName;
-  FCanLoad := True;
-  FCanSave := False;
-  FIsMultiImageFormat := True;
+  FFeatures := [ffLoad, ffMultiImage];
 
   AddMasks(SBSIMasks);
   SetPalette(RedguardPalette);

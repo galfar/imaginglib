@@ -105,9 +105,7 @@ procedure TJpeg2000FileFormat.Define;
 begin
   inherited;
   FName := SJpeg2000FormatName;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad, ffSave];
   FSupportedFormats := Jpeg2000SupportedFormats;
 
   FQuality := Jpeg2000DefaultQuality;

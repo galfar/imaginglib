@@ -30,6 +30,7 @@ __history
 *.bak
 *.exe
 *.deployproj
+*.lps
 
 Doc/*.chm
 Doc/*.chw

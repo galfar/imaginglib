@@ -1134,7 +1134,7 @@ var
       JpegFormat := TCustomIOJpegFileFormat.Create;
       JpegFormat.SetCustomIO(StreamIO);
       Stream.Position := 0;
-      Handle := StreamIO.OpenRead(Pointer(Stream));
+      Handle := StreamIO.Open(Pointer(Stream), omReadOnly);
       try
         JpegFormat.LoadData(Handle, DynImages, True);
         DestImage := DynImages[0];
@@ -1559,7 +1559,7 @@ var
     JpegFormat.FQuality := Quality;
     SetLength(DynImages, 1);
     DynImages[0] := Image;
-    Handle := StreamIO.OpenWrite(Pointer(Stream));
+    Handle := StreamIO.Open(Pointer(Stream), omCreate);
     try
       JpegFormat.SaveData(Handle, DynImages, 0);
     finally
@@ -2131,9 +2131,7 @@ end;
 procedure TNetworkGraphicsFileFormat.Define;
 begin
   inherited;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad, ffSave];
 
   FPreFilter := NGDefaultPreFilter;
   FCompressLevel := NGDefaultCompressLevel;
@@ -2230,7 +2228,7 @@ procedure TPNGFileFormat.Define;
 begin
   inherited;
   FName := SPNGFormatName;
-  FIsMultiImageFormat := True;
+  FFeatures := FFeatures + [ffMultiImage];
   FLoadAnimated := PNGDefaultLoadAnimated;
   AddMasks(SPNGMasks);
 
@@ -2381,7 +2379,7 @@ procedure TMNGFileFormat.Define;
 begin
   inherited;
   FName := SMNGFormatName;
-  FIsMultiImageFormat := True;
+  FFeatures := FFeatures + [ffMultiImage];
   AddMasks(SMNGMasks);
 
   FSignature := MNGSignature;

@@ -309,8 +309,7 @@ function GetPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
 
 { User can set his own file IO functions used when loading from/saving to
   files by this function.}
-procedure SetUserFileIO(OpenReadProc: TOpenReadProc; OpenWriteProc:
-  TOpenWriteProc; CloseProc: TCloseProc; EofProc: TEofProc; SeekProc:
+procedure SetUserFileIO(OpenProc: TOpenProc; CloseProc: TCloseProc; EofProc: TEofProc; SeekProc:
   TSeekProc; TellProc: TTellProc; ReadProc: TReadProc; WriteProc: TWriteProc);
 { Sets file IO functions to Imaging default.}
 procedure ResetFileIO;
@@ -347,8 +346,7 @@ type
 
   { Record containg set of IO functions internaly used by image loaders/savers.}
   TIOFunctions = record
-    OpenRead: TOpenReadProc;
-    OpenWrite: TOpenWriteProc;
+    Open: TOpenProc;
     Close: TCloseProc;
     Eof: TEofProc;
     Seek: TSeekProc;
@@ -359,6 +357,14 @@ type
   PIOFunctions = ^TIOFunctions;
 
 type
+  TFileFormatFeature = (
+    ffLoad,
+    ffSave,
+    ffMultiImage,
+    ffReadOnSave);
+
+  TFileFormatFeatures = set of TFileFormatFeature;
+
   TMetadata = class;
 
   { Base class for various image file format loaders/savers which
@@ -370,6 +376,9 @@ type
   private
     FExtensions: TStringList;
     FMasks: TStringList;
+    function GetCanLoad: Boolean;
+    function GetCanSave: Boolean;
+    function GetIsMultiImageFormat: Boolean;
     { Does various checks and actions before LoadData method is called.}
     function PrepareLoad(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstFrame: Boolean): Boolean;
@@ -379,11 +388,11 @@ type
       index and sets FFirstIdx and FLastIdx for multi-images).}
     function PrepareSave(Handle: TImagingHandle; const Images: TDynImageDataArray;
       var Index: LongInt): Boolean;
+    { Returns file open mode used for saving images. Depends on defined Features.}
+    function GetSaveOpenMode: TOpenMode;
   protected
     FName: string;
-    FCanLoad: Boolean;
-    FCanSave: Boolean;
-    FIsMultiImageFormat: Boolean;
+    FFeatures: TFileFormatFeatures;
     FSupportedFormats: TImageFormats;
     FFirstIdx, FLastIdx: LongInt;
     FMetadata: TMetadata;
@@ -483,14 +492,14 @@ type
     { Description of this format.}
     property Name: string read FName;
     { Indicates whether images in this format can be loaded.}
-    property CanLoad: Boolean read FCanLoad;
+    property CanLoad: Boolean read GetCanLoad;
     { Indicates whether images in this format can be saved.}
-    property CanSave: Boolean read FCanSave;
+    property CanSave: Boolean read GetCanSave;
     { Indicates whether images in this format can contain multiple image levels.}
-    property IsMultiImageFormat: Boolean read FIsMultiImageFormat;
+    property IsMultiImageFormat: Boolean read GetIsMultiImageFormat;
     { List of filename extensions for this format.}
     property Extensions: TStringList read FExtensions;
-    { List of filename mask that are used to associate filenames
+    { List of filename masks that are used to associate filenames
       with TImageFileFormat descendants. Typical mask looks like
       '*.bmp' or 'texture.*' (supports file formats which use filename instead
       of extension to identify image files).}
@@ -937,7 +946,7 @@ begin
   Result := '';
   SetFileIO;
   try
-    Handle := IO.OpenRead(PChar(FileName));
+    Handle := IO.Open(PChar(FileName), omReadOnly);
     try
       // First file format according to FileName and test if the data in
       // file is really in that format
@@ -978,7 +987,7 @@ begin
   Result := '';
   SetStreamIO;
   try
-    Handle := IO.OpenRead(Pointer(Stream));
+    Handle := IO.Open(Pointer(Stream), omReadOnly);
     try
       for I := 0 to ImageFileFormats.Count - 1 do
       begin
@@ -1011,7 +1020,7 @@ begin
   IORec.Position := 0;
   IORec.Size := Size;
   try
-    Handle := IO.OpenRead(@IORec);
+    Handle := IO.Open(@IORec, omReadOnly);
     try
       for I := 0 to ImageFileFormats.Count - 1 do
       begin
@@ -1451,7 +1460,7 @@ begin
     if OldFmt <> Format then
       ConvertImage(Image, OldFmt);
 
-    Result := True;  
+    Result := True;
   except
     RaiseImaging(SErrorFlipImage, [ImageToStr(Image)]);
   end;
@@ -2721,13 +2730,11 @@ end;
 
 { IO Functions }
 
-procedure SetUserFileIO(OpenReadProc: TOpenReadProc; OpenWriteProc:
-  TOpenWriteProc;
+procedure SetUserFileIO(OpenProc: TOpenProc;
   CloseProc: TCloseProc; EofProc: TEofProc; SeekProc: TSeekProc; TellProc:
   TTellProc; ReadProc: TReadProc; WriteProc: TWriteProc);
 begin
-  FileIO.OpenRead := OpenReadProc;
-  FileIO.OpenWrite := OpenWriteProc;
+  FileIO.Open := OpenProc;
   FileIO.Close := CloseProc;
   FileIO.Eof := EofProc;
   FileIO.Seek := SeekProc;
@@ -2776,7 +2783,7 @@ begin
   Assert(FileName <> '');
   // Set IO ops to file ops and open given file
   SetFileIO;
-  Handle := IO.OpenRead(PChar(FileName));
+  Handle := IO.Open(PChar(FileName), omReadOnly);
   try
     ReadRawImage(Handle, Width, Height, Format, Image, Offset, RowLength);
   finally
@@ -2794,7 +2801,7 @@ begin
     RaiseImaging(SErrorEmptyStream, []);
   // Set IO ops to stream ops and open given stream
   SetStreamIO;
-  Handle := IO.OpenRead(Pointer(Stream));
+  Handle := IO.Open(Pointer(Stream), omReadOnly);
   try
     ReadRawImage(Handle, Width, Height, Format, Image, Offset, RowLength);
   finally
@@ -2812,7 +2819,7 @@ begin
   // Set IO ops to memory ops and open given stream
   SetMemoryIO;
   MemRec := PrepareMemIO(Data, DataSize);
-  Handle := IO.OpenRead(@MemRec);
+  Handle := IO.Open(@MemRec, omReadOnly);
   try
     ReadRawImage(Handle, Width, Height, Format, Image, Offset, RowLength);
   finally
@@ -2880,7 +2887,7 @@ begin
   Assert(FileName <> '');
   // Set IO ops to file ops and open given file
   SetFileIO;
-  Handle := IO.OpenWrite(PChar(FileName));
+  Handle := IO.Open(PChar(FileName), omCreate);
   try
     WriteRawImage(Handle, Image, Offset, RowLength);
   finally
@@ -2896,7 +2903,7 @@ begin
   Assert(Stream <> nil);
   // Set IO ops to stream ops and open given stream
   SetStreamIO;
-  Handle := IO.OpenRead(Pointer(Stream));
+  Handle := IO.Open(Pointer(Stream), omCreate);
   try
     WriteRawImage(Handle, Image, Offset, RowLength);
   finally
@@ -2914,7 +2921,7 @@ begin
   // Set IO ops to memory ops and open given stream
   SetMemoryIO;
   MemRec := PrepareMemIO(Data, DataSize);
-  Handle := IO.OpenRead(@MemRec);
+  Handle := IO.Open(@MemRec, omCreate);
   try
     WriteRawImage(Handle, Image, Offset, RowLength);
   finally
@@ -3331,7 +3338,7 @@ var
 begin
   CheckOptionsValidity;
   Result := False;
-  if FCanSave then
+  if CanSave then
   begin
     Len := Length(Images);
     Assert(Len > 0);
@@ -3340,7 +3347,7 @@ begin
     if Len = 0 then Exit;
 
     // Check index of image to be saved (-1 as index means save all images)
-    if FIsMultiImageFormat then
+    if IsMultiImageFormat then
     begin
       if (Index >= Len) then
         Index := 0;
@@ -3358,8 +3365,10 @@ begin
       end;
 
       for I := FFirstIdx to FLastIdx - 1 do
+      begin
         if not TestImage(Images[I]) then
           Exit;
+      end;
     end
     else
     begin
@@ -3431,11 +3440,11 @@ var
   Handle: TImagingHandle;
 begin
   Result := False;
-  if FCanLoad then
+  if CanLoad then
   try
     // Set IO ops to file ops and open given file
     SetFileIO;
-    Handle := IO.OpenRead(PChar(FileName));
+    Handle := IO.Open(PChar(FileName), omReadOnly);
     try
       // Test if file contains valid image and if so then load it
       if TestFormat(Handle) then
@@ -3462,11 +3471,11 @@ var
 begin
   Result := False;
   OldPosition := Stream.Position;
-  if FCanLoad then
+  if CanLoad then
   try
     // Set IO ops to stream ops and "open" given memory
     SetStreamIO;
-    Handle := IO.OpenRead(Pointer(Stream));
+    Handle := IO.Open(Pointer(Stream), omReadOnly);
     try
       // Test if stream contains valid image and if so then load it
       if TestFormat(Handle) then
@@ -3494,12 +3503,12 @@ var
   IORec: TMemoryIORec;
 begin
   Result := False;
-  if FCanLoad then
+  if CanLoad then
   try
     // Set IO ops to memory ops and "open" given memory
     SetMemoryIO;
     IORec := PrepareMemIO(Data, Size);
-    Handle := IO.OpenRead(@IORec);
+    Handle := IO.Open(@IORec,omReadOnly);
     try
       // Test if memory contains valid image and if so then load it
       if TestFormat(Handle) then
@@ -3526,14 +3535,14 @@ var
   Ext, FName: string;
 begin
   Result := False;
-  if FCanSave and TestImagesInArray(Images) then
+  if CanSave and TestImagesInArray(Images) then
   try
     SetFileIO;
     Len := Length(Images);
-    if FIsMultiImageFormat or
-      (not FIsMultiImageFormat and (OnlyFirstLevel or (Len = 1))) then
+    if IsMultiImageFormat or
+      (not IsMultiImageFormat and (OnlyFirstLevel or (Len = 1))) then
     begin
-      Handle := IO.OpenWrite(PChar(FileName));
+      Handle := IO.Open(PChar(FileName), GetSaveOpenMode);
       try
         if OnlyFirstLevel then
           Index := 0
@@ -3553,7 +3562,7 @@ begin
       Result := True;
       for I := 0 to Len - 1 do
       begin
-        Handle := IO.OpenWrite(PChar(Format(FName + '%.3d' + Ext, [I])));
+        Handle := IO.Open(PChar(Format(FName + '%.3d' + Ext, [I])), GetSaveOpenMode);
         try
           Index := I;
           Result := Result and PrepareSave(Handle, Images, Index) and
@@ -3579,12 +3588,12 @@ var
 begin
   Result := False;
   OldPosition := Stream.Position;
-  if FCanSave and TestImagesInArray(Images) then
+  if CanSave and TestImagesInArray(Images) then
   try
     SetStreamIO;
-    Handle := IO.OpenWrite(PChar(Stream));
+    Handle := IO.Open(PChar(Stream), GetSaveOpenMode);
     try
-      if FIsMultiImageFormat or OnlyFirstLevel then
+      if IsMultiImageFormat or OnlyFirstLevel then
       begin
         if OnlyFirstLevel then
           Index := 0
@@ -3624,13 +3633,13 @@ var
   IORec: TMemoryIORec;
 begin
   Result := False;
-  if FCanSave and TestImagesInArray(Images) then
+  if CanSave and TestImagesInArray(Images) then
   try
     SetMemoryIO;
     IORec := PrepareMemIO(Data, Size);
-    Handle := IO.OpenWrite(PChar(@IORec));
+    Handle := IO.Open(PChar(@IORec), GetSaveOpenMode);
     try
-      if FIsMultiImageFormat or OnlyFirstLevel then
+      if IsMultiImageFormat or OnlyFirstLevel then
       begin
         if OnlyFirstLevel then
           Index := 0
@@ -3726,6 +3735,28 @@ procedure TImageFileFormat.CheckOptionsValidity;
 begin
 end;
 
+function TImageFileFormat.GetCanLoad: Boolean;
+begin
+  Result := ffLoad in FFeatures;
+end;
+
+function TImageFileFormat.GetCanSave: Boolean;
+begin
+  Result := ffSave in FFeatures;
+end;
+
+function TImageFileFormat.GetIsMultiImageFormat: Boolean;
+begin
+  Result := ffMultiImage in FFeatures;
+end;
+
+function TImageFileFormat.GetSaveOpenMode: TOpenMode;
+begin
+  if ffReadOnSave in FFeatures then
+    Result := omReadWrite
+  else
+    Result := omCreate;
+end;
 
 { TOptionStack  class implementation }
 
@@ -4023,6 +4054,7 @@ finalization
     - nothing now
 
   -- 0.77.1 ---------------------------------------------------
+    - Updated IO Open functions according to changes in ImagingTypes.
     - Fixed bug in SplitImage that could cause wrong size of edge chunks.
     - Metadata support fixes and extensions (frame delays, animation loops).
 

@@ -58,6 +58,7 @@ type
   TDynByteArray = array of Byte;
   TDynIntegerArray = array of Integer;
   TDynBooleanArray = array of Boolean;
+  TDynStringArray = array of string;
   
   TWordRec = packed record
     case Integer of
@@ -247,6 +248,8 @@ function Iff(Condition: Boolean; const TruePart, FalsePart: Int64): Int64; overl
 { If Condition is True then TruePart is retured, otherwise
   FalsePart is returned.}
 function IffFloat(Condition: Boolean; TruePart, FalsePart: Single): Single; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Swaps two Boolean values}
+procedure SwapValues(var A, B: Boolean); overload;
 { Swaps two Byte values}
 procedure SwapValues(var A, B: Byte); overload;
 { Swaps two Word values}
@@ -276,6 +279,8 @@ procedure FillMemoryByte(Data: Pointer; Size: LongInt; Value: Byte);
 procedure FillMemoryWord(Data: Pointer; Size: LongInt; Value: Word);
 { Fills given memory with given LongWord value. Size is size of buffer in bytes.}
 procedure FillMemoryLongWord(Data: Pointer; Size: LongInt; Value: LongWord);
+{ Fills given memory zeroes.}
+procedure ZeroMemory(Data: Pointer; Size: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { Returns how many mipmap levels can be created for image of given size.}
 function GetNumMipMapLevels(Width, Height: LongInt): LongInt;
@@ -934,6 +939,15 @@ begin
     Result := FalsePart;
 end;
 
+procedure SwapValues(var A, B: Boolean);
+var
+  Tmp: Boolean;
+begin
+  Tmp := A;
+  A := B;
+  B := Tmp;
+end;
+
 procedure SwapValues(var A, B: Byte);
 var
   Tmp: Byte;
@@ -1271,6 +1285,11 @@ begin
 end;
 {$ENDIF}
 
+procedure ZeroMemory(Data: Pointer; Size: Integer);
+begin
+  FillMemoryByte(Data, Size, 0);
+end;
+
 function GetNumMipMapLevels(Width, Height: LongInt): LongInt;
 begin
   Result := 0;
@@ -1539,7 +1558,8 @@ initialization
   -- TODOS ----------------------------------------------------
     - nothing now
 
-  -- 0.77.1 Changes/Bug Fixes -----------------------------------
+  -- 0.77.1 ----------------------------------------------------
+    - Added ZeroMemory and SwapValues for Booleans.
     - Added Substring function.
     - Renamed MatchFileNameMask to StrMaskMatch (it's for general use not
       just filenames).

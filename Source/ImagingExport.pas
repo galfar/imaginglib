@@ -190,9 +190,8 @@ function ImGetImageFormatInfo(Format: TImageFormat; var Info: TImageFormatInfo):
 function ImGetPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; cdecl;
 
 { Look at SetUserFileIO for details.}
-procedure ImSetUserFileIO(OpenReadProc: TOpenReadProc; OpenWriteProc:
-  TOpenWriteProc; CloseProc: TCloseProc; EofProc: TEofProc; SeekProc: TSeekProc;
-  TellProc: TTellProc; ReadProc: TReadProc; WriteProc: TWriteProc); cdecl;
+procedure ImSetUserFileIO(OpenProc: TOpenProc; CloseProc: TCloseProc; EofProc: TEofProc;
+  SeekProc: TSeekProc; TellProc: TTellProc; ReadProc: TReadProc; WriteProc: TWriteProc); cdecl;
 { Look at ResetFileIO for details.}
 procedure ImResetFileIO; cdecl;
 
@@ -838,12 +837,11 @@ begin
   end;
 end;
 
-procedure ImSetUserFileIO(OpenReadProc: TOpenReadProc; OpenWriteProc:
-  TOpenWriteProc; CloseProc: TCloseProc; EofProc: TEofProc; SeekProc: TSeekProc;
+procedure ImSetUserFileIO(OpenProc: TOpenProc; CloseProc: TCloseProc; EofProc: TEofProc; SeekProc: TSeekProc;
   TellProc: TTellProc; ReadProc: TReadProc; WriteProc: TWriteProc);
 begin
   try
-    Imaging.SetUserFileIO(OpenReadProc, OpenWriteProc, CloseProc, EofProc,
+    Imaging.SetUserFileIO(OpenProc, CloseProc, EofProc,
       SeekProc, TellProc, ReadProc, WriteProc);
   except
   end;
@@ -862,6 +860,9 @@ end;
 
   -- TODOS ----------------------------------------------------
     - nothing now 
+
+  -- 0.77.1 ---------------------------------------------------
+    - IO functions updates.
 
   -- 0.26.3 ---------------------------------------------------
     - changed PChars to PAnsiChars and some more D2009 friendly

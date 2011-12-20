@@ -138,9 +138,7 @@ procedure TBitmapFileFormat.Define;
 begin
   inherited;
   FName := SBitmapFormatName;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad, ffSave];
   FSupportedFormats := BitmapSupportedFormats;
 
   FUseRLE := BitmapDefaultRLE;

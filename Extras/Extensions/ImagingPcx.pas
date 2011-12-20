@@ -80,9 +80,7 @@ procedure TPCXFileFormat.Define;
 begin
   inherited;
   FName := SPCXFormatName;
-  FCanLoad := True;
-  FCanSave := False;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad];
 
   AddMasks(SPCXMasks);
 end;

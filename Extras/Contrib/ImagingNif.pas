@@ -44,9 +44,7 @@ procedure TNIFFileFormat.Define;
 begin
   inherited;
   FName := SNIFFormatName;
-  FCanLoad := True;
-  FCanSave := False;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad];
 
   AddMasks(SNIFMasks);
 end;

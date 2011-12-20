@@ -208,9 +208,7 @@ procedure TXPMFileFormat.Define;
 begin
   inherited;
   FName := SXPMFormatName;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad, ffSave];
   FSupportedFormats := XPMSupportedFormats;
 
   AddMasks(SXPMMasks);

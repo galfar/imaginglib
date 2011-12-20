@@ -46,6 +46,7 @@ type
   private
     FCompression: Integer;
     FJpegQuality: Integer;
+    FAppendMode: LongBool;
   protected
     procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
@@ -57,7 +58,8 @@ type
   public
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     { Specifies compression scheme used when saving TIFF images. Supported values
-      are 0 (Uncompressed), 1 (LZW), 2 (PackBits RLE), 3 (Deflate - ZLib), 4 (JPEG).
+      are 0 (Uncompressed), 1 (LZW), 2 (PackBits RLE), 3 (Deflate - ZLib), 4 (JPEG),
+      5 (CCITT Group 4 fax encoding - for binary images only).
       Default is 1 (LZW). Note that not all images can be stored with
       JPEG compression - these images will be saved with default compression if
       JPEG is set.}
@@ -66,6 +68,10 @@ type
       It is number in range 1..100. 1 means small/ugly file,
       100 means large/nice file. Accessible trough ImagingTiffJpegQuality option.}
     property JpegQuality: Integer read FJpegQuality write FJpegQuality;
+    { When activated (True = 1) existing TIFF files are not overwritten when saving but
+      new images are instead appended thus producing multipage TIFFs.
+      Default value is False (0).}
+    property AppendMode: LongBool read FAppendMode write FAppendMode;
   end;
 
 implementation
@@ -73,11 +79,12 @@ implementation
 const
   STiffFormatName = 'Tagged Image File Format';
   STiffMasks      = '*.tif,*.tiff';
-  TiffSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8, 
+  TiffSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8,
     ifGray16, ifA16Gray16, ifGray32, ifR8G8B8, ifA8R8G8B8, ifR16G16B16,
     ifA16R16G16B16, ifR32F, ifA32R32G32B32F, ifR16F, ifA16R16G16B16F, ifBinary];
   TiffDefaultCompression = 1;
   TiffDefaultJpegQuality = 90;
+  TiffDefaultAppendMode = False;
 
 const
   TiffBEMagic: TChar4 = 'MM'#0#42;
@@ -128,7 +135,7 @@ begin
   Result := PTiffIOWrapper(Fd).IO.Seek(PTiffIOWrapper(Fd).Handle, Offset, Mode);
 end;
 
-function  TIFFCloseProc(Fd: Cardinal): Integer; cdecl;
+function TIFFCloseProc(Fd: Cardinal): Integer; cdecl;
 begin
   Result := 0;
 end;
@@ -158,16 +165,16 @@ procedure TTiffFileFormat.Define;
 begin
   inherited;
   FName := STiffFormatName;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := True;
+  FFeatures := [ffLoad, ffSave, ffMultiImage, ffReadOnSave { needed for Append mode }];
   FSupportedFormats := TiffSupportedFormats;
   FCompression := TiffDefaultCompression;
   FJpegQuality := TiffDefaultJpegQuality;
+  FAppendMode := TiffDefaultAppendMode;
 
   AddMasks(STiffMasks);
   RegisterOption(ImagingTiffCompression, @FCompression);
   RegisterOption(ImagingTiffJpegQuality, @FJpegQuality);
+  RegisterOption(ImagingTiffAppendMode, @FAppendMode);
 end;
 
 function TTiffFileFormat.LoadData(Handle: TImagingHandle;
@@ -397,6 +404,7 @@ var
   RowsPerStrip: LongWord;
   Red, Green, Blue: array[Byte] of TWordRec;
   CompressionMismatch: Boolean;
+  OpenMode: PAnsiChar;
 
   procedure SaveMetadata(Tiff: PTiff; TiffPage: Integer);
   var
@@ -429,7 +437,11 @@ begin
   IOWrapper.IO := GetIO;
   IOWrapper.Handle := Handle;
 
-  Tiff := TIFFClientOpen('LibTIFF', 'w', Cardinal(@IOWrapper), @TIFFReadProc,
+  OpenMode := 'w';
+  if FAppendMode then
+    OpenMode := 'a';
+
+  Tiff := TIFFClientOpen('LibTIFF', OpenMode, Cardinal(@IOWrapper), @TIFFReadProc,
     @TIFFWriteProc, @TIFFSeekProc, @TIFFCloseProc,
     @TIFFSizeProc, @TIFFNoMapProc, @TIFFNoUnmapProc);
 
@@ -564,7 +576,9 @@ initialization
   -- TODOS ----------------------------------------------------
     - nothing now
 
-  -- 0.77 Changes/Bug Fixes -----------------------------------
+  -- 0.77.1 ----------------------------------------------------
+    - Added TIFF Append mode: when saving existing files are not
+      overwritten but images are appended to TIFF instead.
     - Images in ifBinary format are now supported for loading/saving
       (optional Group 4 fax encoding added).
     - PHOTOMETRIC_MINISWHITE is now properly read as Grayscale/Binary

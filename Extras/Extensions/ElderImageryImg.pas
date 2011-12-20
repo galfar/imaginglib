@@ -90,7 +90,7 @@ resourcestring
 procedure TIMGFileFormat.Define;
 begin
   inherited;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad, ffSave];
   FName := SIMGFormatName;
   AddMasks(SIMGMasks);
 end;

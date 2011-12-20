@@ -102,9 +102,7 @@ procedure TTargaFileFormat.Define;
 begin
   inherited;
   FName := STargaFormatName;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad, ffSave];
   FSupportedFormats := TargaSupportedFormats;
 
   FUseRLE := TargaDefaultRLE;

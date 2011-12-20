@@ -71,7 +71,7 @@ const
 procedure TSKYFileFormat.Define;
 begin
   inherited;
-  FCanSave := False;
+  FFeatures := [ffLoad, ffMultiImage];
   FName := SSKYFormatName;
   AddMasks(SSKYMasks);
 end;

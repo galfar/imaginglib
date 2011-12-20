@@ -182,9 +182,7 @@ const
 procedure TPortableMapFileFormat.Define;
 begin
   inherited;
-  FCanLoad := True;
-  FCanSave := True;
-  FIsMultiImageFormat := False;
+  FFeatures := [ffLoad, ffSave];
   FSaveBinary := PortableMapDefaultBinary;
   FUSFormat := GetFormatSettingsForFloats;
 end;
@@ -752,7 +750,7 @@ procedure TPBMFileFormat.Define;
 begin
   inherited;
   FName := SPBMFormatName;
-  FCanSave := False;
+  FFeatures := [ffLoad];
   AddMasks(SPBMMasks);
   FIdNumbers := '14';
 end;

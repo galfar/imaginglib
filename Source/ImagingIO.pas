@@ -343,14 +343,20 @@ end;
 
 { File IO functions }
 
-function FileOpenRead(FileName: PChar): TImagingHandle; cdecl;
+function FileOpen(FileName: PChar; Mode: TOpenMode): TImagingHandle; cdecl;
+var
+  Stream: TStream;
 begin
-  Result := TBufferedStream.Create(TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite));
-end;
+  Stream := nil;
 
-function FileOpenWrite(FileName: PChar): TImagingHandle; cdecl;
-begin
-  Result := TBufferedStream.Create(TFileStream.Create(FileName, fmCreate or fmShareDenyWrite));
+  case Mode of
+    omReadOnly:  Stream := TFileStream.Create(FileName, fmOpenRead or fmShareDenyWrite);
+    omCreate:    Stream := TFileStream.Create(FileName, fmCreate or fmShareDenyWrite);
+    omReadWrite: Stream := TFileStream.Create(FileName, fmOpenReadWrite or fmShareDenyWrite);
+  end;
+
+  Assert(Stream <> nil);
+  Result := TBufferedStream.Create(Stream);
 end;
 
 procedure FileClose(Handle: TImagingHandle); cdecl;
@@ -392,12 +398,7 @@ end;
 
 { Stream IO functions }
 
-function StreamOpenRead(FileName: PChar): TImagingHandle; cdecl;
-begin
-  Result := FileName;
-end;
-
-function StreamOpenWrite(FileName: PChar): TImagingHandle; cdecl;
+function StreamOpen(FileName: PChar; Mode: TOpenMode): TImagingHandle; cdecl;
 begin
   Result := FileName;
 end;
@@ -436,12 +437,7 @@ end;
 
 { Memory IO functions }
 
-function MemoryOpenRead(FileName: PChar): TImagingHandle; cdecl;
-begin
-  Result := FileName;
-end;
-
-function MemoryOpenWrite(FileName: PChar): TImagingHandle; cdecl;
+function MemoryOpen(FileName: PChar; Mode: TOpenMode): TImagingHandle; cdecl;
 begin
   Result := FileName;
 end;
@@ -584,8 +580,7 @@ begin
 end;
 
 initialization
-  OriginalFileIO.OpenRead := FileOpenRead;
-  OriginalFileIO.OpenWrite := FileOpenWrite;
+  OriginalFileIO.Open := FileOpen;
   OriginalFileIO.Close := FileClose;
   OriginalFileIO.Eof := FileEof;
   OriginalFileIO.Seek := FileSeek;
@@ -593,8 +588,7 @@ initialization
   OriginalFileIO.Read := FileRead;
   OriginalFileIO.Write := FileWrite;
 
-  StreamIO.OpenRead := StreamOpenRead;
-  StreamIO.OpenWrite := StreamOpenWrite;
+  StreamIO.Open := StreamOpen;
   StreamIO.Close := StreamClose;
   StreamIO.Eof := StreamEof;
   StreamIO.Seek := StreamSeek;
@@ -602,8 +596,7 @@ initialization
   StreamIO.Read := StreamRead;
   StreamIO.Write := StreamWrite;
 
-  MemoryIO.OpenRead := MemoryOpenRead;
-  MemoryIO.OpenWrite := MemoryOpenWrite;
+  MemoryIO.Open := MemoryOpen;
   MemoryIO.Close := MemoryClose;
   MemoryIO.Eof := MemoryEof;
   MemoryIO.Seek := MemorySeek;
@@ -620,6 +613,7 @@ initialization
     - nothing now
 
   -- 0.77.1 ---------------------------------------------------
+   - Updated IO Open functions according to changes in ImagingTypes.
    - Added ReadLine and WriteLine functions.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------

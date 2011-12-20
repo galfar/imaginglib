@@ -461,9 +461,14 @@ type
    smFromCurrent   = 1,
    smFromEnd       = 2);
 
+  TOpenMode = (
+    omReadOnly  = 0, // Opens file for reading only
+    omCreate    = 1, // Creates new file (overwriting any existing) and opens it for writing
+    omReadWrite = 2  // Opens for reading and writing. Non existing file is created.
+  );
+
   { IO functions used for reading and writing images from/to input/output.}
-  TOpenReadProc = function(Source: PChar): TImagingHandle; cdecl;
-  TOpenWriteProc = function(Source: PChar): TImagingHandle; cdecl;
+  TOpenProc = function(Source: PChar; Mode: TOpenMode): TImagingHandle; cdecl;
   TCloseProc = procedure(Handle: TImagingHandle); cdecl;
   TEofProc = function(Handle: TImagingHandle): Boolean; cdecl;
   TSeekProc = function(Handle: TImagingHandle; Offset: LongInt; Mode: TSeekMode): LongInt; cdecl;
@@ -480,6 +485,8 @@ implementation
     - add lookup tables to pixel formats for fast conversions
 
   -- 0.77.1 ---------------------------------------------------
+    - Changed IO functions. Merged open functions to one
+      and added third open mode R/W (for TIFF append etc.).
     - Added new image data formats and related structures:
       ifR32G32B32F, ifB32G32G32F.
 
