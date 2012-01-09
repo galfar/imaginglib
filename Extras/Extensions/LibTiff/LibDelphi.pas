@@ -79,7 +79,7 @@ end;
 
 function sprintf(buffer: Pointer; format: Pointer; arguments: Pointer): Integer; cdecl;
 begin
-  sprintfsec(buffer,format,@arguments);
+  Result := sprintfsec(buffer,format,@arguments);
 end;
 
 function fprintf(stream: Pointer; format: Pointer; arguments: Pointer): Integer; cdecl;
@@ -93,6 +93,7 @@ begin
   sprintfsec(n,format,@arguments);
   WriteFile(Cardinal(stream),n^,Cardinal(m),o,nil);
   FreeMem(n);
+  Result := m;
 end;
 
 function strcpy(dest: Pointer; src: Pointer): Pointer; cdecl;
@@ -336,19 +337,13 @@ begin
 end;
 
 procedure free(p: Pointer); cdecl;
-var
-  m: TMemoryManager;
 begin
-  GetMemoryManager(m);
-  m.FreeMem(p);
+  FreeMem(p);
 end;
 
 function malloc(s: Longint): Pointer; cdecl;
-var
-  m: TMemoryManager;
 begin
-  GetMemoryManager(m);
-  Result:=m.GetMem(s);
+  Result := AllocMem(s);
 end;
 
 function _ftol: Integer; cdecl;

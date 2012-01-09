@@ -80,7 +80,6 @@
         <IOChecks Value="True"/>
       </Checks>
       <SmallerCode Value="True"/>
-      <TargetCPU Value="x86_64"/>
       <Optimizations>
         <VariablesInRegisters Value="True"/>
         <OptimizationLevel Value="0"/>

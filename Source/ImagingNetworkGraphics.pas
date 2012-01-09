@@ -53,6 +53,7 @@ type
     FLossyAlpha: LongBool;
     FQuality: LongInt;
     FProgressive: LongBool;
+    FZLibStategy: Integer;
     function GetSupportedFormats: TImageFormats; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
@@ -182,6 +183,7 @@ const
     ifA16B16G16R16, ifBinary];
   NGLossyFormats: TImageFormats = [ifGray8, ifA8Gray8, ifR8G8B8, ifA8R8G8B8];
   PNGDefaultLoadAnimated = True;
+  NGDefaultZLibStartegy = 1; //Z_FILTERED
 
   SPNGFormatName = 'Portable Network Graphics';
   SPNGMasks      = '*.png';
@@ -382,6 +384,7 @@ type
     LossyAlpha: Boolean;
     Quality: LongInt;
     Progressive: Boolean;
+    ZLibStrategy: Integer;
     function SaveFile(Handle: TImagingHandle): Boolean;
     procedure AddFrame(const Image: TImageData; IsJpegFrame: Boolean);
     procedure StoreImageToPNGFrame(const IHDR: TIHDR; Bits: Pointer; FmtInfo: TImageFormatInfo; IDATStream: TMemoryStream);
@@ -1516,7 +1519,8 @@ begin
       PByteArray(TotalBuffer)[I * (BytesPerLine + 1)] := Filter;
     end;
     // Compress IDAT data
-    CompressBuf(TotalBuffer, TotalSize, CompBuffer, CompSize, CompressLevel);
+    CompressBuf(TotalBuffer, TotalSize, CompBuffer, CompSize,
+      CompressLevel, ZLibStrategy);
     // Write IDAT data to stream
     IDATStream.WriteBuffer(CompBuffer^, CompSize);
   finally
@@ -2007,6 +2011,7 @@ begin
   LossyAlpha := FileFormat.FLossyAlpha;
   Quality := FileFormat.FQuality;
   Progressive := FileFormat.FProgressive;
+  ZLibStrategy := FileFormat.FZLibStategy;
 end;
 
 { TAPNGAnimator class implemnetation }
@@ -2139,6 +2144,7 @@ begin
   FLossyCompression := NGDefaultLossyCompression;
   FQuality := NGDefaultQuality;
   FProgressive := NGDefaultProgressive;
+  FZLibStategy := NGDefaultZLibStartegy;
 end;
 
 procedure TNetworkGraphicsFileFormat.CheckOptionsValidity;
@@ -2237,6 +2243,7 @@ begin
   RegisterOption(ImagingPNGPreFilter, @FPreFilter);
   RegisterOption(ImagingPNGCompressLevel, @FCompressLevel);
   RegisterOption(ImagingPNGLoadAnimated, @FLoadAnimated);
+  RegisterOption(ImagingPNGZLibStrategy, @FZLibStategy);
 end;
 
 function TPNGFileFormat.LoadData(Handle: TImagingHandle;
@@ -2582,6 +2589,7 @@ finalization
     - nothing now
 
   -- 0.77 Changes/Bug Fixes -----------------------------------
+    - Added support for optional ZLib compression strategy.
     - Added loading and saving of ifBinary (1bit black and white)
       format images. During loading grayscale 1bpp and indexed 1bpp
       (with only black and white colors in palette) are treated as ifBinary.

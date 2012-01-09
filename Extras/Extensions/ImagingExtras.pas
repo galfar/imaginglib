@@ -102,7 +102,7 @@ uses
   ImagingJpeg2000,
 {$ENDIF}
 {$IFNDEF DONT_LINK_TIFF}
-  ImagingTiff,
+  ImagingLibTiffDelphi,
 {$ENDIF}
 {$IFNDEF DONT_LINK_PSD}
   ImagingPsd,

@@ -244,8 +244,8 @@ begin
       (* Y *)
       // kylix 3 compiler crashes on this
       // it also crashes Delphi OSX compiler 9 years later :(
-      {$IF (not Defined(LINUX)) or Defined(FPC)}
-      //outptr[col] := JSAMPLE(((ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF]) shr SCALEBITS));
+      {$IF not (Defined(DCC) and not Defined(MSWINDOWS))}
+      outptr[col] := JSAMPLE(((ctab[r+R_Y_OFF] + ctab[g+G_Y_OFF] + ctab[b+B_Y_OFF]) shr SCALEBITS));
       {$IFEND}
     end;
   end;

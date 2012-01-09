@@ -95,28 +95,32 @@ const
     raw frames are loaded and sent to user (if you want to animate APNG yourself).
     Default value is 1.}
   ImagingPNGLoadAnimated       = 27;
+  { Sets ZLib compression strategy used when saving PNG files (see deflateInit2()
+    in ZLib for details). Allowed values are: 0 (default), 1 (filtered),
+    2 (huffman only). Default value is 0.}
+  ImagingPNGZLibStrategy       = 28;
 
   { Specifies whether MNG animation frames are saved with lossy or lossless
     compression. Lossless frames are saved as PNG images and lossy frames are
     saved as JNG images. Allowed values are 0 (False) and 1 (True).
     Default value is 0.}
-  ImagingMNGLossyCompression   = 28;
+  ImagingMNGLossyCompression   = 32;
   { Defines whether alpha channel of lossy compressed MNG frames
     (when ImagingMNGLossyCompression is 1) is lossy compressed too.
     Allowed values are 0 (False) and 1 (True). Default value is 0.}
-  ImagingMNGLossyAlpha         = 29;
+  ImagingMNGLossyAlpha         = 33;
   { Sets precompression filter used when saving MNG frames as PNG images.
     For details look at ImagingPNGPreFilter.}
-  ImagingMNGPreFilter          = 30;
+  ImagingMNGPreFilter          = 34;
   { Sets ZLib compression level used when saving MNG frames as PNG images.
     For details look at ImagingPNGCompressLevel.}
-  ImagingMNGCompressLevel      = 31;
+  ImagingMNGCompressLevel      = 35;
   { Specifies compression quality used when saving MNG frames as JNG images.
     For details look at ImagingJpegQuality.}
-  ImagingMNGQuality            = 32;
+  ImagingMNGQuality            = 36;
   { Specifies whether images are saved in progressive format when saving MNG
     frames as JNG images. For details look at ImagingJpegProgressive.}
-  ImagingMNGProgressive        = 33;
+  ImagingMNGProgressive        = 37;
 
   { Specifies whether alpha channels of JNG images are lossy compressed.
     Allowed values are 0 (False) and 1 (True). Default value is 0.}
@@ -485,6 +489,7 @@ implementation
     - add lookup tables to pixel formats for fast conversions
 
   -- 0.77.1 ---------------------------------------------------
+    - Added ImagingPNGZLibStrategy option.
     - Changed IO functions. Merged open functions to one
       and added third open mode R/W (for TIFF append etc.).
     - Added new image data formats and related structures:

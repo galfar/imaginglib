@@ -778,7 +778,7 @@ begin
     // Check: some writers just write garbage to pitch/linear size fields and flags
     MainImageLinearSize := FmtInfo.GetPixelsSize(SrcFormat, Desc.Width, Desc.Height);
     if UseAsLinear and ((PitchOrLinear < MainImageLinearSize) or
-      (PitchOrLinear * Desc.Height = MainImageLinearSize)) then
+      (PitchOrLinear * Integer(Desc.Height) = MainImageLinearSize)) then
     begin
       // Explicitly set linear size
       PitchOrLinear := MainImageLinearSize;

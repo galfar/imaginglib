@@ -554,10 +554,17 @@ function opj_encode(cinfo: popj_cinfo_t; cio: popj_cio_t; image: popj_image_t;
 
 implementation
 
-{$IF Defined(WIN32)}
-uses
-  Windows;
+function pow(const Base, Exponent: Double): Double; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
+begin
+  if Exponent = 0.0 then
+    Result := 1.0
+  else if (Base = 0.0) and (Exponent > 0.0) then
+    Result := 0.0
+  else
+    Result := Exp(Exponent * Ln(Base));
+end;
 
+{$IF Defined(MSWINDOWS)}
   {$IF Defined(DCC)}
     { Delphi Win32 }
     { Link object files created with C++ Builder.}
@@ -579,6 +586,7 @@ uses
     {$L J2KObjects\dwt.obj}
     {$L J2KObjects\t2.obj}
     {$L J2KObjects\mct.obj}
+
    const
      { MS C Runtime library needed for importing std C functions.}
      MSCRuntimeLib = 'msvcrt.dll';
@@ -665,23 +673,22 @@ uses
     end;
 
     { C library imports }
-    function malloc(size: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
-    function calloc(nelem, elsize: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
-    procedure free(ptr: Pointer); cdecl; external MSCRuntimeLib;
-    function realloc(ptr: Pointer; size: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
-    function memset(s: Pointer; c, n: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
-    function memcpy(s1, s2: Pointer; n: Cardinal): Pointer; cdecl; external MSCRuntimeLib;
-    function floor(const x: Double): Double; cdecl; external MSCRuntimeLib;
-    function ceil(const num: Double): Double; cdecl; external MSCRuntimeLib;
-    function pow(const base, exponent: Double): Double; cdecl; external MSCRuntimeLib;
-    function printf(format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib;
-    function fprintf(f: Pointer; format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib;
-    function vsprintf(s, format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib;
-    function _ftol(x: Single): LongInt; cdecl; external MSCRuntimeLib;
-    function strcpy(s1, s2: PAnsiChar): PAnsiChar; cdecl; external MSCRuntimeLib;
-    function wcscpy(s1, s2: PAnsiChar): PAnsiChar; cdecl; external MSCRuntimeLib;
-    function strncpy(s1, s2: PAnsiChar; maxlen: Integer): PAnsiChar; cdecl; external MSCRuntimeLib;
-    function strlen(s: PAnsiChar): Integer; cdecl; external MSCRuntimeLib;
+    function malloc(size: Cardinal): Pointer; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_malloc'{$ENDIF};
+    function calloc(nelem, elsize: Cardinal): Pointer; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_calloc'{$ENDIF};
+    procedure free(ptr: Pointer); cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_free'{$ENDIF};
+    function realloc(ptr: Pointer; size: Cardinal): Pointer; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_realloc'{$ENDIF};
+    function memset(s: Pointer; c, n: Cardinal): Pointer; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_memset'{$ENDIF};
+    function memcpy(s1, s2: Pointer; n: Cardinal): Pointer; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_memcpy'{$ENDIF};
+    function floor(const x: Double): Double; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_floor'{$ENDIF};
+    function ceil(const num: Double): Double; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_ceil'{$ENDIF};
+    function printf(format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib{$IFDEF BCB} name '_printf'{$ENDIF};
+    function fprintf(f: Pointer; format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib{$IFDEF BCB} name '_fprintf'{$ENDIF};
+    function vsprintf(s, format: PAnsiChar): Integer; cdecl; varargs; external MSCRuntimeLib{$IFDEF BCB} name '_vsprintf'{$ENDIF};
+    function _ftol(x: Single): LongInt; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '__ftol'{$ENDIF};
+    function strcpy(s1, s2: PAnsiChar): PAnsiChar; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_strcpy'{$ENDIF};
+    function wcscpy(s1, s2: PAnsiChar): PAnsiChar; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_wstrcpy'{$ENDIF};
+    function strncpy(s1, s2: PAnsiChar; maxlen: Integer): PAnsiChar; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_strncpy'{$ENDIF};
+    function strlen(s: PAnsiChar): Integer; cdecl; external MSCRuntimeLib{$IFDEF BCB} name '_strlen'{$ENDIF};
   {$ELSEIF Defined(FPC)}
     { Free Pascal Win32 }
     { Link OpenJpeg static library and C runtime library.}
@@ -694,16 +701,6 @@ uses
     { Free Pascal Linux }
     { Link C runtime library.}
     {$LINKLIB c}
-
-    function pow(const Base, Exponent: Double): Double; cdecl; [Public];
-    begin
-      if Exponent = 0.0 then
-        Result := 1.0
-      else if (Base = 0.0) and (Exponent > 0.0) then
-        Result := 0.0
-      else
-        Result := Exp(Exponent * Ln(Base));
-    end;
 
     {$IF Defined(CPU86)}
       { Free Pascal Linux x86 }
@@ -724,16 +721,6 @@ uses
     { Free Pascal MacOSX }
     { Link C runtime library.}
     {$LINKLIB c}
-
-    function pow(const Base, Exponent: Double): Double; cdecl; [Public];
-    begin
-      if Exponent = 0.0 then
-        Result := 1.0
-      else if (Base = 0.0) and (Exponent > 0.0) then
-        Result := 0.0
-      else
-        Result := Exp(Exponent * Ln(Base));
-    end;
 
     {$IF Defined(CPU86)}
       { Free Pascal MacOSX x86 }

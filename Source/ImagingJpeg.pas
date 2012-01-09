@@ -50,6 +50,16 @@ unit ImagingJpeg;
   {$DEFINE PASJPEG}
 {$IFEND}
 
+{ We usually want to skip the rest of the corrupted file when loading JEPG files
+  instead of getting exception. JpegLib's error handler can only be
+  exited using setjmp/longjmp ("non-local goto") functions to get error
+  recovery when loading corrupted JPEG files. This is implemented in assembler
+  and currently available only for 32bit Delphi targets and FPC.}
+{$DEFINE ErrorJmpRecovery}
+{$IF Defined(DCC) and not Defined(CPUX86)}
+  {$UNDEF ErrorJmpRecovery}
+{$IFEND}
+
 interface
 
 uses
@@ -147,13 +157,97 @@ var
 
 { Intenal unit jpeglib support functions }
 
+{$IFDEF ErrorJmpRecovery}
+  {$IFDEF DCC}
+  type
+    jmp_buf = record
+      EBX,
+      ESI,
+      EDI,
+      ESP,
+      EBP,
+      EIP: LongWord;
+    end;
+    pjmp_buf = ^jmp_buf;
+
+  { JmpLib SetJmp/LongJmp Library
+    (C)Copyright 2003, 2004 Will DeWitt Jr. <edge@boink.net> }
+  function  SetJmp(out jmpb: jmp_buf): Integer;
+  asm
+  {     ->  EAX     jmpb   }
+  {     <-  EAX     Result }
+            MOV     EDX, [ESP]  // Fetch return address (EIP)
+            // Save task state
+            MOV     [EAX+jmp_buf.&EBX], EBX
+            MOV     [EAX+jmp_buf.&ESI], ESI
+            MOV     [EAX+jmp_buf.&EDI], EDI
+            MOV     [EAX+jmp_buf.&ESP], ESP
+            MOV     [EAX+jmp_buf.&EBP], EBP
+            MOV     [EAX+jmp_buf.&EIP], EDX
+
+            SUB     EAX, EAX
+  @@1:
+  end;
+
+  procedure LongJmp(const jmpb: jmp_buf; retval: Integer);
+  asm
+  {     ->  EAX     jmpb   }
+  {         EDX     retval }
+  {     <-  EAX     Result }
+            XCHG    EDX, EAX
+
+            MOV     ECX, [EDX+jmp_buf.&EIP]
+            // Restore task state
+            MOV     EBX, [EDX+jmp_buf.&EBX]
+            MOV     ESI, [EDX+jmp_buf.&ESI]
+            MOV     EDI, [EDX+jmp_buf.&EDI]
+            MOV     ESP, [EDX+jmp_buf.&ESP]
+            MOV     EBP, [EDX+jmp_buf.&EBP]
+            MOV     [ESP], ECX  // Restore return address (EIP)
+
+            TEST    EAX, EAX    // Ensure retval is <> 0
+            JNZ     @@1
+            MOV     EAX, 1
+  @@1:
+  end;
+  {$ENDIF}
+
+type
+  TJmpBuf = jmp_buf;
+  TErrorClientData = record
+    JmpBuf: TJmpBuf;
+    ScanlineReadReached: Boolean;
+  end;
+  PErrorClientData = ^TErrorClientData;
+{$ENDIF}
+
 procedure JpegError(CInfo: j_common_ptr);
-var
-  Buffer: string;
+
+  procedure RaiseError;
+  var
+    Buffer: string;
+  begin
+    // Create the message and raise exception
+    CInfo.err.format_message(CInfo, Buffer);
+    raise EImagingError.Create(Buffer[1]);
+    //raise EImagingError.CreateFmt(SJPEGError + ' %d: '{ + Buffer}, [CInfo.err.msg_code]);
+  end;
+
 begin
-  { Create the message and raise exception }
-  CInfo^.err^.format_message(CInfo, buffer);
-  raise EImagingError.CreateFmt(SJPEGError + ' %d: ' + Buffer, [CInfo.err^.msg_code]);
+{$IFDEF ErrorJmpRecovery}
+  // Only recovers on loads and when header is sucessfully loaded
+  // (error occurs when reading scanlines)
+  if (CInfo.client_data <> nil) and
+    PErrorClientData(CInfo.client_data).ScanlineReadReached then
+  begin
+    // Non-local jump to error handler in TJpegFileFormat.LoadData
+    longjmp(PErrorClientData(CInfo.client_data).JmpBuf, 1)
+  end
+  else
+    RaiseError;
+{$ELSE}
+  RaiseError;
+{$ENDIF}
 end;
 
 procedure OutputMessage(CurInfo: j_common_ptr);
@@ -295,14 +389,16 @@ begin
   Dest.Output := Handle;
 end;
 
-procedure InitDecompressor(Handle: TImagingHandle; var jc: TJpegContext);
+procedure SetupErrorMgr(var jc: TJpegContext);
 begin
-  FillChar(jc, sizeof(jc), 0);
   // Set standard error handlers and then override some
   jc.common.err := jpeg_std_error(JpegErrorMgr);
   jc.common.err.error_exit := JpegError;
   jc.common.err.output_message := OutputMessage;
+end;
 
+procedure InitDecompressor(Handle: TImagingHandle; var jc: TJpegContext);
+begin
   jpeg_CreateDecompress(@jc.d, JPEG_LIB_VERSION, sizeof(jc.d));
   JpegStdioSrc(jc.d, Handle);
   jpeg_read_header(@jc.d, True);
@@ -319,12 +415,6 @@ end;
 procedure InitCompressor(Handle: TImagingHandle; var jc: TJpegContext;
   Saver: TJpegFileFormat);
 begin
-  FillChar(jc, sizeof(jc), 0);
-  // Set standard error handlers and then override some
-  jc.common.err := jpeg_std_error(JpegErrorMgr);
-  jc.common.err.error_exit := JpegError;
-  jc.common.err.output_message := OutputMessage;
-
   jpeg_CreateCompress(@jc.c, JPEG_LIB_VERSION, sizeof(jc.c));
   JpegStdioDest(jc.c, Handle);
   if Saver.FGrayScale then
@@ -370,6 +460,9 @@ var
   Col32: PColor32Rec;
   NeedsRedBlueSwap: Boolean;
   Pix: PColor24Rec;
+{$IFDEF ErrorJmpRecovery}
+  ErrorClient: TErrorClientData;
+{$ENDIF}
 
   procedure LoadMetaData;
   var
@@ -377,7 +470,8 @@ var
     ResUnit: TResolutionUnit;
   begin
     // Density unit: 0 - undef, 1 - inch, 2 - cm
-    if jc.d.density_unit > 0 then
+    if jc.d.saw_JFIF_marker and (jc.d.density_unit > 0) and
+      (jc.d.X_density > 0) and (jc.d.Y_density > 0) then
     begin
       XDensity := jc.d.X_density;
       YDensity := jc.d.Y_density;
@@ -393,10 +487,22 @@ begin
   Result := False;
   SetJpegIO(GetIO);
   SetLength(Images, 1);
-  
+
   with JIO, Images[0] do
   try
+    ZeroMemory(@jc, SizeOf(jc));
+    SetupErrorMgr(jc);
+  {$IFDEF ErrorJmpRecovery}
+    ZeroMemory(@ErrorClient, SizeOf(ErrorClient));
+    jc.common.client_data := @ErrorClient;
+    if setjmp(ErrorClient.JmpBuf) <> 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  {$ENDIF}
     InitDecompressor(Handle, jc);
+
     case jc.d.out_color_space of
       JCS_GRAYSCALE: Format := ifGray8;
       JCS_RGB:       Format := ifR8G8B8;
@@ -418,6 +524,10 @@ begin
   {$IFDEF RGBSWAPPED}
     // Force R-B swap for FPC's PasJpeg
     NeedsRedBlueSwap := True;
+  {$ENDIF}
+
+  {$IFDEF ErrorJmpRecovery}
+    ErrorClient.ScanlineReadReached := True;
   {$ENDIF}
 
     while jc.d.output_scanline < jc.d.output_height do
@@ -489,10 +599,14 @@ begin
   Result := False;
   // Copy IO functions to global var used in JpegLib callbacks
   SetJpegIO(GetIO);
+
   // Makes image to save compatible with Jpeg saving capabilities
   if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   with JIO, ImageToSave do
   try
+    ZeroMemory(@jc, SizeOf(jc));
+    SetupErrorMgr(jc);
+
     GetImageFormatInfo(Format, Info);
     FGrayScale := Format = ifGray8;
     InitCompressor(Handle, jc, Self);
@@ -592,6 +706,12 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77.1 ---------------------------------------------------
+    - Able to read corrupted JPEG files - loads partial image
+      and skips the corrupted parts (FPC and x86 Delphi).
+    - Fixed reading of physical resolution metadata, could cause
+      "divided by zero" later on for some files.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Fixed loading of some JPEGs with certain APPN markers (bug in JpegLib).

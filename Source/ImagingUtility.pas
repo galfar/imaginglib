@@ -280,6 +280,7 @@ procedure FillMemoryWord(Data: Pointer; Size: LongInt; Value: Word);
 { Fills given memory with given LongWord value. Size is size of buffer in bytes.}
 procedure FillMemoryLongWord(Data: Pointer; Size: LongInt; Value: LongWord);
 { Fills given memory zeroes.}
+{$EXTERNALSYM ZeroMemory} // Conflicts with WinAPI ZeroMemory in C++ Builder
 procedure ZeroMemory(Data: Pointer; Size: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { Returns how many mipmap levels can be created for image of given size.}
@@ -1545,7 +1546,7 @@ initialization
   {$IF CompilerVersion >= 23}
   FloatFormatSettings := TFormatSettings.Create('en-US');
   {$ELSE}
-  FloatFormatSettings := GetLocaleFormatSettings(1033, FloatFormatSettings);
+  GetLocaleFormatSettings(1033, FloatFormatSettings);
   {$IFEND}
 {$ELSE FPC}
   FloatFormatSettings := DefaultFormatSettings;

@@ -66,7 +66,7 @@
 {$WRITEABLECONST OFF}     // Writeable constants: off
 
 {$IFNDEF FPC}
-  {$DEFINE DCC}           // if not using FPC then DCC compiler is used (Delphi/Kylix)
+  {$DEFINE DCC}           // if not using FPC then DCC compiler is used (Delphi/BCB)
                           // others are not supported
 {$ENDIF}
 
@@ -133,19 +133,21 @@
 { Compiler capabilities }
 
 // Define if compiler supports inlining of functions and procedures
-// Note that FPC inline support crashed in older versions (1.9.8)
-{$IF (Defined(DCC) and (CompilerVersion >= 17)) or (Defined(FPC) and Defined(CPU86))}
+{$IF (Defined(DCC) and (CompilerVersion >= 17)) or Defined(FPC)}
   {$DEFINE HAS_INLINE}
 {$IFEND}
 
 // Define if compiler supports advanced records with methods
-{$IF (Defined(DCC) and (CompilerVersion >= 18))}
+{$IF (Defined(DCC) and (CompilerVersion >= 18)) or
+  (Defined(FPC) and (FPC_FULLVERSION >= 20600))}
   {$DEFINE HAS_ADVANCED_RECORDS}
 {$IFEND}
 
 // Define if compiler supports operator overloading
-// (unfortunately Delphi and FPC operator overloaing is not compatible)
-{$IF (Defined(DCC) and (CompilerVersion >= 18)) or Defined(FPC)}
+// (unfortunately Delphi and FPC operator overloading is not compatible).
+// FPC supports Delphi compatible operator overloads since 2.6.0
+{$IF (Defined(DCC) and (CompilerVersion >= 18)) or
+  (Defined(FPC) and (FPC_FULLVERSION >= 20600))}
   {$DEFINE HAS_OPERATOR_OVERLOADING}
 {$IFEND}
 
@@ -154,8 +156,10 @@
   {$DEFINE HAS_ANON_METHODS}
 {$IFEND}
 
-// Generic types (Delphi and FPC implementations incompatible :(
-{$IF (Defined(DCC) and (CompilerVersion >= 20)) or Defined(FPC)}
+// Generic types (Delphi and FPC implementations incompatible).
+// Update: FPC supports Delphi compatible generics since 2.6.0
+{$IF (Defined(DCC) and (CompilerVersion >= 20)) or
+  (Defined(FPC) and (FPC_FULLVERSION >= 20600))}
   {$DEFINE HAS_GENERICS}
 {$IFEND}
 
@@ -184,10 +188,6 @@
 {$IF Defined(WIN32) or Defined(WIN64)}
   {$DEFINE MSWINDOWS}
 {$IFEND}
-
-{$IFDEF DPMI}
-  {$DEFINE MSDOS}
-{$ENDIF}
 
 {$IFDEF LINUX}
   {$DEFINE UNIX}

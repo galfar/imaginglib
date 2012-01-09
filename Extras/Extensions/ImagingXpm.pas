@@ -128,7 +128,7 @@ var
   Bucket, Index: Integer;
 begin
   if FindItem(AKey, Bucket, Index) then
-    FBuckets[Bucket].Items[Index].Data := AData;
+    FBuckets[Bucket].Items[Index].Data := ShortString(AData);
 end;
 
 function TSimpleBucketList.EnumNext(out AData: string): TColor32;
@@ -186,7 +186,7 @@ begin
     with Items[Count] do
     begin
       Key := AKey;
-      Data := AData;
+      Data := ShortString(AData);
     end;
     Inc(Count);
     Inc(FItemCount);

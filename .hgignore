@@ -7,12 +7,12 @@ Doc/_HTMLHelp/
 Doc/html/
 Doc/chm/
 Doc/RefDoc
-Extras/Extensions/LibTiff/*/debug/
 Extras/TestCases/
 Demos/Bin/_BenchOut/
 Scripts/_*
 Bin/
 Demos/Bin/
+Tests/*
 
 __history
 
@@ -36,10 +36,14 @@ Doc/*.chm
 Doc/*.chw
 Doc/*.html
 
-
 Demos/ObjectPascal/LCLImager/lclimager.compiled
 Demos/Cpp/*/*.bat
 Demos/Cpp/*/*.sh
+
+Source/*.hpp
+Source/*/*.hpp
+Extras/Extensions/*.hpp
+Extras/Extensions/*/*.hpp
 
 
 

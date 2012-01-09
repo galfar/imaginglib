@@ -324,7 +324,6 @@ const
   SSizeFmt = '-Y %d +X %d';
 var
   ImageToSave: TImageData;
-  Info: TImageFormatInfo;
   MustBeFreed: Boolean;
   IO: TIOFunctions;
 
