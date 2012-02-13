@@ -77,7 +77,7 @@ procedure CopyRectToFmxBitmap(const Image: TImageData; Bitmap: TBitmap;
   SrcX, SrcY, Width, Height, DstX, DstY: Integer);
 var
   TempImage: TImageData;
-  X, Y, Bpp, SrcWidthBytes, DstWidth, MoveBytes: Integer;
+  X, Y, Bpp, SrcWidthBytes, MoveBytes: Integer;
   DstPtr: PColor32Rec;
   SrcPtr: PByte;
   Info: TImageFormatInfo;

@@ -370,6 +370,7 @@ type
     Size: LongInt;        // Size of image bits in Bytes
     Bits: Pointer;        // Pointer to memory containing image bits
     Palette: PPalette32;  // Image palette for indexed images
+    Tag: Pointer;         // User data
   end;
   PImageData = ^TImageData;
 
@@ -489,6 +490,7 @@ implementation
     - add lookup tables to pixel formats for fast conversions
 
   -- 0.77.1 ---------------------------------------------------
+    - Added Tag to TImageData for storing user data.
     - Added ImagingPNGZLibStrategy option.
     - Changed IO functions. Merged open functions to one
       and added third open mode R/W (for TIFF append etc.).

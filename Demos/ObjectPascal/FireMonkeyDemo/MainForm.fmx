@@ -1,0 +1,469 @@
+object FormMain: TFormMain
+  Left = 0
+  Top = 0
+  Caption = 'FireMonkeyDemo'
+  ClientHeight = 614
+  ClientWidth = 831
+  Position = poScreenCenter
+  Visible = False
+  OnCreate = FormCreate
+  OnDestroy = FormDestroy
+  StyleBook = StyleBook
+  StyleLookup = 'backgroundstyle'
+  object StyleBook: TStyleBook
+    Resource.Strings = (
+      'object _1: TLayout'
+      '  Align = alClient'
+      '  Position.Point = '#39'(0,33)'#39
+      '  Width = 922.000000000000000000'
+      '  Height = 849.000000000000000000'
+      '  object TLayout'
+      '    StyleName = '#39'ToolbarButton'#39
+      '    Position.Point = '#39'(388,401)'#39
+      '    Width = 146.000000000000000000'
+      '    Height = 46.000000000000000000'
+      '    DesignVisible = False'
+      '    object TRectangle'
+      '      StyleName = '#39'background'#39
+      '      Align = alContents'
+      '      Width = 146.000000000000000000'
+      '      Height = 46.000000000000000000'
+      '      Opacity = 0.000099999997473788'
+      '      HitTest = False'
+      '      Stroke.Kind = bkNone'
+      '      XRadius = 2.000000000000000000'
+      '      YRadius = 2.000000000000000000'
+      '      object TRectangle'
+      '        Align = alContents'
+      '        Width = 146.000000000000000000'
+      '        Height = 46.000000000000000000'
+      '        HitTest = False'
+      '        Fill.Kind = bkGradient'
+      '        Fill.Gradient.Points = <'
+      '          item'
+      '            Color = x24F4F4F4'
+      '          end'
+      '          item'
+      '            Color = x24EAEAEA'
+      '            Offset = 0.499000012874603300'
+      '          end'
+      '          item'
+      '            Color = x4E868686'
+      '            Offset = 0.500000000000000000'
+      '          end>'
+      '        Stroke.Color = x484F4F4F'
+      '        XRadius = 2.000000000000000000'
+      '        YRadius = 2.000000000000000000'
+      '      end'
+      '      object TFloatAnimation'
+      '        Duration = 0.200000002980232200'
+      '        Trigger = '#39'IsMouseOver=true'#39
+      '        TriggerInverse = '#39'IsMouseOver=false'#39
+      '        StopValue = 1.000000000000000000'
+      '        PropertyName = '#39'Opacity'#39
+      '      end'
+      '      object TColorAnimation'
+      '        Duration = 0.200000002980232200'
+      '        Trigger = '#39'IsMouseOver=true;IsPressed=false'#39
+      '        StartValue = xFFEFEFEF'
+      '        StopValue = xFFFFD541'
+      '        PropertyName = '#39'Fill.Color'#39
+      '      end'
+      '      object TColorAnimation'
+      '        Duration = 0.200000002980232200'
+      '        Trigger = '#39'IsMouseOver=false;IsPressed=false'#39
+      '        StartValue = xFFFFD541'
+      '        StopValue = xFFEFEFEF'
+      '        PropertyName = '#39'Fill.Color'#39
+      '      end'
+      '      object TColorAnimation'
+      '        Duration = 0.200000002980232200'
+      '        Inverse = True'
+      '        Trigger = '#39'IsMouseOver=false;IsPressed=true'#39
+      '        StartValue = xFFDCAE0D'
+      '        StopValue = xFFFFD541'
+      '        PropertyName = '#39'Fill.Color'#39
+      '      end'
+      '      object TColorAnimation'
+      '        Duration = 0.200000002980232200'
+      '        Trigger = '#39'IsMouseOver=true;IsPressed=true'#39
+      '        StartValue = xFFDCAE0D'
+      '        StopValue = xFFFFD541'
+      '        PropertyName = '#39'Fill.Color'#39
+      '      end'
+      '      object TRectangle'
+      '        Align = alClient'
+      '        Position.Point = '#39'(1,1)'#39
+      '        Locked = True'
+      '        Width = 144.000000000000000000'
+      '        Height = 44.000000000000000000'
+      '        Padding.Rect = '#39'(1,1,1,1)'#39
+      '        HitTest = False'
+      '        Fill.Kind = bkNone'
+      '        Stroke.Color = x96FCFCFC'
+      '        XRadius = 2.000000000000000000'
+      '        YRadius = 2.000000000000000000'
+      '      end'
+      '    end'
+      '    object TText'
+      '      StyleName = '#39'text'#39
+      '      Align = alClient'
+      '      Position.Point = '#39'(44,2)'#39
+      '      Locked = True'
+      '      Width = 96.000000000000000000'
+      '      Height = 42.000000000000000000'
+      '      Padding.Rect = '#39'(6,2,6,2)'#39
+      '      HitTest = False'
+      '      HorzTextAlign = taLeading'
+      '      Text = '#39'button'#39
+      '    end'
+      '    object TImage'
+      '      BindingName = '#39'icon'#39
+      '      StyleName = '#39'icon'#39
+      '      Align = alFitLeft'
+      '      Position.Point = '#39'(2,2)'#39
+      '      Width = 34.000000000000000000'
+      '      Height = 42.000000000000000000'
+      '      Padding.Rect = '#39'(2,2,2,2)'#39
+      '      HitTest = False'
+      '    end'
+      '  end'
+      '  object TImage'
+      '    StyleName = '#39'ImgOpen'#39
+      '    Position.Point = '#39'(436,399)'#39
+      '    Width = 50.000000000000000000'
+      '    Height = 50.000000000000000000'
+      '    DesignVisible = False'
+      '    Bitmap.PNG = {'
+      
+        '      89504E470D0A1A0A0000000D4948445200000010000000100806000000' +
+        '1FF3FF'
+      
+        '      61000000017352474200AECE1CE90000000467414D410000B18F0BFC61' +
+        '050000'
+      
+        '      00097048597300000EC300000EC301C76FA8640000023149444154384F' +
+        '95925F'
+      
+        '      48D35114C74763D32D58232BFB472348C5A7148C90C134EC41E89F3488' +
+        '287B4A'
+      
+        '      872FF9DB7A48B70A65CD02633D541865500E7AB49AAB2450938D48CA3F' +
+        'FD235D'
+      
+        '      2C269414195994D56F7F7EDFEEB9D7CD59F3C10B5FCEB9E79EF3B9E7FE' +
+        '51A9B2'
+      
+        '      0CBD431DD53B3458D9AC47B1773D721CCBC67492B6265BEEA231BDA429' +
+        'D13934'
+      
+        '      AD9BCFAE46D3CBBD28EFDC029D5D7D6349104A5E2EA92BA9F8DCE44194' +
+        '5E3661'
+      
+        '      C99D108475F2A8256CC5A9F11A3A56F4BF2EFA2E68F70C787390298AA5' +
+        '12E928'
+      
+        '      75C14AB8C2FB50DA61021D2F0D49152B8A0228B7D2CA84D5B568513B60' +
+        '86FD55'
+      
+        '      3576F9B78280690025F2E2F84D2829C5BAE07F6E07BD84A92D0F05EDF9' +
+        '383C68'
+      
+        '      866D6407ACFDDBB0B1CD08C3895CFE3A2A0E98ED84F2EB1A5792FB62EE' +
+        '0B1D85'
+      
+        '      C9938786E12AD4B3E2DA2133ACA13254DC2DE2C52B24955100BE5D4292' +
+        'E9F195'
+      
+        '      350BEE81D65C6E2D36B88D3810DC8EFDC13258EE14A1E4642E02E7C59D' +
+        '7140E2'
+      
+        '      733B7E449A10EA5885E40CC12E722089E0BEC123C86F35B0E242149E36' +
+        'E0D397'
+      
+        '      1ECCCEF46600DEBB11E9ADC2C43D0B12D3DEB492CC2751CCD77F08EB9C' +
+        '0604BA'
+      
+        '      2B20FF7E80C9A7C7E601F1774E3CB9BA165FC76C887F38C3E441825921' +
+        'E1533C'
+      
+        '      31E5C1DB87D5907F0678317F6A72626F8EF3403CE25C442EC4D81A297C' +
+        '7F27E4'
+      
+        '      EFB7C5EE34C8F9D8B71BCFAE6F42ECB5C42573DB3867454CC41B11F65B' +
+        '303DEE'
+      
+        '      590878D15580688F05F2886D4EF5CC0AFDC9B4A3364C7497CFB74F1D64' +
+        'FBC6FF'
+      '      7EEB6CF3D44FFC0B2E840726F9765EF70000000049454E44AE426082}'
+      '  end'
+      '  object TImage'
+      '    StyleName = '#39'ImgSave'#39
+      '    Position.Point = '#39'(436,399)'#39
+      '    Width = 50.000000000000000000'
+      '    Height = 50.000000000000000000'
+      '    DesignVisible = False'
+      '    Bitmap.PNG = {'
+      
+        '      89504E470D0A1A0A0000000D4948445200000010000000100806000000' +
+        '1FF3FF'
+      
+        '      61000000017352474200AECE1CE90000000467414D410000B18F0BFC61' +
+        '050000'
+      
+        '      00097048597300000EC300000EC301C76FA864000000C249444154384F' +
+        'C5934D'
+      
+        '      0AC23010850BBDABB7F020EA29BAF01042438B82E0A2264DF3A3A0B8EE' +
+        'EA9989'
+      
+        '      5410C90F5470C2DB242F5F66324C51FC2416052D8CE39814F9BCFB2368' +
+        '739509'
+      
+        '      703E0F09011863088932A487A280541949C0FF33985542D5564829FA07' +
+        'FE3047'
+      
+        '      A136D265631ED0FA0E7ED6E09D80141C432FB06F8FBE7DE5B20CB79100' +
+        '4ADD5E'
+      
+        '      0627DE715C4C0FAB0970C80348797D03865E3A8084921D9ABAC90350EA' +
+        '5306D6'
+      
+        '      2A984140F013EA5D1D05F861226DD6DBA026CFF730CD18E927D11AE59A' +
+        '0C0C62'
+      '      0C0000000049454E44AE426082}'
+      '  end'
+      '  object TImage'
+      '    StyleName = '#39'ImgAbout'#39
+      '    Position.Point = '#39'(436,399)'#39
+      '    Width = 50.000000000000000000'
+      '    Height = 50.000000000000000000'
+      '    DesignVisible = False'
+      '    Bitmap.PNG = {'
+      
+        '      89504E470D0A1A0A0000000D4948445200000010000000100806000000' +
+        '1FF3FF'
+      
+        '      61000000017352474200AECE1CE90000000467414D410000B18F0BFC61' +
+        '050000'
+      
+        '      00097048597300000EC300000EC301C76FA864000002CA49444154384F' +
+        'AD9369'
+      
+        '      48D37118C77FC329A90DAF128F98B591D8D044B3179A79811ACD6B6858' +
+        '286510'
+      
+        '      8818F3020F48979A0879CDC2039D19E6023349B332258D8248CBA3D4C4' +
+        'D2B639'
+      
+        '      AAA5CB6B6E6ECED5B7BF6F6607F5CA07BE2FBF9FE7E179BE0F213B5E2E' +
+        'E56E34'
+      
+        '      4E75DDDE60F117C788FBFA2D59FBDEFC4A6396DF20F6451EFFEFC7AA48' +
+        '3E1025'
+      
+        '      D6F01B25B8FE548F926E35F2DA54C8146BC1154861EFD9BC49EC8AB309' +
+        '11D0FF'
+      
+        '      061DAC4A3E7A61002D231BE89C026A7A55E81F9947CFA002192205529A' +
+        '548813'
+      
+        '      6AC03CD1076225A020BF16A79AC38EBEA76D19D6A3631CA8EAD5A3B253' +
+        '01F5BA'
+      
+        '      0E6B6A1DD2EB25882C9421825240C11AAC390D066221F03622686ED76A' +
+        'F90D32'
+      
+        '      3CFC00D4F6EB51F6408BD4860514B6CA912392825B2001375F0AFFF429' +
+        '78A7C9'
+      
+        '      E072661A34C6957623C0CAAF5511DFB881EA7E03843D5A64362B517A47' +
+        '01C1AD'
+      
+        '      4FC816C9C02B9A856FDA7B7826BFC3FE84313825BEC52E47E18A11B0B5' +
+        '69D77C'
+      
+        '      1DD819DF902B5E414A9D02C5B7E558556BB0B6AE4152D92CD86727C04A' +
+        '1C8359'
+      
+        '      581F18BC67B074151AB601DC4E3DA7400D122787F53909FCF3E6109837' +
+        '83C98F'
+      
+        '      4BD0EA54882D9A06E3E40B98863E0609E800236A0096ACCA6D80CD31D1' +
+        'BCD7A5'
+      
+        '      45D04ECB4062A741C2DE60CFA9314C4A16B1AE5D4548C608884F174810' +
+        'A5E3ED'
+      
+        '      D8CD7D02337BA1CA388119BBB2D99B3F05ABF3732031E320E1AF611DF3' +
+        '0AE3B3'
+      
+        '      4A6834CB08E60F811CE900F16F8749D05D30021F81667AB97BFB90CE57' +
+        '0F3B78'
+      
+        '      356FBA677F069D370A12F21C0EBC41CCC895D8DC5846641605F01083F8' +
+        'B5C272'
+      
+        '      ABFBBEFAEF8464FBFD9E05BB922C66783758A9B3B0881E02BF710E13D2' +
+        '254CC9'
+      
+        '      16D0D4AF845D541FB5C05E981F6A05652EA6CCB43FD248C5D3A630D7D6' +
+        'ABE687'
+      
+        '      4BFC4BB85F9C043369144E094360270DC336940238D751E6DC522ACA16' +
+        'FFFE09'
+      
+        '      73810FDDAAB8CDC441B862C2AC30D09CCB0CC4BC4245E8F95D84E4F8EF' +
+        'F8F3FE'
+      '      044AFE94360C8D1B6B0000000049454E44AE426082}'
+      '  end'
+      '  object TLayout'
+      '    StyleName = '#39'ListBoxItem'#39
+      '    Position.Point = '#39'(317,376)'#39
+      '    Width = 288.000000000000000000'
+      '    Height = 96.000000000000000000'
+      '    object TImage'
+      '      BindingName = '#39'ImgThumb'#39
+      '      StyleName = '#39'ImgThumb'#39
+      '      Align = alMostLeft'
+      '      Position.Point = '#39'(4,3)'#39
+      '      Width = 106.000000000000000000'
+      '      Height = 90.000000000000000000'
+      '      Padding.Rect = '#39'(4,3,4,3)'#39
+      '      HitTest = False'
+      '    end'
+      '    object TText'
+      '      BindingName = '#39'TextTitle'#39
+      '      StyleName = '#39'TextTitle'#39
+      '      Align = alTop'
+      '      Position.Point = '#39'(114,0)'#39
+      '      Width = 174.000000000000000000'
+      '      Height = 22.040008544921880000'
+      '      HitTest = False'
+      '      Font.Style = [fsBold]'
+      '      HorzTextAlign = taLeading'
+      '      Text = '#39'Image 1/2'#39
+      '    end'
+      '    object TText'
+      '      BindingName = '#39'TextInfo'#39
+      '      StyleName = '#39'TextInfo'#39
+      '      Align = alClient'
+      '      Position.Point = '#39'(114,22.0400085449219)'#39
+      '      Width = 174.000000000000000000'
+      '      Height = 73.959991455078130000'
+      '      HitTest = False'
+      '      HorzTextAlign = taLeading'
+      '      VertTextAlign = taLeading'
+      '      Text = '#39'512x689'#39
+      '    end'
+      '  end'
+      'end')
+    Left = 490
+    Top = 490
+  end
+  object PanelBack: TPanel
+    Align = alClient
+    Width = 831.000000000000000000
+    Height = 614.000000000000000000
+    TabOrder = 0
+    object ToolBar: TToolBar
+      Width = 831.000000000000000000
+      Height = 36.000000000000000000
+      TabOrder = 0
+      object BtnOpenImage: TSpeedButton
+        BindingName = 'ImgOpen'
+        Align = alLeft
+        Width = 81.000000000000000000
+        Height = 36.000000000000000000
+        OnClick = BtnOpenImageClick
+        OnApplyStyleLookup = BtnToolbarApplyStyleLookup
+        StyleLookup = 'ToolbarButton'
+        TabOrder = 0
+        TextAlign = taLeading
+        Text = 'Open'
+      end
+      object BtnSaveImage: TSpeedButton
+        BindingName = 'ImgSave'
+        Align = alLeft
+        Position.Point = '(81,0)'
+        Width = 81.000000000000000000
+        Height = 36.000000000000000000
+        OnClick = BtnSaveImageClick
+        OnApplyStyleLookup = BtnToolbarApplyStyleLookup
+        StyleLookup = 'ToolbarButton'
+        TabOrder = 1
+        TextAlign = taLeading
+        Text = 'Save'
+      end
+      object BtnAbout: TSpeedButton
+        BindingName = 'ImgAbout'
+        Align = alMostRight
+        Position.Point = '(750,0)'
+        Width = 81.000000000000000000
+        Height = 36.000000000000000000
+        OnClick = BtnAboutClick
+        OnApplyStyleLookup = BtnToolbarApplyStyleLookup
+        StyleLookup = 'ToolbarButton'
+        TabOrder = 2
+        TextAlign = taLeading
+        Text = 'About'
+      end
+    end
+    object Splitter: TSplitter
+      Align = alLeft
+      Cursor = crHSplit
+      Position.Point = '(231,36)'
+      Width = 5.000000000000000000
+      Height = 578.000000000000000000
+      TabOrder = 1
+      MinSize = 20.000000000000000000
+    end
+    object ListImages: TListBox
+      Align = alLeft
+      Position.Point = '(0,36)'
+      Width = 231.000000000000000000
+      Height = 578.000000000000000000
+      TabOrder = 2
+      MouseTracking = True
+      AlternatingRowBackground = True
+      ItemHeight = 96.000000000000000000
+      OnChange = ListImagesChange
+    end
+    object ImageViewer: TImageViewer
+      Align = alClient
+      Cursor = crHandPoint
+      Position.Point = '(236,36)'
+      Width = 595.000000000000000000
+      Height = 578.000000000000000000
+      StyleLookup = 'framedscrollboxstyle'
+      TabOrder = 3
+      MouseTracking = True
+      BitmapScale = 1.000000000000000000
+    end
+    object EmbossEffect: TEmbossEffect
+      Enabled = False
+      Amount = 0.100000001490116100
+      Width = 1.000000000000000000
+    end
+  end
+  object AniIndicator: TAniIndicator
+    Align = alCenter
+    Enabled = True
+    Position.Point = '(360,255)'
+    Width = 111.000000000000000000
+    Height = 104.000000000000000000
+    HitTest = False
+    Visible = False
+    TabOrder = 1
+    Style = aiCircular
+  end
+  object OpenDialog: TOpenDialog
+    Options = [ofHideReadOnly, ofFileMustExist, ofEnableSizing]
+    Left = 416
+    Top = 490
+  end
+  object SaveDialog: TSaveDialog
+    Left = 416
+    Top = 556
+  end
+end

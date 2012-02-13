@@ -78,11 +78,13 @@ type
       TImageData now share some image memory (bits). So don't call FreeImage
       on TImageData afterwards since this TBaseImage would get really broken.}
     procedure MapImageData(const ImageData: TImageData);
-    { Deletes current image and creates default 1x1 image.}
+    { Deletes current image.}
     procedure Clear;
 
     { Resizes current image with optional resampling.}
     procedure Resize(NewWidth, NewHeight: Integer; Filter: TResizeFilter);
+
+    procedure ResizeToFit(FitWidth, FitHeight: Integer; Filter: TResizeFilter; DstImage: TBaseImage);
     { Flips current image. Reverses the image along its horizontal axis the top
       becomes the bottom and vice versa.}
     procedure Flip;
@@ -245,6 +247,8 @@ type
     procedure DeleteImage(Index: Integer);
     { Rearranges images so that the first image will become last and vice versa.}
     procedure ReverseImages;
+    { Deletes all images.}
+    procedure ClearAll;
 
     { Converts all images to another image data format.}
     procedure ConvertImages(Format: TImageFormat);
@@ -287,9 +291,8 @@ type
 implementation
 
 const
-  DefaultWidth  = 16;
-  DefaultHeight = 16;
-  DefaultImages = 1;
+  DefaultWidth = 16;
+  Defaultheight = 16;
 
 function GetArrayFromImageData(const ImageData: TImageData): TDynImageDataArray;
 begin
@@ -480,6 +483,17 @@ begin
     DoDataSizeChanged;
 end;
 
+procedure TBaseImage.ResizeToFit(FitWidth, FitHeight: Integer;
+  Filter: TResizeFilter; DstImage: TBaseImage);
+begin
+  if Valid and Assigned(DstImage) then
+  begin
+    Imaging.ResizeImageToFit(FPData^, FitWidth, FitHeight, Filter,
+      DstImage.FPData^);
+    DstImage.DoDataSizeChanged;
+  end;
+end;
+
 procedure TBaseImage.Flip;
 begin
   if Valid and Imaging.FlipImage(FPData^) then
@@ -643,8 +657,7 @@ end;
 
 constructor TMultiImage.Create;
 begin
-  SetImageCount(DefaultImages);
-  SetActiveImage(0);
+  inherited Create;
 end;
 
 constructor TMultiImage.CreateFromParams(AWidth, AHeight: Integer;
@@ -656,7 +669,8 @@ begin
   SetLength(FDataArray, Images);
   for I := 0 to GetImageCount - 1 do
     Imaging.NewImage(AWidth, AHeight, AFormat, FDataArray[I]);
-  SetActiveImage(0);
+  if GetImageCount > 0 then
+    SetActiveImage(0);
 end;
 
 constructor TMultiImage.CreateFromArray(ADataArray: TDynImageDataArray);
@@ -673,7 +687,8 @@ begin
     else
       Imaging.NewImage(DefaultWidth, DefaultHeight, ifDefault, FDataArray[I]);
   end;
-  SetActiveImage(0);
+  if GetImageCount > 0 then
+    SetActiveImage(0);
 end;
 
 constructor TMultiImage.CreateFromFile(const FileName: string);
@@ -919,6 +934,11 @@ begin
   end;
 end;
 
+procedure TMultiImage.ClearAll;
+begin
+  ImageCount := 0;
+end;
+
 procedure TMultiImage.ConvertImages(Format: TImageFormat);
 var
   I: Integer;
@@ -932,7 +952,7 @@ procedure TMultiImage.ResizeImages(NewWidth, NewHeight: Integer;
 var
   I: Integer;
 begin
-  for I := 0 to GetImageCount do
+  for I := 0 to GetImageCount - 1 do
     Imaging.ResizeImage(FDataArray[I], NewWidth, NewHeight, Filter);
 end;
 
@@ -987,7 +1007,10 @@ end;
     - nothing now
 
   -- 0.77.1 ---------------------------------------------------
+    - Added TBaseImage.ResizeToFit method.
+    - Changed TMultiImage to have default state with no images.
     - TMultiImage.AddImage now returns index of newly added image.
+    - Fixed img index bug in TMultiImage.ResizeImages
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Added MapImageData method to TBaseImage

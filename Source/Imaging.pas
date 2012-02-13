@@ -34,7 +34,7 @@ unit Imaging;
 interface
 
 uses
-  ImagingTypes, SysUtils, Classes;
+  SysUtils, Classes, Types, ImagingTypes;
 
 type
   { Default Imaging excepton class.}
@@ -334,6 +334,10 @@ procedure WriteRawImageToMemory(Data: Pointer; DataSize: Integer; const Image: T
 procedure WriteRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
   const Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
 
+{ Convenience/helper Functions }
+
+procedure ResizeImageToFit(const SrcImage: TImageData; FitWidth, FitHeight: Integer;
+  Filter: TResizeFilter; var DestImage: TImageData);
 
 
 { ------------------------------------------------------------------------
@@ -361,7 +365,9 @@ type
     ffLoad,
     ffSave,
     ffMultiImage,
-    ffReadOnSave);
+    ffReadOnSave,
+    ffProgress,
+    ffReadScanlines);
 
   TFileFormatFeatures = set of TFileFormatFeature;
 
@@ -656,6 +662,9 @@ function GetIO: TIOFunctions;
 procedure RaiseImaging(const Msg: string; const Args: array of const); overload;
 procedure RaiseImaging(const Msg: string); overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
+const
+  SImagingLibTitle = 'Vampyre Imaging Library';
+
 implementation
 
 uses
@@ -689,7 +698,6 @@ uses
   ImagingFormats, ImagingUtility, ImagingIO, Variants;
 
 resourcestring
-  SImagingTitle = 'Vampyre Imaging Library';
   SExceptMsg = 'Exception Message';
   SAllFilter = 'All Images';
   SUnknownFormat = 'Unknown and unsupported format';
@@ -737,6 +745,7 @@ resourcestring
   SErrorRotateImage = 'Error while rotating image %s by %.2n degrees';
   SErrorStretchRect = 'Error while stretching rect from image %s to image %s.';
   SErrorEmptyStream = 'Input stream has no data. Check Position property.';
+  SErrorInvalidInputImage = 'Invalid input image.';
 
 const
   // Initial size of array with options information
@@ -2958,6 +2967,30 @@ begin
     Inc(Dest, RowLength);
     Inc(Src, SrcScanBytes);
   end;
+end;
+
+{ Convenience/helper Functions }
+
+procedure ResizeImageToFit(const SrcImage: TImageData; FitWidth, FitHeight: Integer;
+  Filter: TResizeFilter; var DestImage: TImageData);
+var
+  CurSize, FitSize, DestSize: TSize;
+begin
+  if not TestImage(SrcImage) then
+    raise EImagingError.Create(SErrorInvalidInputImage);
+
+  FitSize.CX := FitWidth;
+  FitSize.CY := FitHeight;
+  CurSize.CX := SrcImage.Width;
+  CurSize.CY := SrcImage.Height;
+  DestSize := ImagingUtility.ScaleSizeToFit(CurSize, FitSize);
+
+  NewImage(DestSize.CX, DestSize.CY, SrcImage.Format, DestImage);
+  if SrcImage.Palette <> nil then
+    CopyPalette(SrcImage.Palette, DestImage.Palette, 0, 0, ImageFormatInfos[SrcImage.Format].PaletteEntries);
+
+  StretchRect(SrcImage, 0, 0, CurSize.CX, CurSize.CY, DestImage, 0, 0,
+    DestSize.CX, DestSize.CY, Filter);
 end;
 
 { ------------------------------------------------------------------------

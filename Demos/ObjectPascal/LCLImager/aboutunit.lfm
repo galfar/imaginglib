@@ -310,7 +310,7 @@ object AboutForm: TAboutForm
     NumGlyphs = 0
     TabOrder = 0
   end
-  object labVersion: TLabel
+  object LabVersion: TLabel
     Left = 0
     Height = 32
     Top = 148
@@ -322,4 +322,4 @@ object AboutForm: TAboutForm
     ParentColor = False
     ParentFont = False
   end
-end
+end

@@ -1,0 +1,78 @@
+object FormAbout: TFormAbout
+  Left = 0
+  Top = 0
+  Caption = 'About - FireMonkey Demo'
+  BorderStyle = bsSingle
+  BorderIcons = [biSystemMenu]
+  ClientHeight = 290
+  ClientWidth = 318
+  Position = poDesigned
+  Visible = False
+  OnCreate = FormCreate
+  StyleLookup = 'backgroundstyle'
+  object PanelBack: TPanel
+    Align = alContents
+    Width = 318.000000000000000000
+    Height = 290.000000000000000000
+    TabOrder = 1
+    object ImgLogo: TImage
+      Align = alMostTop
+      Width = 318.000000000000000000
+      Height = 111.000000000000000000
+    end
+    object BtnOk: TButton
+      Position.Point = '(60,240)'
+      Width = 202.000000000000000000
+      Height = 40.000000000000000000
+      OnClick = BtnOkClick
+      TabOrder = 2
+      Font.Size = 14.000000000000000000
+      Text = 'OK'
+    end
+    object Label1: TLabel
+      Position.Point = '(10,120)'
+      Width = 241.000000000000000000
+      Height = 15.000000000000000000
+      TabOrder = 3
+      Font.Size = 14.000000000000000000
+      Text = 'Vampyre Imaging Library'
+    end
+    object LabVersion: TLabel
+      Position.Point = '(10,140)'
+      Width = 241.000000000000000000
+      Height = 15.000000000000000000
+      TabOrder = 4
+      Font.Size = 14.000000000000000000
+      Text = 'version: '
+    end
+    object LabWebsite: TLabel
+      Cursor = crHandPoint
+      Position.Point = '(10,160)'
+      Width = 241.000000000000000000
+      Height = 15.000000000000000000
+      TabOrder = 5
+      Font.Size = 14.000000000000000000
+      Text = 'http://imaginglib.sourceforge.net/'
+    end
+    object Effect: TWaveEffect
+      Enabled = False
+      WaveSize = 256.000000000000000000
+      object WaveAnim: TFloatAnimation
+        AnimationType = atOut
+        Enabled = True
+        Duration = 0.600000023841857900
+        Interpolation = itExponential
+        OnFinish = WaveAnimFinish
+        StartValue = 256.000000000000000000
+        StopValue = 32.000000000000000000
+        PropertyName = 'WaveSize'
+      end
+    end
+  end
+  object Timer: TTimer
+    Enabled = False
+    Interval = 15
+    Left = 270
+    Top = 120
+  end
+end

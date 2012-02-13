@@ -18,7 +18,7 @@ type
     Image2: TImage;
     labImaging: TLabel;
     ImLabel1: TLabel;
-    labVersion: TLabel;
+    LabVersion: TLabel;
     Label1: TLabel;
     procedure FormShow(Sender: TObject);
   private
@@ -36,11 +36,10 @@ implementation
 
 procedure TAboutForm.FormShow(Sender: TObject);
 begin
-  labVersion.Caption := 'version ' + Imaging.GetVersionStr;
+  LabVersion.Caption := 'version ' + Imaging.GetVersionStr;
   if Image.Picture.Graphic = nil then
   begin
-    Image.Picture.LoadFromFile(GetRootDir + PathDelim + 'Doc' + PathDelim +
-      'Common' + PathDelim + 'logo.png');
+    Image.Picture.LoadFromFile(GetDataDir + PathDelim + 'LogoAlpha.png');
   end;
 end;
 
@@ -48,4 +47,4 @@ initialization
   {$I aboutunit.lrs}
 
 end.
-
+

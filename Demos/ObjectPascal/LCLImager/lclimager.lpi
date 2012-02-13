@@ -68,6 +68,7 @@
       <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib"/>
       <Libraries Value="..\..\..\Extras\Extensions\J2KObjects"/>
       <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType);..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extras\Extensions;..\Common"/>
+      <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

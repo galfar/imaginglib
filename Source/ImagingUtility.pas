@@ -309,6 +309,9 @@ procedure ClipStretchBounds(var SrcX, SrcY, SrcWidth, SrcHeight, DstX, DstY,
 { Scales one rectangle to fit into another. Proportions are preserved so
   it could be used for 'Stretch To Fit Window' image drawing for instance.}
 function ScaleRectToRect(const SourceRect, TargetRect: TRect): TRect;
+{ Scales given size to fit into max size while keeping the original ascpect ration.
+  Useful for calculating thumbnail dimensions etc.}
+function ScaleSizeToFit(const CurrentSize, MaxSize: TSize): TSize;
 { Returns True if R1 fits into R2.}
 function RectInRect(const R1, R2: TRect): Boolean;
 { Returns True if R1 and R2 intersects.}
@@ -1462,6 +1465,17 @@ begin
   end;
 end;
 
+function ScaleSizeToFit(const CurrentSize, MaxSize: TSize): TSize;
+var
+  SR, TR, ScaledRect: TRect;
+begin
+  SR := Types.Rect(0, 0, CurrentSize.CX, CurrentSize.CY);
+  TR := Types.Rect(0, 0, MaxSize.CX, MaxSize.CY);
+  ScaledRect := ScaleRectToRect(SR, TR);
+  Result.CX := ScaledRect.Right - ScaledRect.Left;
+  Result.CY := ScaledRect.Bottom - ScaledRect.Top;
+end;
+
 function RectInRect(const R1, R2: TRect): Boolean;
 begin
   Result:=
@@ -1560,6 +1574,7 @@ initialization
     - nothing now
 
   -- 0.77.1 ----------------------------------------------------
+    - Added ScaleSizeToFit function.
     - Added ZeroMemory and SwapValues for Booleans.
     - Added Substring function.
     - Renamed MatchFileNameMask to StrMaskMatch (it's for general use not
