@@ -70,7 +70,7 @@ var
 procedure WriteTimeDiff(const Msg: string; const OldTime: Int64);
 begin
   WriteLn(Output, Format('%-58s %16.0n us', [Msg, GetTimeMicroseconds -
-    OldTime * 1.0], GetUSFormatSettings));
+    OldTime * 1.0], GetFormatSettingsForFloats));
 end;
 
 function GetImageName(const Ext: string): string;

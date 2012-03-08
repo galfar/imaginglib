@@ -37,10 +37,15 @@ uses
   SysUtils, Classes, Types, ImagingTypes;
 
 type
-  { Default Imaging excepton class.}
+  { Default Imaging excepton class }
   EImagingError = class(Exception);
+  { Raised when function receives bad image (not passed TestImage).}
+  EImagingBadImage = class(Exception)
+  public
+    constructor Create;
+  end;
 
-  { Dynamic array of TImageData records.}
+  { Dynamic array of TImageData records }
   TDynImageDataArray = array of TImageData;
 
 
@@ -701,6 +706,7 @@ resourcestring
   SExceptMsg = 'Exception Message';
   SAllFilter = 'All Images';
   SUnknownFormat = 'Unknown and unsupported format';
+
   SErrorFreeImage = 'Error while freeing image. %s';
   SErrorCloneImage = 'Error while cloning image. %s';
   SErrorFlipImage = 'Error while flipping image. %s';
@@ -746,6 +752,8 @@ resourcestring
   SErrorStretchRect = 'Error while stretching rect from image %s to image %s.';
   SErrorEmptyStream = 'Input stream has no data. Check Position property.';
   SErrorInvalidInputImage = 'Invalid input image.';
+
+  SErrorBadImage = 'Bad image detected.';
 
 const
   // Initial size of array with options information
@@ -795,6 +803,12 @@ var
   // Variable for ImagingBinaryTreshold option
   BinaryTreshold: Integer = 128;
 
+{ Exceptions }
+
+constructor EImagingBadImage.Create;
+begin
+  inherited Create(SErrorBadImage);
+end;
 
 { Internal unit functions }
 

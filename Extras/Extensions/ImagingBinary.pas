@@ -58,6 +58,19 @@ procedure OtsuThresholding(var Image: TImageData; Threshold: PInteger = nil);
   Strel. You can do composite operations (Open/Close) by calling this function
   twice each time with different operator.}
 procedure Morphology(var Image: TImageData; const Strel: TStructElement; Op: TMorphologyOp);
+{ Calculates rotation angle for given 8bit grayscale image.
+  Useful for finding skew of scanned documents etc.
+  Uses Hough transform internally.
+  MaxAngle is maximal (abs. value) expected skew angle in degrees (to speed things up)
+  and Threshold (0..255) is used to classify pixel as black (text) or white (background).}
+function CalcRotationAngle(MaxAngle: Integer; Treshold: Integer;
+  Width, Height: Integer; Pixels: PByteArray): Double;
+{ Deskews given image. Finds rotation angle and rotates image accordingly.
+  Works best on low-color document-like images (scans).
+  MaxAngle is maximal (abs. value) expected skew angle in degrees (to speed things up)
+  and Threshold (0..255) is used to classify pixel as black (text) or white (background).
+  If Treshold=-1 then auto threshold calculated by OtsuThresholding is used.}
+procedure DeskewImage(var Image: TImageData; MaxAngle: Integer = 10; Threshold: Integer = -1);
 
 implementation
 
@@ -209,11 +222,181 @@ begin
   Image := ImgOut;
 end;
 
+function CalcRotationAngle(MaxAngle: Integer; Treshold: Integer;
+  Width, Height: Integer; Pixels: PByteArray): Double;
+const
+  // Number of "best" lines we take into account when determining
+  // resulting rotation angle (lines with most votes).
+  BestLinesCount = 20;
+  // Angle step used in alpha parameter quantization
+  AlphaStep = 0.1;
+type
+  TLine = record
+    Count: Integer;
+    Index: Integer;
+    Alpha: Double;
+    D: Double;
+  end;
+  TLineArray = array of TLine;
+var
+  AlphaStart, MinD, Sum: Double;
+  AlphaSteps, DCount, AccumulatorSize, I: Integer;
+  BestLines: TLineArray;
+  HoughAccumulator: array of Integer;
+
+  // Classifies pixel at [X, Y] as black or white using threshold.
+  function IsPixelBlack(X, Y: Integer): Boolean;
+  begin
+    Result := Pixels[Y * Width + X] < Treshold;
+  end;
+
+  // Calculates alpha parameter for given angle step.
+  function GetAlpha(Index: Integer): Double;
+  begin
+    Result := AlphaStart + Index * AlphaStep;
+  end;
+
+  function CalcDIndex(D: Double): Integer;
+  begin
+    Result := Trunc(D - MinD);
+  end;
+
+  // Calculates angle and distance parameters for all lines
+  // going through point [X, Y].
+  procedure CalcLines(X, Y: Integer);
+  var
+    D, Rads: Double;
+    I, DIndex, Index: Integer;
+  begin
+    for I := 0 to AlphaSteps - 1 do
+    begin
+      Rads := GetAlpha(I) * Pi / 180; // Angle for current step in radians
+      D := Y * Cos(Rads) - X * Sin(Rads); // Parameter D of the line y=tg(alpha)x + d
+      DIndex := CalcDIndex(D);
+      Index := DIndex * AlphaSteps + I;
+      HoughAccumulator[Index] := HoughAccumulator[Index] + 1; // Add one vote for current line
+    end;
+  end;
+
+  // Uses Hough transform to calculate all lines that intersect
+  // interesting points (those classified as beign on base line of the text).
+  procedure CalcHoughTransform;
+  var
+    Y, X: Integer;
+  begin
+    for Y := 0 to Height - 1 do
+      for X := 0 to Width - 1 do
+      begin
+        if IsPixelBlack(X, Y) and not IsPixelBlack(X, Y + 1) then
+          CalcLines(X, Y);
+      end;
+  end;
+
+  // Chooses "best" lines (with the most votes) from the accumulator
+  function GetBestLines(Count: Integer): TLineArray;
+  var
+    I, J, DIndex, AlphaIndex: Integer;
+    Temp: TLine;
+  begin
+    SetLength(Result, Count);
+
+    for I := 0 to AccumulatorSize - 1 do
+    begin
+      if HoughAccumulator[I] > Result[Count - 1].Count then
+      begin
+        // Current line has more votes than the last selected one,
+        // let's put it the pot
+        Result[Count - 1].Count := HoughAccumulator[I];
+        Result[Count - 1].Index := I;
+        J := Count - 1;
+
+        // Sort the lines based on number of votes
+        while (J > 0) and (Result[J].Count > Result[J - 1].Count) do
+        begin
+          Temp := Result[J];
+          Result[J] := Result[J - 1];
+          Result[J - 1] := Temp;
+          J := J - 1;
+        end;
+      end;
+    end;
+
+    for I := 0 to Count - 1 do
+    begin
+      // Caculate line angle and distance according to index in the accumulator
+      DIndex := Result[I].Index div AlphaSteps;
+      AlphaIndex := Result[I].Index - DIndex * AlphaSteps;
+      Result[I].Alpha := GetAlpha(AlphaIndex);
+      Result[I].D := DIndex + MinD;
+    end;
+  end;
+
+begin
+  AlphaStart := -MaxAngle;
+  AlphaSteps := Round(2 * MaxAngle / AlphaStep); // Number of angle steps = samples from interval <-MaxAngle, MaxAngle>
+  MinD := -Width;
+  DCount := 2 * (Width + Height);
+
+  // Determine the size of line accumulator
+  AccumulatorSize := DCount * AlphaSteps;
+  SetLength(HoughAccumulator, AccumulatorSize);
+
+  // Calculate Hough transform
+  CalcHoughTransform;
+
+  // Get the best lines with most votes
+  BestLines := GetBestLines(BestLinesCount);
+
+  // Average angles of the selected lines to get the rotation angle of the image
+  Sum := 0;
+  for I := 0 to BestLinesCount - 1 do
+    Sum := Sum + BestLines[I].Alpha;
+  Result := Sum / BestLinesCount;
+end;
+
+procedure DeskewImage(var Image: TImageData; MaxAngle: Integer; Threshold: Integer);
+var
+  Angle: Double;
+  OutputImage: TImageData;
+  Info: TImageFormatInfo;
+begin
+  if not TestImage(Image) then
+    raise EImagingBadImage.Create;
+
+  // Clone input image and convert it to 8bit grayscale. This will be our
+  // working image.
+  CloneImage(Image, OutputImage);
+  ConvertImage(Image, ifGray8);
+
+  if Threshold < 0 then
+  begin
+    // Determine the threshold automatically if needed.
+    OtsuThresholding(Image, @Threshold);
+  end;
+
+  // Main step - calculate image rotation angle
+  Angle := CalcRotationAngle(MaxAngle, Threshold, Image.Width, Image.Height, Image.Bits);
+
+  // Finally, rotate the image. We rotate the original input image, not the working
+  // one so the color space is preserved.
+  GetImageFormatInfo(OutputImage.Format, Info);
+  if Info.IsIndexed or Info.IsSpecial then
+    ConvertImage(OutputImage, ifA8R8G8B8); // Rotation doesn't like indexed and compressed images
+  RotateImage(OutputImage, Angle);
+
+  FreeImage(Image);
+  Image := OutputImage;
+end;
+
+
 {
   File Notes:
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77 -------------------------------------------------------
+    - Added CalcRotationAngle and DeskewImage functions.
 
   -- 0.25.0 Changes/Bug Fixes -----------------------------------
     - Unit created with basic stuff (otsu and erode/dilate morphology ops).
