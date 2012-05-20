@@ -2062,7 +2062,6 @@ finalization
   -- TODOS ----------------------------------------------------
     - more more more ...
     - implement pen width everywhere
-    - add blending (*image and object drawing)
     - more objects (arc, polygon)
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------

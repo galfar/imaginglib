@@ -208,7 +208,7 @@ function SplitImage(var Image: TImageData; var Chunks: TDynImageDataArray;
 function MakePaletteForImages(var Images: TDynImageDataArray; Pal: PPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean;
 { Rotates image by Angle degrees counterclockwise. All angles are allowed.}
-function RotateImage(var Image: TImageData; Angle: Single): Boolean;
+procedure RotateImage(var Image: TImageData; Angle: Single);
 
 { Drawing/Pixel functions }
 
@@ -700,6 +700,7 @@ uses
 {$IFNDEF DONT_LINK_EXTRAS}
   ImagingExtras,
 {$ENDIF}
+  //ImagingDebug,
   ImagingFormats, ImagingUtility, ImagingIO, Variants;
 
 resourcestring
@@ -1993,7 +1994,7 @@ begin
   end;
 end;
 
-function RotateImage(var Image: TImageData; Angle: Single): Boolean;
+procedure RotateImage(var Image: TImageData; Angle: Single);
 var
   OldFmt: TImageFormat;
 
@@ -2018,7 +2019,7 @@ var
       if (XPos >= 0) and (XPos < Dst.Width) then
       begin
         for J := 0 to Bpp - 1 do
-          PixSrc.Channels[J] := PixSrc.Channels[J] - (PixLeft.Channels[J] - PixOldLeft.Channels[J]);
+          PixSrc.Channels[J] := ClampToByte(PixSrc.Channels[J] - (PixLeft.Channels[J] - PixOldLeft.Channels[J]));
         CopyPixel(@PixSrc, @LineDst[XPos * Bpp], Bpp);
       end;
       PixOldLeft := PixLeft;
@@ -2049,7 +2050,7 @@ var
       if (YPos >= 0) and (YPos < Dst.Height) then
       begin
         for J := 0 to Bpp - 1 do
-          PixSrc.Channels[J] := PixSrc.Channels[J] - (PixLeft.Channels[J] - PixOldLeft.Channels[J]);
+          PixSrc.Channels[J] := ClampToByte(PixSrc.Channels[J] - (PixLeft.Channels[J] - PixOldLeft.Channels[J]));
         CopyPixel(@PixSrc, @PByteArray(Dst.Bits)[(YPos * Dst.Width + Col) * Bpp], Bpp);
       end;
       PixOldLeft := PixLeft;
@@ -2099,7 +2100,7 @@ var
       XShear(Image, TempImage1, I, Floor(Shear), Trunc(255 * (Shear - Floor(Shear)) + 1), Bpp);
     end;
 
-    // 2nd shear  (vertical)
+    // 2nd shear (vertical)
     FreeImage(Image);
     DstHeight := Trunc(SrcWidth * Abs(AngleSin) + SrcHeight * AngleCos + 0.5) + 1;
     InitImage(TempImage2);
@@ -2199,8 +2200,6 @@ var
   end;
 
 begin
-  Result := False;
-
   if TestImage(Image) then
   try
     while Angle >= 360 do
@@ -2209,10 +2208,7 @@ begin
       Angle := Angle + 360;
 
     if (Angle = 0) or (Abs(Angle) = 360) then
-    begin
-      Result := True;
       Exit;
-    end;
 
     OldFmt := Image.Format;
     if ImageFormatInfos[Image.Format].IsSpecial then
@@ -2240,7 +2236,6 @@ begin
     if OldFmt <> Image.Format then
       ConvertImage(Image, OldFmt);
 
-    Result := True;
   except
     raise UpdateExceptMessage(GetExceptObject, SErrorRotateImage, [ImageToStr(Image), Angle]);
   end;
@@ -3799,9 +3794,10 @@ end;
 
 function TImageFileFormat.GetSaveOpenMode: TOpenMode;
 begin
-  if ffReadOnSave in FFeatures then
-    Result := omReadWrite
-  else
+  // TODO: fix
+  //if ffReadOnSave in FFeatures then
+  //  Result := omReadWrite
+  //else
     Result := omCreate;
 end;
 

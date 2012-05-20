@@ -143,6 +143,9 @@ function GetAppExe: string;
 { Returns directory where application's exceutable is located without
   path delimiter at the end.}
 function GetAppDir: string;
+{ Works like SysUtils.ExtractFileName but supports '/' and '\' dir delimiters
+  at the same time (whereas ExtractFileName supports on default delimiter on current platform).}
+function GetFileName(const FileName: string): string;
 { Returns True if Subject matches given Mask with optional case sensitivity.
   Mask can contain ? and * special characters: ? matches
   one character, * matches zero or more characters.}
@@ -177,7 +180,7 @@ function FloatToStrFmt(const F: Double; Precision: Integer = 2): string; {$IFDEF
 { Returns format settings for parsing floats (dot as decimal separator).
   Useful when fomatting/parsing floats etc.}
 function GetFormatSettingsForFloats: TFormatSettings;
-{ Returns True if S contains at least one of substrings in SubStrs array. Case sensitive.}
+{ Returns True if S contains at least one of the substrings in SubStrs array. Case sensitive.}
 function ContainsAnySubStr(const S: string; const SubStrs: array of string): Boolean;
 { Extracts substring starting at IdxStart ending at IdxEnd.
   S[IdxEnd] is not included in the result.}
@@ -437,6 +440,14 @@ end;
 function GetAppDir: string;
 begin
   Result := ExtractFileDir(GetAppExe);
+end;
+
+function GetFileName(const FileName: string): string;
+var
+  I: Integer;
+begin
+  I := LastDelimiter('\/' + DriveDelim, FileName);
+  Result := Copy(FileName, I + 1, MaxInt);
 end;
 
 function StrMaskMatch(const Subject, Mask: string; CaseSensitive: Boolean): Boolean;
@@ -1574,6 +1585,7 @@ initialization
     - nothing now
 
   -- 0.77.1 ----------------------------------------------------
+    - Added GetFileName function.
     - Added ScaleSizeToFit function.
     - Added ZeroMemory and SwapValues for Booleans.
     - Added Substring function.

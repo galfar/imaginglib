@@ -1,12 +1,12 @@
 object MainForm: TMainForm
-  Left = 576
+  Left = 542
   Height = 512
   Top = 344
-  Width = 768
+  Width = 835
   AllowDropFiles = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
   ClientHeight = 492
-  ClientWidth = 768
+  ClientWidth = 835
   Constraints.MinHeight = 240
   Constraints.MinWidth = 320
   Icon.Data = {
@@ -95,14 +95,14 @@ object MainForm: TMainForm
     Left = 0
     Height = 23
     Top = 469
-    Width = 768
+    Width = 835
     Panels = <>
   end
   object PairSplitter: TPairSplitter
     Left = 0
     Height = 469
     Top = 0
-    Width = 768
+    Width = 835
     Align = alClient
     Position = 180
     object PairSplitterSideLeft: TPairSplitterSide
@@ -136,15 +136,15 @@ object MainForm: TMainForm
       Left = 185
       Height = 469
       Top = 0
-      Width = 583
-      ClientWidth = 583
+      Width = 650
+      ClientWidth = 650
       ClientHeight = 469
       object Image: TImage
         Cursor = crHandPoint
         Left = 4
         Height = 469
         Top = 0
-        Width = 575
+        Width = 642
         Align = alClient
         AutoSize = True
         BorderSpacing.Left = 4
@@ -469,7 +469,7 @@ object MainForm: TMainForm
         OnClick = MenuItem61Click
       end
       object MenuItem62: TMenuItem
-        Caption = 'Tresholding'
+        Caption = 'RGB Tresholding'
         OnClick = MenuItem62Click
       end
       object MenuItem75: TMenuItem
@@ -508,23 +508,34 @@ object MainForm: TMainForm
         OnClick = MenuItem82Click
       end
     end
-    object MenuItem70: TMenuItem
-      Caption = 'Binary Morphology'
-      object MenuItem71: TMenuItem
-        Caption = 'Erode'
-        OnClick = MenuItem71Click
+    object MIAdditional: TMenuItem
+      Caption = 'Additional Operations'
+      object MIMorphology: TMenuItem
+        Caption = 'Binary Morphology'
+        object MenuItem71: TMenuItem
+          Caption = 'Erode'
+          OnClick = MenuItem71Click
+        end
+        object MenuItem72: TMenuItem
+          Caption = 'Dilate'
+          OnClick = MenuItem72Click
+        end
+        object MenuItem73: TMenuItem
+          Caption = 'Open'
+          OnClick = MenuItem73Click
+        end
+        object MenuItem74: TMenuItem
+          Caption = 'Close'
+          OnClick = MenuItem74Click
+        end
       end
-      object MenuItem72: TMenuItem
-        Caption = 'Dilate'
-        OnClick = MenuItem72Click
+      object MenuItem70: TMenuItem
+        Caption = 'Otsu Thresholding'
+        OnClick = MenuItem70Click
       end
-      object MenuItem73: TMenuItem
-        Caption = 'Open'
-        OnClick = MenuItem73Click
-      end
-      object MenuItem74: TMenuItem
-        Caption = 'Close'
-        OnClick = MenuItem74Click
+      object MenuItem91: TMenuItem
+        Caption = 'Deskewing (for text)'
+        OnClick = MenuItem91Click
       end
     end
     object MenuItem9: TMenuItem

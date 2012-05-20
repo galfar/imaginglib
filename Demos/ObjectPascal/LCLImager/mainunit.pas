@@ -24,7 +24,7 @@
 }
 
 unit MainUnit;
-
+       //-add otsu and deskew
 {$I ImagingOptions.inc}
 
 interface
@@ -45,6 +45,7 @@ type
     ptLevelsHigh, ptAlphaPreMult, ptAlphaUnPreMult);
   TNonLinearFilter = (nfMedian, nfMin, nfMax);
   TMorphology = (mpErode, mpDilate, mpOpen, mpClose);
+  TAdditionalOp = (aoOtsuThreshold, aoDeskew);
 
   { TMainForm }
   TMainForm = class(TForm)
@@ -117,6 +118,8 @@ type
     MenuItem68: TMenuItem;
     MenuItem69: TMenuItem;
     MenuItem70: TMenuItem;
+    MenuItem91: TMenuItem;
+    MIMorphology: TMenuItem;
     MenuItem71: TMenuItem;
     MenuItem72: TMenuItem;
     MenuItem73: TMenuItem;
@@ -138,6 +141,7 @@ type
     MenuItem89: TMenuItem;
     MenuItem90: TMenuItem;
     MenuItemConvertAll: TMenuItem;
+    MIAdditional: TMenuItem;
     PairSplitter: TPairSplitter;
     PairSplitterSideLeft: TPairSplitterSide;
     PairSplitterSideRight: TPairSplitterSide;
@@ -218,6 +222,7 @@ type
     procedure MenuItem67Click(Sender: TObject);
     procedure MenuItem68Click(Sender: TObject);
     procedure MenuItem69Click(Sender: TObject);
+    procedure MenuItem70Click(Sender: TObject);
     procedure MenuItem71Click(Sender: TObject);
     procedure MenuItem72Click(Sender: TObject);
     procedure MenuItem73Click(Sender: TObject);
@@ -238,6 +243,7 @@ type
     procedure MenuItem88Click(Sender: TObject);
     procedure MenuItem89Click(Sender: TObject);
     procedure MenuItem90Click(Sender: TObject);
+    procedure MenuItem91Click(Sender: TObject);
     procedure TreeImageSelectionChanged(Sender: TObject);
   private
     FBitmap: TImagingBitmap;
@@ -256,6 +262,7 @@ type
     procedure ApplyManipulation(ManipType: TManipulationType);
     procedure ApplyNonLinear(FilterType: TNonLinearFilter; FilterSize: Integer);
     procedure ApplyMorphology(MorphOp: TMorphology);
+    procedure ApplyAdditionalOp(Op: TAdditionalOp);
     procedure MeasureTime(const Msg: string; const OldTime: Int64);
     procedure FreeResizeInput;
     function InputInteger(const ACaption, APrompt: string; var Value: Integer): Boolean;
@@ -604,6 +611,19 @@ begin
   UpdateView(True);
 end;
 
+procedure TMainForm.ApplyAdditionalOp(Op: TAdditionalOp);
+var
+  T: Int64;
+begin
+  T := GetTimeMicroseconds;
+  case Op of
+    aoOtsuThreshold: OtsuThresholding(FImage.ImageDataPointer^);
+    aoDeskew: DeskewImage(FImage.ImageDataPointer^);
+  end;
+  MeasureTime('Operation completed in:', T);
+  UpdateView(False);
+end;
+
 procedure TMainForm.ApplyManipulation(ManipType: TManipulationType);
 var
   T: Int64;
@@ -902,6 +922,11 @@ begin
   FreeResizeInput;
 end;
 
+procedure TMainForm.MenuItem91Click(Sender: TObject);
+begin
+  ApplyAdditionalOp(aoDeskew);
+end;
+
 procedure TMainForm.TreeImageSelectionChanged(Sender: TObject);
 var
   Node: TTreeNode;
@@ -1027,6 +1052,11 @@ begin
   ApplyNonLinear(nfMax, 5);
 end;
 
+procedure TMainForm.MenuItem70Click(Sender: TObject);
+begin
+  ApplyAdditionalOp(aoOtsuThreshold);
+end;
+
 procedure TMainForm.MenuItem71Click(Sender: TObject);
 begin
   ApplyMorphology(mpErode);
@@ -1150,10 +1180,8 @@ initialization
 {
   File Notes:
 
-  -- TODOS ----------------------------------------------------
-    - add more canvas stuff when it will be avaiable
-
   -- 0.77.1 Changes/Bug Fixes ---------------------------------
+    - Added Otsu Thresholding and Deskwing, reorganized some menus.
     - Added Lanczos filtering option to resize image functions.
     - Added option to convert data format of all subimages by default.
     - UI enhancements: added TreeView with image/subimage list,

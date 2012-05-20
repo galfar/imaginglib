@@ -35,6 +35,7 @@ interface
 
 {$IFDEF LCL}
   {$DEFINE COMPONENT_SET_LCL}
+  {$UNDEF COMPONENT_SET_VCL}
 {$ENDIF}
 
 {$IF not Defined(COMPONENT_SET_LCL) and not Defined(COMPONENT_SET_VCL)}
@@ -522,6 +523,7 @@ begin
     if Info.IsFloatingPoint or Info.HasAlphaChannel or Info.IsSpecial then
       Imaging.ConvertImage(WorkData, ifA8R8G8B8)
     else
+    begin
 {$IFDEF COMPONENT_SET_VCL}
       if Info.IsIndexed or Info.HasGrayChannel then
         Imaging.ConvertImage(WorkData, ifIndex8)
@@ -532,6 +534,7 @@ begin
 {$ELSE}
         Imaging.ConvertImage(WorkData, ifA8R8G8B8);
 {$ENDIF}
+    end;
 
     PF := DataFormatToPixelFormat(WorkData.Format);
     GetImageFormatInfo(WorkData.Format, Info);
@@ -1291,4 +1294,4 @@ finalization
 }
 
 end.
-
+

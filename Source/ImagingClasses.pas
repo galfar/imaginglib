@@ -508,8 +508,11 @@ end;
 
 procedure TBaseImage.Rotate(Angle: Single);
 begin
-  if Valid and Imaging.RotateImage(FPData^, Angle) then
+  if Valid then
+  begin
+    Imaging.RotateImage(FPData^, Angle);
     DoPixelsChanged;
+  end;
 end;
 
 procedure TBaseImage.CopyTo(SrcX, SrcY, Width, Height: Integer;

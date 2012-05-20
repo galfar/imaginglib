@@ -13,6 +13,7 @@ Scripts/_*
 Bin/
 Demos/Bin/
 Tests/*
+Dcu/*
 
 __history
 
@@ -32,15 +33,17 @@ __history
 *.deployproj
 *.lps
 *.rsm
+*.suo
+*.vcxproj.user
+*.DXE2.res
 
 Doc/*.chm
 Doc/*.chw
 Doc/*.html
 
 Demos/ObjectPascal/LCLImager/lclimager.compiled
-Demos/Cpp/*/*.bat
-Demos/Cpp/*/*.sh
-Demos/ObjectPascal/*/*.DXE2.res
+Extras/DynamicLib/Demos/Cpp/*/*.bat
+Extras/DynamicLib/Demos/Cpp/*/*.sh
 
 Source/*.hpp
 Source/*/*.hpp

@@ -35,7 +35,7 @@ unit ImagingBinary;
 interface
 
 uses
-  ImagingTypes, Imaging, ImagingFormats, ImagingUtility;
+  Types, ImagingTypes, Imaging, ImagingFormats, ImagingUtility;
 
 type
   { Basic morphologic operators.}
@@ -45,8 +45,17 @@ type
   );
 
   { Structuring element for morphology operations. Use ones and
-   zeroes to define your struct elements.}
+    zeroes to define your struct elements.}
   TStructElement = array of array of Byte;
+
+  TCalcSkewAngleStats = record
+    PixelCount: Integer;
+    TestedPixels: Integer;
+    AccumulatorSize: Integer;
+    AccumulatedCounts: Integer;
+    BestCount: Double;
+  end;
+  PCalcSkewAngleStats = ^TCalcSkewAngleStats;
 
 { Thresholding using Otsu's method (which chooses the threshold
   to minimize the intraclass variance of the black and white pixels!).
@@ -64,7 +73,8 @@ procedure Morphology(var Image: TImageData; const Strel: TStructElement; Op: TMo
   MaxAngle is maximal (abs. value) expected skew angle in degrees (to speed things up)
   and Threshold (0..255) is used to classify pixel as black (text) or white (background).}
 function CalcRotationAngle(MaxAngle: Integer; Treshold: Integer;
-  Width, Height: Integer; Pixels: PByteArray): Double;
+  Width, Height: Integer; Pixels: PByteArray; Margins: PRect = nil;
+  Stats: PCalcSkewAngleStats = nil): Double;
 { Deskews given image. Finds rotation angle and rotates image accordingly.
   Works best on low-color document-like images (scans).
   MaxAngle is maximal (abs. value) expected skew angle in degrees (to speed things up)
@@ -223,7 +233,7 @@ begin
 end;
 
 function CalcRotationAngle(MaxAngle: Integer; Treshold: Integer;
-  Width, Height: Integer; Pixels: PByteArray): Double;
+  Width, Height: Integer; Pixels: PByteArray; Margins: PRect; Stats: PCalcSkewAngleStats): Double;
 const
   // Number of "best" lines we take into account when determining
   // resulting rotation angle (lines with most votes).
@@ -239,15 +249,17 @@ type
   end;
   TLineArray = array of TLine;
 var
-  AlphaStart, MinD, Sum: Double;
-  AlphaSteps, DCount, AccumulatorSize, I: Integer;
+  AlphaStart, MinD, SumAngles: Double;
+  AlphaSteps, DCount, AccumulatorSize, I, AccumulatedCounts: Integer;
   BestLines: TLineArray;
   HoughAccumulator: array of Integer;
+  PageWidth, PageHeight: Integer;
+  PageMargins: TRect;
 
   // Classifies pixel at [X, Y] as black or white using threshold.
   function IsPixelBlack(X, Y: Integer): Boolean;
   begin
-    Result := Pixels[Y * Width + X] < Treshold;
+    Result := Pixels[(PageMargins.Top + Y) * Width + PageMargins.Left + X] < Treshold;
   end;
 
   // Calculates alpha parameter for given angle step.
@@ -284,11 +296,13 @@ var
   var
     Y, X: Integer;
   begin
-    for Y := 0 to Height - 1 do
-      for X := 0 to Width - 1 do
+    for Y := 0 to PageHeight - 1 do
+      for X := 0 to PageWidth - 1 do
       begin
         if IsPixelBlack(X, Y) and not IsPixelBlack(X, Y + 1) then
+        begin
           CalcLines(X, Y);
+        end;
       end;
   end;
 
@@ -298,6 +312,7 @@ var
     I, J, DIndex, AlphaIndex: Integer;
     Temp: TLine;
   begin
+    AccumulatedCounts := 0;
     SetLength(Result, Count);
 
     for I := 0 to AccumulatorSize - 1 do
@@ -319,6 +334,8 @@ var
           J := J - 1;
         end;
       end;
+
+      AccumulatedCounts := AccumulatedCounts + HoughAccumulator[I];
     end;
 
     for I := 0 to Count - 1 do
@@ -332,10 +349,19 @@ var
   end;
 
 begin
+  // Use supplied page margins or just the whole image
+  if Margins = nil then
+    PageMargins := Rect(0, 0, Width, Height)
+  else
+    PageMargins := Margins^;
+
+  PageWidth := PageMargins.Right - PageMargins.Left;
+  PageHeight := PageMargins.Bottom - PageMargins.Top;
+
   AlphaStart := -MaxAngle;
   AlphaSteps := Round(2 * MaxAngle / AlphaStep); // Number of angle steps = samples from interval <-MaxAngle, MaxAngle>
   MinD := -Width;
-  DCount := 2 * (Width + Height);
+  DCount := 2 * (PageWidth + PageHeight);
 
   // Determine the size of line accumulator
   AccumulatorSize := DCount * AlphaSteps;
@@ -348,10 +374,20 @@ begin
   BestLines := GetBestLines(BestLinesCount);
 
   // Average angles of the selected lines to get the rotation angle of the image
-  Sum := 0;
+  SumAngles := 0;
   for I := 0 to BestLinesCount - 1 do
-    Sum := Sum + BestLines[I].Alpha;
-  Result := Sum / BestLinesCount;
+    SumAngles := SumAngles + BestLines[I].Alpha;
+
+  Result := SumAngles / BestLinesCount;
+
+  if Stats <> nil then
+  begin
+    Stats.BestCount := BestLines[0].Count;
+    Stats.PixelCount := PageWidth * PageHeight;
+    Stats.AccumulatorSize := AccumulatorSize;
+    Stats.AccumulatedCounts := AccumulatedCounts;
+    Stats.TestedPixels := AccumulatedCounts div AlphaSteps;
+  end;
 end;
 
 procedure DeskewImage(var Image: TImageData; MaxAngle: Integer; Threshold: Integer);
@@ -396,6 +432,7 @@ end;
     - nothing now
 
   -- 0.77 -------------------------------------------------------
+    - Extended CalcRotationAngle, added margins and stats.
     - Added CalcRotationAngle and DeskewImage functions.
 
   -- 0.25.0 Changes/Bug Fixes -----------------------------------
