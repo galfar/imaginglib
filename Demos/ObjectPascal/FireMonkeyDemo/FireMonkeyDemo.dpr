@@ -11,7 +11,7 @@ uses
 {$R *.res}
 
 begin
-  FMX.Types.GlobalUseDirect2DSoftware := True;
+  //FMX.Types.GlobalUseDirect2DSoftware := True;
   Application.Initialize;
   Application.CreateForm(TFormMain, FormMain);
   Application.CreateForm(TFormAbout, FormAbout);

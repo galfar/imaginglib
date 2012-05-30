@@ -464,7 +464,6 @@ var
   Data: PByte;
   UseAsPitch: Boolean;
   UseAsLinear: Boolean;
-  IsDX10: Boolean;
 
   function MasksEqual(const DDPF: TDDPixelFormat; PF: PPixelFormatInfo): Boolean;
   begin
@@ -602,7 +601,6 @@ begin
   FLoadedDepth := 1;
   FLoadedVolume := False;
   FLoadedCubeMap := False;
-  IsDX10 := False;
   ZeroMemory(@HdrDX10, SizeOf(HdrDX10));
 
   with GetIO, Hdr, Hdr.Desc.PixelFormat do
@@ -617,7 +615,6 @@ begin
     begin
       if FourCC = FOURCC_DX10 then
       begin
-        IsDX10 := True;
         Read(Handle, @HdrDX10, SizeOf(HdrDX10));
         SrcFormat := FindDX10Format(HdrDX10.DXGIFormat, NeedsSwapChannels);
         FMetadata.AddMetaItem(SMetaDdsDxgiFormat, HdrDX10.DXGIFormat);
@@ -724,7 +721,8 @@ begin
     end;
 
     // If DDS format is not supported we will exit
-    if SrcFormat = ifUnknown then Exit;
+    if SrcFormat = ifUnknown then
+      Exit;
 
     // File contains mipmaps for each subimage.
     { Some DDS writers ignore setting proper Caps and Flags so

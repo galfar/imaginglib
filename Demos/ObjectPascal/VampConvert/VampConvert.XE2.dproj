@@ -1,21 +1,16 @@
 ﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 		<PropertyGroup>
-			<ProjectGuid>{D9FDA707-8AE6-48DB-B22E-7D4E4CA7055B}</ProjectGuid>
-			<ProjectVersion>13.4</ProjectVersion>
-			<FrameworkType>FMX</FrameworkType>
-			<MainSource>FireMonkeyDemo.dpr</MainSource>
+			<ProjectGuid>{926FC038-61B9-4C7D-8234-BC94E769CF01}</ProjectGuid>
+			<MainSource>VampConvert.dpr</MainSource>
 			<Base>True</Base>
 			<Config Condition="'$(Config)'==''">Debug</Config>
-			<Platform Condition="'$(Platform)'==''">Win64</Platform>
 			<TargetedPlatforms>7</TargetedPlatforms>
-			<AppType>Application</AppType>
+			<AppType>Console</AppType>
+			<FrameworkType>None</FrameworkType>
+			<ProjectVersion>13.4</ProjectVersion>
+			<Platform Condition="'$(Platform)'==''">Win32</Platform>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Config)'=='Base' or '$(Base)'!=''">
-			<Base>true</Base>
-		</PropertyGroup>
-		<PropertyGroup Condition="('$(Platform)'=='Win64' and '$(Base)'=='true') or '$(Base_Win64)'!=''">
-			<Base_Win64>true</Base_Win64>
-			<CfgParent>Base</CfgParent>
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="('$(Platform)'=='OSX32' and '$(Base)'=='true') or '$(Base_OSX32)'!=''">
@@ -23,12 +18,7 @@
 			<CfgParent>Base</CfgParent>
 			<Base>true</Base>
 		</PropertyGroup>
-		<PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Base)'=='true') or '$(Base_Win32)'!=''">
-			<Base_Win32>true</Base_Win32>
-			<CfgParent>Base</CfgParent>
-			<Base>true</Base>
-		</PropertyGroup>
-		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_1)'!=''">
+		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_1)'!=''">
 			<Cfg_1>true</Cfg_1>
 			<CfgParent>Base</CfgParent>
 			<Base>true</Base>
@@ -39,73 +29,55 @@
 			<Cfg_1>true</Cfg_1>
 			<Base>true</Base>
 		</PropertyGroup>
-		<PropertyGroup Condition="('$(Platform)'=='Win32' and '$(Cfg_1)'=='true') or '$(Cfg_1_Win32)'!=''">
-			<Cfg_1_Win32>true</Cfg_1_Win32>
-			<CfgParent>Cfg_1</CfgParent>
-			<Cfg_1>true</Cfg_1>
-			<Base>true</Base>
-		</PropertyGroup>
-		<PropertyGroup Condition="'$(Config)'=='Release' or '$(Cfg_2)'!=''">
+		<PropertyGroup Condition="'$(Config)'=='Debug' or '$(Cfg_2)'!=''">
 			<Cfg_2>true</Cfg_2>
 			<CfgParent>Base</CfgParent>
 			<Base>true</Base>
 		</PropertyGroup>
+		<PropertyGroup Condition="('$(Platform)'=='OSX32' and '$(Cfg_2)'=='true') or '$(Cfg_2_OSX32)'!=''">
+			<Cfg_2_OSX32>true</Cfg_2_OSX32>
+			<CfgParent>Cfg_2</CfgParent>
+			<Cfg_2>true</Cfg_2>
+			<Base>true</Base>
+		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
 			<Manifest_File>None</Manifest_File>
-			<DCC_Define>FULL_FEATURE_SET;$(DCC_Define)</DCC_Define>
-			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
-			<Icon_MainIcon>..\..\Data\Imaging.ico</Icon_MainIcon>
-			<DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
 			<DCC_DcuOutput>..\..\Bin\Dcu\$(Platform)\$(Config)</DCC_DcuOutput>
+			<DCC_Define>FULL_FEATURE_SET;$(DCC_Define)</DCC_Define>
+			<DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
 			<DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
-		</PropertyGroup>
-		<PropertyGroup Condition="'$(Base_Win64)'!=''">
-			<DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
-			<Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
+			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Extras\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base_OSX32)'!=''">
-			<VerInfo_Keys>CFBundleName=$(MSBuildProjectName);CFBundleDisplayName=$(MSBuildProjectName);CFBundleIdentifier=$(MSBuildProjectName);CFBundleVersion=1.0.0.0;CFBundlePackageType=APPL;CFBundleSignature=????;CFBundleAllowMixedLocalizations=YES;CFBundleExecutable=$(MSBuildProjectName);Last Compile=2012-05-26 02:52</VerInfo_Keys>
-		</PropertyGroup>
-		<PropertyGroup Condition="'$(Base_Win32)'!=''">
-			<DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
-			<Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
+			<VerInfo_Keys>CFBundleName=$(MSBuildProjectName);CFBundleDisplayName=$(MSBuildProjectName);CFBundleIdentifier=$(MSBuildProjectName);CFBundleVersion=1.0.0.0;CFBundlePackageType=APPL;CFBundleSignature=????;CFBundleAllowMixedLocalizations=YES;CFBundleExecutable=$(MSBuildProjectName)</VerInfo_Keys>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_1_OSX32)'!=''">
+			<DCC_RemoteDebug>true</DCC_RemoteDebug>
+		</PropertyGroup>
+		<PropertyGroup Condition="'$(Cfg_2)'!=''">
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
 			<DCC_Optimize>false</DCC_Optimize>
 			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
 		</PropertyGroup>
-		<PropertyGroup Condition="'$(Cfg_1_OSX32)'!=''">
-			<VerInfo_Keys>CFBundleName=$(MSBuildProjectName);CFBundleDisplayName=$(MSBuildProjectName);CFBundleIdentifier=$(MSBuildProjectName);CFBundleVersion=1.0.0.0;CFBundlePackageType=APPL;CFBundleSignature=????;CFBundleAllowMixedLocalizations=YES;CFBundleExecutable=$(MSBuildProjectName);Last Compile=2012-05-26 02:52</VerInfo_Keys>
-			<Debugger_Launcher>/usr/X11/bin/xterm -e &quot;%debuggee%&quot;</Debugger_Launcher>
+		<PropertyGroup Condition="'$(Cfg_2_OSX32)'!=''">
 			<DCC_RemoteDebug>true</DCC_RemoteDebug>
-		</PropertyGroup>
-		<PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-			<DCC_DebugDCUs>true</DCC_DebugDCUs>
-			<VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-		</PropertyGroup>
-		<PropertyGroup Condition="'$(Cfg_2)'!=''">
-			<DCC_Define>RELEASE;$(DCC_Define)</DCC_Define>
 		</PropertyGroup>
 		<ItemGroup>
 			<DelphiCompile Include="$(MainSource)">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
-			<DCCReference Include="..\Common\DemoUtils.pas"/>
-			<DCCReference Include="MainForm.pas">
-				<Form>FormMain</Form>
-			</DCCReference>
-			<DCCReference Include="AboutForm.pas">
-				<Form>FormAbout</Form>
-			</DCCReference>
-			<BuildConfiguration Include="Release">
+			<DCCReference Include="DemoUnit.pas"/>
+			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>
 				<CfgParent>Base</CfgParent>
 			</BuildConfiguration>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
-			<BuildConfiguration Include="Debug">
+			<BuildConfiguration Include="Release">
 				<Key>Cfg_1</Key>
 				<CfgParent>Base</CfgParent>
 			</BuildConfiguration>
@@ -115,6 +87,9 @@
 			<Borland.ProjectType/>
 			<BorlandProject>
 				<Delphi.Personality>
+					<Source>
+						<Source Name="MainSource">VampConvert.dpr</Source>
+					</Source>
 					<VersionInfo>
 						<VersionInfo Name="IncludeVerInfo">False</VersionInfo>
 						<VersionInfo Name="AutoIncBuild">False</VersionInfo>
@@ -142,34 +117,26 @@
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments"/>
 					</VersionInfoKeys>
-					<Source>
-						<Source Name="MainSource">FireMonkeyDemo.dpr</Source>
-					</Source>
 				</Delphi.Personality>
+				<Platforms>
+					<Platform value="Win64">True</Platform>
+					<Platform value="OSX32">True</Platform>
+					<Platform value="Win32">True</Platform>
+				</Platforms>
 				<Deployment>
+					<DeployFile Configuration="Debug" LocalName="..\..\Bin\VampConvert" Class="ProjectOutput">
+						<Platform Name="OSX32"/>
+					</DeployFile>
+					<DeployFile Configuration="Debug" LocalName="..\..\Bin\VampConvert.rsm" Class="DebugSymbols">
+						<Platform Name="OSX32">
+							<RemoteName>VampConvert.rsm</RemoteName>
+						</Platform>
+					</DeployFile>
 					<DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
-						<Platform Name="OSX32"/>
-					</DeployFile>
-					<DeployFile Configuration="Debug" LocalName="..\..\Bin\FireMonkeyDemo.rsm" Class="DebugSymbols">
-						<Platform Name="OSX32">
-							<RemoteDir>Contents\MacOS\</RemoteDir>
-							<RemoteName>FireMonkeyDemo.rsm</RemoteName>
-						</Platform>
-					</DeployFile>
-					<DeployFile Configuration="Debug" LocalName="..\..\Bin\FireMonkeyDemo.info.plist" Class="ProjectOSXInfoPList">
-						<Platform Name="OSX32">
-							<RemoteName>Info.plist</RemoteName>
-						</Platform>
-					</DeployFile>
-					<DeployFile Configuration="Debug" LocalName="..\..\Bin\FireMonkeyDemo.icns" Class="ProjectOSXResource">
-						<Platform Name="OSX32"/>
-					</DeployFile>
-					<DeployFile Configuration="Debug" LocalName="..\..\Bin\FireMonkeyDemo" Class="ProjectOutput">
 						<Platform Name="OSX32"/>
 					</DeployFile>
 					<DeployClass Name="ProjectOutput" Required="true">
 						<Platform Name="OSX32">
-							<RemoteDir>Contents\MacOS</RemoteDir>
 							<Operation>1</Operation>
 						</Platform>
 						<Platform Name="Win32">
@@ -178,7 +145,6 @@
 					</DeployClass>
 					<DeployClass Name="DependencyPackage" Required="true">
 						<Platform Name="OSX32">
-							<RemoteDir>Contents\MacOS</RemoteDir>
 							<Operation>1</Operation>
 							<Extensions>.dylib</Extensions>
 						</Platform>
@@ -189,7 +155,6 @@
 					</DeployClass>
 					<DeployClass Name="DependencyModule">
 						<Platform Name="OSX32">
-							<RemoteDir>Contents\MacOS</RemoteDir>
 							<Operation>1</Operation>
 							<Extensions>.dylib</Extensions>
 						</Platform>
@@ -198,15 +163,9 @@
 							<Extensions>.dll;.bpl</Extensions>
 						</Platform>
 					</DeployClass>
-					<DeployClass Name="ProjectOSXInfoPList">
-						<Platform Name="OSX32">
-							<RemoteDir>Contents</RemoteDir>
-							<Operation>1</Operation>
-						</Platform>
-					</DeployClass>
+					<DeployClass Name="ProjectOSXInfoPList"/>
 					<DeployClass Name="File">
 						<Platform Name="OSX32">
-							<RemoteDir>Contents\MacOS</RemoteDir>
 							<Operation>0</Operation>
 						</Platform>
 						<Platform Name="Win32">
@@ -215,7 +174,6 @@
 					</DeployClass>
 					<DeployClass Name="DebugSymbols">
 						<Platform Name="OSX32">
-							<RemoteDir>Contents\MacOS</RemoteDir>
 							<Operation>1</Operation>
 						</Platform>
 						<Platform Name="Win32">
@@ -224,7 +182,6 @@
 					</DeployClass>
 					<DeployClass Name="DependencyFramework">
 						<Platform Name="OSX32">
-							<RemoteDir>Contents\MacOS</RemoteDir>
 							<Operation>1</Operation>
 							<Extensions>.framework</Extensions>
 						</Platform>
@@ -234,7 +191,6 @@
 					</DeployClass>
 					<DeployClass Name="AdditionalDebugSymbols">
 						<Platform Name="OSX32">
-							<RemoteDir>Contents\MacOS</RemoteDir>
 							<Operation>1</Operation>
 						</Platform>
 						<Platform Name="Win32">
@@ -247,15 +203,10 @@
 							<Operation>1</Operation>
 						</Platform>
 					</DeployClass>
-					<ProjectRoot Name="$(PROJECTNAME).app" Platform="OSX32"/>
+					<ProjectRoot Name="$(PROJECTNAME)" Platform="OSX32"/>
 					<ProjectRoot Name="$(PROJECTNAME)" Platform="Win64"/>
 					<ProjectRoot Name="$(PROJECTNAME)" Platform="Win32"/>
 				</Deployment>
-				<Platforms>
-					<Platform value="Win64">True</Platform>
-					<Platform value="OSX32">True</Platform>
-					<Platform value="Win32">True</Platform>
-				</Platforms>
 			</BorlandProject>
 			<ProjectFileVersion>12</ProjectFileVersion>
 		</ProjectExtensions>

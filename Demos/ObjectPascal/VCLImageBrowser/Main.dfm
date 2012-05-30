@@ -20,8 +20,6 @@ object MainForm: TMainForm
     Left = 249
     Top = 0
     Height = 791
-    ExplicitLeft = 200
-    ExplicitHeight = 600
   end
   object LeftPanel: TPanel
     Left = 0
@@ -49,7 +47,6 @@ object MainForm: TMainForm
       TabOrder = 0
       OnKeyDown = TreeKeyDown
       OnChange = TreeChange
-      ExplicitWidth = 205
     end
   end
   object RightPanel: TPanel
@@ -63,9 +60,6 @@ object MainForm: TMainForm
     Constraints.MinHeight = 300
     Constraints.MinWidth = 400
     TabOrder = 1
-    ExplicitLeft = 203
-    ExplicitWidth = 597
-    ExplicitHeight = 600
     object InfoPanel: TPanel
       Left = 0
       Top = 0
@@ -75,7 +69,6 @@ object MainForm: TMainForm
       BevelOuter = bvNone
       Color = clWhite
       TabOrder = 0
-      ExplicitWidth = 597
       DesignSize = (
         774
         97)
@@ -381,7 +374,6 @@ object MainForm: TMainForm
         Caption = 'Save Image Copy'
         TabOrder = 0
         OnClick = BtnSaveClick
-        ExplicitLeft = 464
       end
       object CheckFilter: TCheckBox
         Left = 641
@@ -394,7 +386,6 @@ object MainForm: TMainForm
         State = cbChecked
         TabOrder = 1
         OnClick = CheckFilterClick
-        ExplicitLeft = 464
       end
     end
     object ViewPanel: TPanel
@@ -407,8 +398,6 @@ object MainForm: TMainForm
       Color = 16777126
       TabOrder = 1
       OnResize = ViewPanelResize
-      ExplicitWidth = 597
-      ExplicitHeight = 503
       object PaintBox: TPaintBox
         Left = 0
         Top = 0
@@ -418,8 +407,6 @@ object MainForm: TMainForm
         Color = 16773862
         ParentColor = False
         OnPaint = PaintBoxPaint
-        ExplicitWidth = 597
-        ExplicitHeight = 484
       end
       object StatusBar: TStatusBar
         Left = 0
@@ -429,8 +416,6 @@ object MainForm: TMainForm
         Color = clWhite
         Panels = <>
         SimplePanel = True
-        ExplicitTop = 484
-        ExplicitWidth = 597
       end
     end
   end

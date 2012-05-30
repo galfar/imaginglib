@@ -1786,7 +1786,6 @@ var
   SrcFloat: TColorFPRec;
   Info: TImageFormatInfo;
   BytesPerChannel: LongInt;
-  ChannelValueMax, InvChannelValueMax: Single;
 begin
   GetImageFormatInfo(SrcImage.Format, Info);
   Assert(SrcImage.Format = DstImage.Format);

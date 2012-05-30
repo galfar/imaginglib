@@ -1418,7 +1418,7 @@ const
 var
   X, Y, I, J, SrcX, SrcY, SrcWidth, SrcHeight: Integer;
   DestX, DestY, DestWidth, DestHeight, SrcBpp, DestBpp: Integer;
-  SrcPix, PDest: TColorFPRec;
+  SrcPix: TColorFPRec;
   MapX, MapY: TMappingTable;
   XMinimum, XMaximum: Integer;
   LineBuffer: array of TColorFPRec;

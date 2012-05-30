@@ -91,60 +91,27 @@ ImageBase=4194304
 ExeDescription=
 [Directories]
 OutputDir=..\..\Bin
-UnitOutputDir=
+UnitOutputDir=..\..\Bin\Dcu\Win32
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions
-Packages=vcl;rtl;vclx;indy;inet;xmlrtl;vclie;inetdbbde;inetdbxpress;dbrtl;dsnap;dsnapcon;vcldb;soaprtl;VclSmp;inetdb;bdertl;vcldbx;webdsnap;websnap;adortl;ibxpress;teeui;teedb;tee;dss;visualclx;visualdbclx;vclactnband;vclshlctrls
+SearchPath=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common
 Conditionals=DONT_LINK_EXTRAS
 DebugSourceDirs=
 UsePackages=0
 [Parameters]
 RunParams=
-HostApplication=D:\Project\Temp\LZO Test\Project1.exe
 Launcher=
 UseLauncher=0
 DebugCWD=
-[Version Info]
-IncludeVerInfo=0
-AutoIncBuild=0
-MajorVer=1
-MinorVer=0
-Release=0
-Build=0
-Debug=0
-PreRelease=0
-Special=0
-Private=0
-DLL=0
-Locale=1029
-CodePage=1250
-[Version Info Keys]
-CompanyName=
-FileDescription=
-FileVersion=1.0.0.0
-InternalName=
-LegalCopyright=
-LegalTrademarks=
-OriginalFilename=
-ProductName=
-ProductVersion=1.0.0.0
-[Excluded Packages]
-D:\Projects\Libs\Imaging\Bin\VampyreImagingPackageD7.bpl=Vampyre Imaging Library Package
 [HistoryLists\hlConditionals]
-Count=2
-Item0=FULL_FEATURE_SET
+Count=1
 Item1=DONT_LINK_EXTRAS
 [HistoryLists\hlUnitAliases]
 Count=1
 Item0=WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;
 [HistoryLists\hlSearchPath]
-Count=5
-Item0=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Extras\Extensions\LibTiff
-Item1=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;..\..\..\Source\Extensions
-Item2=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common
-Item3=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions
-Item4=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;
+Count=1
+Item0=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common
 [HistoryLists\hlOutputDirectorry]
 Count=1
 Item0=..\..\Bin

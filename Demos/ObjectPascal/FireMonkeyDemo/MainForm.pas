@@ -1,3 +1,25 @@
+{
+  Vampyre Imaging Library Demo
+  FireMonkey Demo (class api, fmx interaction)
+  tested in Delphi XE2, Win32/Win64/OSX
+
+  This demo is a simple image viewer. On the left of the window is a list box with
+  information and thumbnail of images loaded from file. Selecting item in
+  list box displays the image in image viewer component that fills the rest of
+  the app window. Loaded image can be saved back to disk in one the supported
+  file formats.
+
+  Demo uses ImagingFmx extension to convert between Imaging's and FireMonkey's
+  image classes.
+
+  Image is loaded from the file in a background thread while the UI shows
+  progress animation.
+
+  Known Issues:
+  - Sometimes loading never ends, some problem with TThread.Synchronize
+    in FMX (TThread.Queue doesn't work at all).
+  - Red and Blue channels on MacOSX are swapped. This is ugly inconsistency in FMX.
+}
 unit MainForm;
 
 interface
@@ -107,6 +129,7 @@ var
   ErrorMsg: string;
   Thumb: TSingleImage;
 begin
+  TThread.NameThreadForDebugging('ImageLoaderThread');
   ErrorMsg := '';
 
   // Delete old images and thumbmails

@@ -2994,7 +2994,7 @@ begin
   CurSize.CY := SrcImage.Height;
   DestSize := ImagingUtility.ScaleSizeToFit(CurSize, FitSize);
 
-  NewImage(DestSize.CX, DestSize.CY, SrcImage.Format, DestImage);
+  NewImage(Max(DestSize.CX, 1), Max(DestSize.CY, 1), SrcImage.Format, DestImage);
   if SrcImage.Palette <> nil then
     CopyPalette(SrcImage.Palette, DestImage.Palette, 0, 0, ImageFormatInfos[SrcImage.Format].PaletteEntries);
 
