@@ -35,13 +35,13 @@ __history
 *.rsm
 *.suo
 *.vcxproj.user
-*.DXE2.res
+*.XE2.res
+*.compiled
 
 Doc/*.chm
 Doc/*.chw
 Doc/*.html
 
-Demos/ObjectPascal/LCLImager/lclimager.compiled
 Extras/DynamicLib/Demos/Cpp/*/*.bat
 Extras/DynamicLib/Demos/Cpp/*/*.sh
 

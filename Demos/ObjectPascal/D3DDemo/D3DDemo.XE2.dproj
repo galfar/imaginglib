@@ -2,9 +2,7 @@
 		<PropertyGroup>
 			<ProjectGuid>{86ad3899-36c1-4f3b-9e8b-246837a2dbb2}</ProjectGuid>
 			<MainSource>D3DDemo.dpr</MainSource>
-			<Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>
-			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
-			<DCC_DependencyCheckOutputName>..\..\Bin\D3DDemo.exe</DCC_DependencyCheckOutputName>
+			<Configuration Condition=" '$(Configuration)' == '' ">Release</Configuration>			
 			<ProjectVersion>13.4</ProjectVersion>
 			<Config Condition="'$(Config)'==''">Debug</Config>
 			<FrameworkType>None</FrameworkType>
@@ -32,13 +30,10 @@
 			<DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi;$(DCC_Namespace)</DCC_Namespace>
 			<DCC_DcuOutput>..\..\Bin\Dcu\$(Platform)\$(Config)</DCC_DcuOutput>
 			<Manifest_File>None</Manifest_File>
-			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extras\Extensions;..\Common;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
 			<DCC_Define>DONT_LINK_EXTRAS;$(DCC_Define)</DCC_Define>
 			<DCC_DependencyCheckOutputName>..\..\Bin\D3DDemo.exe</DCC_DependencyCheckOutputName>
-			<DCC_ExeOutput>..\..\Bin\</DCC_ExeOutput>
-			<DCC_ResourcePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common;$(DCC_ResourcePath)</DCC_ResourcePath>
-			<DCC_ObjPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common;$(DCC_ObjPath)</DCC_ObjPath>
-			<DCC_IncludePath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\Common;$(DCC_IncludePath)</DCC_IncludePath>
+			<DCC_ExeOutput>..\..\Bin\</DCC_ExeOutput>			
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<VerInfo_Locale>1029</VerInfo_Locale>

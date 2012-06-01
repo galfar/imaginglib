@@ -104,5 +104,5 @@
 		<Target Name="Make">
 			<CallTarget Targets="OpenGLDemo_XE2:Make;D3DDemo_XE2:Make;FireMonkeyDemo:Make;SDLDemo_XE2:Make;VampConvert_XE2:Make;Bench_XE2:Make;ImgBrowser_XE2:Make"/>
 		</Target>
-		<Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+		<Import Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')" Project="$(BDS)\Bin\CodeGear.Group.Targets"/>
 	</Project>
