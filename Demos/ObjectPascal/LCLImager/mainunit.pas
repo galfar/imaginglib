@@ -617,7 +617,11 @@ var
 begin
   T := GetTimeMicroseconds;
   case Op of
-    aoOtsuThreshold: OtsuThresholding(FImage.ImageDataPointer^);
+    aoOtsuThreshold:
+      begin
+        FImage.Format := ifGray8;
+        OtsuThresholding(FImage.ImageDataPointer^, True);
+      end;
     aoDeskew: DeskewImage(FImage.ImageDataPointer^);
   end;
   MeasureTime('Operation completed in:', T);

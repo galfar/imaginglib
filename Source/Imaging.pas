@@ -969,35 +969,31 @@ begin
   Assert(FileName <> '');
   Result := '';
   SetFileIO;
+  Handle := IO.Open(PChar(FileName), omReadOnly);
   try
-    Handle := IO.Open(PChar(FileName), omReadOnly);
-    try
-      // First file format according to FileName and test if the data in
-      // file is really in that format
-      for I := 0 to ImageFileFormats.Count - 1 do
+    // First file format according to FileName and test if the data in
+    // file is really in that format
+    for I := 0 to ImageFileFormats.Count - 1 do
+    begin
+      Fmt := TImageFileFormat(ImageFileFormats[I]);
+      if Fmt.TestFileName(FileName) and Fmt.TestFormat(Handle) then
       begin
-        Fmt := TImageFileFormat(ImageFileFormats[I]);
-        if Fmt.TestFileName(FileName) and Fmt.TestFormat(Handle) then
-        begin
-          Result := Fmt.Extensions[0];
-          Exit;
-        end;
+        Result := Fmt.Extensions[0];
+        Exit;
       end;
-      // No file format was found with filename search so try data-based search
-      for I := 0 to ImageFileFormats.Count - 1 do
-      begin
-        Fmt := TImageFileFormat(ImageFileFormats[I]);
-        if Fmt.TestFormat(Handle) then
-        begin
-          Result := Fmt.Extensions[0];
-          Exit;
-        end;
-      end;
-    finally
-      IO.Close(Handle);
     end;
-  except
-    Result := '';
+    // No file format was found with filename search so try data-based search
+    for I := 0 to ImageFileFormats.Count - 1 do
+    begin
+      Fmt := TImageFileFormat(ImageFileFormats[I]);
+      if Fmt.TestFormat(Handle) then
+      begin
+        Result := Fmt.Extensions[0];
+        Exit;
+      end;
+    end;
+  finally
+    IO.Close(Handle);
   end;
 end;
 
@@ -1010,23 +1006,19 @@ begin
   Assert(Stream <> nil);
   Result := '';
   SetStreamIO;
+  Handle := IO.Open(Pointer(Stream), omReadOnly);
   try
-    Handle := IO.Open(Pointer(Stream), omReadOnly);
-    try
-      for I := 0 to ImageFileFormats.Count - 1 do
+    for I := 0 to ImageFileFormats.Count - 1 do
+    begin
+      Fmt := TImageFileFormat(ImageFileFormats[I]);
+      if Fmt.TestFormat(Handle) then
       begin
-        Fmt := TImageFileFormat(ImageFileFormats[I]);
-        if Fmt.TestFormat(Handle) then
-        begin
-          Result := Fmt.Extensions[0];
-          Exit;
-        end;
+        Result := Fmt.Extensions[0];
+        Exit;
       end;
-    finally
-      IO.Close(Handle);
     end;
-  except
-    Result := '';
+  finally
+    IO.Close(Handle);
   end;
 end;
 
@@ -1043,23 +1035,19 @@ begin
   IORec.Data := Data;
   IORec.Position := 0;
   IORec.Size := Size;
+  Handle := IO.Open(@IORec, omReadOnly);
   try
-    Handle := IO.Open(@IORec, omReadOnly);
-    try
-      for I := 0 to ImageFileFormats.Count - 1 do
+    for I := 0 to ImageFileFormats.Count - 1 do
+    begin
+      Fmt := TImageFileFormat(ImageFileFormats[I]);
+      if Fmt.TestFormat(Handle) then
       begin
-        Fmt := TImageFileFormat(ImageFileFormats[I]);
-        if Fmt.TestFormat(Handle) then
-        begin
-          Result := Fmt.Extensions[0];
-          Exit;
-        end;
+        Result := Fmt.Extensions[0];
+        Exit;
       end;
-    finally
-      IO.Close(Handle);
     end;
-  except
-    Result := '';
+  finally
+    IO.Close(Handle);
   end;
 end;
 

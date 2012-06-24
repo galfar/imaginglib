@@ -71,7 +71,7 @@ const
   SPSDMasks      = '*.psd,*.pdd';
   PSDSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8,
     ifR8G8B8, ifA8R8G8B8, ifGray16, ifA16Gray16, ifR16G16B16, ifA16R16G16B16,
-    ifR32F, ifA32R32G32B32F];
+    ifR32F, ifR32G32B32F, ifA32R32G32B32F];
   PSDDefaultSaveAsLayer = True;
 
 const
@@ -203,7 +203,8 @@ begin
     // Read PSD header
     Read(Handle, @Header, SizeOf(Header));
     SwapHeader(Header);
-    // Determine image data format 
+
+    // Determine image data format
     Format := ifUnknown;
     case Header.Mode of
       cmGrayscale, cmDuoTone:
@@ -233,7 +234,12 @@ begin
               Format := IffFormat(Header.Depth = 8, ifA8R8G8B8, ifA16R16G16B16);
           end
           else if Header.Depth = 32 then
-            Format := ifA32R32G32B32F;
+          begin
+            if Header.Channels = 3 then
+              Format := ifR32G32B32F
+            else if Header.Channels >= 4 then
+              Format := ifA32R32G32B32F;
+          end;
         end;
       cmMono:; // Not supported
     end;
@@ -412,20 +418,6 @@ begin
             CMYKToRGB16(Col64.A, Col64.R, Col64.G, Col64.B, PCol64.R, PCol64.G, PCol64.B);
             PCol64.A := 65535;
             Inc(PCol64);
-          end;
-        end;
-      end;
-
-      if Header.Depth = 32 then
-      begin
-        if (Header.Channels = 3) and (Header.Mode = cmRGB) then
-        begin
-          // RGB images were loaded as ARGB so we must wet alpha manually to 1.0
-          PColF := Bits;
-          for X := 0 to Width * Height - 1 do
-          begin
-            PColF.A := 1.0;
-            Inc(PColF);
           end;
         end;
       end;
@@ -785,8 +777,9 @@ initialization
 {
   File Notes:
 
- -- TODOS ----------------------------------------------------
-    - nothing now
+  -- 0.77.1 ---------------------------------------------------
+    - 3 channel RGB float images are loaded and saved directly
+      as ifR32G32B32F.
 
   -- 0.26.1 Changes/Bug Fixes ---------------------------------
     - PSDs are now saved with RLE compression.

@@ -105,7 +105,7 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0
   +#0#0#0#0#0#0#0#0#4'Menu'#7#8'MainMenu'#8'OnCreate'#7#10'FormCreate'#9'OnDest'
   +'roy'#7#11'FormDestroy'#11'OnDropFiles'#7#13'FormDropFiles'#6'OnShow'#7#8'Fo'
-  +'rmShow'#8'Position'#7#15'poDesktopCenter'#10'LCLVersion'#6#8'0.9.30.2'#7'Vi'
+  +'rmShow'#8'Position'#7#15'poDesktopCenter'#10'LCLVersion'#6#8'0.9.30.4'#7'Vi'
   +'sible'#9#11'WindowState'#7#11'wsMaximized'#0#10'TStatusBar'#9'StatusBar'#4
   +'Left'#2#0#6'Height'#2#23#3'Top'#3#213#1#5'Width'#3'C'#3#6'Panels'#14#0#0#0
   +#13'TPairSplitter'#12'PairSplitter'#4'Left'#2#0#6'Height'#3#213#1#3'Top'#2#0

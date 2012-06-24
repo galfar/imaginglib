@@ -146,6 +146,9 @@ function GetAppDir: string;
 { Works like SysUtils.ExtractFileName but supports '/' and '\' dir delimiters
   at the same time (whereas ExtractFileName supports on default delimiter on current platform).}
 function GetFileName(const FileName: string): string;
+{ Works like SysUtils.ExtractFileDir but supports '/' and '\' dir delimiters
+  at the same time (whereas ExtractFileDir supports on default delimiter on current platform).}
+function GetFileDir(const FileName: string): string;
 { Returns True if Subject matches given Mask with optional case sensitivity.
   Mask can contain ? and * special characters: ? matches
   one character, * matches zero or more characters.}
@@ -315,6 +318,10 @@ function ScaleRectToRect(const SourceRect, TargetRect: TRect): TRect;
 { Scales given size to fit into max size while keeping the original ascpect ration.
   Useful for calculating thumbnail dimensions etc.}
 function ScaleSizeToFit(const CurrentSize, MaxSize: TSize): TSize;
+{ Returns width of given rect. Part of RTL in newer Delphi.}
+function RectWidth(const Rect: TRect): Integer;
+{ Returns height of given rect. Part of RTL in newer Delphi.}
+function RectHeight(const Rect: TRect): Integer;
 { Returns True if R1 fits into R2.}
 function RectInRect(const R1, R2: TRect): Boolean;
 { Returns True if R1 and R2 intersects.}
@@ -448,6 +455,19 @@ var
 begin
   I := LastDelimiter('\/' + DriveDelim, FileName);
   Result := Copy(FileName, I + 1, MaxInt);
+end;
+
+function GetFileDir(const FileName: string): string;
+const
+  Delims = '\/' + DriveDelim;
+var
+  I: Integer;
+begin
+  I := LastDelimiter(Delims, Filename);
+  if (I > 1) and
+    ((FileName[I] = Delims[1]) or (FileName[I] = Delims[2])) and
+    (not IsDelimiter(Delims, FileName, I - 1)) then Dec(I);
+  Result := Copy(FileName, 1, I);
 end;
 
 function StrMaskMatch(const Subject, Mask: string; CaseSensitive: Boolean): Boolean;
@@ -1476,7 +1496,7 @@ begin
   end;
 end;
 
-function ScaleSizeToFit(const CurrentSize, MaxSize: TSize): TSize;
+function ScaleSizeToFit(const CurrentSize, MaxSize: Types.TSize): Types.TSize;
 var
   SR, TR, ScaledRect: TRect;
 begin
@@ -1485,6 +1505,16 @@ begin
   ScaledRect := ScaleRectToRect(SR, TR);
   Result.CX := ScaledRect.Right - ScaledRect.Left;
   Result.CY := ScaledRect.Bottom - ScaledRect.Top;
+end;
+
+function RectWidth(const Rect: TRect): Integer;
+begin
+  Result := Rect.Right - Rect.Left;
+end;
+
+function RectHeight(const Rect: TRect): Integer;
+begin
+  Result := Rect.Bottom - Rect.Top;
 end;
 
 function RectInRect(const R1, R2: TRect): Boolean;
@@ -1585,7 +1615,7 @@ initialization
     - nothing now
 
   -- 0.77.1 ----------------------------------------------------
-    - Added GetFileName function.
+    - Added GetFileName, GetFileDir, RectWidth, RectHeight function.
     - Added ScaleSizeToFit function.
     - Added ZeroMemory and SwapValues for Booleans.
     - Added Substring function.

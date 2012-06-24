@@ -27,7 +27,11 @@
 
 { Unit with operations on binary images. Binary images in Imaging are
   ifGray8 images where pixels with value 0 are considerend off, an pixels > 0
-  are on.}
+  are on.
+  Note: Native ifBinary data format was later added to Imaging. However,
+  these functions still use ifGray8 for representation for less complex
+  and faster processing. ifBinary is meant moreless like interchange
+  format for IO file formats. }
 unit ImagingBinary;
 
 {$I ImagingOptions.inc}
@@ -53,16 +57,16 @@ type
     TestedPixels: Integer;
     AccumulatorSize: Integer;
     AccumulatedCounts: Integer;
-    BestCount: Double;
+    BestCount: Integer;
   end;
   PCalcSkewAngleStats = ^TCalcSkewAngleStats;
 
 { Thresholding using Otsu's method (which chooses the threshold
   to minimize the intraclass variance of the black and white pixels!).
-  If Threshold is nil Image is automatically converted to binary using
-  computed threshold level. Otherwise computed threshold is stored in Threshold
-  and Image is not modified (if you're just interesting in global threshold level).}
-procedure OtsuThresholding(var Image: TImageData; Threshold: PInteger = nil);
+  Functions returns calculated threshold level value [0..255].
+  If BinarizeImage is True then the Image is automatically converted to binary using
+  computed threshold level.}
+function OtsuThresholding(var Image: TImageData; BinarizeImage: Boolean = False): Integer;
 { Applies basic morphology operators (Erode/Dilate) on Image using given structuring element
   Strel. You can do composite operations (Open/Close) by calling this function
   twice each time with different operator.}
@@ -71,9 +75,13 @@ procedure Morphology(var Image: TImageData; const Strel: TStructElement; Op: TMo
   Useful for finding skew of scanned documents etc.
   Uses Hough transform internally.
   MaxAngle is maximal (abs. value) expected skew angle in degrees (to speed things up)
-  and Threshold (0..255) is used to classify pixel as black (text) or white (background).}
+  and Threshold (0..255) is used to classify pixel as black (text) or white (background).
+  Area of interest rectangle can be defined to restrict the detection to
+  work only in defined part of image (useful when the document has text only in
+  smaller area of page and non-text features outside the area confuse the rotation detector).
+  Various calculations stats can be retrieved by passing Stats parameter.}
 function CalcRotationAngle(MaxAngle: Integer; Treshold: Integer;
-  Width, Height: Integer; Pixels: PByteArray; Margins: PRect = nil;
+  Width, Height: Integer; Pixels: PByteArray; DetectionArea: PRect = nil;
   Stats: PCalcSkewAngleStats = nil): Double;
 { Deskews given image. Finds rotation angle and rotates image accordingly.
   Works best on low-color document-like images (scans).
@@ -84,7 +92,7 @@ procedure DeskewImage(var Image: TImageData; MaxAngle: Integer = 10; Threshold: 
 
 implementation
 
-procedure OtsuThresholding(var Image: TImageData; Threshold: PInteger);
+function OtsuThresholding(var Image: TImageData; BinarizeImage: Boolean): Integer;
 var
   Histogram: array[Byte] of Single;
   Level, Max, Min, I, J, NumPixels: Integer;
@@ -92,7 +100,7 @@ var
   Mean, Variance: Single;
   Mu, Omega, LevelMean, LargestMu: Single;
 begin
-  ConvertImage(Image, ifGray8);
+  Assert(Image.Format = ifGray8);
 
   FillChar(Histogram, SizeOf(Histogram), 0);
   Min := 255;
@@ -153,7 +161,7 @@ begin
     end;
   end;
 
-  if Threshold = nil then
+  if BinarizeImage then
   begin
     // Do thresholding using computed level
     Pix := Image.Bits;
@@ -165,9 +173,9 @@ begin
         Pix^ := 0;
       Inc(Pix);
     end;
-  end
-  else
-    Threshold^ := Level;
+  end;
+
+  Result := Level;
 end;
 
 procedure Morphology(var Image: TImageData; const Strel: TStructElement; Op: TMorphologyOp);
@@ -233,7 +241,7 @@ begin
 end;
 
 function CalcRotationAngle(MaxAngle: Integer; Treshold: Integer;
-  Width, Height: Integer; Pixels: PByteArray; Margins: PRect; Stats: PCalcSkewAngleStats): Double;
+  Width, Height: Integer; Pixels: PByteArray; DetectionArea: PRect; Stats: PCalcSkewAngleStats): Double;
 const
   // Number of "best" lines we take into account when determining
   // resulting rotation angle (lines with most votes).
@@ -254,12 +262,12 @@ var
   BestLines: TLineArray;
   HoughAccumulator: array of Integer;
   PageWidth, PageHeight: Integer;
-  PageMargins: TRect;
+  ContentRect: TRect;
 
   // Classifies pixel at [X, Y] as black or white using threshold.
   function IsPixelBlack(X, Y: Integer): Boolean;
   begin
-    Result := Pixels[(PageMargins.Top + Y) * Width + PageMargins.Left + X] < Treshold;
+    Result := Pixels[Y * Width + X] < Treshold;
   end;
 
   // Calculates alpha parameter for given angle step.
@@ -299,7 +307,8 @@ var
     for Y := 0 to PageHeight - 1 do
       for X := 0 to PageWidth - 1 do
       begin
-        if IsPixelBlack(X, Y) and not IsPixelBlack(X, Y + 1) then
+        if IsPixelBlack(ContentRect.Left + X, ContentRect.Top + Y) and
+          not IsPixelBlack(ContentRect.Left + X, ContentRect.Top + Y + 1) then
         begin
           CalcLines(X, Y);
         end;
@@ -349,18 +358,20 @@ var
   end;
 
 begin
-  // Use supplied page margins or just the whole image
-  if Margins = nil then
-    PageMargins := Rect(0, 0, Width, Height)
-  else
-    PageMargins := Margins^;
+  // Use supplied page content rect or just the whole image
+  ContentRect := Rect(0, 0, Width, Height);
+  if DetectionArea <> nil then
+  begin
+    Assert((RectWidth(DetectionArea^) <= Width) and (RectHeight(DetectionArea^) <= Height));
+    ContentRect := DetectionArea^;
+  end;
 
-  PageWidth := PageMargins.Right - PageMargins.Left;
-  PageHeight := PageMargins.Bottom - PageMargins.Top;
+  PageWidth := ContentRect.Right - ContentRect.Left;
+  PageHeight := ContentRect.Bottom - ContentRect.Top;
 
   AlphaStart := -MaxAngle;
   AlphaSteps := Round(2 * MaxAngle / AlphaStep); // Number of angle steps = samples from interval <-MaxAngle, MaxAngle>
-  MinD := -Width;
+  MinD := -PageWidth;
   DCount := 2 * (PageWidth + PageHeight);
 
   // Determine the size of line accumulator
@@ -407,7 +418,7 @@ begin
   if Threshold < 0 then
   begin
     // Determine the threshold automatically if needed.
-    OtsuThresholding(Image, @Threshold);
+    Threshold := OtsuThresholding(Image);
   end;
 
   // Main step - calculate image rotation angle
@@ -432,6 +443,8 @@ end;
     - nothing now
 
   -- 0.77 -------------------------------------------------------
+    - OtsuThresholding signature changed, now it's a function and
+      always returns the computed level.
     - Extended CalcRotationAngle, added margins and stats.
     - Added CalcRotationAngle and DeskewImage functions.
 

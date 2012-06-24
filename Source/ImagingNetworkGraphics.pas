@@ -1263,8 +1263,7 @@ var
   procedure ConvertbKGD;
   begin
     FillChar(BackGroundColor, SizeOf(BackGroundColor), 0);
-    Move(Frame.Background^, BackGroundColor, Min(Frame.BackgroundSize,
-      SizeOf(BackGroundColor)));
+    Move(Frame.Background^, BackGroundColor, Min(Frame.BackgroundSize, SizeOf(BackGroundColor)));
     if IsColorFormat then
       SwapValues(BackGroundColor.R, BackGroundColor.B);
     SwapEndianWord(@BackGroundColor, 3);
@@ -1297,14 +1296,17 @@ var
         end;
       // if palette alphas were loaded from file then use them
       if Alphas <> nil then
+      begin
         for I := 0 to Min(AlphasSize, FmtInfo.PaletteEntries) - 1 do
           Palette[I].A := Alphas[I];
+      end;
     end;
   end;
 
   procedure ApplyColorKey;
   var
     DestFmt: TImageFormat;
+    Col32, Bkg32: TColor32Rec;
     OldPixel, NewPixel: Pointer;
   begin
     case Image.Format of
@@ -1315,20 +1317,19 @@ var
     else
       DestFmt := ifUnknown;
     end;
+
     if DestFmt <> ifUnknown then
     begin
       if not IsBackGroundPresent then
         BackGroundColor := ColorKey;
       ConvertImage(Image, DestFmt);
-      OldPixel := @ColorKey;
-      NewPixel := @BackGroundColor;
+
       // Now back color and color key must be converted to image's data format, looks ugly
       case Image.Format of
         ifA8Gray8:
           begin
-            TColor32Rec(TInt64Rec(ColorKey).Low).B := Byte(ColorKey.B);
-            TColor32Rec(TInt64Rec(ColorKey).Low).G := $FF;
-            TColor32Rec(TInt64Rec(BackGroundColor).Low).B := Byte(BackGroundColor.B);
+            Col32 := Color32(0, 0, $FF, Byte(ColorKey.B));
+            Bkg32 := Color32(0, 0, 0, Byte(BackGroundColor.B));
           end;
         ifA16Gray16:
           begin
@@ -1336,19 +1337,26 @@ var
           end;
         ifA8R8G8B8:
           begin
-            TColor32Rec(TInt64Rec(ColorKey).Low).R := Byte(ColorKey.R);
-            TColor32Rec(TInt64Rec(ColorKey).Low).G := Byte(ColorKey.G);
-            TColor32Rec(TInt64Rec(ColorKey).Low).B := Byte(ColorKey.B);
-            TColor32Rec(TInt64Rec(ColorKey).Low).A := $FF;
-            TColor32Rec(TInt64Rec(BackGroundColor).Low).R := Byte(BackGroundColor.R);
-            TColor32Rec(TInt64Rec(BackGroundColor).Low).G := Byte(BackGroundColor.G);
-            TColor32Rec(TInt64Rec(BackGroundColor).Low).B := Byte(BackGroundColor.B);
+            Col32 := Color32($FF, Byte(ColorKey.R), Byte(ColorKey.G), Byte(ColorKey.B));
+            Bkg32 := Color32(0, Byte(BackGroundColor.R), Byte(BackGroundColor.G), Byte(BackGroundColor.B));
           end;
         ifA16R16G16B16:
           begin
             ColorKey.A := $FFFF;
           end;
       end;
+
+      if Image.Format in [ifA8Gray8, ifA8R8G8B8] then
+      begin
+        OldPixel := @Col32;
+        NewPixel := @Bkg32;
+      end
+      else
+      begin
+        OldPixel := @ColorKey;
+        NewPixel := @BackGroundColor;
+      end;
+
       ReplaceColor(Image, 0, 0, Image.Width, Image.Height, OldPixel, NewPixel);
     end;
   end;
@@ -1363,9 +1371,9 @@ begin
     (not Frame.IsJpegFrame and (Frame.IHDR.ColorType in [2, 6]));
 
   // Convert some chunk data to useful format
-  if Frame.Transparency <> nil then
+  if Frame.TransparencySize > 0 then
     ConverttRNS;
-  if Frame.Background <> nil then
+  if Frame.BackgroundSize > 0 then
     ConvertbKGD;
 
   // Build palette for indexed images
@@ -2014,7 +2022,7 @@ begin
   ZLibStrategy := FileFormat.FZLibStategy;
 end;
 
-{ TAPNGAnimator class implemnetation }
+{ TAPNGAnimator class implementation }
 
 class procedure TAPNGAnimator.Animate(var Images: TDynImageDataArray;
   const acTL: TacTL; const SrcFrames: array of TFrameInfo);
@@ -2119,6 +2127,8 @@ begin
       SrcCanvas.DrawAlpha(SrcCanvas.ClipRect, DestCanvas,
         SrcFrames[SrcIdx].fcTL.XOffset, SrcFrames[SrcIdx].fcTL.YOffset);
     end;
+
+    //ImagingDebug.DebugImage(DestFrames[I]);
 
     FreeImage(Images[SrcIdx]);
   end;
@@ -2267,6 +2277,7 @@ begin
         if not IsJpegFrame then
           NGFileLoader.LoadImageFromPNGFrame(FrameWidth, FrameHeight, IHDR, IDATMemory, Images[I]);
         // Build palette, aply color key or background
+
         NGFileLoader.ApplyFrameSettings(NGFileLoader.Frames[I], Images[I]);
         Result := True;
       end;
@@ -2589,6 +2600,9 @@ finalization
     - nothing now
 
   -- 0.77 Changes/Bug Fixes -----------------------------------
+    - Fixed color keys in 8bit depth PNG/MNG loading.
+    - Fixed needless (and sometimes buggy) conversion to format with alpha
+      channel in FPC (GetMem(0) <> nil!).
     - Added support for optional ZLib compression strategy.
     - Added loading and saving of ifBinary (1bit black and white)
       format images. During loading grayscale 1bpp and indexed 1bpp

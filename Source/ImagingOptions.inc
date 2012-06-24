@@ -202,7 +202,6 @@
   {$GOTO ON}               // alow goto
   {$PACKRECORDS 8}         // same as ALING 8 for Delphi
   {$PACKENUM 4}            // Min enum size: 4 B
-  {$CALLING REGISTER}      // default calling convention is register
   {$IFDEF CPU86}
     {$ASMMODE INTEL}       // intel assembler mode
   {$ENDIF}
