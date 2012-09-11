@@ -363,6 +363,9 @@ begin
       end;
     end;
 
+    // Copy metadata if present
+    GlobalMetadata.CopyMetaItems;
+
     // Finally save the result
     if not Imaging.SaveMultiImageToFile(OutFile, Images) then
       PrintError('Output file saving failed: %s', [ImagingUtility.GetExceptObject.Message])

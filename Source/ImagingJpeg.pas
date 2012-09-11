@@ -225,12 +225,18 @@ procedure JpegError(CInfo: j_common_ptr);
 
   procedure RaiseError;
   var
-    Buffer: string;
+    Buffer: AnsiString;
   begin
     // Create the message and raise exception
     CInfo.err.format_message(CInfo, Buffer);
-    raise EImagingError.Create(Buffer[1]);
-    //raise EImagingError.CreateFmt(SJPEGError + ' %d: '{ + Buffer}, [CInfo.err.msg_code]);
+    // Warning: you can get "Invalid argument index in format" exception when
+    // using FPC (see http://bugs.freepascal.org/view.php?id=21229).
+    // Fixed in FPC 2.7.1
+  {$IF Defined(FPC) and (FPC_FULLVERSION <= 20701)}
+    raise EImagingError.CreateFmt(SJPEGError + ' %d', [CInfo.err.msg_code]);
+  {$ELSE}
+    raise EImagingError.CreateFmt(SJPEGError + ' %d: ' + string(Buffer), [CInfo.err.msg_code]);
+  {$IFEND}
   end;
 
 begin

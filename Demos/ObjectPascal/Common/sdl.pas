@@ -357,7 +357,11 @@ uses
 
 const
 {$IFDEF WINDOWS}
-  SDLLibName = 'SDL.dll';
+  {$IF Defined (CPUX86_64) or Defined(CPUX64)}
+    SDLLibName = 'SDL64.dll';
+  {$ELSE}
+    SDLLibName = 'SDL.dll';
+  {$IFEND}
 {$ENDIF}
 
 {$IFDEF UNIX}

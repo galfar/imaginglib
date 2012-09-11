@@ -119,7 +119,7 @@ var
 implementation
 
 {$R *.dfm}
-{$IF CompilerVersion >= 15.0}
+{$IF (CompilerVersion >= 15.0) and (CompilerVersion <= 23.0)}
 uses
   XPMan;
 {$IFEND}

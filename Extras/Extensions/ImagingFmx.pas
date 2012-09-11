@@ -35,6 +35,10 @@ unit ImagingFmx;
   {$MESSAGE FATAL 'FMX needs Delphi XE2+'}
 {$IFEND}
 
+{$IF (CompilerVersion > 23)}
+  {$MESSAGE FATAL 'Only FMX1 (XE2) supported for now'}
+{$IFEND}
+
 interface
 
 uses

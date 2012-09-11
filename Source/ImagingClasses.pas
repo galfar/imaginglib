@@ -182,6 +182,8 @@ type
     destructor Destroy; override;
     { Assigns single image from another single image or multi image.}
     procedure Assign(Source: TPersistent); override;
+    { Assigns single image from image data record.}
+    procedure AssignFromImageData(const AImageData: TImageData);
   end;
 
   { Extension of TBaseImage which uses array of TImageData records to
@@ -207,13 +209,15 @@ type
     procedure DoInsertNew(Index: Integer; AWidth, AHeight: Integer; AFormat: TImageFormat);
   public
     constructor Create; override;
-    constructor CreateFromParams(AWidth, AHeight: Integer; AFormat: TImageFormat; Images: Integer);
-    constructor CreateFromArray(ADataArray: TDynImageDataArray);
+    constructor CreateFromParams(AWidth, AHeight: Integer; AFormat: TImageFormat; ImageCount: Integer);
+    constructor CreateFromArray(const ADataArray: TDynImageDataArray);
     constructor CreateFromFile(const FileName: string);
     constructor CreateFromStream(Stream: TStream);
     destructor Destroy; override;
     { Assigns multi image from another multi image or single image.}
     procedure Assign(Source: TPersistent); override;
+    { Assigns multi image from array of image data records.}
+    procedure AssignFromArray(const ADataArray: TDynImageDataArray);
 
     { Adds new image at the end of the image array. }
     function AddImage(AWidth, AHeight: Integer; AFormat: TImageFormat = ifDefault): Integer; overload;
@@ -602,13 +606,7 @@ end;
 constructor TSingleImage.CreateFromData(const AData: TImageData);
 begin
   inherited Create;
-  if Imaging.TestImage(AData) then
-    begin
-      Imaging.CloneImage(AData, FImageData);
-      DoDataSizeChanged;
-    end
-  else
-    Create;
+  AssignFromImageData(AData);
 end;
 
 constructor TSingleImage.CreateFromFile(const FileName: string);
@@ -638,23 +636,33 @@ procedure TSingleImage.Assign(Source: TPersistent);
 begin
   if Source = nil then
   begin
-    Create;
+    Clear;
   end
   else if Source is TSingleImage then
   begin
-    CreateFromData(TSingleImage(Source).FImageData);
+    AssignFromImageData(TSingleImage(Source).FImageData);
   end
   else if Source is TMultiImage then
   begin
     if TMultiImage(Source).Valid then
-      CreateFromData(TMultiImage(Source).FPData^)
+      AssignFromImageData(TMultiImage(Source).FPData^)
     else
-      Assign(nil);
+      Clear;
   end
   else
     inherited Assign(Source);
 end;
 
+procedure TSingleImage.AssignFromImageData(const AImageData: TImageData);
+begin
+  if Imaging.TestImage(AImageData) then
+  begin
+    Imaging.CloneImage(AImageData, FImageData);
+    DoDataSizeChanged;
+  end
+  else
+    Clear;
+end;
 
 { TMultiImage class implementation }
 
@@ -664,34 +672,21 @@ begin
 end;
 
 constructor TMultiImage.CreateFromParams(AWidth, AHeight: Integer;
-  AFormat: TImageFormat; Images: Integer);
+  AFormat: TImageFormat; ImageCount: Integer);
 var
   I: Integer;
 begin
   Imaging.FreeImagesInArray(FDataArray);
-  SetLength(FDataArray, Images);
+  SetLength(FDataArray, ImageCount);
   for I := 0 to GetImageCount - 1 do
     Imaging.NewImage(AWidth, AHeight, AFormat, FDataArray[I]);
   if GetImageCount > 0 then
     SetActiveImage(0);
 end;
 
-constructor TMultiImage.CreateFromArray(ADataArray: TDynImageDataArray);
-var
-  I: Integer;
+constructor TMultiImage.CreateFromArray(const ADataArray: TDynImageDataArray);
 begin
-  Imaging.FreeImagesInArray(FDataArray);
-  SetLength(FDataArray, Length(ADataArray));
-  for I := 0 to GetImageCount - 1 do
-  begin
-    // Clone only valid images
-    if Imaging.TestImage(ADataArray[I]) then
-      Imaging.CloneImage(ADataArray[I], FDataArray[I])
-    else
-      Imaging.NewImage(DefaultWidth, DefaultHeight, ifDefault, FDataArray[I]);
-  end;
-  if GetImageCount > 0 then
-    SetActiveImage(0);
+  AssignFromArray(ADataArray);
 end;
 
 constructor TMultiImage.CreateFromFile(const FileName: string);
@@ -825,22 +820,39 @@ var
 begin
   if Source = nil then
   begin
-    Create;
+    ClearAll;
   end
   else if Source is TMultiImage then
   begin
-    CreateFromArray(TMultiImage(Source).FDataArray);
+    AssignFromArray(TMultiImage(Source).FDataArray);
     SetActiveImage(TMultiImage(Source).ActiveImage);
   end
   else if Source is TSingleImage then
   begin
     SetLength(Arr, 1);
     Arr[0] := TSingleImage(Source).FImageData;
-    CreateFromArray(Arr);
-    Arr := nil;
+    AssignFromArray(Arr);
   end
   else
     inherited Assign(Source);
+end;
+
+procedure TMultiImage.AssignFromArray(const ADataArray: TDynImageDataArray);
+var
+  I: Integer;
+begin
+  Imaging.FreeImagesInArray(FDataArray);
+  SetLength(FDataArray, Length(ADataArray));
+  for I := 0 to GetImageCount - 1 do
+  begin
+    // Clone only valid images
+    if Imaging.TestImage(ADataArray[I]) then
+      Imaging.CloneImage(ADataArray[I], FDataArray[I])
+    else
+      Imaging.NewImage(DefaultWidth, DefaultHeight, ifDefault, FDataArray[I]);
+  end;
+  if GetImageCount > 0 then
+    SetActiveImage(0);
 end;
 
 function TMultiImage.AddImage(AWidth, AHeight: Integer; AFormat: TImageFormat): Integer;
@@ -1010,6 +1022,9 @@ end;
     - nothing now
 
   -- 0.77.1 ---------------------------------------------------
+    - Added TSingleImage.AssignFromData and TMultiImage.AssigntFromArray
+      as a replacement for constructors used as methods (that is
+      compiler error in Delphi XE3).
     - Added TBaseImage.ResizeToFit method.
     - Changed TMultiImage to have default state with no images.
     - TMultiImage.AddImage now returns index of newly added image.
