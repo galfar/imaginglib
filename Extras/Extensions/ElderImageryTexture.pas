@@ -286,7 +286,7 @@ begin
     BasePos := Tell(Handle);
     Read(Handle, @Hdr, SizeOf(Hdr));
     FLastTextureName := RepairName(Hdr.TexName);
-    FMetadata.AddMetaItem(SMetaDagTextureName, FLastTextureName);
+    FMetadata.SetMetaItem(SMetaDagTextureName, FLastTextureName);
 
     if InputSize = 2586 then
     begin

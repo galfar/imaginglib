@@ -751,7 +751,7 @@ var
                       Dec(BlockSize, SizeOf(LoopCount));
                       if LoopCount > 0 then
                         Inc(LoopCount); // Netscape extension is really "repeats" not "loops"
-                      FMetadata.AddMetaItem(SMetaAnimationLoops, LoopCount);
+                      FMetadata.SetMetaItem(SMetaAnimationLoops, LoopCount);
                     end;
                   GIFAppBufferExtension:
                     begin
@@ -898,7 +898,7 @@ var
           FrameInfos[Idx].TransIndex := GraphicExt.TransparentColorIndex;
           Images[Idx].Palette[FrameInfos[Idx].TransIndex].A := 0;
         end;
-        FMetadata.AddMetaItem(SMetaFrameDelay, Integer(GraphicExt.DelayTime * 10), Idx);
+        FMetadata.SetMetaItem(SMetaFrameDelay, Integer(GraphicExt.DelayTime * 10), Idx);
       end
       else
         FrameInfos[Idx].HasTransparency := False;
@@ -1130,7 +1130,7 @@ var
   procedure SetFrameDelay(Idx: Integer; var Ext: TGraphicControlExtension);
   begin
     if FMetadata.HasMetaItemForSave(SMetaFrameDelay, Idx) then
-      Ext.DelayTime := FMetadata.MetaItemsForSaveMulti[SMetaFrameDelay, Idx] div 10
+      Ext.DelayTime := FMetadata.MetaItemsForSavingMulti[SMetaFrameDelay, Idx] div 10
     else
       Ext.DelayTime := GIFDefaultDelay;
   end;
@@ -1147,7 +1147,7 @@ var
       FillChar(AppExt, SizeOf(AppExt), 0);
       AppExt.Identifier := 'NETSCAPE';
       AppExt.Authentication := '2.0';
-      Repeats := FMetadata.MetaItemsForSave[SMetaAnimationLoops];
+      Repeats := FMetadata.MetaItemsForSaving[SMetaAnimationLoops];
       if Repeats > 0 then
         Dec(Repeats);
       LoopExtId := GIFAppLoopExtension;
@@ -1288,4 +1288,4 @@ initialization
     - Unit created with initial stuff!
 }
 
-end.
+end.

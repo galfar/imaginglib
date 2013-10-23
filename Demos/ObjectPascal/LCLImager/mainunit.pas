@@ -993,6 +993,7 @@ procedure TMainForm.FormShow(Sender: TObject);
 begin
   if ClientWidth > 600 then
     PairSplitterSideLeft.Width := 280;
+  WindowState := wsMaximized;
 end;
 
 procedure TMainForm.ImageClick(Sender: TObject);
@@ -1125,7 +1126,7 @@ begin
     FImage.LoadMultiFromFile(FileName);
     FFileSize := FileSize(FileName);
     BuildImageTree;
-    GlobalMetadata.CopyMetaItems;
+    GlobalMetadata.CopyLoadedMetaItemsForSaving;
     MeasureTime(Format('File %s opened in:', [ExtractFileName(FileName)]), T);
   except
     MessageDlg(GetExceptObject.Message, mtError, [mbOK], 0);

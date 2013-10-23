@@ -617,8 +617,8 @@ begin
       begin
         Read(Handle, @HdrDX10, SizeOf(HdrDX10));
         SrcFormat := FindDX10Format(HdrDX10.DXGIFormat, NeedsSwapChannels);
-        FMetadata.AddMetaItem(SMetaDdsDxgiFormat, HdrDX10.DXGIFormat);
-        FMetadata.AddMetaItem(SMetaDdsArraySize, HdrDX10.ArraySize);
+        FMetadata.SetMetaItem(SMetaDdsDxgiFormat, HdrDX10.DXGIFormat);
+        FMetadata.SetMetaItem(SMetaDdsArraySize, HdrDX10.ArraySize);
       end
       else
         SrcFormat := FindFourCCFormat(FourCC);
@@ -732,7 +732,7 @@ begin
     if Desc.MipMaps > 1 then
     begin
       FLoadedMipMapCount := Desc.MipMaps;
-      FMetadata.AddMetaItem(SMetaDdsMipMapCount, Desc.MipMaps);
+      FMetadata.SetMetaItem(SMetaDdsMipMapCount, Desc.MipMaps);
       ImageCount := Desc.MipMaps;
     end;
 

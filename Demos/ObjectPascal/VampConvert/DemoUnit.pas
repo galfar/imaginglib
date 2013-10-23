@@ -364,7 +364,7 @@ begin
     end;
 
     // Copy metadata if present
-    GlobalMetadata.CopyMetaItems;
+    GlobalMetadata.CopyLoadedMetaItemsForSaving;
 
     // Finally save the result
     if not Imaging.SaveMultiImageToFile(OutFile, Images) then

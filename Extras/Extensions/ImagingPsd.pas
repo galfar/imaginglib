@@ -152,7 +152,6 @@ var
   Col64: TColor64Rec;
   PCol32: PColor32Rec;
   PCol64: PColor64Rec;
-  PColF: PColorFPRec;
 
   { PackBits RLE decode code from Mike Lischke's GraphicEx library.}
   procedure DecodeRLE(Source, Dest: PByte; PackedSize, UnpackedSize: LongInt);

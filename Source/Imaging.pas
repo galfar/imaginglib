@@ -558,18 +558,18 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    procedure AddMetaItem(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
-    procedure AddMetaItemForSave(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
+    procedure SetMetaItem(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
+    procedure SetMetaItemForSaving(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
     function HasMetaItem(const Id: string; ImageIndex: Integer = 0): Boolean;
     function HasMetaItemForSave(const Id: string; ImageIndex: Integer = 0): Boolean;
 
     procedure ClearMetaItems;
-    procedure ClearMetaItemsForSave;
+    procedure ClearMetaItemsForSaving;
     function GetMetaItemName(const Id: string; ImageIndex: Integer): string;
     { Copies loaded meta items to items-for-save stack. Use this when you want to
       save metadata that have been just loaded (e.g. resaving image in
       different file format but keeping the metadata).}
-    procedure CopyMetaItems;
+    procedure CopyLoadedMetaItemsForSaving;
 
     function GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
       YSize: Single; MetaForSave: Boolean = False; ImageIndex: Integer = 0): Boolean;
@@ -581,8 +581,8 @@ type
     { Number of loaded metadata items.}
     property MetaItemCount: Integer read GetMetaCount;
     property MetaItemsByIdx[Index: Integer]: TMetadataItem read GetMetaByIdx;
-    property MetaItemsForSave[const Id: string]: Variant read GetSaveMetaById;
-    property MetaItemsForSaveMulti[const Id: string; ImageIndex: Integer]: Variant read GetSaveMetaByIdMulti;
+    property MetaItemsForSaving[const Id: string]: Variant read GetSaveMetaById;
+    property MetaItemsForSavingMulti[const Id: string; ImageIndex: Integer]: Variant read GetSaveMetaByIdMulti;
   end;
 
 const
@@ -3840,13 +3840,13 @@ end;
 
 { TMetadata }
 
-procedure TMetadata.AddMetaItem(const Id: string; const Value: Variant;
+procedure TMetadata.SetMetaItem(const Id: string; const Value: Variant;
   ImageIndex: Integer);
 begin
   AddMetaToList(FLoadMetaItems, Id, Value, ImageIndex);
 end;
 
-procedure TMetadata.AddMetaItemForSave(const Id: string; const Value: Variant;
+procedure TMetadata.SetMetaItemForSaving(const Id: string; const Value: Variant;
   ImageIndex: Integer);
 begin
   AddMetaToList(FSaveMetaItems, Id, Value, ImageIndex);
@@ -3877,7 +3877,7 @@ begin
   ClearMetaList(FLoadMetaItems);
 end;
 
-procedure TMetadata.ClearMetaItemsForSave;
+procedure TMetadata.ClearMetaItemsForSaving;
 begin
   ClearMetaList(FSaveMetaItems);
 end;
@@ -3891,12 +3891,12 @@ begin
   List.Clear;
 end;
 
-procedure TMetadata.CopyMetaItems;
+procedure TMetadata.CopyLoadedMetaItemsForSaving;
 var
   I: Integer;
   Copy, Orig: TMetadataItem;
 begin
-  ClearMetaItemsForSave;
+  ClearMetaItemsForSaving;
   for I := 0 to FLoadMetaItems.Count - 1 do
   begin
     Orig := TMetadataItem(FLoadMetaItems.Objects[I]);
@@ -3920,7 +3920,7 @@ end;
 destructor TMetadata.Destroy;
 begin
   ClearMetaItems;
-  ClearMetaItemsForSave;
+  ClearMetaItemsForSaving;
   FLoadMetaItems.Free;
   FSaveMetaItems.Free;
   inherited;
@@ -4019,9 +4019,9 @@ begin
   TranslateUnits(ResUnit, XSize, YSize);
 
   if MetaForSave then
-    Adder := AddMetaItemForSave
+    Adder := SetMetaItemForSaving
   else
-    Adder := AddMetaItem;
+    Adder := SetMetaItem;
 
   Adder(SMetaPhysicalPixelSizeX, XSize, ImageIndex);
   Adder(SMetaPhysicalPixelSizeY, YSize, ImageIndex);

@@ -45,7 +45,7 @@ interface
 uses
 {$IF (CompilerVersion > 23)}
   System.UITypes,
-{$ENDIF}
+{$IFEND}
   Types,
   SysUtils,
   ImagingTypes,
@@ -60,7 +60,7 @@ procedure ConvertImageDataToFmxBitmap(const Image: TImageData; Bitmap: TBitmap);
 {$IF (CompilerVersion > 23)}
 { Converts FMX bitmap to TImageData. Image Data must already instantiated.}
 procedure ConvertFmxBitmapToImageData(const Bitmap: TBitmap;Image: TImageData);
-{$ENDIF}
+{$IFEND}
 
 { Converts image from TBaseImage instance to FMX bitmap. Bitmap must be already instantiated.}
 procedure ConvertImageToFmxBitmap(Image: TBaseImage; Bitmap: TBitmap);
@@ -154,7 +154,7 @@ begin
       end;
      Bitmap.Unmap(MapData);
 end;
-{$ENDIF}
+{$IFEND}
 
 procedure ConvertImageDataToFmxBitmap(const Image: TImageData; Bitmap: TBitmap);
 begin
@@ -239,7 +239,7 @@ begin
     DestPix^.A := Color32.A;
   end;
 end;
-{$ENDIF}
+{$IFEND}
 
 procedure CopyRectToFmxBitmap(const Image: TImageData; Bitmap: TBitmap;
   SrcX, SrcY, Width, Height, DstX, DstY: Integer);
@@ -254,7 +254,7 @@ var
   ARGB:TARGB;
 {$ELSE}
   DstPtr: PColor32Rec;
-{$ENDIF}
+{$IFEND}
 begin
   Assert(TestImage(Image) and not Bitmap.IsEmpty);
 
@@ -270,12 +270,12 @@ begin
     SrcPtr := @PByteArray(Image.Bits)[SrcY * SrcWidthBytes + SrcX * Bpp];
 {$IF (CompilerVersion > 23)}
     Bitmap.Map(TMapAccess.maReadWrite,MapData);
-{$ENDIF}
+{$IFEND}
     for Y := 0 to Height - 1 do
     begin
 {$IF (CompilerVersion < 23)}
       DstPtr := PColor32Rec(@Bitmap.ScanLine[Y][DstX]);
-{$ENDIF}
+{$IFEND}
       if Info.Format = ifA8R8G8B8 then
       begin
 {$IF (CompilerVersion = 23)}
@@ -292,7 +292,7 @@ begin
           DstPtr^.B:=ARGB.B;
           Inc(SrcPtr,4);
         end;
-{$ENDIF}
+{$IFEND}
       end
       else
       begin
@@ -306,7 +306,7 @@ begin
           DstPtr:= @PAlphaColorArray(MapData.Data)[Y * (MapData.Pitch div 4)+X];
           ConvertToAlphaColorRec(SrcPtr, DstPtr, Info, Image.Palette);
           Inc(SrcPtr, Bpp);
-{$ENDIF}
+{$IFEND}
         end;
       end;
     end;
@@ -327,7 +327,7 @@ begin
 {$ELSE}
   Bitmap.UpdateHandles;
   Bitmap.BitmapChanged;
-{$ENDIF}
+{$IFEND}
 end;
 
 procedure CopyRectToFmxBitmap(Image: TBaseImage; Bitmap: TBitmap;

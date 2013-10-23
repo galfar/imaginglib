@@ -183,7 +183,7 @@ const
     ifA16B16G16R16, ifBinary];
   NGLossyFormats: TImageFormats = [ifGray8, ifA8Gray8, ifR8G8B8, ifA8R8G8B8];
   PNGDefaultLoadAnimated = True;
-  NGDefaultZLibStartegy = 1; //Z_FILTERED
+  NGDefaultZLibStartegy = 1; // Z_FILTERED
 
   SPNGFormatName = 'Portable Network Graphics';
   SPNGMasks      = '*.png';
@@ -545,6 +545,12 @@ var
   I: Integer;
   Delay, Denom: Integer;
 begin
+  if FileType = ngAPNG then
+  begin
+    // Num plays of APNG animation
+    FileFormat.FMetadata.SetMetaItem(SMetaAnimationLoops, acTL.NumPlay);
+  end;
+
   for I := 0 to High(Frames) do
   begin
     if Frames[I].pHYs.UnitSpecifier = 1 then
@@ -560,7 +566,7 @@ begin
       if Denom = 0 then
         Denom := 100;
       Delay := Round(1000 * (Frames[I].fcTL.DelayNumer / Denom));
-      FileFormat.FMetadata.AddMetaItem(SMetaFrameDelay, Delay, I);
+      FileFormat.FMetadata.SetMetaItem(SMetaFrameDelay, Delay, I);
     end;
   end;
 end;
@@ -1706,7 +1712,7 @@ var
     if FileFormat.FMetadata.HasMetaItemForSave(SMetaFrameDelay, Index) then
     begin
       // Metadata contains frame delay information in milliseconds
-      Delay := FileFormat.FMetadata.MetaItemsForSaveMulti[SMetaFrameDelay, Index];
+      Delay := FileFormat.FMetadata.MetaItemsForSavingMulti[SMetaFrameDelay, Index];
       fcTL.DelayNumer := Delay;
       fcTL.DelayDenom := 1000;
     end;
@@ -1913,7 +1919,7 @@ var
       end;
     end;
     // Write metadata related chunks
-    WriteGlobalMetaDataChunks(Frames[I]);
+    WriteGlobalMetaDataChunks(Frame);
   end;
 
 begin
@@ -1928,10 +1934,32 @@ begin
 
   if FileType = ngMNG then
   begin
+    // MNG - main header before frames
     SwapEndianLongWord(@MHDR, SizeOf(MHDR) div SizeOf(LongWord));
     Chunk.DataSize := SizeOf(MHDR);
     Chunk.ChunkID := MHDRChunk;
     WriteChunk(Chunk, @MHDR);
+  end
+  else if FileType = ngAPNG then
+  begin
+    // APNG - IHDR and global chunks for all frames, then acTL chunk, then frames
+    // (fcTL+IDAT, fcTL+fdAT, fcTL+fdAT, fcTL+fdAT, ....)
+    WritePNGMainImageChunks(Frames[0]);
+
+    // Animation control chunk
+    acTL.NumFrames := Length(Frames);
+    if FileFormat.FMetadata.HasMetaItem(SMetaAnimationLoops) then
+    begin
+      // Number of plays of APNG animation
+      acTL.NumPlay:= FileFormat.FMetadata.MetaItemsForSaving[SMetaAnimationLoops];
+    end
+    else
+      acTL.NumPlay := 1;
+    SwapEndianLongWord(@acTL, SizeOf(acTL) div SizeOf(LongWord));
+
+    Chunk.DataSize := SizeOf(acTL);
+    Chunk.ChunkID := acTLChunk;
+    WriteChunk(Chunk, @acTL);
   end;
 
   for I := 0 to Length(Frames) - 1 do
@@ -1987,16 +2015,7 @@ begin
     end
     else if FileType = ngAPNG then
     begin
-      // APNG frame - first frame must have acTL and fcTL before IDAT,
-      // subsequent frames have fcTL and fdAT.
-      if I = 0 then
-      begin
-        WritePNGMainImageChunks(Frames[I]);
-        Chunk.DataSize := SizeOf(acTL);
-        Chunk.ChunkID := acTLChunk;
-        WriteChunk(Chunk, @acTL);
-      end;
-      // Write fcTL before frame data
+      // APNG frame - Write fcTL before frame data
       Chunk.DataSize := SizeOf(fcTL);
       Chunk.ChunkID := fcTLChunk;
       fcTl.SeqNumber := GetNextSeqNo;
@@ -2326,9 +2345,6 @@ begin
   if Length(Images) > 1 then
   begin
     NGFileSaver.FileType := ngAPNG;
-    NGFileSaver.acTL.NumFrames := FLastIdx - FFirstIdx + 1;
-    NGFileSaver.acTL.NumPlay := 1;
-    SwapEndianLongWord(@NGFileSaver.acTL, SizeOf(NGFileSaver.acTL) div SizeOf(LongWord));
     // Get max dimensions of frames
     AnimWidth := Images[FFirstIdx].Width;
     AnimHeight := Images[FFirstIdx].Height;
@@ -2340,6 +2356,7 @@ begin
   end
   else
     NGFileSaver.FileType := ngPNG;
+
   NGFileSaver.SetFileOptions;
 
   with NGFileSaver do
@@ -2614,6 +2631,7 @@ finalization
     - nothing now
 
   -- 0.77 Changes/Bug Fixes -----------------------------------
+    - Reads and writes APNG animation loop count metadata.
     - Writes frame delays of APNG from metadata.
     - Fixed color keys in 8bit depth PNG/MNG loading.
     - Fixed needless (and sometimes buggy) conversion to format with alpha
