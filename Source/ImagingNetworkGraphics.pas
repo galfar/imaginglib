@@ -1657,6 +1657,7 @@ procedure TNGFileSaver.AddFrame(const Image: TImageData; IsJpegFrame: Boolean);
 var
   Frame: TFrameInfo;
   FmtInfo: TImageFormatInfo;
+  Index: Integer;
 
   procedure StorePalette;
   var
@@ -1691,10 +1692,36 @@ var
     end;
   end;
 
+  procedure FillFrameControlChunk(const IHDR: TIHDR; var fcTL: TfcTL);
+  var
+    Delay: Integer;
+  begin
+    fcTL.SeqNumber := 0; // Decided when writing to file
+    fcTL.Width := IHDR.Width;
+    fcTL.Height := IHDR.Height;
+    fcTL.XOffset := 0;
+    fcTL.YOffset := 0;
+    fcTL.DelayNumer := 1;
+    fcTL.DelayDenom := 3;
+    if FileFormat.FMetadata.HasMetaItemForSave(SMetaFrameDelay, Index) then
+    begin
+      // Metadata contains frame delay information in milliseconds
+      Delay := FileFormat.FMetadata.MetaItemsForSaveMulti[SMetaFrameDelay, Index];
+      fcTL.DelayNumer := Delay;
+      fcTL.DelayDenom := 1000;
+    end;
+    fcTL.DisposeOp := DisposeOpNone;
+    fcTL.BlendOp := BlendOpSource;
+    SwapEndianLongWord(@fcTL, 5);
+    fcTL.DelayNumer := SwapEndianWord(fcTL.DelayNumer);
+    fcTL.DelayDenom := SwapEndianWord(fcTL.DelayDenom);
+  end;
+
 begin
   // Add new frame
   Frame := AddFrameInfo;
   Frame.IsJpegFrame := IsJpegFrame;
+  Index := Length(Frames) - 1;
 
   with Frame do
   begin
@@ -1767,18 +1794,7 @@ begin
       if FileType = ngAPNG then
       begin
         // Fill fcTL chunk of APNG file
-        fcTL.SeqNumber := 0; // Decided when writing to file
-        fcTL.Width := IHDR.Width;
-        fcTL.Height := IHDR.Height;
-        fcTL.XOffset := 0;
-        fcTL.YOffset := 0;
-        fcTL.DelayNumer := 1;
-        fcTL.DelayDenom := 3;
-        fcTL.DisposeOp := DisposeOpNone;
-        fcTL.BlendOp := BlendOpSource;
-        SwapEndianLongWord(@fcTL, 5);
-        fcTL.DelayNumer := SwapEndianWord(fcTL.DelayNumer);
-        fcTL.DelayDenom := SwapEndianWord(fcTL.DelayDenom);
+        FillFrameControlChunk(IHDR, fcTL);
       end;
 
       // Compress PNG image and store it to stream
@@ -1854,7 +1870,7 @@ var
     GetIO.Write(Handle, @ChunkCrc, SizeOf(ChunkCrc));
   end;
 
-  procedure WriteMetaDataChunks(Frame: TFrameInfo);
+  procedure WriteGlobalMetaDataChunks(Frame: TFrameInfo);
   var
     XRes, YRes: Single;
   begin
@@ -1897,7 +1913,7 @@ var
       end;
     end;
     // Write metadata related chunks
-    WriteMetaDataChunks(Frames[I]);
+    WriteGlobalMetaDataChunks(Frames[I]);
   end;
 
 begin
@@ -1928,7 +1944,7 @@ begin
       Chunk.ChunkID := JHDRChunk;
       WriteChunk(Chunk, @JHDR);
       // Write metadata related chunks
-      WriteMetaDataChunks(Frames[I]);
+      WriteGlobalMetaDataChunks(Frames[I]);
       // Write JNG image data
       Chunk.DataSize := JDATMemory.Size;
       Chunk.ChunkID := JDATChunk;
@@ -2127,8 +2143,6 @@ begin
       SrcCanvas.DrawAlpha(SrcCanvas.ClipRect, DestCanvas,
         SrcFrames[SrcIdx].fcTL.XOffset, SrcFrames[SrcIdx].fcTL.YOffset);
     end;
-
-    //ImagingDebug.DebugImage(DestFrames[I]);
 
     FreeImage(Images[SrcIdx]);
   end;
@@ -2600,6 +2614,7 @@ finalization
     - nothing now
 
   -- 0.77 Changes/Bug Fixes -----------------------------------
+    - Writes frame delays of APNG from metadata.
     - Fixed color keys in 8bit depth PNG/MNG loading.
     - Fixed needless (and sometimes buggy) conversion to format with alpha
       channel in FPC (GetMem(0) <> nil!).

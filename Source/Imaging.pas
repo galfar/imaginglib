@@ -3900,7 +3900,6 @@ begin
   for I := 0 to FLoadMetaItems.Count - 1 do
   begin
     Orig := TMetadataItem(FLoadMetaItems.Objects[I]);
-
     Copy := TMetadataItem.Create;
     Copy.Id := Orig.Id;
     Copy.ImageIndex := Orig.ImageIndex;

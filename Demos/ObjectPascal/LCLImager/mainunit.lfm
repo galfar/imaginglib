@@ -88,7 +88,7 @@ object MainForm: TMainForm
   OnDropFiles = FormDropFiles
   OnShow = FormShow
   Position = poDesktopCenter
-  LCLVersion = '0.9.30.4'
+  LCLVersion = '1.0.12.0'
   Visible = True
   WindowState = wsMaximized
   object StatusBar: TStatusBar
@@ -120,7 +120,7 @@ object MainForm: TMainForm
         Width = 180
         Align = alClient
         AutoExpand = True
-        DefaultItemHeight = 17
+        DefaultItemHeight = 18
         HotTrack = True
         ParentShowHint = False
         ReadOnly = True
@@ -571,7 +571,6 @@ object MainForm: TMainForm
     end
   end
   object SaveDialog: TSavePictureDialog
-    Title = 'Save file as'
     DefaultExt = '.png'
     Filter = 'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDraw Surface (*.dds)|*.dds|True'
     FilterIndex = 0

@@ -24,7 +24,7 @@
 }
 
 unit MainUnit;
-       //-add otsu and deskew
+      
 {$I ImagingOptions.inc}
 
 interface
@@ -631,7 +631,13 @@ end;
 procedure TMainForm.ApplyManipulation(ManipType: TManipulationType);
 var
   T: Int64;
+  OldFmt: TImageFormat;
+  OldSize: Integer;
+  RebuildTree: Boolean;
 begin
+  OldFmt := FImage.Format;
+  OldSize := FImage.Size;
+
   T := GetTimeMicroseconds;
   case ManipType of
     mtFlip:             FImage.Flip;
@@ -652,7 +658,9 @@ begin
     mtReduce2:          ReduceColors(FImage.ImageDataPointer^, 2);
   end;
   MeasureTime('Image manipulated in:', T);
-  UpdateView(False);
+
+  RebuildTree := (FImage.Format <> OldFmt) or (FImage.Size <> OldSize);
+  UpdateView(RebuildTree);
 end;
 
 procedure TMainForm.FormCreate(Sender: TObject);
@@ -1113,9 +1121,11 @@ begin
   FFileName := FileName;
   try
     T := GetTimeMicroseconds;
+    GlobalMetadata.ClearMetaItems;
     FImage.LoadMultiFromFile(FileName);
     FFileSize := FileSize(FileName);
     BuildImageTree;
+    GlobalMetadata.CopyMetaItems;
     MeasureTime(Format('File %s opened in:', [ExtractFileName(FileName)]), T);
   except
     MessageDlg(GetExceptObject.Message, mtError, [mbOK], 0);
@@ -1185,6 +1195,7 @@ initialization
   File Notes:
 
   -- 0.77.1 Changes/Bug Fixes ---------------------------------
+    - Writing metadata from loaded file when resaving.
     - Added Otsu Thresholding and Deskwing, reorganized some menus.
     - Added Lanczos filtering option to resize image functions.
     - Added option to convert data format of all subimages by default.

@@ -112,6 +112,11 @@ type
   TChar16 = array[0..15] of AnsiChar;
   TAnsiCharSet = set of AnsiChar;
 
+  ENotImplemented = class(Exception)
+  public
+    constructor Create;
+  end;
+
   { Options for BuildFileList function:
     flFullNames - file names in result will have full path names
                 (ExtractFileDir(Path) + FileName)
@@ -356,6 +361,11 @@ uses
 
 var
   FloatFormatSettings: TFormatSettings;
+
+constructor ENotImplemented.Create;
+begin
+  inherited Create('Not implemented');
+end;
 
 procedure FreeAndNil(var Obj);
 var

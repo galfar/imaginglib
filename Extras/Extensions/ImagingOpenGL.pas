@@ -183,7 +183,7 @@ var
 implementation
 
 const
-  // cube map consts
+  // Cube map consts
   GL_TEXTURE_BINDING_CUBE_MAP       = $8514;
   GL_TEXTURE_CUBE_MAP_POSITIVE_X    = $8515;
   GL_TEXTURE_CUBE_MAP_NEGATIVE_X    = $8516;
@@ -192,7 +192,7 @@ const
   GL_TEXTURE_CUBE_MAP_POSITIVE_Z    = $8519;
   GL_TEXTURE_CUBE_MAP_NEGATIVE_Z    = $851A;
 
-  // texture formats
+  // Texture formats
   GL_COLOR_INDEX                    = $1900;
   GL_STENCIL_INDEX                  = $1901;
   GL_DEPTH_COMPONENT                = $1902;
@@ -207,7 +207,7 @@ const
   GL_BGR_EXT                        = $80E0;
   GL_BGRA_EXT                       = $80E1;
 
-  // texture internal formats
+  // Texture internal formats
   GL_ALPHA4                         = $803B;
   GL_ALPHA8                         = $803C;
   GL_ALPHA12                        = $803D;
@@ -241,8 +241,9 @@ const
   GL_RGB10_A2                       = $8059;
   GL_RGBA12                         = $805A;
   GL_RGBA16                         = $805B;
+  GL_RGB565                         = $8D62;
 
-  // floating point texture formats
+  // Floating point texture formats
   GL_RGBA32F_ARB                    = $8814;
   GL_INTENSITY32F_ARB               = $8817;
   GL_LUMINANCE32F_ARB               = $8818;
@@ -250,22 +251,46 @@ const
   GL_INTENSITY16F_ARB               = $881D;
   GL_LUMINANCE16F_ARB               = $881E;
 
-  // compressed texture formats
+  // Compressed texture formats
+  // S3TC/DXTC
+  GL_COMPRESSED_RGB_S3TC_DXT1_EXT   = $83F0;
   GL_COMPRESSED_RGBA_S3TC_DXT1_EXT  = $83F1;
   GL_COMPRESSED_RGBA_S3TC_DXT3_EXT  = $83F2;
   GL_COMPRESSED_RGBA_S3TC_DXT5_EXT  = $83F3;
+  // 3Dc LATC
   GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI          = $8837;
   GL_COMPRESSED_LUMINANCE_LATC1_EXT              = $8C70;
   GL_COMPRESSED_SIGNED_LUMINANCE_LATC1_EXT       = $8C71;
   GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT        = $8C72;
   GL_COMPRESSED_SIGNED_LUMINANCE_ALPHA_LATC2_EXT = $8C73;
+  // ETC1  GL_OES_compressed_ETC1_RGB8_texture
+  GL_ETC1_RGB_OES          = $8D64;
+  // PVRTC  GL_IMG_texture_compression_pvrtc
+  GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG  = $8C00;
+  GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG  = $8C01;
+  GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG = $8C02;
+  GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG = $8C03;
+  // AMD ATC
+  GL_ATC_RGBA_EXPLICIT_ALPHA_AMD      = $8C93;
+  GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD  = $87EE;
+  // ETC2/EAC
+  GL_COMPRESSED_R11_EAC                        = $9270;
+  GL_COMPRESSED_SIGNED_R11_EAC                 = $9271;
+  GL_COMPRESSED_RG11_EAC                       = $9272;
+  GL_COMPRESSED_SIGNED_RG11_EAC                = $9273;
+  GL_COMPRESSED_RGB8_ETC2                      = $9274;
+  GL_COMPRESSED_SRGB8_ETC2                     = $9275;
+  GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2  = $9276;
+  GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2 = $9277;
+  GL_COMPRESSED_RGBA8_ETC2_EAC                 = $9278;
+  GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC          = $9279;
 
-  // various GL extension constants
+  // Various GL extension constants
   GL_MAX_TEXTURE_UNITS              = $84E2;
   GL_TEXTURE_MAX_ANISOTROPY_EXT     = $84FE;
   GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT = $84FF;
 
-  // texture source data formats
+  // Texture source data formats
   GL_UNSIGNED_BYTE_3_3_2            = $8032;
   GL_UNSIGNED_SHORT_4_4_4_4         = $8033;
   GL_UNSIGNED_SHORT_5_5_5_1         = $8034;
@@ -407,7 +432,7 @@ begin
       begin
         GLFormat   := GL_RGB;
         GLType     := GL_UNSIGNED_SHORT_5_6_5;
-        GLInternal := GL_RGB5;
+        GLInternal := GL_RGB5; //GL_RGB565 ot working on Radeons
       end;
     ifA1R5G5B5, ifX1R5G5B5:
       begin
@@ -882,9 +907,9 @@ initialization
   File Notes:
 
   -- TODOS ----------------------------------------------------
-    - use internal format of texture in CreateMultiImageFromGLTexture
-      not only A8R8G8B8
-    - support for cube and 3D maps
+
+  -- 0.77.1 ---------------------------------------------------
+    - Added some new compressed formats IDs
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Fixed GetGLProcAddress in Unicode Delphi. Compressed

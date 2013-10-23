@@ -19,6 +19,10 @@
   - Sometimes loading never ends, some problem with TThread.Synchronize
     in FMX (TThread.Queue doesn't work at all).
   - Red and Blue channels on MacOSX are swapped. This is ugly inconsistency in FMX.
+  
+  Note: 
+  Only works with FM1 (in Delphi XE2) as there are many breaking changes in
+  FM2 (XE3).
 }
 unit MainForm;
 

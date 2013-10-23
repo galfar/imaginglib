@@ -524,7 +524,7 @@ var
     if not SeparateChannelStorage then
     begin
       // This is for storing background merged image. There's only one
-      // complession flag and one RLE lenghts table for all channels
+      // compression flag and one RLE lenghts table for all channels
       WordVal := Swap(Compression);
       GetIO.Write(Handle, @WordVal, SizeOf(WordVal));
       if Compression = CompressionRLE then
@@ -585,9 +585,6 @@ var
         begin
           // Compress and write line
           WrittenLineSize := PackLine(LineBuffer, RLEBuffer, LineSize);
-          {RLELineSize := 7;
-          RLEBuffer[0] := 129; RLEBuffer[1] := 255; RLEBuffer[2] := 131; RLEBuffer[3] := 100;
-          RLEBuffer[4] := 1; RLEBuffer[5] := 0; RLEBuffer[6] := 255;}
           RLELengths[ImageToSave.Height * I + Y] := SwapEndianWord(WrittenLineSize);
           GetIO.Write(Handle, RLEBuffer, WrittenLineSize);
         end
@@ -682,7 +679,7 @@ begin
       Write(Handle, @LongVal, SizeOf(LongVal));        // Layer section size, empty now
       Write(Handle, @LayerCount, SizeOf(LayerCount));  // Layer count
       Write(Handle, @R, SizeOf(R));                    // Bounds rect
-      Write(Handle, @WordVal, SizeOf(WordVal));        // Channeel count
+      Write(Handle, @WordVal, SizeOf(WordVal));        // Channel count
 
       ChannelInfoOffset := Tell(Handle);
       SetLength(ChannelDataSizes, Info.ChannelCount);  // Empty channel infos
@@ -743,7 +740,14 @@ var
   ConvFormat: TImageFormat;
 begin
   if Info.IsFloatingPoint then
-    ConvFormat :=  IffFormat(Info.ChannelCount = 1, ifR32F, ifA32R32G32B32F)
+  begin
+    if Info.ChannelCount = 1 then
+      ConvFormat := ifR32F
+    else if Info.HasAlphaChannel then
+      ConvFormat := ifA32R32G32B32F
+    else
+      ConvFormat := ifR32G32B32F;
+  end
   else if Info.HasGrayChannel then
     ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16Gray16, ifGray16)
   else if Info.RBSwapFormat in GetSupportedFormats then

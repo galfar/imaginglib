@@ -105,7 +105,7 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0
   +#0#0#0#0#0#0#0#0#4'Menu'#7#8'MainMenu'#8'OnCreate'#7#10'FormCreate'#9'OnDest'
   +'roy'#7#11'FormDestroy'#11'OnDropFiles'#7#13'FormDropFiles'#6'OnShow'#7#8'Fo'
-  +'rmShow'#8'Position'#7#15'poDesktopCenter'#10'LCLVersion'#6#8'0.9.30.4'#7'Vi'
+  +'rmShow'#8'Position'#7#15'poDesktopCenter'#10'LCLVersion'#6#8'1.0.12.0'#7'Vi'
   +'sible'#9#11'WindowState'#7#11'wsMaximized'#0#10'TStatusBar'#9'StatusBar'#4
   +'Left'#2#0#6'Height'#2#23#3'Top'#3#213#1#5'Width'#3'C'#3#6'Panels'#14#0#0#0
   +#13'TPairSplitter'#12'PairSplitter'#4'Left'#2#0#6'Height'#3#213#1#3'Top'#2#0
@@ -114,7 +114,7 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'t'#3#213#1#3'Top'#2#0#5'Width'#3#180#0#11'ClientWidth'#3#180#0#12'ClientHei'
   +'ght'#3#213#1#0#9'TTreeView'#9'TreeImage'#4'Left'#2#0#6'Height'#3#213#1#3'To'
   +'p'#2#0#5'Width'#3#180#0#5'Align'#7#8'alClient'#10'AutoExpand'#9#17'DefaultI'
-  +'temHeight'#2#17#8'HotTrack'#9#14'ParentShowHint'#8#8'ReadOnly'#9#16'RightCl'
+  +'temHeight'#2#18#8'HotTrack'#9#14'ParentShowHint'#8#8'ReadOnly'#9#16'RightCl'
   +'ickSelect'#9#8'ShowHint'#9#8'TabOrder'#2#0#18'OnSelectionChanged'#7#25'Tree'
   +'ImageSelectionChanged'#7'Options'#11#13'tvoAutoExpand'#17'tvoAutoItemHeight'
   +#16'tvoHideSelection'#11'tvoHotTrack'#21'tvoKeepCollapsedNodes'#11'tvoReadOn'
@@ -253,12 +253,11 @@ LazarusResources.Add('TMainForm','FORMDATA',[
   +'ion'#15'ActViewRealSize'#7'Caption'#6#9'Real Size'#7'Checked'#9#9'OnExecute'
   +#7#22'ActViewRealSizeExecute'#0#0#7'TAction'#11'ActViewInfo'#7'Caption'#6#10
   +'Image Info'#9'OnExecute'#7#18'ActViewInfoExecute'#0#0#0#18'TSavePictureDial'
-  +'og'#10'SaveDialog'#5'Title'#6#12'Save file as'#10'DefaultExt'#6#4'.png'#6'F'
-  +'ilter'#6#255'Graphic (*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.d'
-  +'ib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe'
-  +';*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;'
-  ,'*.bmp|DirectDraw Surface (*.dds)|*.dds|True'#11'FilterIndex'#2#0#7'Options'
-  +#11#17'ofOverwritePrompt'#14'ofHideReadOnly'#20'ofExtensionDifferent'#15'ofP'
-  +'athMustExist'#14'ofEnableSizing'#12'ofViewDetail'#13'ofAutoPreview'#0#4'lef'
-  +'t'#3#232#0#3'top'#2'('#0#0#0
+  +'og'#10'SaveDialog'#10'DefaultExt'#6#4'.png'#6'Filter'#6#255'Graphic (*.dds;'
+  +'*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*.dib;*.bmp;*.ico;*.ppm;*.pgm;*'
+  +'.pbm;*.png;*.xpm;*.bmp)|*.dds;*.tga;*.png;*.jpe;*.jfif;*.jif;*.jpeg;*.jpg;*'
+  +'.dib;*.bmp;*.ico;*.ppm;*.pgm;*.pbm;*.png;*.xpm;*.bmp|DirectDraw Surface (*.'
+  ,'dds)|*.dds|True'#11'FilterIndex'#2#0#7'Options'#11#17'ofOverwritePrompt'#14
+  +'ofHideReadOnly'#20'ofExtensionDifferent'#15'ofPathMustExist'#14'ofEnableSiz'
+  +'ing'#12'ofViewDetail'#13'ofAutoPreview'#0#4'left'#3#232#0#3'top'#2'('#0#0#0
 ]);
