@@ -83,8 +83,7 @@
 			<DCC_RemoteDebug>true</DCC_RemoteDebug>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-			<VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0</VerInfo_Keys>
-			<DCC_UnitSearchPath>..\..\..\Extras\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+			<VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Last Compile=2013-10-23 22:56</VerInfo_Keys>
 			<VerInfo_Locale>1033</VerInfo_Locale>
 			<Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
 			<DCC_DebugDCUs>true</DCC_DebugDCUs>
@@ -153,24 +152,24 @@
 					</Source>
 				</Delphi.Personality>
 				<Deployment>
-					<DeployFile Class="ProjectOSXInfoPList" Configuration="Debug" LocalName="..\..\Bin\FireMonkeyDemo.info.plist">
-						<Platform Name="OSX32">
-							<RemoteName>Info.plist</RemoteName>
-						</Platform>
+					<DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
+						<Platform Name="OSX32"/>
 					</DeployFile>
-					<DeployFile Class="DebugSymbols" Configuration="Debug" LocalName="..\..\Bin\FireMonkeyDemo.rsm">
+					<DeployFile LocalName="..\..\Bin\FireMonkeyDemo.rsm" Configuration="Debug" Class="DebugSymbols">
 						<Platform Name="OSX32">
 							<RemoteDir>Contents\MacOS\</RemoteDir>
 							<RemoteName>FireMonkeyDemo.rsm</RemoteName>
 						</Platform>
 					</DeployFile>
-					<DeployFile Class="DependencyModule" LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib">
+					<DeployFile LocalName="..\..\Bin\FireMonkeyDemo.info.plist" Configuration="Debug" Class="ProjectOSXInfoPList">
+						<Platform Name="OSX32">
+							<RemoteName>Info.plist</RemoteName>
+						</Platform>
+					</DeployFile>
+					<DeployFile LocalName="..\..\Bin\FireMonkeyDemo.icns" Configuration="Debug" Class="ProjectOSXResource">
 						<Platform Name="OSX32"/>
 					</DeployFile>
-					<DeployFile Class="ProjectOSXResource" Configuration="Debug" LocalName="..\..\Bin\FireMonkeyDemo.icns">
-						<Platform Name="OSX32"/>
-					</DeployFile>
-					<DeployFile Class="ProjectOutput" Configuration="Debug" LocalName="..\..\Bin\FireMonkeyDemo">
+					<DeployFile LocalName="..\..\Bin\FireMonkeyDemo" Configuration="Debug" Class="ProjectOutput">
 						<Platform Name="OSX32"/>
 					</DeployFile>
 					<DeployClass Name="ProjectOutput" Required="true">

@@ -75,7 +75,7 @@ uses
   { Use ZLib unit shipped with Delphi }
   ZLib,
 {$IFEND}
-  SysUtils, Classes;
+  ImagingTypes, SysUtils, Classes;
 
 {$IF Defined(IMPASZLIB) or Defined(FPCPASZLIB) or Defined(ZLIBPAS)}
 type
@@ -293,7 +293,7 @@ begin
         P := OutBuf;
         Inc(OutBytes, 256);
         ReallocMem(OutBuf, OutBytes);
-        strm.next_out := Pointer(Integer(OutBuf) + (Integer(strm.next_out) - Integer(P)));
+        strm.next_out := Pointer(PtrUInt(OutBuf) + (PtrUInt(strm.next_out) - PtrUInt(P)));
         strm.avail_out := 256;
       end;
     finally
@@ -337,7 +337,7 @@ begin
         P := OutBuf;
         Inc(OutBytes, BufInc);
         ReallocMem(OutBuf, OutBytes);
-        strm.next_out := Pointer(Integer(OutBuf) + (Integer(strm.next_out) - Integer(P)));
+        strm.next_out := Pointer(PtrUInt(OutBuf) + (PtrUInt(strm.next_out) - PtrUInt(P)));
         strm.avail_out := BufInc;
       end;
     finally

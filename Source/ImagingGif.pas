@@ -1129,7 +1129,7 @@ var
 
   procedure SetFrameDelay(Idx: Integer; var Ext: TGraphicControlExtension);
   begin
-    if FMetadata.HasMetaItemForSave(SMetaFrameDelay, Idx) then
+    if FMetadata.HasMetaItemForSaving(SMetaFrameDelay, Idx) then
       Ext.DelayTime := FMetadata.MetaItemsForSavingMulti[SMetaFrameDelay, Idx] div 10
     else
       Ext.DelayTime := GIFDefaultDelay;
@@ -1141,7 +1141,7 @@ var
     BlockSize, LoopExtId: Byte;
     Repeats: Word;
   begin
-    if FMetadata.HasMetaItemForSave(SMetaAnimationLoops) then
+    if FMetadata.HasMetaItemForSaving(SMetaAnimationLoops) then
     with GetIO do
     begin
       FillChar(AppExt, SizeOf(AppExt), 0);

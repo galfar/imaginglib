@@ -42,6 +42,7 @@
       <Unit1>
         <Filename Value="DemoUnit.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="DemoUnit"/>
       </Unit1>
     </Units>
   </ProjectOptions>
@@ -56,7 +57,7 @@
       <Libraries Value="..\..\..\Extras\Extensions\J2KObjects"/>
       <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extras\Extensions;..\Common"/>
       <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
-       </SearchPaths>
+    </SearchPaths>
     <Parsing>
       <SyntaxOptions>
         <SyntaxMode Value="delphi"/>
@@ -66,8 +67,8 @@
       <CompilerMessages>
         <MsgFileName Value=""/>
       </CompilerMessages>
-      <CompilerPath Value="$(CompPath)"/>
       <CustomOptions Value="-dFULL_FEATURE_SET"/>
+      <CompilerPath Value="$(CompPath)"/>
     </Other>
   </CompilerOptions>
   <Debugging>

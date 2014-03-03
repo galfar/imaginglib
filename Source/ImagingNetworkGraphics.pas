@@ -1709,7 +1709,7 @@ var
     fcTL.YOffset := 0;
     fcTL.DelayNumer := 1;
     fcTL.DelayDenom := 3;
-    if FileFormat.FMetadata.HasMetaItemForSave(SMetaFrameDelay, Index) then
+    if FileFormat.FMetadata.HasMetaItemForSaving(SMetaFrameDelay, Index) then
     begin
       // Metadata contains frame delay information in milliseconds
       Delay := FileFormat.FMetadata.MetaItemsForSavingMulti[SMetaFrameDelay, Index];
@@ -1948,13 +1948,13 @@ begin
 
     // Animation control chunk
     acTL.NumFrames := Length(Frames);
-    if FileFormat.FMetadata.HasMetaItem(SMetaAnimationLoops) then
+    if FileFormat.FMetadata.HasMetaItemForSaving(SMetaAnimationLoops) then
     begin
       // Number of plays of APNG animation
       acTL.NumPlay:= FileFormat.FMetadata.MetaItemsForSaving[SMetaAnimationLoops];
     end
     else
-      acTL.NumPlay := 1;
+      acTL.NumPlay := 0;
     SwapEndianLongWord(@acTL, SizeOf(acTL) div SizeOf(LongWord));
 
     Chunk.DataSize := SizeOf(acTL);

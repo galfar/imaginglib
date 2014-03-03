@@ -211,16 +211,16 @@ type
   TImageFormat = (
     ifUnknown        = 0,
     ifDefault        = 1,
-    { Indexed formats using palette.}
+    { Indexed formats using palette }
     ifIndex8         = 10,
-    { Grayscale/Luminance formats.}
+    { Grayscale/Luminance formats }
     ifGray8          = 40,
     ifA8Gray8        = 41,
     ifGray16         = 42,
     ifGray32         = 43,
     ifGray64         = 44,
     ifA16Gray16      = 45,
-    { ARGB formats.}
+    { ARGB formats }
     ifX5R1G1B1       = 80,
     ifR3G3B2         = 81,
     ifR5G6B5         = 82,
@@ -235,26 +235,30 @@ type
     ifA16R16G16B16   = 91,
     ifB16G16R16      = 92,
     ifA16B16G16R16   = 93,
-    { Floating point formats.}
-    ifR32F           = 170,
-    ifA32R32G32B32F  = 171,
-    ifA32B32G32R32F  = 172,
-    ifR16F           = 173,
-    ifA16R16G16B16F  = 174,
-    ifA16B16G16R16F  = 175,
-    ifR32G32B32F     = 176,
-    ifB32G32R32F     = 177,
-    { Special formats.}
-    ifDXT1           = 220,
-    ifDXT3           = 221,
-    ifDXT5           = 222,
-    ifBTC            = 223,
-    ifATI1N          = 224,
-    ifATI2N          = 225,
-    //ifDXBC6         = 227,
-    //ifDXBC7         = 228
-    ifBinary         = 235
-    //ifRGBE         = 236
+    { Floating point formats }
+    ifR32F           = 160,
+    ifA32R32G32B32F  = 161,
+    ifA32B32G32R32F  = 162,
+    ifR16F           = 163,
+    ifA16R16G16B16F  = 164,
+    ifA16B16G16R16F  = 165,
+    ifR32G32B32F     = 166,
+    ifB32G32R32F     = 167,
+    { Special formats }
+    ifDXT1           = 200,
+    ifDXT3           = 201,
+    ifDXT5           = 202,
+    ifBTC            = 203,
+    ifATI1N          = 204,
+    ifATI2N          = 205,
+    ifBinary         = 206,
+    { Passtrough formats }
+    ifETC1           = 220,
+    ifETC2RGB        = 221,
+    ifETC2RGBA       = 222,
+    ifETC2PA         = 223,
+    ifDXBC6          = 224,
+    ifDXBC7          = 225
   );
 
   { Color value for 32 bit images.}
@@ -430,6 +434,9 @@ type
                                       // format does not exist
     IsIndexed: Boolean;               // True if image uses palette
     IsSpecial: Boolean;               // True if image is in special format
+    IsPasstrough: Boolean;            // True if image is in passtrough program (Imaging
+                                      // iself doesn't know how to decode and encode it -
+                                      // complex texture compressions etc.)
     PixelFormat: PPixelFormatInfo;    // Pixel format structure
     GetPixelsSize: TFormatGetPixelsSizeFunc; // Returns size in bytes of
                                       // Width * Height pixels of image
@@ -481,6 +488,15 @@ type
   TReadProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
   TWriteProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
        
+{$IFNDEF FPC}
+type
+{$IF CompilerVersion <= 18.5}
+  PtrUInt = LongWord;
+{$ELSE}
+  PtrUInt = NativeUInt;
+{$IFEND}
+{$ENDIF}
+
 implementation
 
 {
@@ -490,6 +506,7 @@ implementation
     - add lookup tables to pixel formats for fast conversions
 
   -- 0.77.1 ---------------------------------------------------
+    - Added "Passtrough" image data formats.
     - Added Tag to TImageData for storing user data.
     - Added ImagingPNGZLibStrategy option.
     - Changed IO functions. Merged open functions to one

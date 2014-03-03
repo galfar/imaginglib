@@ -249,9 +249,9 @@ var
   SrcPtr: PByte;
   Info: TImageFormatInfo;
 {$IF (CompilerVersion > 23)}
-  MapData:TBitmapData;
+  MapData: TBitmapData;
   DstPtr: PAlphaColorRec;
-  ARGB:TARGB;
+  ARGB: TARGB;
 {$ELSE}
   DstPtr: PColor32Rec;
 {$IFEND}
@@ -273,7 +273,7 @@ begin
 {$IFEND}
     for Y := 0 to Height - 1 do
     begin
-{$IF (CompilerVersion < 23)}
+{$IF (CompilerVersion = 23)}
       DstPtr := PColor32Rec(@Bitmap.ScanLine[Y][DstX]);
 {$IFEND}
       if Info.Format = ifA8R8G8B8 then

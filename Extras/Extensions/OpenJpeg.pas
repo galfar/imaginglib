@@ -587,10 +587,10 @@ end;
     {$L J2KObjects\t2.obj}
     {$L J2KObjects\mct.obj}
 
-   const
-     { MS C Runtime library needed for importing std C functions.}
-     MSCRuntimeLib = 'msvcrt.dll';
-   var
+    const
+      { MS C Runtime library needed for importing std C functions.}
+       MSCRuntimeLib = 'msvcrt.dll';
+    var
       { Some unresolved external constants.}
       __turboFloat: LongBool = False;
       _max_dble: Double = 1.7e308;
@@ -692,8 +692,8 @@ end;
   {$ELSEIF Defined(FPC)}
     { Free Pascal Win32 }
     { Link OpenJpeg static library and C runtime library.}
-    {$linklib libopenjpegwin32.a}
-    {$linklib libcrtdll.a}
+    {$LINKLIB libopenjpegwin32.a}
+    {$LINKLIB libcrtdll.a}
   {$IFEND}
 
 {$ELSEIF Defined(LINUX)}
@@ -705,11 +705,11 @@ end;
     {$IF Defined(CPU86)}
       { Free Pascal Linux x86 }
       { Link OpenJpeg static library.}
-      {$linklib libopenjpeglinx86.a}
+      {$LINKLIB libopenjpeglinx86.a}
     {$ELSEIF Defined(CPUX86_64)}
       { Free Pascal Linux x86_64 }
       { Link OpenJpeg static library.}
-      {$linklib libopenjpeglinx86_64.a}
+      {$LINKLIB libopenjpeglinx86_64.a}
     {$ELSE}
       No support for this CPU architecture.
     {$IFEND}
@@ -725,7 +725,7 @@ end;
     {$IF Defined(CPU86)}
       { Free Pascal MacOSX x86 }
       { Link OpenJpeg static library.}
-      {$linklib libopenjpegosxx86.a}
+      {$LINKLIB libopenjpegosxx86.a}
     {$ELSE}
       No support for this CPU architecture.
     {$IFEND}

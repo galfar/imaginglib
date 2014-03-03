@@ -561,7 +561,7 @@ type
     procedure SetMetaItem(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
     procedure SetMetaItemForSaving(const Id: string; const Value: Variant; ImageIndex: Integer = 0);
     function HasMetaItem(const Id: string; ImageIndex: Integer = 0): Boolean;
-    function HasMetaItemForSave(const Id: string; ImageIndex: Integer = 0): Boolean;
+    function HasMetaItemForSaving(const Id: string; ImageIndex: Integer = 0): Boolean;
 
     procedure ClearMetaItems;
     procedure ClearMetaItemsForSaving;
@@ -4051,7 +4051,7 @@ begin
   Result := GetMetaByIdMulti(Id, ImageIndex) <> Variants.Null;
 end;
 
-function TMetadata.HasMetaItemForSave(const Id: string; ImageIndex: Integer): Boolean;
+function TMetadata.HasMetaItemForSaving(const Id: string; ImageIndex: Integer): Boolean;
 begin
   Result := GetSaveMetaByIdMulti(Id, ImageIndex) <> Variants.Null;
 end;
