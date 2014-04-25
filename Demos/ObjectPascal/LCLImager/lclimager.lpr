@@ -1,12 +1,5 @@
 program LCLImager;
 
-{$IFDEF MSWINDOWS}
-  {$APPTYPE GUI}
-  {$IFDEF WIN32}
-    {$R *.res}
-  {$ENDIF}
-{$ENDIF}
-
 {$mode objfpc}{$H+}
 
 uses
