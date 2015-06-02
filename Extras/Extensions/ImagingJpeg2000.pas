@@ -58,6 +58,7 @@ type
     FQuality: LongInt;
     FCodeStreamOnly: LongBool;
     FLosslessCompression: LongBool;
+    FScaleOutput: LongBool;
     function GetFileType(Handle: TImagingHandle): TJpeg2000FileType;
   protected
     procedure Define; override;
@@ -84,6 +85,12 @@ type
       Default value is False. Accessible trough
       ImagingJpeg2000LosslessCompression option.}
     property LosslessCompression: LongBool read FLosslessCompression write FLosslessCompression;
+    { Specifies JPEG 2000 output scaling. Since JPEG 2000 supports arbitrary Bit Depths,
+      the default behaviour is to scale the images up tp the next 8^n bit depth.
+      This can be disabled by setting this option to False.
+      Defaul value is True. Accessible through
+      ImagingJpeg2000ScaleOutput option.}
+    property ScaleOutput: LongBool read FScaleOutput write FScaleOutput;
   end;
 
 implementation
@@ -96,6 +103,7 @@ const
   Jpeg2000DefaultQuality = 80;
   Jpeg2000DefaultCodeStreamOnly = False;
   Jpeg2000DefaultLosslessCompression = False;
+  Jpeg2000DefaultScaleOutput = True;
 
 const
   JP2Signature: TChar8 = #0#0#0#$0C#$6A#$50#$20#$20;
@@ -111,11 +119,13 @@ begin
   FQuality := Jpeg2000DefaultQuality;
   FCodeStreamOnly := Jpeg2000DefaultCodeStreamOnly;
   FLosslessCompression := Jpeg2000DefaultLosslessCompression;
+  FScaleOutput := Jpeg2000DefaultScaleOutput;
 
   AddMasks(SJpeg2000Masks);
   RegisterOption(ImagingJpeg2000Quality, @FQuality);
   RegisterOption(ImagingJpeg2000CodeStreamOnly, @FCodeStreamOnly);
   RegisterOption(ImagingJpeg2000LosslessCompression, @FLosslessCompression);
+  RegisterOption(ImagingJpeg2000ScaleOutput, @FScaleOutput);
 end;
 
 procedure TJpeg2000FileFormat.CheckOptionsValidity;
@@ -192,7 +202,7 @@ var
     DestPtr, NewPtr, LineUpPtr: PByte;
     DontScaleSamples: Boolean;
   begin
-    DontScaleSamples := Info.SrcMaxValue = Info.DestMaxValue;
+    DontScaleSamples := (Info.SrcMaxValue = Info.DestMaxValue) or not FScaleOutput;
     LineBytes := Image.Width * BytesPerPixel;
     DestPtr := @PByteArray(Image.Bits)[Info.DestOffset];
     SrcIdx := 0;
@@ -603,6 +613,10 @@ initialization
 
  -- TODOS ----------------------------------------------------
     - nothing now
+  -- 0.27 Changes ---------------------------------------------
+    - by Hanno Hugenberg <hanno.hugenberg@pergamonmed.com>
+    - introduced the ImagingJpeg2000ScaleOutput parameter for keeping
+      the original decoded images by avoiding upscaling of output images
 
   -- 0.26.3 Changes/Bug Fixes -----------------------------------
     - Rewritten JP2 loading part (based on PasJpeg2000) to be

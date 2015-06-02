@@ -75,6 +75,7 @@ const
   ImagingJpeg2000Quality             = 55;
   ImagingJpeg2000CodeStreamOnly      = 56;
   ImagingJpeg2000LosslessCompression = 57;
+  ImagingJpeg2000ScaleOutput         = 58;
   ImagingTiffCompression             = 65;
 
   ImagingColorReductionMask   = 128;
