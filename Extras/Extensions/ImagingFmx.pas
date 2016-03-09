@@ -31,21 +31,9 @@ unit ImagingFmx;
 
 {$I ImagingOptions.inc}
 
-{$IF not Defined(DCC) or (CompilerVersion < 23)}
-  {$MESSAGE FATAL 'FMX needs Delphi XE2+'}
-{$IFEND}
-
-{$IF (CompilerVersion = 24)}
-  {$MESSAGE FATAL 'FMX needs Delphi XE4+'}
-{$IFEND}
-
-
 interface
 
 uses
-{$IF (CompilerVersion > 23)}
-  System.UITypes,
-{$IFEND}
   Types,
   SysUtils,
   ImagingTypes,
@@ -53,14 +41,15 @@ uses
   ImagingFormats,
   ImagingClasses,
   ImagingUtility,
-  Fmx.Types;
+  UITypes,
+  Fmx.Types,
+  Fmx.Utils,
+  Fmx.Graphics;
 
 { Converts image from TImageData record to FMX bitmap. Bitmap must be already instantiated.}
 procedure ConvertImageDataToFmxBitmap(const Image: TImageData; Bitmap: TBitmap);
-{$IF (CompilerVersion > 23)}
 { Converts FMX bitmap to TImageData. Image Data must already instantiated.}
-procedure ConvertFmxBitmapToImageData(const Bitmap: TBitmap;Image: TImageData);
-{$IFEND}
+procedure ConvertFmxBitmapToImageData(const Bitmap: TBitmap; Image: TImageData);
 
 { Converts image from TBaseImage instance to FMX bitmap. Bitmap must be already instantiated.}
 procedure ConvertImageToFmxBitmap(Image: TBaseImage; Bitmap: TBitmap);
@@ -74,22 +63,16 @@ procedure CopyRectToFmxBitmap(Image: TBaseImage; Bitmap: TBitmap;
 
 implementation
 
-{$IF (CompilerVersion > 23)}
-type
-    TARGB = record
-     A, R, G, B: System.Byte;
-    end;
-
-procedure ConvertFmxBitmapToImageData(const Bitmap: TBitmap;Image: TImageData);
+procedure ConvertFmxBitmapToImageData(const Bitmap: TBitmap; Image: TImageData);
 var
-  Color32:TColor32Rec;
-  MapData:TBitmapData;
+  Color32: TColor32Rec;
+  MapData: TBitmapData;
   SourceData: PAlphaColorRec;
   TargetData: PByte;
   X, Y, Bpp, SrcWidthBytes: Integer;
   TargetInfo: TImageFormatInfo;
 begin
-    Bitmap.Map(TMapAccess.maRead,MapData);
+    Bitmap.Map(TMapAccess.maRead, MapData);
     GetImageFormatInfo(Image.Format, TargetInfo);
 
     Bpp := TargetInfo.BytesPerPixel;
@@ -99,7 +82,7 @@ begin
     for Y := 0 to Pred(Bitmap.Height) do
      for X:= 0 to Pred(Bitmap.Width) do
       begin
-        SourceData:= @PAlphaColorArray(MapData.Data)[Y * (MapData.Pitch div 4)+X];
+        SourceData:= @PAlphaColorRecArray(MapData.Data)[Y * (MapData.Pitch div 4) + X];
         case TargetInfo.Format of
           ifIndex8:
             begin
@@ -132,16 +115,16 @@ begin
             end;
           ifR16G16B16:
             begin
-              PColor48Rec(TargetData).R := Round(SourceData.R*$FFFF/255);
-              PColor48Rec(TargetData).G := Round(SourceData.G*$FFFF/255);
-              PColor48Rec(TargetData).B := Round(SourceData.B*$FFFF/255);
+              PColor48Rec(TargetData).R := Round(SourceData.R * $FFFF / 255);
+              PColor48Rec(TargetData).G := Round(SourceData.G * $FFFF / 255);
+              PColor48Rec(TargetData).B := Round(SourceData.B * $FFFF / 255);
             end;
           ifA16R16G16B16:
             begin
-              PColor64Rec(TargetData).R  := Round(SourceData.R*$FFFF/255);
-              PColor64Rec(TargetData).G  := Round(SourceData.G*$FFFF/255);
-              PColor64Rec(TargetData).B  := Round(SourceData.B*$FFFF/255);
-              PColor64Rec(TargetData).A  := Round(SourceData.A*$FFFF/255);
+              PColor64Rec(TargetData).R  := Round(SourceData.R * $FFFF / 255);
+              PColor64Rec(TargetData).G  := Round(SourceData.G * $FFFF / 255);
+              PColor64Rec(TargetData).B  := Round(SourceData.B * $FFFF / 255);
+              PColor64Rec(TargetData).A  := Round(SourceData.A * $FFFF / 255);
             end;
         else
           Color32.R := SourceData^.R;
@@ -154,7 +137,6 @@ begin
       end;
      Bitmap.Unmap(MapData);
 end;
-{$IFEND}
 
 procedure ConvertImageDataToFmxBitmap(const Image: TImageData; Bitmap: TBitmap);
 begin
@@ -168,7 +150,6 @@ begin
   ConvertImageDataToFmxBitmap(Image.ImageDataPointer^, Bitmap);
 end;
 
-{$IF (CompilerVersion > 23)}
 procedure ConvertToAlphaColorRec(SrcPix: PByte; DestPix: PAlphaColorRec;
   const SrcInfo: TImageFormatInfo; SrcPalette: PPalette32);
 var
@@ -239,7 +220,6 @@ begin
     DestPix^.A := Color32.A;
   end;
 end;
-{$IFEND}
 
 procedure CopyRectToFmxBitmap(const Image: TImageData; Bitmap: TBitmap;
   SrcX, SrcY, Width, Height, DstX, DstY: Integer);
@@ -248,13 +228,9 @@ var
   X, Y, Bpp, SrcWidthBytes, MoveBytes: Integer;
   SrcPtr: PByte;
   Info: TImageFormatInfo;
-{$IF (CompilerVersion > 23)}
   MapData: TBitmapData;
   DstPtr: PAlphaColorRec;
-  ARGB: TARGB;
-{$ELSE}
-  DstPtr: PColor32Rec;
-{$IFEND}
+  ARGB: TAlphaColorRec;
 begin
   Assert(TestImage(Image) and not Bitmap.IsEmpty);
 
@@ -268,45 +244,30 @@ begin
     SrcWidthBytes := Image.Width * Bpp;
     MoveBytes := Width * Bpp;
     SrcPtr := @PByteArray(Image.Bits)[SrcY * SrcWidthBytes + SrcX * Bpp];
-{$IF (CompilerVersion > 23)}
-    Bitmap.Map(TMapAccess.maReadWrite,MapData);
-{$IFEND}
+    Bitmap.Map(TMapAccess.maReadWrite, MapData);
+
     for Y := 0 to Height - 1 do
     begin
-{$IF (CompilerVersion = 23)}
-      DstPtr := PColor32Rec(@Bitmap.ScanLine[Y][DstX]);
-{$IFEND}
       if Info.Format = ifA8R8G8B8 then
       begin
-{$IF (CompilerVersion = 23)}
-        Move(SrcPtr^, DstPtr^, MoveBytes);
-        Inc(SrcPtr, MoveBytes);
-{$ELSE} //CompilerVersion > 23
-       for X:= 0 to Pred(Width) do
+       for X := 0 to Pred(Width) do
         begin
-          DstPtr:= @PAlphaColorArray(MapData.Data)[Y * (MapData.Pitch div 4)+X];
-          Move(SrcPtr^,ARGB,4);
-          DstPtr^.A:=ARGB.A;
-          DstPtr^.R:=ARGB.R;
-          DstPtr^.G:=ARGB.G;
-          DstPtr^.B:=ARGB.B;
-          Inc(SrcPtr,4);
+          DstPtr := @PColor32RecArray(MapData.Data)[Y * (MapData.Pitch div 4) + X];
+          Move(SrcPtr^, ARGB, 4);
+          DstPtr^.A := ARGB.A;
+          DstPtr^.R := ARGB.R;
+          DstPtr^.G := ARGB.G;
+          DstPtr^.B := ARGB.B;
+          Inc(SrcPtr, 4);
         end;
-{$IFEND}
       end
       else
       begin
         for X := 0 to Width - 1 do
         begin
-{$IF (CompilerVersion = 23)}
-          ConvertToPixel32(SrcPtr, DstPtr, Info, Image.Palette);
-          Inc(DstPtr);
-          Inc(SrcPtr, Bpp);
-{$ELSE}  //CompilerVersion > 23
-          DstPtr:= @PAlphaColorArray(MapData.Data)[Y * (MapData.Pitch div 4)+X];
+          DstPtr := @PColor32RecArray(MapData.Data)[Y * (MapData.Pitch div 4)+X];
           ConvertToAlphaColorRec(SrcPtr, DstPtr, Info, Image.Palette);
           Inc(SrcPtr, Bpp);
-{$IFEND}
         end;
       end;
     end;
@@ -322,12 +283,7 @@ begin
       FreeImage(TempImage);
     end;
   end;
-{$IF (CompilerVersion > 23)}
-    Bitmap.UnMap(MapData);
-{$ELSE}
-  Bitmap.UpdateHandles;
-  Bitmap.BitmapChanged;
-{$IFEND}
+  Bitmap.UnMap(MapData);
 end;
 
 procedure CopyRectToFmxBitmap(Image: TBaseImage; Bitmap: TBitmap;
@@ -344,6 +300,7 @@ end;
     - nothing now
 
   -- 0.77.1 Changes/Bug Fixes ---------------------------------
+    - Removed support for old FMX versions (XE2 etc.)
     - Support for current FMX version (XE4+) contributed by Ken Schafer.
 
   -- 0.77 Changes/Bug Fixes -----------------------------------

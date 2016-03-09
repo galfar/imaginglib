@@ -1,7 +1,6 @@
 {
   Vampyre Imaging Library Demo
   FireMonkey Demo (class api, fmx interaction)
-  tested in Delphi XE2, Win32/Win64/OSX
 
   This demo is a simple image viewer. On the left of the window is a list box with
   information and thumbnail of images loaded from file. Selecting item in
@@ -15,14 +14,7 @@
   Image is loaded from the file in a background thread while the UI shows
   progress animation.
 
-  Known Issues:
-  - Sometimes loading never ends, some problem with TThread.Synchronize
-    in FMX (TThread.Queue doesn't work at all).
-  - Red and Blue channels on MacOSX are swapped. This is ugly inconsistency in FMX.
-  
-  Note: 
-  Only works with FM1 (in Delphi XE2) as there are many breaking changes in
-  FM2 (XE3).
+  Note: tested only in Delphi 10 Seattle now
 }
 unit MainForm;
 
@@ -30,8 +22,9 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Filter.Effects,
-  FMX.Layouts, FMX.ListBox, FMX.ExtCtrls, FMX.Objects,
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Filter.Effects, FMX.Graphics,
+  FMX.Layouts, FMX.ListBox, FMX.ExtCtrls, FMX.Objects, FMX.StdCtrls, FMX.Effects,
+  FMX.Controls.Presentation,
 
   ImagingTypes,
   Imaging,
@@ -55,7 +48,6 @@ type
     EmbossEffect: TEmbossEffect;
     SaveDialog: TSaveDialog;
     procedure BtnOpenImageClick(Sender: TObject);
-    procedure BtnToolbarApplyStyleLookup(Sender: TObject);
     procedure BtnAboutClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
@@ -65,7 +57,6 @@ type
     FImage: TMultiImage;
     FFileName: string;
     FLoaderThread: TThread;
-    function FindImage(const Name: string): TBitmap;
     procedure LoadingFinished(Success: Boolean; const ErrorMsg: string);
     procedure FillListBox(Image: TMultiImage);
     procedure SelectImage(Index: Integer);
@@ -194,9 +185,9 @@ begin
 
       ImagingFmx.ConvertImageToFmxBitmap(TSingleImage(Data.Tag), Bmp);
 
-      Item.Binding['ImgThumb'] := ObjectToVariant(Bmp);
-      Item.Binding['TextTitle'] := Format('Image %d/%d', [I + 1, FImage.ImageCount]);
-      Item.Binding['TextInfo'] :=
+      Item.StylesData['ImgThumb'] := Bmp;
+      Item.StylesData['TextTitle'] := Format('Image %d/%d', [I + 1, FImage.ImageCount]);
+      Item.StylesData['TextInfo'] :=
         Format('Resolution: %dx%d', [Data.Width, Data.Height]) + sLineBreak +
         Format('Format: %s', [GetFormatName(Data.Format)]) + sLineBreak +
         Format('Size: %.0n %s', [ImgSize + 0.0, Iff(ImgSize = Data.Size, 'B', 'KiB')]);
@@ -204,11 +195,6 @@ begin
   finally
     Bmp.Free;
   end;
-end;
-
-function TFormMain.FindImage(const Name: string): TBitmap;
-begin
-  Result := (StyleBook.Root.FindStyleResource(Name) as TImage).Bitmap;
 end;
 
 procedure TFormMain.FormCreate(Sender: TObject);
@@ -254,6 +240,7 @@ begin
   ImageViewer.BeginUpdate;
   try
     ImagingFmx.ConvertImageToFmxBitmap(FImage, ImageViewer.Bitmap);
+    ImageViewer.BestFit;
   finally
     ImageViewer.EndUpdate;
   end;
@@ -276,15 +263,6 @@ begin
     FFileName := ChangeFileExt(SaveDialog.FileName, '.' + GetFilterIndexExtension(SaveDialog.FilterIndex, False));
     FImage.SaveMultiToFile(FFileName);
   end;
-end;
-
-procedure TFormMain.BtnToolbarApplyStyleLookup(Sender: TObject);
-var
-  FmxObj: TFmxObject;
-begin
-  FmxObj := Sender as TFmxObject;
-  // Sets the toolbar icon bitmap, does the following line seem insane?
-  FmxObj.Binding['icon'] := ObjectToVariant(FindImage(FmxObj.BindingName));
 end;
 
 procedure TFormMain.BtnAboutClick(Sender: TObject);

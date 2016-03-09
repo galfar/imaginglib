@@ -38,7 +38,7 @@ const
   { Current Minor version of Imaging.}
   ImagingVersionMinor = 77;
   { Current patch of Imaging.}
-  ImagingVersionPatch = 1;
+  ImagingVersionPatch = 2;
 
   { Imaging Option Ids whose values can be set/get by SetOption/
     GetOption functions.}
@@ -251,14 +251,14 @@ type
     ifBTC            = 203,
     ifATI1N          = 204,
     ifATI2N          = 205,
-    ifBinary         = 206,
+    ifBinary         = 206
     { Passtrough formats }
-    ifETC1           = 220,
+    {ifETC1           = 220,
     ifETC2RGB        = 221,
     ifETC2RGBA       = 222,
     ifETC2PA         = 223,
     ifDXBC6          = 224,
-    ifDXBC7          = 225
+    ifDXBC7          = 225}
   );
 
   { Color value for 32 bit images.}

@@ -364,6 +364,10 @@ function GetBTCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt
 { Returns size in bytes of image in binary format (1bit image).}
 function GetBinaryPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
 
+function GetBCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
+procedure CheckBCDimensions(Format: TImageFormat; var Width, Height: LongInt); forward;
+
+
 { Optimized pixel readers/writers for 32bit and FP colors to be stored in TImageFormatInfo }
 
 function GetPixel32ifA8R8G8B8(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32): TColor32Rec; forward;
@@ -872,6 +876,83 @@ var
     GetPixelsSize: GetBinaryPixelsSize;
     CheckDimensions: CheckStdDimensions;
     SpecialNearestFormat: ifGray8);
+
+  {ETC1Info: TImageFormatInfo = (
+    Format: ifETC1;
+    Name: 'ETC1';
+    ChannelCount: 3;
+    HasAlphaChannel: False;
+    IsSpecial: True;
+    IsPasstrough: True;
+    GetPixelsSize: GetBCPixelsSize;
+    CheckDimensions: CheckBCDimensions;
+    SpecialNearestFormat: ifR8G8B8);
+
+  ETC2RGBInfo: TImageFormatInfo = (
+    Format: ifETC2RGB;
+    Name: 'ETC2RGB';
+    ChannelCount: 3;
+    HasAlphaChannel: False;
+    IsSpecial: True;
+    IsPasstrough: True;
+    GetPixelsSize: GetBCPixelsSize;
+    CheckDimensions: CheckBCDimensions;
+    SpecialNearestFormat: ifR8G8B8);
+
+  ETC2RGBAInfo: TImageFormatInfo = (
+    Format: ifETC2RGBA;
+    Name: 'ETC2RGBA';
+    ChannelCount: 4;
+    HasAlphaChannel: True;
+    IsSpecial: True;
+    IsPasstrough: True;
+    GetPixelsSize: GetBCPixelsSize;
+    CheckDimensions: CheckBCDimensions;
+    SpecialNearestFormat: ifA8R8G8B8);
+
+  ETC2PAInfo: TImageFormatInfo = (
+    Format: ifETC2PA;
+    Name: 'ETC2PA';
+    ChannelCount: 4;
+    HasAlphaChannel: True;
+    IsSpecial: True;
+    IsPasstrough: True;
+    GetPixelsSize: GetBCPixelsSize;
+    CheckDimensions: CheckBCDimensions;
+    SpecialNearestFormat: ifA8R8G8B8);
+
+  DXBC6Info: TImageFormatInfo = (
+    Format: ifDXBC6;
+    Name: 'DXBC6';
+    ChannelCount: 4;
+    HasAlphaChannel: True;
+    IsSpecial: True;
+    IsPasstrough: True;
+    GetPixelsSize: GetBCPixelsSize;
+    CheckDimensions: CheckBCDimensions;
+    SpecialNearestFormat: ifA8R8G8B8);
+
+  DXBC7Info: TImageFormatInfo = (
+    Format: ifDXBC6;
+    Name: 'DXBC7';
+    ChannelCount: 4;
+    HasAlphaChannel: True;
+    IsSpecial: True;
+    IsPasstrough: True;
+    GetPixelsSize: GetBCPixelsSize;
+    CheckDimensions: CheckBCDimensions;
+    SpecialNearestFormat: ifA8R8G8B8);   }
+
+  {PVRTCInfo: TImageFormatInfo = (
+    Format: ifPVRTC;
+    Name: 'PVRTC';
+    ChannelCount: 4;
+    HasAlphaChannel: True;
+    IsSpecial: True;
+    IsPasstrough: True;
+    GetPixelsSize: GetBCPixelsSize;
+    CheckDimensions: CheckBCDimensions;
+    SpecialNearestFormat: ifA8R8G8B8);}
 
 {$WARNINGS ON}
 
@@ -4145,6 +4226,16 @@ begin
   Result := Width * Height div 4; // 2bits/pixel
 end;
 
+function GetBCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+begin
+  raise ENotImplemented.Create();
+end;
+
+procedure CheckBCDimensions(Format: TImageFormat; var Width, Height: LongInt);
+begin
+  raise ENotImplemented.Create();
+end;
+
 function GetBinaryPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
 begin
   // Binary images are aligned on BYTE boundary
@@ -4333,6 +4424,7 @@ initialization
     - nothing now
 
   -- 0.77 Changes/Bug Fixes -------------------------------------
+    - NOT YET: Added support for Passtrough image data formats.
     - Added ConvertToPixel32 helper function.
 
   -- 0.26.5 Changes/Bug Fixes -----------------------------------

@@ -37,6 +37,8 @@ __history
 *.vcxproj.user
 *.XE2.res
 *.compiled
+*.stat
+*.tvsconfig
 
 Doc/*.chm
 Doc/*.chw

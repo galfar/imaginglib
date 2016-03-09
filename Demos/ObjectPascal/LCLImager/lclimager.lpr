@@ -5,9 +5,10 @@ program LCLImager;
 uses
   Interfaces, // this includes the LCL widgetset
   Forms
-  { add your units here }, MainUnit, AboutUnit;
+  { add your units here },
+  MainUnit, AboutUnit;
 
-{$IFDEF WINDOWS}{$R lclimager.rc}{$ENDIF}
+{$R *.res}
 
 begin
   Application.Title := 'LCL Imager';

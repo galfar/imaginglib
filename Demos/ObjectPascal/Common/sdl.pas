@@ -296,22 +296,17 @@ unit sdl;
 }
 {******************************************************************************}
 
-{$I jedi-sdl.inc}
+{$I jedi.inc}
+
+{$IFDEF MSWINDOWS}
+  {$DEFINE WINDOWS}
+{$ENDIF}
 
 interface
 
 uses
-{$IFDEF __GPC__}
-  system,
-  {$IFDEF WINDOWS}
-  wintypes,
-  {$ELSE}
-  {$ENDIF}
-  gpc;
-{$ENDIF}
-
 {$IFDEF HAS_TYPES}
-  Types{$IFNDEF NDS},{$ELSE};{$ENDIF}
+  Types,
 {$ENDIF}
 
 {$IFDEF WINDOWS}
@@ -351,10 +346,6 @@ uses
   {$ENDIF}
 {$ENDIF}
 
-{$IFDEF __MACH__}
-  GPCMacOSAll;
-{$ENDIF}
-
 const
 {$IFDEF WINDOWS}
   {$IF Defined (CPUX86_64) or Defined(CPUX64)}
@@ -379,15 +370,6 @@ const
 {$IFDEF MACOS}
   SDLLibName = 'SDL';
   {$linklib libSDL}
-{$ENDIF}
-
-{$IFDEF NDS}
-  SDLLibName = 'libSDL.a';
-  {$linklib libSDL.a}
-  {$linklib libnds9.a}
-  {$linklib libc.a}
-  {$linklib libgcc.a}
-  {$linklib libsysbase.a}
 {$ENDIF}
 
   // SDL_verion.h constants

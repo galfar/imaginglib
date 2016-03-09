@@ -4,11 +4,11 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Objects,
-  FMX.Filter.Effects,
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Objects, FMX.Ani,
+  FMX.Filter.Effects, FMX.Effects, FMX.StdCtrls, FMX.Controls.Presentation,
 
   Imaging,
-  DemoUtils, FMX.Ani;
+  DemoUtils;
 
 type
   TFormAbout = class(TForm)
