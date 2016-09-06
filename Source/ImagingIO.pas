@@ -52,15 +52,30 @@ var
 
 { Helper function that returns size of input (from current position to the end)
   represented by Handle (and opened and operated on by members of IOFunctions).}
-function GetInputSize(IOFunctions: TIOFunctions; Handle: TImagingHandle): LongInt;
+function GetInputSize(const IOFunctions: TIOFunctions; Handle: TImagingHandle): Int64;
 { Helper function that initializes TMemoryIORec with given params.}
 function PrepareMemIO(Data: Pointer; Size: LongInt): TMemoryIORec;
 { Reads one text line from input (CR+LF, CR, or LF as line delimiter).}
-function ReadLine(IOFunctions: TIOFunctions; Handle: TImagingHandle;
+function ReadLine(const IOFunctions: TIOFunctions; Handle: TImagingHandle;
   out Line: AnsiString; FailOnControlChars: Boolean = False): Boolean;
 { Writes one text line to input with optional line delimiter.}
-procedure WriteLine(IOFunctions: TIOFunctions; Handle: TImagingHandle;
+procedure WriteLine(const IOFunctions: TIOFunctions; Handle: TImagingHandle;
   const Line: AnsiString; const LineEnding: AnsiString = sLineBreak);
+
+type
+  TReadMemoryStream = class(TCustomMemoryStream)
+  public
+    constructor Create(Data: Pointer; Size: Integer);
+    class function CreateFromIOHandle(const IOFunctions: TIOFunctions; Handle: TImagingHandle): TReadMemoryStream;
+  end;
+
+  TImagingIOStream = class(TStream)
+  private
+    FIO: TIOFunctions;
+    FHandle: TImagingHandle;
+  public
+    constructor Create(const IOFunctions: TIOFunctions; Handle: TImagingHandle);
+  end;
 
 implementation
 
@@ -379,25 +394,22 @@ begin
   Result := TBufferedStream(Handle).Position = TBufferedStream(Handle).Size;
 end;
 
-function FileSeek(Handle: TImagingHandle; Offset: LongInt; Mode: TSeekMode):
-  LongInt; cdecl;
+function FileSeek(Handle: TImagingHandle; Offset: Int64; Mode: TSeekMode): Int64; cdecl;
 begin
   Result := TBufferedStream(Handle).Seek(Offset, LongInt(Mode));
 end;
 
-function FileTell(Handle: TImagingHandle): LongInt; cdecl;
+function FileTell(Handle: TImagingHandle): Int64; cdecl;
 begin
   Result := TBufferedStream(Handle).Position;
 end;
 
-function FileRead(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt):
-  LongInt; cdecl;
+function FileRead(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
 begin
   Result := TBufferedStream(Handle).Read(Buffer^, Count);
 end;
 
-function FileWrite(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt):
-  LongInt; cdecl;
+function FileWrite(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
 begin
   Result := TBufferedStream(Handle).Write(Buffer^, Count);
 end;
@@ -418,13 +430,12 @@ begin
   Result := TStream(Handle).Position = TStream(Handle).Size;
 end;
 
-function StreamSeek(Handle: TImagingHandle; Offset: LongInt; Mode: TSeekMode):
-  LongInt; cdecl;
+function StreamSeek(Handle: TImagingHandle; Offset: Int64; Mode: TSeekMode): Int64; cdecl;
 begin
   Result := TStream(Handle).Seek(Offset, LongInt(Mode));
 end;
 
-function StreamTell(Handle: TImagingHandle): LongInt; cdecl;
+function StreamTell(Handle: TImagingHandle): Int64; cdecl;
 begin
   Result := TStream(Handle).Position;
 end;
@@ -435,8 +446,7 @@ begin
   Result := TStream(Handle).Read(Buffer^, Count);
 end;
 
-function StreamWrite(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt):
-  LongInt; cdecl;
+function StreamWrite(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
 begin
   Result := TStream(Handle).Write(Buffer^, Count);
 end;
@@ -457,8 +467,7 @@ begin
   Result := PMemoryIORec(Handle).Position = PMemoryIORec(Handle).Size;
 end;
 
-function MemorySeek(Handle: TImagingHandle; Offset: LongInt; Mode: TSeekMode):
-  LongInt; cdecl;
+function MemorySeek(Handle: TImagingHandle; Offset: Int64; Mode: TSeekMode): Int64; cdecl;
 begin
   Result := PMemoryIORec(Handle).Position;
   case Mode of
@@ -470,7 +479,7 @@ begin
   PMemoryIORec(Handle).Position := Result;
 end;
 
-function MemoryTell(Handle: TImagingHandle): LongInt; cdecl;
+function MemoryTell(Handle: TImagingHandle): Int64; cdecl;
 begin
   Result := PMemoryIORec(Handle).Position;
 end;
@@ -488,8 +497,7 @@ begin
   Rec.Position := Rec.Position + Result;
 end;
 
-function MemoryWrite(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt):
-  LongInt; cdecl;
+function MemoryWrite(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
 var
   Rec: PMemoryIORec;
 begin
@@ -503,7 +511,7 @@ end;
 
 { Helper IO functions }
 
-function GetInputSize(IOFunctions: TIOFunctions; Handle: TImagingHandle): LongInt;
+function GetInputSize(const IOFunctions: TIOFunctions; Handle: TImagingHandle): Int64;
 var
   OldPos: Int64;
 begin
@@ -520,7 +528,7 @@ begin
   Result.Size := Size;
 end;
 
-function ReadLine(IOFunctions: TIOFunctions; Handle: TImagingHandle;
+function ReadLine(const IOFunctions: TIOFunctions; Handle: TImagingHandle;
   out Line: AnsiString; FailOnControlChars: Boolean): Boolean;
 const
   MaxLine = 1024;
@@ -576,13 +584,39 @@ begin
   IOFunctions.Seek(Handle, -Pos, smFromCurrent);
 end;
 
-procedure WriteLine(IOFunctions: TIOFunctions; Handle: TImagingHandle;
+procedure WriteLine(const IOFunctions: TIOFunctions; Handle: TImagingHandle;
   const Line: AnsiString; const LineEnding: AnsiString);
 var
   ToWrite: AnsiString;
 begin
   ToWrite := Line + LineEnding;
   IOFunctions.Write(Handle, @ToWrite[1], Length(ToWrite));
+end;
+
+{ TReadMemoryStream }
+
+constructor TReadMemoryStream.Create(Data: Pointer; Size: Integer);
+begin
+  SetPointer(Data, Size);
+end;
+
+class function TReadMemoryStream.CreateFromIOHandle(const IOFunctions: TIOFunctions; Handle: TImagingHandle): TReadMemoryStream;
+var
+  Data: Pointer;
+  Size: Integer;
+begin
+  Size := GetInputSize(IOFunctions, Handle);
+  GetMem(Data, Size);
+  IOFunctions.Read(Handle, Data, Size);
+  Result := TReadMemoryStream.Create(Data, Size);
+end;
+
+{ TImagingIOStream }
+
+constructor TImagingIOStream.Create(const IOFunctions: TIOFunctions;
+  Handle: TImagingHandle);
+begin
+
 end;
 
 initialization
@@ -617,6 +651,10 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77.3 ---------------------------------------------------
+   - IO functions now have 64bit sizes and offsets.
+   - Added helper classes TReadMemoryStream and TImagingIOStream.
 
   -- 0.77.1 ---------------------------------------------------
    - Updated IO Open functions according to changes in ImagingTypes.

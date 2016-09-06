@@ -36,9 +36,7 @@ const
   { Current Major version of Imaging.}
   ImagingVersionMajor = 0;
   { Current Minor version of Imaging.}
-  ImagingVersionMinor = 77;
-  { Current patch of Imaging.}
-  ImagingVersionPatch = 2;
+  ImagingVersionMinor = 80;
 
   { Imaging Option Ids whose values can be set/get by SetOption/
     GetOption functions.}
@@ -483,11 +481,11 @@ type
   TOpenProc = function(Source: PChar; Mode: TOpenMode): TImagingHandle; cdecl;
   TCloseProc = procedure(Handle: TImagingHandle); cdecl;
   TEofProc = function(Handle: TImagingHandle): Boolean; cdecl;
-  TSeekProc = function(Handle: TImagingHandle; Offset: LongInt; Mode: TSeekMode): LongInt; cdecl;
-  TTellProc = function(Handle: TImagingHandle): LongInt; cdecl;
+  TSeekProc = function(Handle: TImagingHandle; Offset: Int64; Mode: TSeekMode): Int64; cdecl;
+  TTellProc = function(Handle: TImagingHandle): Int64; cdecl;
   TReadProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
   TWriteProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
-       
+
 {$IFNDEF FPC}
 type
 {$IF CompilerVersion <= 18.5}
@@ -505,8 +503,13 @@ implementation
   -- TODOS ----------------------------------------------------
     - add lookup tables to pixel formats for fast conversions
 
+  -- 0.80 -----------------------------------------------------
+    - Dropped "patch version".
+
+  -- 0.77.3 ---------------------------------------------------
+    - IO functions now have 64bit sizes and offsets.
+
   -- 0.77.1 ---------------------------------------------------
-    - Added "Passtrough" image data formats.
     - Added Tag to TImageData for storing user data.
     - Added ImagingPNGZLibStrategy option.
     - Changed IO functions. Merged open functions to one

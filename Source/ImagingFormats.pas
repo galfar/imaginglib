@@ -164,6 +164,8 @@ function Has32BitImageAlpha(NumPixels: LongInt; Data: PLongWord): Boolean;
 { Checks if there is any relevant alpha data (any entry has alpha <> 255)
   in the given palette.}
 function PaletteHasAlpha(Palette: PPalette32; PaletteEntries: Integer): Boolean;
+{ Checks if given palette has only grayscale entries.}
+function PaletteIsGrayScale(Palette: PPalette32; PaletteEntries: Integer): Boolean;
 
 { Provides indexed access to each line of pixels. Does not work with special
   format images.}
@@ -181,6 +183,9 @@ function FloatToHalf(Float: Single): THalfFloat;
 function ColorHalfToFloat(ColorHF: TColorHFRec): TColorFPRec; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Converts single-precision floating point color to half float color.}
 function ColorFloatToHalf(ColorFP: TColorFPRec): TColorHFRec; {$IFDEF USE_INLINE}inline;{$ENDIF}
+
+{ Converts ARGB color to grayscale. }
+function Color32ToGray(Color32: TColor32): Byte; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { Makes image PalEntries x 1 big where each pixel has color of one pal entry.}
 procedure VisualizePalette(Pal: PPalette32; Entries: Integer; out PalImage: TImageData);
@@ -309,23 +314,6 @@ procedure IndexToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
 { Converts any indexed format to any floating point  format.}
 procedure IndexToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal: PPalette32);
-
-
-{ Color constructor functions }
-
-{ Constructs TColor24Rec color.}
-function Color24(R, G, B: Byte): TColor24Rec; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Constructs TColor32Rec color.}
-function Color32(A, R, G, B: Byte): TColor32Rec; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Constructs TColor48Rec color.}
-function Color48(R, G, B: Word): TColor48Rec; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Constructs TColor64Rec color.}
-function Color64(A, R, G, B: Word): TColor64Rec; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Constructs TColorFPRec color.}
-function ColorFP(A, R, G, B: Single): TColorFPRec; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Constructs TColorHFRec color.}
-function ColorHF(A, R, G, B: THalfFloat): TColorHFRec; {$IFDEF USE_INLINE}inline;{$ENDIF}
-
 
 { Special formats conversion functions }
 
@@ -877,6 +865,8 @@ var
     CheckDimensions: CheckStdDimensions;
     SpecialNearestFormat: ifGray8);
 
+  { Passtrough formats }
+
   {ETC1Info: TImageFormatInfo = (
     Format: ifETC1;
     Name: 'ETC1';
@@ -941,9 +931,9 @@ var
     IsPasstrough: True;
     GetPixelsSize: GetBCPixelsSize;
     CheckDimensions: CheckBCDimensions;
-    SpecialNearestFormat: ifA8R8G8B8);   }
+    SpecialNearestFormat: ifA8R8G8B8);
 
-  {PVRTCInfo: TImageFormatInfo = (
+  PVRTCInfo: TImageFormatInfo = (
     Format: ifPVRTC;
     Name: 'PVRTC';
     ChannelCount: 4;
@@ -1105,57 +1095,6 @@ begin
     B := (Color and BBitMask shl BShift) * 255 div BRecDiv;
   end;
 end;
-
-
-{ Color constructor functions }
-
-
-function Color24(R, G, B: Byte): TColor24Rec;
-begin
-  Result.R := R;
-  Result.G := G;
-  Result.B := B;
-end;
-
-function Color32(A, R, G, B: Byte): TColor32Rec;
-begin
-  Result.A := A;
-  Result.R := R;
-  Result.G := G;
-  Result.B := B;
-end;
-
-function Color48(R, G, B: Word): TColor48Rec;
-begin
-  Result.R := R;
-  Result.G := G;
-  Result.B := B;
-end;
-
-function Color64(A, R, G, B: Word): TColor64Rec;
-begin
-  Result.A := A;
-  Result.R := R;
-  Result.G := G;
-  Result.B := B;
-end;
-
-function ColorFP(A, R, G, B: Single): TColorFPRec;
-begin
-  Result.A := A;
-  Result.R := R;
-  Result.G := G;
-  Result.B := B;
-end;
-
-function ColorHF(A, R, G, B: THalfFloat): TColorHFRec;
-begin
-  Result.A := A;
-  Result.R := R;
-  Result.G := G;
-  Result.B := B;
-end;
-
 
 { Additional image manipulation functions (usually used internally by Imaging unit) }
 
@@ -2269,6 +2208,21 @@ begin
   Result := False;
 end;
 
+function PaletteIsGrayScale(Palette: PPalette32; PaletteEntries: Integer): Boolean;
+var
+  I: Integer;
+begin
+  for I := 0 to PaletteEntries - 1 do
+  begin
+    if (Palette[I].R <> Palette[I].G) or (Palette[I].R <> Palette[I].B)  then
+    begin
+      Result := False;
+      Exit;
+    end;
+  end;
+  Result := True;
+end;
+
 function GetScanLine(ImageBits: Pointer; const FormatInfo: TImageFormatInfo;
   LineWidth, Index: LongInt): Pointer;
 var
@@ -2476,6 +2430,13 @@ begin
   Result.R := FloatToHalf(ColorFP.R);
   Result.G := FloatToHalf(ColorFP.G);
   Result.B := FloatToHalf(ColorFP.B);
+end;
+
+function Color32ToGray(Color32: TColor32): Byte;
+begin
+  Result := Round(GrayConv.R * TColor32Rec(Color32).R +
+                  GrayConv.G * TColor32Rec(Color32).G +
+                  GrayConv.B * TColor32Rec(Color32).B);
 end;
 
 procedure VisualizePalette(Pal: PPalette32; Entries: Integer; out PalImage: TImageData);
@@ -4422,6 +4383,9 @@ initialization
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.80 -------------------------------------------------------
+    - Added PaletteIsGrayScale and Color32ToGray functions.
 
   -- 0.77 Changes/Bug Fixes -------------------------------------
     - NOT YET: Added support for Passtrough image data formats.

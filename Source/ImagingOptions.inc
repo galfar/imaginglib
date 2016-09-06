@@ -122,12 +122,23 @@
   {$DEFINE CPUX64} // Compatibility with Delphi
 {$IFEND}
 
-{$IF Defined (DARWIN) and not Defined(MACOSX)}
+{$IF Defined (DARWIN) and not Defined(MACOS)}
   {$DEFINE MACOS} // Compatibility with Delphi
+{$IFEND}
+{$IF Defined(MACOS)}
+  {$DEFINE MACOSX}
 {$IFEND}
 
 {$IF Defined(DCC) and (CompilerVersion < 23)}
   {$DEFINE CPUX86} // Compatibility with older Delphi
+{$IFEND}
+
+{$IF Defined(WIN32) or Defined(WIN64)}
+  {$DEFINE MSWINDOWS} // Compatibility with Delphi
+{$IFEND}
+
+{$IF Defined(UNIX) and not Defined(POSIX)}
+  {$DEFINE POSIX} // Compatibility with Delphi
 {$IFEND}
 
 { Compiler capabilities }
