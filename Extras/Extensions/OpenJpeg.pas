@@ -554,16 +554,6 @@ function opj_encode(cinfo: popj_cinfo_t; cio: popj_cio_t; image: popj_image_t;
 
 implementation
 
-function pow(const Base, Exponent: Double): Double; cdecl; {$IFDEF FPC}[Public];{$ENDIF}
-begin
-  if Exponent = 0.0 then
-    Result := 1.0
-  else if (Base = 0.0) and (Exponent > 0.0) then
-    Result := 0.0
-  else
-    Result := Exp(Exponent * Ln(Base));
-end;
-
 {$IF Defined(MSWINDOWS)}
   {$IF Defined(DCC)}
     { Delphi Win32 }
@@ -670,6 +660,16 @@ end;
         pop   ecx
 
         ret     8
+    end;
+
+    function pow(const Base, Exponent: Double): Double; cdecl;
+    begin
+      if Exponent = 0.0 then
+        Result := 1.0
+      else if (Base = 0.0) and (Exponent > 0.0) then
+        Result := 0.0
+      else
+        Result := Exp(Exponent * Ln(Base));
     end;
 
     { C library imports }
