@@ -26,25 +26,47 @@
 }
 
 { This unit contains image format loader/saver for TIFF images
-  using LibTiff C library compiled to object files for Delphi.}
-unit ImagingLibTiffDelphi;
+  using LibTiff C library compiled to object files or LibTiff DLL/SO.
+
+  Supported platforms/compilers are now:
+    Win32 Delphi: obj, dll
+    Win64 Delphi: dll
+    Win32, Win64 FPC: obj, dll
+    Linux/Unix 32/64 FPC: dll
+}
+unit ImagingTiffLib;
 
 {$I ImagingOptions.inc}
+
+{$IF Defined(LINUX) or Defined(BSD)}
+  // Use LibTiff dynamic library in Linux/BSD instead of precompiled objects.
+  // It's installed on most systems so let's use it and keep the binary smaller.
+  {$DEFINE USE_DYN_LIB}
+{$IFEND}
+
+{$IF Defined(POSIX) and Defined(CPUX64)}
+  // Workaround for problem on 64bit Linux where thandle_t in libtiff is
+  // still 32bit so it cannot be used to pass pointers (for IO functions).
+  {$DEFINE HANDLE_NOT_POINTER_SIZED}
+{$IFEND}
+
+{.$DEFINE USE_DYN_LIB}
 
 interface
 
 uses
-  SysUtils, Imaging, ImagingTypes, ImagingUtility, ImagingIO, ImagingExtras,
+  SysUtils, Imaging, ImagingTypes, ImagingUtility, ImagingIO,
+  ImagingTiff,
+{$IFDEF USE_DYN_LIB}
+  LibTiffDynLib;
+{$ELSE}
   LibTiffDelphi;
+{$ENDIF}
 
 type
   { TIFF (Tag Image File Format) loader/saver class. Uses LibTiff so
     it can handle most types of TIFF files.}
-  TTiffFileFormat = class(TImageFileFormat)
-  private
-    FCompression: Integer;
-    FJpegQuality: Integer;
-    FAppendMode: LongBool;
+  TTiffLibFileFormat = class(TBaseTiffFileFormat)
   protected
     procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
@@ -53,40 +75,14 @@ type
       Index: Integer): Boolean; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
-  public
-    function TestFormat(Handle: TImagingHandle): Boolean; override;
-    { Specifies compression scheme used when saving TIFF images. Supported values
-      are 0 (Uncompressed), 1 (LZW), 2 (PackBits RLE), 3 (Deflate - ZLib), 4 (JPEG),
-      5 (CCITT Group 4 fax encoding - for binary images only).
-      Default is 1 (LZW). Note that not all images can be stored with
-      JPEG compression - these images will be saved with default compression if
-      JPEG is set.}
-    property Compression: Integer read FCompression write FCompression;
-    { Controls compression quality when selected TIFF compression is Jpeg.
-      It is number in range 1..100. 1 means small/ugly file,
-      100 means large/nice file. Accessible trough ImagingTiffJpegQuality option.}
-    property JpegQuality: Integer read FJpegQuality write FJpegQuality;
-    { When activated (True = 1) existing TIFF files are not overwritten when saving but
-      new images are instead appended thus producing multipage TIFFs.
-      Default value is False (0).}
-    property AppendMode: LongBool read FAppendMode write FAppendMode;
   end;
 
 implementation
 
 const
-  STiffFormatName = 'Tagged Image File Format';
-  STiffMasks      = '*.tif,*.tiff';
   TiffSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8,
     ifGray16, ifA16Gray16, ifGray32, ifR8G8B8, ifA8R8G8B8, ifR16G16B16,
     ifA16R16G16B16, ifR32F, ifA32R32G32B32F, ifR16F, ifA16R16G16B16F, ifBinary];
-  TiffDefaultCompression = 1;
-  TiffDefaultJpegQuality = 90;
-  TiffDefaultAppendMode = False;
-
-const
-  TiffBEMagic: TChar4 = 'MM'#0#42;
-  TiffLEMagic: TChar4 = 'II'#42#0;
 
 type
   TTiffIOWrapper = record
@@ -95,29 +91,54 @@ type
   end;
   PTiffIOWrapper = ^TTiffIOWrapper;
 
-function TIFFReadProc(Fd: Cardinal; Buffer: Pointer; Size: Integer): Integer; cdecl;
+{$IFDEF HANDLE_NOT_POINTER_SIZED}
+var
+  TiffIOWrapper: TTiffIOWrapper;
+{$ENDIF}
+
+function GetTiffIOWrapper(Fd: THandle): PTiffIOWrapper;
 begin
-  Result := PTiffIOWrapper(Fd).IO.Read(PTiffIOWrapper(Fd).Handle, Buffer, Size);
+{$IFDEF HANDLE_NOT_POINTER_SIZED}
+  Result := @TiffIOWrapper;
+{$ELSE}
+  Result := PTiffIOWrapper(Fd);
+{$ENDIF}
 end;
 
-function TIFFWriteProc(Fd: Cardinal; Buffer: Pointer; Size: Integer): Integer; cdecl;
+function TIFFReadProc(Fd: THandle; Buffer: Pointer; Size: Integer): Integer; cdecl;
+var
+  Wrapper: PTiffIOWrapper;
 begin
-  Result := PTiffIOWrapper(Fd).IO.Write(PTiffIOWrapper(Fd).Handle, Buffer, Size);
+  Wrapper := GetTiffIOWrapper(Fd);
+  Result := Wrapper.IO.Read(Wrapper.Handle, Buffer, Size);
 end;
 
-function TIFFSizeProc(Fd: Cardinal): Cardinal; cdecl;
+function TIFFWriteProc(Fd: THandle; Buffer: Pointer; Size: Integer): Integer; cdecl;
+var
+  Wrapper: PTiffIOWrapper;
 begin
-  Result := ImagingIO.GetInputSize(PTiffIOWrapper(Fd).IO, PTiffIOWrapper(Fd).Handle);
+  Wrapper := GetTiffIOWrapper(Fd);
+  Result := Wrapper.IO.Write(Wrapper.Handle, Buffer, Size);
 end;
 
-function TIFFSeekProc(Fd: Cardinal; Offset: Cardinal; Where: Integer): Cardinal; cdecl;
+function TIFFSizeProc(Fd: THandle): toff_t; cdecl;
+var
+  Wrapper: PTiffIOWrapper;
+begin
+  Wrapper := GetTiffIOWrapper(Fd);
+  Result := ImagingIO.GetInputSize(Wrapper.IO, Wrapper.Handle);
+end;
+
+function TIFFSeekProc(Fd: THandle; Offset: toff_t; Where: Integer): toff_t; cdecl;
 const
   SEEK_SET = 0;
   SEEK_CUR = 1;
   SEEK_END = 2;
 var
   Mode: TSeekMode;
+  Wrapper: PTiffIOWrapper;
 begin
+  Wrapper := GetTiffIOWrapper(Fd);
   if Offset = $FFFFFFFF then
   begin
     Result := $FFFFFFFF;
@@ -130,52 +151,43 @@ begin
   else
     Mode := smFromBeginning;
   end;
-  Result := PTiffIOWrapper(Fd).IO.Seek(PTiffIOWrapper(Fd).Handle, Offset, Mode);
+  Result := Wrapper.IO.Seek(Wrapper.Handle, Offset, Mode);
 end;
 
-function TIFFCloseProc(Fd: Cardinal): Integer; cdecl;
+function TIFFCloseProc(Fd: THandle): Integer; cdecl;
 begin
   Result := 0;
 end;
 
-function TIFFNoMapProc(Fd: Cardinal; Base: PPointer; Size: PCardinal): Integer; cdecl;
+function TIFFNoMapProc(Fd: THandle; Base: PPointer; Size: PCardinal): Integer; cdecl;
 begin
   Result := 0;
 end;
 
-procedure TIFFNoUnmapProc(Fd: Cardinal; Base: Pointer; Size: Cardinal); cdecl;
+procedure TIFFNoUnmapProc(Fd: THandle; Base: Pointer; Size: Cardinal); cdecl;
 begin
 end;
 
 var
   LastError: string = 'None';
 
-procedure TIFFErrorHandler(const A, B: AnsiString);
+procedure TIFFErrorHandler(const Module, Message: AnsiString);
 begin
-  LastError := string(A + ': ' + B);
+  LastError := string(Module + ': ' + Message);
 end;
 
 {
   TTiffFileFormat implementation
 }
 
-procedure TTiffFileFormat.Define;
+procedure TTiffLibFileFormat.Define;
 begin
   inherited;
-  FName := STiffFormatName;
-  FFeatures := [ffLoad, ffSave, ffMultiImage, ffReadOnSave { needed for Append mode }];
+  FFeatures := [ffLoad, ffSave, ffMultiImage];
   FSupportedFormats := TiffSupportedFormats;
-  FCompression := TiffDefaultCompression;
-  FJpegQuality := TiffDefaultJpegQuality;
-  FAppendMode := TiffDefaultAppendMode;
-
-  AddMasks(STiffMasks);
-  RegisterOption(ImagingTiffCompression, @FCompression);
-  RegisterOption(ImagingTiffJpegQuality, @FJpegQuality);
-  RegisterOption(ImagingTiffAppendMode, @FAppendMode);
 end;
 
-function TTiffFileFormat.LoadData(Handle: TImagingHandle;
+function TTiffLibFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Tiff: PTIFF;
@@ -191,13 +203,16 @@ var
 
   procedure LoadMetadata(Tiff: PTiff; TiffPage: Integer);
   var
-    TiffResUnit: Word;
+    TiffResUnit, CompressionScheme: Word;
     XRes, YRes: Single;
     ResUnit: TResolutionUnit;
+    CompressionName: string;
   begin
     TIFFGetFieldDefaulted(Tiff, TIFFTAG_RESOLUTIONUNIT, @TiffResUnit);
     TIFFGetFieldDefaulted(Tiff, TIFFTAG_XRESOLUTION, @XRes);
     TIFFGetFieldDefaulted(Tiff, TIFFTAG_YRESOLUTION, @YRes);
+    TIFFGetFieldDefaulted(Tiff, TIFFTAG_COMPRESSION, @CompressionScheme);
+
     if (TiffResUnit <> RESUNIT_NONE) and (XRes >= 0.1) and (YRes >= 0.1) then
     begin
       ResUnit := ruDpi;
@@ -205,22 +220,40 @@ var
         ResUnit := ruDpcm;
       FMetadata.SetPhysicalPixelSize(ResUnit, XRes, YRes, False, TiffPage);
     end;
+
+    case CompressionScheme of
+      COMPRESSION_NONE: CompressionName := 'None';
+      COMPRESSION_LZW:  CompressionName := 'LZW';
+      COMPRESSION_JPEG: CompressionName := 'JPEG';
+      COMPRESSION_PACKBITS:  CompressionName := 'Packbits RLE';
+      COMPRESSION_DEFLATE:   CompressionName := 'Deflate';
+      COMPRESSION_CCITTFAX4: CompressionName := 'CCITT Group 4 Fax';
+      COMPRESSION_OJPEG: CompressionName := 'Old JPEG';
+      COMPRESSION_CCITTRLE..COMPRESSION_CCITTFAX3: CompressionName := 'CCITT';
+    else
+      CompressionName := 'Unknown';
+    end;
+
+    FMetadata.SetMetaItem(SMetaTiffCompressionName, CompressionName);
   end;
 
 begin
   Result := False;
-  LibTiffDelphiSetErrorHandler(TIFFErrorHandler);
+  SetUserMessageHandlers(TIFFErrorHandler, nil);
 
   // Set up IO wrapper and open TIFF
   IOWrapper.IO := GetIO;
   IOWrapper.Handle := Handle;
+{$IFDEF HANDLE_NOT_POINTER_SIZED}
+  TiffIOWrapper := IOWrapper;
+{$ENDIF}
 
-  Tiff := TIFFClientOpen('LibTIFF', 'r', Cardinal(@IOWrapper), @TIFFReadProc,
+  Tiff := TIFFClientOpen('LibTIFF', 'r', THandle(@IOWrapper), @TIFFReadProc,
     @TIFFWriteProc, @TIFFSeekProc, @TIFFCloseProc,
     @TIFFSizeProc, @TIFFNoMapProc, @TIFFNoUnmapProc);
 
   if Tiff <> nil then
-    TIFFSetFileNo(Tiff, Cardinal(@IOWrapper))
+    TIFFSetFileNo(Tiff, THandle(@IOWrapper))
   else
     Exit;
 
@@ -337,6 +370,9 @@ begin
         Images[Idx].Bits, Orientation, 0);
       if TiffResult = 0 then
         RaiseImaging(LastError, []);
+      // Swap Red and Blue, if YCbCr.
+      if Photometric=PHOTOMETRIC_YCBCR then
+        SwapChannels(Images[Idx], ChannelRed, ChannelBlue);
     end
     else
     begin
@@ -385,7 +421,7 @@ begin
   Result := True;
 end;
 
-function TTiffFileFormat.SaveData(Handle: TImagingHandle;
+function TTiffLibFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: Integer): Boolean;
 const
   Compressions: array[0..5] of Word = (COMPRESSION_NONE, COMPRESSION_LZW,
@@ -426,25 +462,26 @@ var
 
 begin
   Result := False;
-  LibTiffDelphiSetErrorHandler(TIFFErrorHandler);
+  SetUserMessageHandlers(TIFFErrorHandler, nil);
 
   if not (FCompression in [0..5]) then
-    FCompression := TiffDefaultCompression;
+    FCompression := COMPRESSION_LZW;
 
   // Set up IO wrapper and open TIFF
   IOWrapper.IO := GetIO;
   IOWrapper.Handle := Handle;
+{$IFDEF HANDLE_NOT_POINTER_SIZED}
+  TiffIOWrapper := IOWrapper;
+{$ENDIF}
 
   OpenMode := 'w';
-  if FAppendMode then
-    OpenMode := 'a';
 
-  Tiff := TIFFClientOpen('LibTIFF', OpenMode, Cardinal(@IOWrapper), @TIFFReadProc,
+  Tiff := TIFFClientOpen('LibTIFF', OpenMode, THandle(@IOWrapper), @TIFFReadProc,
     @TIFFWriteProc, @TIFFSeekProc, @TIFFCloseProc,
     @TIFFSizeProc, @TIFFNoMapProc, @TIFFNoUnmapProc);
 
   if Tiff <> nil then
-    TIFFSetFileNo(Tiff, Cardinal(@IOWrapper))
+    TIFFSetFileNo(Tiff, THandle(@IOWrapper))
   else
     Exit;
 
@@ -470,7 +507,7 @@ begin
         not (SamplesPerPixel in [1, 3]) or Info.IsIndexed or Info.IsFloatingPoint);
       CompressionMismatch := CompressionMismatch or ((CompressionScheme = COMPRESSION_CCITTFAX4) and (Info.Format <> ifBinary));
       if CompressionMismatch then
-        CompressionScheme := Compressions[TiffDefaultCompression];
+        CompressionScheme := COMPRESSION_LZW;
       // If we have some compression scheme selected and it's not Fax then select it automatically - better comp ratios!
       if (Info.Format = ifBinary) and (CompressionScheme <> COMPRESSION_NONE) and (CompressionScheme <> COMPRESSION_CCITTFAX4) then
         CompressionScheme := COMPRESSION_CCITTFAX4;
@@ -509,7 +546,7 @@ begin
           Green[J].High := G;
           Blue[J].High := B;
         end;
-        TIFFSetField(Tiff, TIFFTAG_COLORMAP, Red, Green, Blue);
+        TIFFSetField(Tiff, TIFFTAG_COLORMAP, @Red[0], @Green[0], @Blue[0]);
       end;
 
       ScanLineSize := Info.GetPixelsSize(Info.Format, Width, 1);
@@ -533,7 +570,7 @@ begin
   Result := True;
 end;
 
-procedure TTiffFileFormat.ConvertToSupported(var Image: TImageData;
+procedure TTiffLibFileFormat.ConvertToSupported(var Image: TImageData;
   const Info: TImageFormatInfo);
 var
   ConvFormat: TImageFormat;
@@ -550,29 +587,28 @@ begin
   ConvertImage(Image, ConvFormat);
 end;
 
-function TTiffFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
-var
-  Magic: TChar4;
-  ReadCount: LongInt;
-begin
-  Result := False;
-  if Handle <> nil then
-  begin
-    ReadCount := GetIO.Read(Handle, @Magic, SizeOf(Magic));
-    GetIO.Seek(Handle, -ReadCount, smFromCurrent);
-    Result := (ReadCount >= SizeOf(Magic)) and
-      ((Magic = TiffBEMagic) or (Magic = TiffLEMagic));
-  end;
-end;
-
 initialization
-  RegisterImageFileFormat(TTiffFileFormat);
+  RegisterImageFileFormat(TTiffLibFileFormat);
 
 {
   File Notes:
 
   -- TODOS ----------------------------------------------------
     - nothing now
+
+  -- 0.77.3 ----------------------------------------------------
+
+
+  -- 0.77.3 ----------------------------------------------------
+    - Lot more platforms than just 32bit Delphi supported now.
+    - Workaround for problem on 64bit Linux where thandle_t in libtiff is
+      still 32bit so it cannot be used to pass pointers (for IO functions).
+    - Support for libtiff as DLL/SO instead of linking object files to exe.
+      Useful for platforms like Linux where libtiff is already installed
+      most of the time (and exe could be make smaller not linking the objects).
+    - Removed problematic append mode.
+    - Renamed and refactored to be based on common Tiff base class
+      (for shared stuff between other Tiff implementations (WIC, Quartz)).
 
   -- 0.77.1 ----------------------------------------------------
     - Renamed unit to ImagingLibTiffDelphi since there will be more

@@ -3,11 +3,15 @@ unit LibJpegDelphi;
 interface
 
 uses
-  Windows, SysUtils;
+  SysUtils;
 
 const
 
+  {$ifndef FPC}
   JPEG_LIB_VERSION = 62;    { Version 6b }
+  {$else}
+  JPEG_LIB_VERSION = 80;    { Version 80 }
+  {$endif}
 
   JMSG_STR_PARM_MAX = 80;
   JMSG_LENGTH_MAX = 200;    { recommended size of format_message buffer }
@@ -440,11 +444,25 @@ implementation
 uses
   LibDelphi;
 
-procedure jpeg_error_exit_raise; cdecl;
+procedure jpeg_error_exit_raise; cdecl; {$ifdef FPC}[public];{$endif}
 begin
   raise Exception.Create('LibJpeg error_exit');
 end;
 
+{$ifdef FPC}
+function jpeg_sizeof_compress:Integer; cdecl; external;
+function jpeg_sizeof_decompress:Integer; cdecl; external;
+
+procedure jpeg_create_compress(cinfo: PRJpegCompressStruct); cdecl;
+begin
+  jpeg_CreateCompress(cinfo,JPEG_LIB_VERSION,jpeg_sizeof_compress());
+end;
+
+procedure jpeg_create_decompress(cinfo: PRJpegDecompressStruct); cdecl;
+begin
+  jpeg_CreateDecompress(cinfo,JPEG_LIB_VERSION,jpeg_sizeof_decompress());
+end;
+{$else}
 procedure jpeg_create_compress(cinfo: PRJpegCompressStruct); cdecl;
 begin
   jpeg_CreateCompress(cinfo,JPEG_LIB_VERSION,SizeOf(RJpegCompressStruct));
@@ -454,6 +472,7 @@ procedure jpeg_create_decompress(cinfo: PRJpegDecompressStruct); cdecl;
 begin
   jpeg_CreateDecompress(cinfo,JPEG_LIB_VERSION,SizeOf(RJpegDecompressStruct));
 end;
+{$endif}
 
 function  jpeg_get_small(cinfo: PRJpegCommonStruct; sizeofobject: Cardinal): Pointer; cdecl; external;
 function  jpeg_get_large(cinfo: PRJpegCommonStruct; sizeofobject: Cardinal): Pointer; cdecl; external;
@@ -472,49 +491,51 @@ procedure jcopy_sample_rows(input_array: Pointer; source_row: Integer; output_ar
 function  jround_up(a: Integer; b: Integer): Integer; cdecl; external;
 procedure jcopy_block_row(input_row: Pointer; output_row: Pointer; num_blocks: Cardinal); cdecl; external;
 
-{$L Compiled\jmemnobs.obj}
-{$L Compiled\jmemmgr.obj}
-{$L Compiled\jcomapi.obj}
-{$L Compiled\jerror.obj}
-{$L Compiled\jcapimin.obj}
-{$L Compiled\jcmarker.obj}
-{$L Compiled\jutils.obj}
-{$L Compiled\jdapimin.obj}
-{$L Compiled\jdmarker.obj}
-{$L Compiled\jdinput.obj}
-{$L Compiled\jcparam.obj}
-{$L Compiled\jcapistd.obj}
-{$L Compiled\jcinit.obj}
-{$L Compiled\jcmaster.obj}
-{$L Compiled\jccolor.obj}
-{$L Compiled\jcsample.obj}
-{$L Compiled\jcprepct.obj}
-{$L Compiled\jcdctmgr.obj}
-{$L Compiled\jcphuff.obj}
-{$L Compiled\jchuff.obj}
-{$L Compiled\jccoefct.obj}
-{$L Compiled\jcmainct.obj}
-{$L Compiled\jfdctint.obj}
-{$L Compiled\jfdctfst.obj}
-{$L Compiled\jfdctflt.obj}
-{$L Compiled\jdapistd.obj}
-{$L Compiled\jdmaster.obj}
-{$L Compiled\jquant1.obj}
-{$L Compiled\jquant2.obj}
-{$L Compiled\jdmerge.obj}
-{$L Compiled\jdcolor.obj}
-{$L Compiled\jdsample.obj}
-{$L Compiled\jdpostct.obj}
-{$L Compiled\jddctmgr.obj}
-{$L Compiled\jdphuff.obj}
-{$L Compiled\jdhuff.obj}
-{$L Compiled\jdcoefct.obj}
-{$L Compiled\jdmainct.obj}
-{$L Compiled\jidctred.obj}
-{$L Compiled\jidctint.obj}
-{$L Compiled\jidctfst.obj}
-{$L Compiled\jidctflt.obj}
-
+{$IF Defined(DCC) and Defined(MSWINDOWS) and not Defined(CPUX64)}
+  // Windows 32bit Delphi only - OMF object format
+  {$L Compiled\jmemnobs.obj}
+  {$L Compiled\jmemmgr.obj}
+  {$L Compiled\jcomapi.obj}
+  {$L Compiled\jerror.obj}
+  {$L Compiled\jcapimin.obj}
+  {$L Compiled\jcmarker.obj}
+  {$L Compiled\jutils.obj}
+  {$L Compiled\jdapimin.obj}
+  {$L Compiled\jdmarker.obj}
+  {$L Compiled\jdinput.obj}
+  {$L Compiled\jcparam.obj}
+  {$L Compiled\jcapistd.obj}
+  {$L Compiled\jcinit.obj}
+  {$L Compiled\jcmaster.obj}
+  {$L Compiled\jccolor.obj}
+  {$L Compiled\jcsample.obj}
+  {$L Compiled\jcprepct.obj}
+  {$L Compiled\jcdctmgr.obj}
+  {$L Compiled\jcphuff.obj}
+  {$L Compiled\jchuff.obj}
+  {$L Compiled\jccoefct.obj}
+  {$L Compiled\jcmainct.obj}
+  {$L Compiled\jfdctint.obj}
+  {$L Compiled\jfdctfst.obj}
+  {$L Compiled\jfdctflt.obj}
+  {$L Compiled\jdapistd.obj}
+  {$L Compiled\jdmaster.obj}
+  {$L Compiled\jquant1.obj}
+  {$L Compiled\jquant2.obj}
+  {$L Compiled\jdmerge.obj}
+  {$L Compiled\jdcolor.obj}
+  {$L Compiled\jdsample.obj}
+  {$L Compiled\jdpostct.obj}
+  {$L Compiled\jddctmgr.obj}
+  {$L Compiled\jdphuff.obj}
+  {$L Compiled\jdhuff.obj}
+  {$L Compiled\jdcoefct.obj}
+  {$L Compiled\jdmainct.obj}
+  {$L Compiled\jidctred.obj}
+  {$L Compiled\jidctint.obj}
+  {$L Compiled\jidctfst.obj}
+  {$L Compiled\jidctflt.obj}
+{$IFEND}
 end.
 
 

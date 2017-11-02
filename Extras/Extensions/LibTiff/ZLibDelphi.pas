@@ -3,7 +3,7 @@ unit ZLibDelphi;
 interface
 
 uses
-  Windows, SysUtils;
+  SysUtils;
 
 const
 
@@ -58,16 +58,19 @@ begin
   Result:=deflateInit_(strm,level,PAnsiChar(ZLIB_VERSION),SizeOf(RZStream));
 end;
 
-{$L Compiled\inflate.obj}
-{$L Compiled\crc32.obj}
-{$L Compiled\adler32.obj}
-{$L Compiled\inftrees.obj}
-{$L Compiled\inffast.obj}
-{$L Compiled\deflate.obj}
-{$L Compiled\zutil.obj}
-{$L Compiled\trees.obj}
-{$L Compiled\compress.obj}
-{$L Compiled\uncompr.obj}
+{$IF Defined(DCC) and Defined(MSWINDOWS) and not Defined(CPUX64)}
+  // Windows 32bit Delphi only - OMF object format
+  {$L Compiled\inflate.obj}
+  {$L Compiled\crc32.obj}
+  {$L Compiled\adler32.obj}
+  {$L Compiled\inftrees.obj}
+  {$L Compiled\inffast.obj}
+  {$L Compiled\deflate.obj}
+  {$L Compiled\zutil.obj}
+  {$L Compiled\trees.obj}
+  {$L Compiled\compress.obj}
+  {$L Compiled\uncompr.obj}
+{$IFEND}
 
 end.
 

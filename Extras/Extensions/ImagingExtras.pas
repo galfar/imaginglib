@@ -39,8 +39,9 @@ unit ImagingExtras;
 //{$DEFINE DONT_LINK_PSD}         // link support for PSD images
 //{$DEFINE DONT_LINK_PCX}         // link support for PCX images
 //{$DEFINE DONT_LINK_XPM}         // link support for XPM images
+
 {$IFNDEF FULL_FEATURE_SET}
-  {$DEFINE DONT_LINK_ELDER}        // link support for Elder Imagery images
+  {$DEFINE DONT_LINK_ELDER}     // link support for Elder Imagery images
 {$ENDIF}
 
 {$IF not (
@@ -51,10 +52,6 @@ unit ImagingExtras;
   )}
   // JPEG2000 only for 32bit Windows/Linux/OSX and for 64bit Unix with FPC
   {$DEFINE DONT_LINK_JPEG2000}
-{$IFEND}
-
-{$IF not (Defined(DCC) and Defined(CPUX86) and not Defined(MACOS))}
-  {$DEFINE DONT_LINK_TIFF} // Only for Delphi now
 {$IFEND}
 
 interface
@@ -83,10 +80,6 @@ const
     It is number in range 1..100. 1 means small/ugly file,
     100 means large/nice file. Accessible trough ImagingTiffJpegQuality option.}
   ImagingTiffJpegQuality             = 66;
-  { When activated (True = 1) existing TIFF files are not overwritten when saving but
-    new images are instead appended thus producing multipage TIFFs.
-    Default value is False (0).}
-  ImagingTiffAppendMode              = 67;
   { If enabled image data is saved as layer of PSD file. This is required
     to get proper transparency when opened in Photoshop for images with
     alpha data (will be opened with one layer, RGB color channels, and transparency).
@@ -102,7 +95,7 @@ uses
   ImagingJpeg2000,
 {$ENDIF}
 {$IFNDEF DONT_LINK_TIFF}
-  ImagingLibTiffDelphi,
+  ImagingTiff,
 {$ENDIF}
 {$IFNDEF DONT_LINK_PSD}
   ImagingPsd,
@@ -123,9 +116,6 @@ uses
 
  -- TODOS -----------------------------------------------------
     - nothing now
-
-  -- 0.77 -----------------------------------------------------
-    - Added ImagingTiffAppendMode option.
 
   -- 0.26.5 Changes/Bug Fixes ---------------------------------
     - Added Group 4 Fax encoding as compression for TIFF files.
