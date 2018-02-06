@@ -1139,7 +1139,7 @@ end;
 procedure TMainForm.BuildImageTree;
 var
   Root, Node: TTreeNode;
-  I: Integer;
+  I: PtrInt;
   Lab: string;
   Data: TImageData;
 begin

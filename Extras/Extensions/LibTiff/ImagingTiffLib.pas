@@ -597,9 +597,6 @@ initialization
     - nothing now
 
   -- 0.77.3 ----------------------------------------------------
-
-
-  -- 0.77.3 ----------------------------------------------------
     - Lot more platforms than just 32bit Delphi supported now.
     - Workaround for problem on 64bit Linux where thandle_t in libtiff is
       still 32bit so it cannot be used to pass pointers (for IO functions).

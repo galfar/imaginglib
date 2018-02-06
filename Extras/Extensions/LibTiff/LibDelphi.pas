@@ -83,6 +83,11 @@ var
 
 implementation
 
+{$ifndef FPC}
+uses
+  Windows;
+{$endif}
+
 {$ifdef FPC}
 function __udivdi3(a, b: int64): int64; cdecl;
 begin
