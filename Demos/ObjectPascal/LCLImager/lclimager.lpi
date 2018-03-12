@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="10"/>
+    <Version Value="11"/>
     <PathDelim Value="\"/>
     <General>
       <Flags>
@@ -25,16 +25,29 @@
     </PublishOptions>
     <RunParams>
       <local>
-        <FormatVersion Value="1"/>
         <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
+      <FormatVersion Value="2"/>
+      <Modes Count="1">
+        <Mode0 Name="default">
+          <local>
+            <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
+          </local>
+        </Mode0>
+      </Modes>
     </RunParams>
-    <RequiredPackages Count="1">
+    <RequiredPackages Count="3">
       <Item1>
-        <PackageName Value="LCL"/>
+        <PackageName Value="vampyreimagingpackage_ext"/>
       </Item1>
+      <Item2>
+        <PackageName Value="VampyreImagingPackage"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="LCL"/>
+      </Item3>
     </RequiredPackages>
-    <Units Count="3">
+    <Units Count="4">
       <Unit0>
         <Filename Value="lclimager.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -56,19 +69,21 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="AboutUnit"/>
       </Unit2>
+      <Unit3>
+        <Filename Value="..\Common\DemoUtils.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit3>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="..\..\Bin\LCLImager"/>
+      <Filename Value="..\..\bin\LCLImager"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib"/>
-      <Libraries Value="..\..\..\Extras\Extensions\J2KObjects;..\..\..\Extras\Extensions\LibTiff\Compiled"/>
-      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType);..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;..\Common"/>
-      <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
+      <IncludeFiles Value="..\..\..\Source"/>
+      <UnitOutputDirectory Value="..\..\bin\ppu\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>

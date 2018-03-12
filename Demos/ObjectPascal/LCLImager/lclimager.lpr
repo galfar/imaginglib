@@ -4,7 +4,7 @@ program LCLImager;
 
 uses
   Interfaces, // this includes the LCL widgetset
-  Forms
+  Forms, vampyreimagingpackage
   { add your units here },
   MainUnit, AboutUnit;
 

@@ -35,11 +35,14 @@
 //{$DEFINE DONT_LINK_JNG}         // link support for JNG images
 //{$DEFINE DONT_LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
 //{$DEFINE DONT_LINK_RADHDR}      // link support for Radiance HDR/RGBE file format
-
+{$IFDEF FPC}
+{$DEFINE DONT_LINK_EXTRAS}    // Lazarus has a separat package for Extras
+{$ELSE}
 //{$DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
                              // Extras package. Exactly which formats will be
                              // registered depends on settings in
                              // ImagingExtras.pas unit.
+{$ENDIF}
 
 { Component set used in ImagignComponents.pas unit. You usually don't need
   to be concerned with this - proper component library is selected automatically

@@ -77,6 +77,9 @@ type
   protected
     procedure ReadDataFromStream(Stream: TStream); virtual;
     procedure AssignTo(Dest: TPersistent); override;
+    {$IFDEF FPC}
+    class function IsStreamFormatSupported(Stream: TStream): boolean; override;
+    {$ENDIF}
   public
     constructor Create; override;
 
@@ -915,6 +918,13 @@ begin
   else
     inherited AssignTo(Dest);
 end;
+
+{$IFDEF FPC}
+class function TImagingGraphic.IsStreamFormatSupported(Stream: TStream): Boolean;
+begin
+  Result := DetermineStreamFormat(Stream) <> '';
+end;
+{$ENDIF}
 
 procedure TImagingGraphic.Assign(Source: TPersistent);
 begin
