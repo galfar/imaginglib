@@ -32,7 +32,7 @@ unit ImagingOpenGL;
 {$I ImagingOptions.inc}
 
 { Define this symbol if you want to use dglOpenGL header.}
-{$DEFINE USE_DGL_HEADERS}
+{.$DEFINE USE_DGL_HEADERS}
 { $DEFINE USE_GLSCENE_HEADERS}
 
 interface

@@ -3,7 +3,11 @@ unit ResultsForm;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+ {$IFDEF FPC}
+ {$ELSE}
+  Windows, Messages,
+ {$ENDIF}
+  SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ExtCtrls,
   ImagingComponents, StdCtrls;
 
@@ -30,7 +34,11 @@ var
 
 implementation
 
-{$R *.dfm}
+{$IFDEF FPC}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
+{$ENDIF}
 
 procedure TResultForm.FormCreate(Sender: TObject);
 begin

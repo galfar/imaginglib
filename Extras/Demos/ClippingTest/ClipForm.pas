@@ -24,7 +24,12 @@ unit ClipForm;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+ {$IFDEF FPC}
+  LCLType, LCLIntf,
+ {$ELSE}
+  Windows, Messages,
+ {$ENDIF}
+  SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ExtCtrls, JvExExtCtrls, JvMovableBevel, StdCtrls, Buttons,
   ImagingTypes,
   Imaging,
@@ -78,7 +83,11 @@ implementation
 uses
   ResultsForm;
 
-{$R *.dfm}
+{$IFDEF FPC}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
+{$ENDIF}
 
 function GetTestImage(const FileName: string): string;
 begin

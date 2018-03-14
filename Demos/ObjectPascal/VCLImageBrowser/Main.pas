@@ -31,9 +31,11 @@ unit Main;
 
 {$I ImagingOptions.inc}
 
+{$IFNDEF FPC}
 {$IF not Defined(COMPONENT_SET_VCL) or not Defined(DELPHI)}
   {$MESSAGE ERROR 'This program requires Delphi with VCL'}
 {$IFEND}
+{$ENDIF}
 
 interface
 
@@ -49,7 +51,11 @@ uses
   ImagingUtility;
 
 type
+
+  { TMainForm }
+
   TMainForm = class(TForm)
+    ImageList1: TImageList;
     LeftPanel: TPanel;
     RightPanel: TPanel;
     InfoPanel: TPanel;
@@ -101,6 +107,10 @@ type
     FOriginalFormats: array of TImageFormat;
     FOriginalSizes: array of Integer;
     FSupported: Boolean;
+    {$IFDEF FPC}
+    procedure TreeGetImageIndex(Sender: TObject; Node: TTreeNode);
+    procedure TreeGetSelectedIndex(Sender: TObject; Node: TTreeNode);
+    {$ENDIF}
   public
     procedure SetSupported;
     procedure SetUnsupported;
@@ -118,11 +128,15 @@ var
 
 implementation
 
-{$R *.dfm}
-{$IF (CompilerVersion >= 15.0) and (CompilerVersion <= 23.0)}
-uses
-  XPMan;
-{$IFEND}
+{$IFDEF fpc}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
+ {$IF (CompilerVersion >= 15.0) and (CompilerVersion <= 23.0)}
+ uses
+   XPMan;
+ {$IFEND}
+{$ENDIF}
 
 procedure TMainForm.LoadFile;
 var
@@ -301,6 +315,36 @@ begin
     SetUnsupported;
 end;
 
+{$IFDEF FPC}
+procedure TMainForm.TreeGetImageIndex(Sender: TObject; Node: TTreeNode);
+var
+  ext: String;
+begin
+  if Node.Level =0 then
+    Node.ImageIndex := 2
+  else
+  if Node.HasChildren then
+    Node.ImageIndex := 0
+  else begin
+    ext := Lowercase(ExtractFileExt(Node.Text));
+    if (ext = '.jpg') or (ext = '.jpeg') or (ext = '.bmp') or (ext = '.png') or
+       (ext = '.tif') or (ext = '.tiff') or (ext = '.pcx')
+    then
+      Node.ImageIndex := 3
+    else
+      Node.ImageIndex := 4;
+  end;
+end;
+
+procedure TMainForm.TreeGetSelectedIndex(Sender: TObject; Node: TTreeNode);
+begin
+  if Node.ImageIndex = 0 then
+    Node.SelectedIndex := 1
+  else
+    Node.SelectedIndex := Node.ImageIndex;
+end;
+{$ENDIF}
+
 procedure TMainForm.TreeKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
@@ -335,6 +379,10 @@ begin
   FBack := TSingleImage.CreateFromParams(128, 128, ifA8R8G8B8);
   FBackCanvas := FindBestCanvasForImage(FBack).CreateForImage(FBack);
   SetUnsupported;
+  {$IFDEF FPC}
+  Tree.OnGetImageIndex := TreeGetImageIndex;
+  Tree.OnGetSelectedIndex := TreeGetSelectedIndex;
+  {$ENDIF}
 end;
 
 procedure TMainForm.PaintBoxPaint(Sender: TObject);
