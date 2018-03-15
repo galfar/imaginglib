@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="vampyreimagingpackage_sdl"/>
+    <Type Value="RunAndDesignTime"/>
+    <Author Value="Marek Mauder (http://imaginglib.sourceforge.net)"/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <IncludeFiles Value="..\..\..\Source"/>
+        <OtherUnitFiles Value="..\..\Extensions;..\..\..\Demos\ObjectPascal\Common"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\"/>
+      </SearchPaths>
+    </CompilerOptions>
+    <Description Value="Vampyre Imaging Library Package for Lazarus - Addon for SDL"/>
+    <License Value="Imaging comes with two open source licenses from which you can choose the one which fits your needs best:
+* MPL - Mozilla Public License
+* LGPL - GNU Lesser General Public License"/>
+    <Version Minor="78" Release="1"/>
+    <Files Count="2">
+      <Item1>
+        <Filename Value="..\..\Extensions\ImagingSDL.pas"/>
+        <UnitName Value="ImagingSDL"/>
+      </Item1>
+      <Item2>
+        <Filename Value="..\..\..\Demos\ObjectPascal\Common\sdl.pas"/>
+        <UnitName Value="sdl"/>
+      </Item2>
+    </Files>
+    <RequiredPkgs Count="2">
+      <Item1>
+        <PackageName Value="VampyreImagingPackage"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="FCL"/>
+      </Item2>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>
