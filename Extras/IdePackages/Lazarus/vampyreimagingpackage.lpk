@@ -25,7 +25,7 @@
         </Optimizations>
       </CodeGeneration>
       <Other>
-        <CustomOptions Value="-dFULL_FEATURE_SET"/>
+        <CustomOptions Value="-dDONT_LINK_EXTRAS"/>
       </Other>
     </CompilerOptions>
     <Description Value="Vampyre Imaging Library Package for Lazarus
@@ -34,7 +34,7 @@
 * MPL - Mozilla Public License
 * LGPL - GNU Lesser General Public License
 "/>
-    <Version Minor="78" Release="1"/>
+    <Version Minor="80"/>
     <Files Count="18">
       <Item1>
         <Filename Value="../../../Source/Imaging.pas"/>

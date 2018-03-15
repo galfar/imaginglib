@@ -19,8 +19,8 @@
 * MPL - Mozilla Public License
 * LGPL - GNU Lesser General Public License
 "/>
-    <Version Minor="78" Release="1"/>
-    <Files Count="22">
+    <Version Minor="80"/>
+    <Files Count="21">
       <Item1>
         <Filename Value="..\..\Extensions\ElderImagery.pas"/>
         <UnitName Value="ElderImagery"/>
@@ -74,41 +74,37 @@
         <UnitName Value="ImagingSDL"/>
       </Item13>
       <Item14>
-        <Filename Value="..\..\Extensions\ImagingSquishLib.pas"/>
-        <UnitName Value="ImagingSquishLib"/>
-      </Item14>
-      <Item15>
         <Filename Value="..\..\Extensions\ImagingTiff.pas"/>
         <UnitName Value="ImagingTiff"/>
-      </Item15>
-      <Item16>
+      </Item14>
+      <Item15>
         <Filename Value="..\..\Extensions\ImagingXpm.pas"/>
         <UnitName Value="ImagingXpm"/>
-      </Item16>
-      <Item17>
+      </Item15>
+      <Item16>
         <Filename Value="..\..\Extensions\OpenJpeg.pas"/>
         <UnitName Value="OpenJpeg"/>
-      </Item17>
-      <Item18>
+      </Item16>
+      <Item17>
         <Filename Value="..\..\Extensions\LibTiff\ImagingTiffLib.pas"/>
         <UnitName Value="ImagingTiffLib"/>
-      </Item18>
-      <Item19>
+      </Item17>
+      <Item18>
         <Filename Value="..\..\Extensions\LibTiff\LibDelphi.pas"/>
         <UnitName Value="LibDelphi"/>
-      </Item19>
-      <Item20>
+      </Item18>
+      <Item19>
         <Filename Value="..\..\Extensions\LibTiff\LibJpegDelphi.pas"/>
         <UnitName Value="LibJpegDelphi"/>
-      </Item20>
-      <Item21>
+      </Item19>
+      <Item20>
         <Filename Value="..\..\Extensions\LibTiff\LibTiffDelphi.pas"/>
         <UnitName Value="LibTiffDelphi"/>
-      </Item21>
-      <Item22>
+      </Item20>
+      <Item21>
         <Filename Value="..\..\Extensions\LibTiff\ZLibDelphi.pas"/>
         <UnitName Value="ZLibDelphi"/>
-      </Item22>
+      </Item21>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>

@@ -32,16 +32,21 @@ unit ImagingOpenGL;
 {$I ImagingOptions.inc}
 
 { Define this symbol if you want to use dglOpenGL header.}
-{$DEFINE USE_DGL_HEADERS}
-{ $DEFINE USE_GLSCENE_HEADERS}
+{$DEFINE OPENGL_USE_DGL_HEADERS}
+{ $DEFINE OPENGL_USE_GLSCENE_HEADERS}
+
+{$IFDEF OPENGL_NO_EXT_HEADERS}
+  {$UNDEF OPENGL_USE_DGL_HEADERS}
+  {$UNDEF OPENGL_USE_GLSCENE_HEADERS}
+{$ENDIF}
 
 interface
 
 uses
   SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats,
-{$IF Defined(USE_DGL_HEADERS)}
+{$IF Defined(OPENGL_USE_DGL_HEADERS)}
   dglOpenGL,
-{$ELSEIF Defined(USE_GLSCENE_HEADERS)}
+{$ELSEIF Defined(OPENGL_USE_GLSCENE_HEADERS)}
   OpenGL1x,
 {$ELSE}
   gl, glext,

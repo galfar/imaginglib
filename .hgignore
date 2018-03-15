@@ -52,5 +52,7 @@ Source/*/*.hpp
 Extras/Extensions/*.hpp
 Extras/Extensions/*/*.hpp
 
+Extras/IdePackages/Lazarus/lib/*
+
 
 

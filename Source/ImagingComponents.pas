@@ -77,9 +77,6 @@ type
   protected
     procedure ReadDataFromStream(Stream: TStream); virtual;
     procedure AssignTo(Dest: TPersistent); override;
-    {$IFDEF FPC}
-    class function IsStreamFormatSupported(Stream: TStream): boolean; override;
-    {$ENDIF}
   public
     constructor Create; override;
 
@@ -99,6 +96,10 @@ type
     procedure AssignFromImageData(const ImageData: TImageData);
     { Copies the current image to TImageData structure.}
     procedure AssignToImageData(var ImageData: TImageData);
+
+  {$IFDEF FPC}
+    class function IsStreamFormatSupported(Stream: TStream): boolean; override;
+  {$ENDIF}
   end;
 
   TImagingGraphicClass = class of TImagingGraphic;
