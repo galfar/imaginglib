@@ -8,7 +8,7 @@ unit vampyreimagingpackage_sdl;
 interface
 
 uses
-  ImagingSDL, sdl, LazarusPackageIntf;
+  sdl, ImagingSdl, LazarusPackageIntf;
 
 implementation
 

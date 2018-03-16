@@ -10,7 +10,7 @@ interface
 uses
   ElderImagery, ElderImageryBsi, ElderImageryCif, ElderImageryImg, 
   ElderImagerySky, ElderImageryTexture, ImagingBinary, ImagingCompare, 
-  ImagingExtras, ImagingJpeg2000, ImagingPcx, ImagingPsd, ImagingSDL, 
+  ImagingExtras, ImagingJpeg2000, ImagingPcx, ImagingPsd, ImagingSdl,
   ImagingTiff, ImagingXpm, OpenJpeg, ImagingTiffLib, LibDelphi, LibJpegDelphi, 
   LibTiffDelphi, ZLibDelphi, LazarusPackageIntf;
 

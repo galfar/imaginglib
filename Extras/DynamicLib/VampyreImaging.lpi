@@ -11,7 +11,7 @@
     </General>
     <VersionInfo>
       <UseVersionInfo Value="True"/>
-      <MinorVersionNr Value="78"/>
+      <MinorVersionNr Value="80"/>
     </VersionInfo>
     <BuildModes Count="2" Active="Release">
       <Item1 Name="Debug" Default="True"/>
@@ -63,7 +63,7 @@
     <RunParams>
       <local>
         <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="/usr/X11R6/bin/xterm -T 'Lazarus Run Output' -e $(LazarusDir)/tools/runwait.sh $(TargetCmdLine)"/>
+        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
     <Units Count="9">
@@ -139,8 +139,8 @@
         <Filename Value="..\Extensions\LibTiff\ZLibDelphi.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
-        <TopLine Value="36"/>
-        <CursorPos Y="87"/>
+        <TopLine Value="51"/>
+        <CursorPos X="22" Y="57"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>

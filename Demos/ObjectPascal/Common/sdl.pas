@@ -302,6 +302,10 @@ unit sdl;
   {$DEFINE WINDOWS}
 {$ENDIF}
 
+{$IFDEF FPC}
+  {$DEFINE HAS_TYPES}
+{$ENDIF}
+
 interface
 
 uses

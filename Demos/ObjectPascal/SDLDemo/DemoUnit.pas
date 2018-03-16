@@ -24,7 +24,9 @@ procedure RunDemo;
 implementation
 
 uses
+{$IFDEF MSWINDOWS}
   Windows,
+{$ENDIF}
   SysUtils,
   sdl,
   ImagingTypes,

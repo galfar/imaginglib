@@ -21,12 +21,12 @@
     <Version Minor="80"/>
     <Files Count="2">
       <Item1>
-        <Filename Value="..\..\Extensions\ImagingSDL.pas"/>
-        <UnitName Value="ImagingSDL"/>
-      </Item1>
-      <Item2>
         <Filename Value="..\..\..\Demos\ObjectPascal\Common\sdl.pas"/>
         <UnitName Value="sdl"/>
+      </Item1>
+      <Item2>
+        <Filename Value="..\..\Extensions\ImagingSdl.pas"/>
+        <UnitName Value="ImagingSDL"/>
       </Item2>
     </Files>
     <RequiredPkgs Count="2">
