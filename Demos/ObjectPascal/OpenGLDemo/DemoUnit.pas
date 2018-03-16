@@ -1,7 +1,6 @@
 {
   Vampyre Imaging Library Demo
   OpenGL Demo (OpenGL extension)
-  tested in Delphi 7/XE2, FPC 2.6.0, Win32/Linux
 
   Demo that shows how to create OpenGL textures from files
   and Imaging's images and vice versa. This sample uses SDL to create

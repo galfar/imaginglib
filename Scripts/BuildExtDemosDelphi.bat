@@ -2,9 +2,9 @@
 echo Building Extension Demos using Delphi
 
 rem Important! Set this dirs on your system for the demos to compile! 
-set SDLDIR=
-set OPENGLDIR=
-set D3DDIR=
+set SDLDIR=..\Demos\ObjectPascal\Common
+set OPENGLDIR=..\Demos\ObjectPascal\Common
+set D3DDIR=..\Demos\ObjectPascal\Common
 
 set ROOTDIR=..
 set DEMOPATH=%ROOTDIR%\Demos\ObjectPascal
@@ -35,9 +35,9 @@ goto :EOF
 
 :END
 if "%DEMOSBUILD%"=="%DEMOCOUNT%" (
-  echo Build Successful - all %DEMOSBUILD% of %DEMOCOUNT% build
+  echo [92mBuild Successful - all %DEMOSBUILD% of %DEMOCOUNT% build[0m
 ) else (
-  echo Errors during building - only %DEMOSBUILD% of %DEMOCOUNT% demos build
+  echo [91mErrors during building - only %DEMOSBUILD% of %DEMOCOUNT% demos build[0m
 )
 
 call Clean.bat

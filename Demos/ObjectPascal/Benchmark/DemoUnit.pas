@@ -1,7 +1,6 @@
 {
   Vampyre Imaging Library Demo
   Benchmark (core low level API)
-  tested in Delphi 7/XE2, FPC 2.6.0, Win32/Win64/Linux/OSX
 
   Simple program which measures time taken by the main Imaging functions
   (loading, manipulation, saving) in microsecond resolution.

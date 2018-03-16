@@ -16,6 +16,7 @@ Tests/*
 Dcu/*
 
 __history
+*/backup/*
 
 *.dcu
 *.ppu

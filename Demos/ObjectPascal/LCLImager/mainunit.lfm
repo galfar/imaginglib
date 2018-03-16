@@ -88,7 +88,7 @@ object MainForm: TMainForm
   OnDropFiles = FormDropFiles
   OnShow = FormShow
   Position = poScreenCenter
-  LCLVersion = '1.0.12.0'
+  LCLVersion = '1.8.0.6'
   Visible = True
   object StatusBar: TStatusBar
     Left = 0
@@ -119,7 +119,6 @@ object MainForm: TMainForm
         Width = 180
         Align = alClient
         AutoExpand = True
-        DefaultItemHeight = 18
         HotTrack = True
         ParentShowHint = False
         ReadOnly = True

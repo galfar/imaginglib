@@ -1,7 +1,6 @@
 {
   Vampyre Imaging Library Demo
   Vampyre Image Converter (core low level API)
-  tested in Delphi 7/XE2, FPC 2.6.0, Win32/Win64/Linux/OSX
 
   Image Converter is command line tool for converting images between
   file and data formats. It also provides some basic manipulation functions

@@ -2,19 +2,18 @@
 echo Building Extension Demos using Free Pascal
 
 rem Important! Set this dirs on your system for the demos to compile!
-set SDLDIR=
-set OPENGLDIR=
-set D3DDIR=
+set SDLDIR=..\Demos\ObjectPascal\Common
+set OPENGLDIR=..\Demos\ObjectPascal\Common
+set D3DDIR=..\Demos\ObjectPascal\Common
 
 set ROOTDIR=..
 set DEMOPATH=%ROOTDIR%\Demos\ObjectPascal
 set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZLib -Fu%DEMOPATH%\Common
-set UNITS=%UNITS% -Fu%ROOTDIR%\Source\Extensions -Fu%ROOTDIR%\Extras\Extensions -Fu"%SDLDIR%" -Fu"%OPENGLDIR%" -Fu"%D3DDIR%"
+set UNITS=%UNITS% -Fu%ROOTDIR%\Source\Extensions -Fu%ROOTDIR%\Extras\Extensions -Fu%ROOTDIR%\Extras\Extensions\LibTiff -Fu"%SDLDIR%" -Fu"%OPENGLDIR%" -Fu"%D3DDIR%"
 set INCLUDE=-Fi%ROOTDIR%\Source -Fi"%SDLDIR%" -Fi"%OPENGLDIR%" -Fi"%D3DDIR%"
-set LIBS=-Fl%ROOTDIR%\Extras\Extensions\J2KObjects
+set LIBS=-Fl%ROOTDIR%\Extras\Extensions\J2KObjects -Fu%ROOTDIR%\Extras\Extensions\LibTiff\Compiled
 set OUTPUT=-FE%ROOTDIR%\Demos\Bin
-set OPTIONS=-Sgi -O2 -Xs
-set TARGET=-Twin32
+set OPTIONS=-Sgi -O2 -Xs -dDONT_LINK_EXTRAS
 
 set DEMOSBUILD=0
 set DEMOCOUNT=3
@@ -31,15 +30,15 @@ if "%D3DDIR%"=="" (echo D3D search directory not set - skipping %CURRDEMO%) else
 goto END
 
 :BUILD
-  fpc %TARGET% %OPTIONS% %OUTPUT% "%DEMOPATH%\%1" %UNITS% %INCLUDE% %LIBS% %2
+  fpc %OPTIONS% %OUTPUT% "%DEMOPATH%\%1" %UNITS% %INCLUDE% %LIBS% %2
   if errorlevel 1 (echo Error when building %1) else (set /a DEMOSBUILD+=1)
 goto :EOF
 
 :END
 if "%DEMOSBUILD%"=="%DEMOCOUNT%" (
-  echo Build Successful - all %DEMOSBUILD% of %DEMOCOUNT% build
+  echo [92mBuild Successful - all %DEMOSBUILD% of %DEMOCOUNT% build[0m
 ) else (
-  echo Errors during building - only %DEMOSBUILD% of %DEMOCOUNT% demos build
+  echo [91mErrors during building - only %DEMOSBUILD% of %DEMOCOUNT% demos build[0m
 )
 
 call Clean.bat

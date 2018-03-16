@@ -9,7 +9,7 @@ program SDLDemo;
 {$ENDIF}  
 
 uses
-  DemoUnit in 'DemoUnit.pas';
+  DemoUnit;
 begin
   RunDemo;
 end.

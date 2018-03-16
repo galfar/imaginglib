@@ -1,8 +1,6 @@
 {
   Vampyre Imaging Library Demo
   VCL Image Browser (class api, canvas, vcl interaction)
-  tested in Delphi 7/XE2, Win32/Win64
-  written by Marek Mauder
 
   This simple viewer application shows usage of high level class interface
   to Imaging library and also drawing images onto standard VCL TCanvas.

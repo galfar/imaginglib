@@ -1,7 +1,6 @@
 {
   Vampyre Imaging Library Demo
   D3D9 Demo (D3D9 extension)
-  tested in Delphi 7/XE2, FPC 2.6.0, Win32
 
   Demo that shows how to create Direct3D 9 textures from files
   and Imaging's images and vice versa. This sample uses SDL to create

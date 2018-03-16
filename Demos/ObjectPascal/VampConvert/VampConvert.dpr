@@ -9,7 +9,7 @@ program VampConvert;
 {$ENDIF}  
 
 uses
-  DemoUnit in 'DemoUnit.pas';
+  DemoUnit;
 
 begin
   RunDemo;

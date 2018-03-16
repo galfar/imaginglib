@@ -220,7 +220,7 @@ procedure ImGetVersion(var Major, Minor, Patch: LongInt);
 begin
   Major := ImagingVersionMajor;
   Minor := ImagingVersionMinor;
-  Patch := ImagingVersionPatch;
+  Patch := 0;
 end;
 
 procedure ImInitImage(var Image: TImageData);

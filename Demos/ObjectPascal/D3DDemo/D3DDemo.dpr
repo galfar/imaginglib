@@ -5,7 +5,7 @@ program D3DDemo;
 {$ENDIF}
 
 uses
-  DemoUnit in 'DemoUnit.pas';
+  DemoUnit;
 begin
   RunDemo;
 end.

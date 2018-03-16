@@ -22,9 +22,9 @@ package VampyreImagingPackage;
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $7A00000}
-{$DEFINE FULL_FEATURE_SET}
 {$DESCRIPTION 'Vampyre Imaging Library Package'}
 {$IMPLICITBUILD OFF}
+{$DEFINE FULL_FEATURE_SET}
 
 requires
   rtl,

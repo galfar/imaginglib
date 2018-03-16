@@ -1,5 +1,9 @@
 unit LibJpegDelphi;
 
+{$ifdef FPC}
+  {$MODE OBJFPC}
+{$endif}
+
 interface
 
 uses

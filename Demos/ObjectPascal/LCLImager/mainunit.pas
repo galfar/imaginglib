@@ -286,6 +286,84 @@ uses
 
 { TMainForm }
 
+procedure TMainForm.FormCreate(Sender: TObject);
+var
+  Item: TMenuItem;
+  Fmt: TImageFormat;
+  Info: TImageFormatInfo;
+  Platform: string;
+
+  function Clone(AItem: TMenuItem): TMenuItem;
+  begin
+    Result := TMenuItem.Create(MainMenu);
+    Result.Caption := AItem.Caption;
+    Result.Tag := AItem.Tag;
+    Result.OnClick := AItem.OnClick;;
+  end;
+
+  procedure AddSetChannelItem(const Caption: string; Value: Integer);
+  begin
+    Item := TMenuItem.Create(MainMenu);
+    Item.Caption := Caption;
+    Item.Tag := Value;
+    Item.OnClick := ChannelSetClick;
+    AlphaItem.Add(Item);
+    RedItem.Add(Clone(Item));
+    GreenItem.Add(Clone(Item));
+    BlueItem.Add(Clone(Item));
+  end;
+
+begin
+  Platform := '';
+{$IF Defined(WIN64)}
+  Platform := ' - WIN64';
+{$ELSEIF Defined(WIN32)}
+  Platform := ' - WIN32';
+{$ELSEIF Defined(LINUX)}
+  Platform := ' - Linux';
+{$ELSEIF Defined(DARWIN)}
+  Platform := ' - OSX';
+{$ENDIF}
+
+  Caption := Format(SWindowTitle, [Imaging.GetVersionStr]) + Platform;
+
+  { Source image and Image's graphic are created and
+    default image is opened.}
+  FImage := TMultiImage.Create;
+  FBitmap := TImagingBitmap.Create;
+  Image.Picture.Graphic := FBitmap;
+  FImageCanvas := TImagingCanvas.Create;
+
+  { This builds Format submenu containing all possible
+    image data formats (it dos not start at Low(TImageFormat)
+    because there are some helper formats). Format for each item
+    is stored in its Tag for later use in OnClick event.}
+  for Fmt := ifIndex8 to High(TImageFormat) do
+  begin
+    GetImageFormatInfo(Fmt, Info);
+    if Info.Name <> '' then
+    begin
+      Item := TMenuItem.Create(MainMenu);
+      Item.Caption := Info.Name;
+      Item.Tag := Ord(Fmt);
+      Item.OnClick := FormatChangeClick;
+      FormatItem.Add(Item);
+    end;
+  end;
+
+  AddSetChannelItem('Set to 5%', 12);
+  AddSetChannelItem('Set to 50%', 128);
+  AddSetChannelItem('Set to 100%', 255);
+
+  // Set 'Fit to window' mode
+  ActViewFitToWindowExecute(Self);
+
+  if (ParamCount > 0) and FileExists(ParamStr(1)) then
+    OpenFile(ParamStr(1))
+  else
+    OpenFile(GetDataDir + PathDelim + 'Tigers.jpg');
+end;
+
 procedure TMainForm.MenuItem10Click(Sender: TObject);
 begin
   AboutForm.ShowModal;
@@ -661,72 +739,6 @@ begin
 
   RebuildTree := (FImage.Format <> OldFmt) or (FImage.Size <> OldSize);
   UpdateView(RebuildTree);
-end;
-
-procedure TMainForm.FormCreate(Sender: TObject);
-var
-  Item: TMenuItem;
-  Fmt: TImageFormat;
-  Info: TImageFormatInfo;
-
-  function Clone(AItem: TMenuItem): TMenuItem;
-  begin
-    Result := TMenuItem.Create(MainMenu);
-    Result.Caption := AItem.Caption;
-    Result.Tag := AItem.Tag;
-    Result.OnClick := AItem.OnClick;;
-  end;
-
-  procedure AddSetChannelItem(const Caption: string; Value: Integer);
-  begin
-    Item := TMenuItem.Create(MainMenu);
-    Item.Caption := Caption;
-    Item.Tag := Value;
-    Item.OnClick := ChannelSetClick;
-    AlphaItem.Add(Item);
-    RedItem.Add(Clone(Item));
-    GreenItem.Add(Clone(Item));
-    BlueItem.Add(Clone(Item));
-  end;
-
-begin
-  Caption := Format(SWindowTitle, [Imaging.GetVersionStr]);
-
-  { Source image and Image's graphic are created and
-    default image is opened.}
-  FImage := TMultiImage.Create;
-  FBitmap := TImagingBitmap.Create;
-  Image.Picture.Graphic := FBitmap;
-  FImageCanvas := TImagingCanvas.Create;
-
-  { This builds Format submenu containing all possible
-    image data formats (it dos not start at Low(TImageFormat)
-    because there are some helper formats). Format for each item
-    is stored in its Tag for later use in OnClick event.}
-  for Fmt := ifIndex8 to High(TImageFormat) do
-  begin
-    GetImageFormatInfo(Fmt, Info);
-    if Info.Name <> '' then
-    begin
-      Item := TMenuItem.Create(MainMenu);
-      Item.Caption := Info.Name;
-      Item.Tag := Ord(Fmt);
-      Item.OnClick := FormatChangeClick;
-      FormatItem.Add(Item);
-    end;
-  end;
-
-  AddSetChannelItem('Set to 5%', 12);
-  AddSetChannelItem('Set to 50%', 128);
-  AddSetChannelItem('Set to 100%', 255);
-
-  // Set 'Fit to window' mode
-  ActViewFitToWindowExecute(Self);
-  
-  if (ParamCount > 0) and FileExists(ParamStr(1)) then
-    OpenFile(ParamStr(1))
-  else
-    OpenFile(GetDataDir + PathDelim + 'Tigers.jpg');
 end;
 
 procedure TMainForm.FormatChangeClick(Sender: TObject);

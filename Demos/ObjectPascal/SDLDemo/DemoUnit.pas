@@ -1,7 +1,6 @@
 {
   Vampyre Imaging Library Demo
   SDL Demo (SDL extension)
-  tested in Delphi 7/XE2, FPC 2.6.0, Win32/Linux
 
   Demo that shows how to create SDL surfaces from Imaging's
   images and vice versa. SDL window is opened and background
