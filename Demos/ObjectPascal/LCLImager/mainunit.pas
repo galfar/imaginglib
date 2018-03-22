@@ -279,6 +279,8 @@ var
 
 implementation
 
+{$R *.lfm}
+
 {$IFDEF MSWINDOWS}
 uses
   Windows;
@@ -1200,9 +1202,6 @@ procedure TMainForm.MeasureTime(const Msg: string; const OldTime: Int64);
 begin
   StatusBar.SimpleText := Format('  %s %.0n ms', [Msg, (GetTimeMicroseconds - OldTime) / 1000.0]);
 end;
-
-initialization
-  {$I mainunit.lrs}
 
 {
   File Notes:

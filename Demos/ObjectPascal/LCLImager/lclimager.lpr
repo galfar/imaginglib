@@ -11,6 +11,7 @@ uses
 {$R *.res}
 
 begin
+  Application.Scaled:=True;
   Application.Title := 'LCL Imager';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);

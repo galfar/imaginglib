@@ -25,13 +25,11 @@ delintree()
 delintree $ROOTDIR/Bin
 delintree $ROOTDIR/Demos 
 delintree $ROOTDIR/Scripts 
-delintree $ROOTDIR/Source/Wrappers
 delintree $ROOTDIR/Source/JpegLib
 delintree $ROOTDIR/Source/ZLib
-delintree $ROOTDIR/Source/Extensions
-delintree $ROOTDIR/Source/Projects
 delindir $ROOTDIR/Source
 delindir $ROOTDIR/Extras/Extensions
+delindir $ROOTDIR/Extras/IdePackages
 delintree $ROOTDIR/Extras/Demos
 delintree $ROOTDIR/Extras/Tools
 

@@ -701,6 +701,7 @@ implementation
     { Free Pascal Linux }
     { Link C runtime library.}
     {$LINKLIB c}
+    {$LINKLIB m}
 
     {$IF Defined(CPU86)}
       { Free Pascal Linux x86 }

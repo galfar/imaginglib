@@ -26,4 +26,4 @@ else
   echo "Error when building demos!"
 fi
 
-sh Clean.sh
+

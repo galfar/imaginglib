@@ -66,19 +66,19 @@
         <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
       </local>
     </RunParams>
-    <Units Count="9">
+    <Units Count="10">
       <Unit0>
         <Filename Value="VampyreImaging.lpr"/>
         <IsPartOfProject Value="True"/>
         <TopLine Value="22"/>
         <CursorPos X="40" Y="34"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="25"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
       <Unit1>
         <Filename Value="..\..\Source\ImagingOptions.inc"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="7"/>
         <TopLine Value="94"/>
         <UsageCount Value="12"/>
         <Loaded Value="True"/>
@@ -86,7 +86,7 @@
       </Unit1>
       <Unit2>
         <Filename Value="..\..\Source\ImagingComponents.pas"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="8"/>
         <TopLine Value="321"/>
         <CursorPos X="27" Y="521"/>
         <UsageCount Value="12"/>
@@ -95,7 +95,7 @@
       </Unit2>
       <Unit3>
         <Filename Value="..\..\Source\Imaging.pas"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="9"/>
         <TopLine Value="674"/>
         <CursorPos X="13" Y="681"/>
         <UsageCount Value="12"/>
@@ -104,7 +104,7 @@
       </Unit3>
       <Unit4>
         <Filename Value="..\Extensions\ImagingTiff.pas"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="5"/>
         <CursorPos X="13" Y="42"/>
         <UsageCount Value="12"/>
         <Loaded Value="True"/>
@@ -112,7 +112,7 @@
       </Unit4>
       <Unit5>
         <Filename Value="ImagingExport.pas"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="6"/>
         <TopLine Value="110"/>
         <CursorPos X="13" Y="223"/>
         <UsageCount Value="12"/>
@@ -137,14 +137,23 @@
       </Unit7>
       <Unit8>
         <Filename Value="..\Extensions\LibTiff\ZLibDelphi.pas"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="3"/>
         <TopLine Value="51"/>
-        <CursorPos X="22" Y="57"/>
+        <CursorPos X="24" Y="57"/>
         <UsageCount Value="10"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit8>
+      <Unit9>
+        <Filename Value="..\Extensions\ImagingJpeg2000.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="532"/>
+        <CursorPos X="18" Y="557"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit9>
     </Units>
     <JumpHistory Count="12" HistoryIndex="11">
       <Position1>
