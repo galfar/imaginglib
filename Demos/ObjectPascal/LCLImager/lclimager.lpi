@@ -170,6 +170,7 @@
           </SearchPaths>
           <CodeGeneration>
             <SmartLinkUnit Value="True"/>
+            <TargetCPU Value="i386"/>
             <TargetOS Value="darwin"/>
             <Optimizations>
               <OptimizationLevel Value="3"/>

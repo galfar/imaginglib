@@ -61,9 +61,13 @@ var
 {$ENDIF}
 
 procedure WriteTimeDiff(const Msg: string; const OldTime: Int64);
+var
+  Diff: Double;
+  S: string;
 begin
-  WriteLn(Output, Format('%-58s %16.0n us', [Msg, GetTimeMicroseconds -
-    OldTime * 1.0], GetFormatSettingsForFloats));
+  Diff := (GetTimeMicroseconds - OldTime) * 1.0;
+  S := Format('%-58s %16.0n us', [Msg, Diff], GetFormatSettingsForFloats);
+  WriteLn(Output, S);
 end;
 
 function GetImageName(const Ext: string): string;
@@ -313,6 +317,9 @@ end;
 
 procedure RunDemo;
 begin
+  WriteLn('Vampyre Imaging Library Benchmark Demo version ', Imaging.GetVersionStr);
+  WriteLn;
+
 {$IFDEF LOG_TO_FILE}
   // If logging to file is defined new output file is created
   // and all messages are written into it.
@@ -333,14 +340,10 @@ begin
   // Otherwise standard System.Output file is used.
 {$ENDIF}
 
-  WriteLn(Output, 'Vampyre Imaging Library Benchmark Demo version ',
-    Imaging.GetVersionStr);
-  WriteLn(Output);
-
   if not DirectoryExists(GetDataDir) then
   begin
     // If required testing data is not found program halts.
-    WriteLn(Output, 'Error!' + sLineBreak + '"Data" directory with ' +
+    WriteLn('Error!' + sLineBreak + '"Data" directory with ' +
       'required "Tigers.*" images not found.');
     WriteLn;
     WriteLn('Press RETURN key to exit');

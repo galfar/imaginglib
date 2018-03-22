@@ -453,7 +453,7 @@ begin
     System.GetModuleFileName(MainInstance, FileName, SizeOf(FileName)));
 {$ELSE}
 begin
-  Result := ParamStr(0);
+  Result := ExpandFileName(ParamStr(0));
 {$IFEND}
 end;
 

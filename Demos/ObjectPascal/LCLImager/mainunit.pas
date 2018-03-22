@@ -660,6 +660,7 @@ var
   Strel: TStructElement;
 begin
   T := GetTimeMicroseconds;
+  FImage.Format := ifGray8;
   OtsuThresholding(FImage.ImageDataPointer^);
   
   SetLength(Strel, 3, 3);
@@ -1268,4 +1269,5 @@ end;
 }
 
 end.
+
 
