@@ -32,15 +32,16 @@
     Win32 Delphi: obj, dll
     Win64 Delphi: dll
     Win32, Win64 FPC: obj, dll
-    Linux/Unix 32/64 FPC: dll
+    Linux/Unix/macOS 32/64 FPC: dll
 }
 unit ImagingTiffLib;
 
 {$I ImagingOptions.inc}
 
-{$IF Defined(LINUX) or Defined(BSD)}
+{$IF Defined(LINUX) or Defined(BSD) or Defined(MACOS)}
   // Use LibTiff dynamic library in Linux/BSD instead of precompiled objects.
   // It's installed on most systems so let's use it and keep the binary smaller.
+  // In macOS it's usually not installed but if it is let's use it.
   {$DEFINE USE_DYN_LIB}
 {$IFEND}
 
@@ -212,6 +213,8 @@ var
     TIFFGetFieldDefaulted(Tiff, TIFFTAG_XRESOLUTION, @XRes);
     TIFFGetFieldDefaulted(Tiff, TIFFTAG_YRESOLUTION, @YRes);
     TIFFGetFieldDefaulted(Tiff, TIFFTAG_COMPRESSION, @CompressionScheme);
+
+    FMetadata.SetMetaItem(SMetaTiffResolutionUnit, TiffResUnit);
 
     if (TiffResUnit <> RESUNIT_NONE) and (XRes >= 0.1) and (YRes >= 0.1) then
     begin
@@ -443,18 +446,35 @@ var
   procedure SaveMetadata(Tiff: PTiff; TiffPage: Integer);
   var
     XRes, YRes: Single;
+    ResUnit: TResolutionUnit;
+    TiffResUnit, StoredTiffResUnit: Word;
   begin
     XRes := -1;
     YRes := -1;
 
+    ResUnit := ruDpcm;
+    TiffResUnit := RESUNIT_CENTIMETER;
+
+    if FMetadata.HasMetaItemForSaving(SMetaTiffResolutionUnit) then
+    begin
+      // Check if DPI resolution unit is requested to be used (e.g. to
+      // use the same unit when just resaving files - also some )
+      StoredTiffResUnit := FMetadata.MetaItemsForSaving[SMetaTiffResolutionUnit];
+      if StoredTiffResUnit = RESUNIT_INCH then
+      begin
+        ResUnit := ruDpi;
+        TiffResUnit := RESUNIT_INCH;
+      end;
+    end;
+
     // First try to find phys. size for current TIFF page index. If not found then
     // try size for main image (index 0).
-    if not FMetadata.GetPhysicalPixelSize(ruDpcm, XRes, YRes, True, TiffPage) then
-      FMetadata.GetPhysicalPixelSize(ruDpcm, XRes, YRes, True, 0);
+    if not FMetadata.GetPhysicalPixelSize(ResUnit, XRes, YRes, True, TiffPage) then
+      FMetadata.GetPhysicalPixelSize(ResUnit, XRes, YRes, True, 0);
 
     if (XRes > 0) and (YRes > 0) then
     begin
-      TIFFSetField(Tiff, TIFFTAG_RESOLUTIONUNIT, RESUNIT_CENTIMETER);
+      TIFFSetField(Tiff, TIFFTAG_RESOLUTIONUNIT, TiffResUnit);
       TIFFSetField(Tiff, TIFFTAG_XRESOLUTION, XRes);
       TIFFSetField(Tiff, TIFFTAG_YRESOLUTION, YRes);
     end;
@@ -588,6 +608,11 @@ begin
 end;
 
 initialization
+{$IFDEF USE_DYN_LIB}
+  // If using dynamic library only register the format if
+  // the library loads successfully.
+  if LibTiffDynLib.LoadTiffLibrary then
+{$ENDIF}
   RegisterImageFileFormat(TTiffLibFileFormat);
 
 {

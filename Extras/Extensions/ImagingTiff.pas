@@ -33,11 +33,16 @@ const
   { Read only metadata info - name of compression scheme (LZW, none, JPEG, G4, ...)
     used in last loaded TIFF. }
   SMetaTiffCompressionName = 'TiffCompressionName';
+  { Original resolution unit of loaded TIFF. Type is UInt.
+    RESUNIT_NONE                        = 1;       // no meaningful units
+    RESUNIT_INCH                        = 2;       // english
+    RESUNIT_CENTIMETER                  = 3;       // metric }
+  SMetaTiffResolutionUnit = 'TiffResolutionUnit';
 
 implementation
 
 // So far we have only one TIFF support implementation - libtiff
-{$IF (Defined(DELPHI) and not Defined(CPUX64) or (Defined(FPC) and not Defined(MACOS)))}
+{$IF (Defined(DELPHI) and not Defined(CPUX64)) or (Defined(FPC) and not Defined(CPUARM)))}
 uses
   ImagingTiffLib;
 {$IFEND}
