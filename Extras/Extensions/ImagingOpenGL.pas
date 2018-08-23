@@ -877,7 +877,11 @@ begin
     // Check if desired mipmap level count is valid
     glBindTexture(GL_TEXTURE_2D, Texture);
     if MipLevels <= 0 then
+    begin
+      glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, @Width);
+      glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, @Height);
       MipLevels := GetNumMipMapLevels(Width, Height);
+    end;
     SetLength(Images, MipLevels);
     ExistingLevels := 0;
 
