@@ -786,9 +786,9 @@ end;
 function TransformPremultiplyAlpha(const Pixel: TColorFPRec; P1, P2, P3: Single): TColorFPRec;
 begin
   Result.A := Pixel.A;
-  Result.R := Result.R * Pixel.A;
-  Result.G := Result.G * Pixel.A;
-  Result.B := Result.B * Pixel.A;
+  Result.R := Pixel.R * Pixel.A;
+  Result.G := Pixel.G * Pixel.A;
+  Result.B := Pixel.B * Pixel.A;
 end;
 
 function TransformUnPremultiplyAlpha(const Pixel: TColorFPRec; P1, P2, P3: Single): TColorFPRec;
@@ -796,9 +796,9 @@ begin
   Result.A := Pixel.A;
   if Pixel.A <> 0.0 then
   begin
-    Result.R := Result.R / Pixel.A;
-    Result.G := Result.G / Pixel.A;
-    Result.B := Result.B / Pixel.A;
+    Result.R := Pixel.R / Pixel.A;
+    Result.G := Pixel.G / Pixel.A;
+    Result.B := Pixel.B / Pixel.A;
   end
   else
   begin
