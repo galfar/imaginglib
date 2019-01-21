@@ -638,7 +638,7 @@ var
 function GetFormatName(Format: TImageFormat): string;
 { Returns string with information about given Image.}
 function ImageToStr(const Image: TImageData): string;
-{ Returns Imaging version string in format 'Major.Minor.Patch'.}
+{ Returns Imaging version string in format 'Major.Minor'.}
 function GetVersionStr: string;
 { If Condition is True then TruePart is retured, otherwise FalsePart is returned.}
 function IffFormat(Condition: Boolean; const TruePart, FalsePart: TImageFormat): TImageFormat;
@@ -697,6 +697,7 @@ const
 implementation
 
 uses
+{$IFNDEF DONT_LINK_FILE_FORMATS}
 {$IFNDEF DONT_LINK_BITMAP}
   ImagingBitmap,
 {$ENDIF}
@@ -723,6 +724,7 @@ uses
 {$ENDIF}
 {$IFNDEF DONT_LINK_EXTRAS}
   ImagingExtras,
+{$ENDIF}
 {$ENDIF}
   //ImagingDebug,
   ImagingFormats, ImagingUtility, ImagingIO, Variants;
@@ -2781,7 +2783,7 @@ end;
 { Raw Image IO Functions }
 
 procedure ReadRawImage(Handle: TImagingHandle;  Width, Height: Integer;
-  Format: TImageFormat; out Image: TImageData; Offset, RowLength: Integer);
+  Format: TImageFormat; var Image: TImageData; Offset, RowLength: Integer);
 var
   WidthBytes, I: Integer;
   Info: PImageFormatInfo;
@@ -3114,7 +3116,7 @@ end;
 
 function GetVersionStr: string;
 begin
-  Result := Format('%.1d.%.2d.', [ImagingVersionMajor, ImagingVersionMinor]);
+  Result := Format('%.1d.%.2d', [ImagingVersionMajor, ImagingVersionMinor]);
 end;
 
 function IffFormat(Condition: Boolean; const TruePart, FalsePart: TImageFormat): TImageFormat;

@@ -30,6 +30,13 @@ type
   end;
 
 const
+  TiffCompressionOptionNone        = 0;
+  TiffCompressionOptionLzw         = 1;
+  TiffCompressionOptionPackbitsRle = 2;
+  TiffCompressionOptionDeflate     = 3;
+  TiffCompressionOptionJpeg        = 4;
+  TiffCompressionOptionGroup4      = 5;
+
   { Read only metadata info - name of compression scheme (LZW, none, JPEG, G4, ...)
     used in last loaded TIFF. }
   SMetaTiffCompressionName = 'TiffCompressionName';
@@ -41,11 +48,13 @@ const
 
 implementation
 
+{$IFNDEF DONT_LINK_FILE_FORMATS}
 // So far we have only one TIFF support implementation - libtiff
 {$IF (Defined(DELPHI) and not Defined(CPUX64)) or (Defined(FPC) and not Defined(CPUARM)))}
 uses
   ImagingTiffLib;
 {$IFEND}
+{$ENDIF}
 
 const
   STiffFormatName = 'Tagged Image File Format';

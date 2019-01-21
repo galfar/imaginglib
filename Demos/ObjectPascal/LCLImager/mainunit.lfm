@@ -1,7 +1,7 @@
 object MainForm: TMainForm
-  Left = 427
+  Left = 914
   Height = 680
-  Top = 226
+  Top = 452
   Width = 997
   AllowDropFiles = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
@@ -88,7 +88,7 @@ object MainForm: TMainForm
   OnDropFiles = FormDropFiles
   OnShow = FormShow
   Position = poScreenCenter
-  LCLVersion = '1.8.0.6'
+  LCLVersion = '1.8.2.0'
   Visible = True
   object StatusBar: TStatusBar
     Left = 0

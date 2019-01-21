@@ -34,11 +34,11 @@ unit ImagingExtras;
 
 {$I ImagingOptions.inc}
 
-//{$DEFINE DONT_LINK_JPEG2000}    // link support for JPEG2000 images
-//{$DEFINE DONT_LINK_TIFF}        // link support for TIFF images
-//{$DEFINE DONT_LINK_PSD}         // link support for PSD images
-//{$DEFINE DONT_LINK_PCX}         // link support for PCX images
-//{$DEFINE DONT_LINK_XPM}         // link support for XPM images
+{.$DEFINE DONT_LINK_JPEG2000}    // link support for JPEG2000 images
+{.$DEFINE DONT_LINK_TIFF}        // link support for TIFF images
+{.$DEFINE DONT_LINK_PSD}         // link support for PSD images
+{.$DEFINE DONT_LINK_PCX}         // link support for PCX images
+{.$DEFINE DONT_LINK_XPM}         // link support for XPM images
 
 {$IFNDEF FULL_FEATURE_SET}
   {$DEFINE DONT_LINK_ELDER}     // link support for Elder Imagery images
@@ -70,7 +70,7 @@ const
     Default value is False (0).}
   ImagingJpeg2000LosslessCompression = 57;
   { Specifies JPEG 2000 output scaling. Since JPEG 2000 supports arbitrary Bit Depths,
-    the default behaviour is to scale the images up tp the next 8^n bit depth.
+    the default behaviour is to scale the images up to the next 8^n bit depth.
     This can be disabled by setting this option to False.
     Defaul value is True. }
   ImagingJpeg2000ScaleOutput = 58;
@@ -96,6 +96,7 @@ const
 implementation
 
 uses
+{$IFNDEF DONT_LINK_FILE_FORMATS}
 {$IFNDEF DONT_LINK_JPEG2000}
   ImagingJpeg2000,
 {$ENDIF}
@@ -113,6 +114,7 @@ uses
 {$ENDIF}
 {$IFNDEF DONT_LINK_ELDER}
   ElderImagery,
+{$ENDIF}
 {$ENDIF}
   Imaging;
 

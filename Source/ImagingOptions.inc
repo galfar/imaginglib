@@ -7,39 +7,43 @@
 
 {$DEFINE USE_INLINE}          // Use function inlining for some functions
                               // works in Free Pascal and Delphi 9+.
-{$DEFINE USE_ASM}             // Ff defined, assembler versions of some
+{$DEFINE USE_ASM}             // If defined, assembler versions of some
                               // functions will be used (only for x86).
 
                               // Debug options: If none of these two are defined
                               // your project settings are used.
-{ $DEFINE IMAGING_DEBUG}      // If defined, debug info, range/IO/overflow
+{.$DEFINE IMAGING_DEBUG}      // If defined, debug info, range/IO/overflow
                               // checking, stack frames, assertions, and
                               // other debugging options will be turned on.
-{ $DEFINE IMAGING_RELEASE}    // If defined, all debug info is off.
+{.$DEFINE IMAGING_RELEASE}    // If defined, all debug info is off.
 
 
 
 (* File format support linking options.
-  Define formats which you don't want to be registred automatically.
-  Default: all formats are registered = no symbols defined.
+  Define formats which you don't want to be registred automatically (by adding
+  Imaging.pas unit to your uses clause).
+  Default: most formats are registered = no symbols defined.
   Example: If you want to disable JPEG support just uncomment //{$DEFINE DONT_LINK_JPEG} line
 *)
 
-//{$DEFINE DONT_LINK_JPEG}        // link support for Jpeg images
-//{$DEFINE DONT_LINK_PNG}         // link support for PNG images
-//{$DEFINE DONT_LINK_TARGA}       // link support for Targa images
-//{$DEFINE DONT_LINK_BITMAP}      // link support for Windows Bitmap images
-//{$DEFINE DONT_LINK_DDS}         // link support for DDS images
-//{$DEFINE DONT_LINK_GIF}         // link support for GIF images
-//{$DEFINE DONT_LINK_MNG}         // link support for MNG images
-//{$DEFINE DONT_LINK_JNG}         // link support for JNG images
-//{$DEFINE DONT_LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
-//{$DEFINE DONT_LINK_RADHDR}      // link support for Radiance HDR/RGBE file format
+{.$DEFINE DONT_LINK_JPEG}        // link support for Jpeg images
+{.$DEFINE DONT_LINK_PNG}         // link support for PNG images
+{.$DEFINE DONT_LINK_TARGA}       // link support for Targa images
+{.$DEFINE DONT_LINK_BITMAP}      // link support for Windows Bitmap images
+{.$DEFINE DONT_LINK_DDS}         // link support for DDS images
+{.$DEFINE DONT_LINK_GIF}         // link support for GIF images
+{.$DEFINE DONT_LINK_MNG}         // link support for MNG images
+{.$DEFINE DONT_LINK_JNG}         // link support for JNG images
+{.$DEFINE DONT_LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
+{.$DEFINE DONT_LINK_RADHDR}      // link support for Radiance HDR/RGBE file format
 
-//{$DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
+{.$DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
                              // Extras package. Exactly which formats will be
                              // registered depends on settings in
                              // ImagingExtras.pas unit.
+
+{.$DEFINE DONT_LINK_FILE_FORMATS} // no auto link support of any file format
+
 
 { Component set used in ImagignComponents.pas unit. You usually don't need
   to be concerned with this - proper component library is selected automatically
@@ -192,16 +196,6 @@
 {$IFDEF DELPHI}
   {$UNDEF COMPONENT_SET_LCL}
   {$DEFINE COMPONENT_SET_VCL}
-{$ENDIF}
-
-{ Platform options }
-
-{$IF Defined(WIN32) or Defined(WIN64)}
-  {$DEFINE MSWINDOWS}
-{$IFEND}
-
-{$IFDEF LINUX}
-  {$DEFINE UNIX}
 {$ENDIF}
 
 { More compiler options }

@@ -234,6 +234,10 @@ function MaxFloat(const A, B: Double): Double; overload; {$IFDEF USE_INLINE}inli
 { Returns result from multiplying Number by Numerator and then dividing by Denominator.
   Denominator must be greater than 0.}
 function MulDiv(Number, Numerator, Denominator: Word): Word; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Returns true if give floats are the equal within given delta.}
+function SameFloat(A, B: Single; Delta: Single = 0.001): Boolean; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Returns true if give floats are the equal within given delta.}
+function SameFloat(const A, B: Double; const Delta: Double = 0.000001): Boolean; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { Switches Boolean value.}
 procedure Switch(var Value: Boolean); {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -1096,6 +1100,16 @@ begin
 end;
 {$IFEND}
 
+function SameFloat(A, B: Single; Delta: Single): Boolean;
+begin
+  Result := Abs(A - B) <= Delta;
+end;
+
+function SameFloat(const A, B: Double; const Delta: Double): Boolean;
+begin
+  Result := Abs(A - B) <= Delta;
+end;
+
 function IsLittleEndian: Boolean;
 var
   W: Word;
@@ -1624,7 +1638,7 @@ initialization
 {$ENDIF}
 
 {$IF Defined(DELPHI)}
-  {$IF CompilerVersion >= 23}
+  {$IF CompilerVersion >= 22}
   FloatFormatSettings := TFormatSettings.Create('en-US');
   {$ELSE}
   GetLocaleFormatSettings(1033, FloatFormatSettings);
