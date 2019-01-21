@@ -34,12 +34,10 @@ type
 
 {$IF Defined(FPC)}
   ptr2int = PtrUInt;
-{$ELSEIF Defined(DCC)}
-{$IF CompilerVersion >= 20}
+{$ELSEIF CompilerVersion >= 20}
   ptr2int = NativeUInt;
 {$ELSE}
   ptr2int = Cardinal;
-{$IFEND}
 {$IFEND}
 { a pointer to integer casting is used to do pointer arithmetic. }
 

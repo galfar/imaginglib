@@ -1,8 +1,10 @@
 unit ZLibDelphi;
 
-{$ifdef FPC}
+{$IFDEF FPC}
   {$MODE OBJFPC}
-{$endif}
+{$ELSE}
+  {$DEFINE DCC}
+{$ENDIF}
 
 interface
 
