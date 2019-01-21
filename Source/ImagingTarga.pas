@@ -185,7 +185,7 @@ var
         end;
       end;
       // set position in source to real end of compressed data
-      Seek(Handle, -(BufSize - LongInt(LongWord(Src) - LongWord(Buffer))),
+      Seek(Handle, -(BufSize - (PtrUInt(Src) - PtrUInt(Buffer))),
         smFromCurrent);
       FreeMem(Buffer);
     end;
@@ -410,7 +410,7 @@ var
     end;
 
     procedure RleCompressLine(Data: PByte; PixelCount, Bpp: LongInt; Dest:
-      PByte; var Written: LongInt);
+      PByte; out Written: LongInt);
     const
       MaxRun = 128;
     var

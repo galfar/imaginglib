@@ -491,8 +491,10 @@ type
 type
 {$IF CompilerVersion <= 18.5}
   PtrUInt = LongWord;
+  PtrInt = LongInt;
 {$ELSE}
   PtrUInt = NativeUInt;
+  PtrInt = NativeInt;
 {$IFEND}
 {$ENDIF}
 

@@ -629,6 +629,8 @@ begin
     bfOneMinusDstAlpha: FSrc := ColorFP(1 - DestPix.A, 1 - DestPix.A, 1 - DestPix.A, 1 - DestPix.A);
     bfDstColor:         FSrc := ColorFP(DestPix.A, DestPix.R, DestPix.G, DestPix.B);
     bfOneMinusDstColor: FSrc := ColorFP(1 - DestPix.A, 1 - DestPix.R, 1 - DestPix.G, 1 - DestPix.B);
+  else
+    Assert(False);
   end;
   case DestFactor of
     bfZero:             FDst := ColorFP(0, 0, 0, 0);
@@ -639,6 +641,8 @@ begin
     bfOneMinusDstAlpha: FDst := ColorFP(1 - DestPix.A, 1 - DestPix.A, 1 - DestPix.A, 1 - DestPix.A);
     bfSrcColor:         FDst := ColorFP(SrcPix.A, SrcPix.R, SrcPix.G, SrcPix.B);
     bfOneMinusSrcColor: FDst := ColorFP(1 - SrcPix.A, 1 - SrcPix.R, 1 - SrcPix.G, 1 - SrcPix.B);
+  else
+    Assert(False);
   end;
   // Compute blending formula
   DestPix.R := SrcPix.R * FSrc.R + DestPix.R * FDst.R;
