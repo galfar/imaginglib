@@ -71,7 +71,7 @@ begin
   WriteLn('                 width, B is desired height, and C is resampling filter used.');
   WriteLn('                 If A or B is 0 then original dimension will be preserved.');
   WriteLn('                 C is optional and can have one of following values: ');
-  WriteLn('                 nearest(default), bilinear, bicubic.');
+  WriteLn('                 nearest(default), bilinear, bicubic, lanczos.');
   WriteLn('    -flip:    flips input images upside down');
   WriteLn('    -mirror:  mirrors input images left to right');
   WriteLn('    -colorcount: reduces number of colors in image');
@@ -285,16 +285,18 @@ begin
           Delete(Arg, J, MaxInt);
         end;
         Y := StrToIntDef(Arg, 0);
-        // Limit new dimensions to 8192 and convert
+        // Limit new dimensions and convert
         // invalid dimensions are set to 0 which is special value (later)
-        X := ClampInt(X, 0, 8192);
-        Y := ClampInt(Y, 0, 8192);
+        X := ClampInt(X, 0, 32768);
+        Y := ClampInt(Y, 0, 32768);
         // Select filtering method used for resizing according to argument
         ResFilter := rfNearest;
         if Pos('bil', S) = 1 then
           ResFilter := rfBilinear
         else if Pos('bic', S) = 1 then
-          ResFilter := rfBicubic;
+          ResFilter := rfBicubic
+        else if Pos('lan', S) = 1 then
+          ResFilter := rfLanczos;
 
         PrintInfo('Resizing images to %dx%d using [%s] filter: ', [X, Y, S]);
 
