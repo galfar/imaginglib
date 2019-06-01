@@ -4186,6 +4186,7 @@ end;
 
 function GetBCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
 begin
+  Result := 0;
   raise ENotImplemented.Create();
 end;
 

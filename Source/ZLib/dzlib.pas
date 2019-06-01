@@ -407,6 +407,7 @@ end;
 
 function TCompressionStream.Read(var Buffer; Count: Longint): Longint;
 begin
+  Result := 0;
   raise ECompressionError.Create('Invalid stream operation');
 end;
 
@@ -488,6 +489,7 @@ end;
 
 function TDecompressionStream.Write(const Buffer; Count: Longint): Longint;
 begin
+  Result := 0;
   raise EDecompressionError.Create('Invalid stream operation');
 end;
 

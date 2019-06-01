@@ -58,7 +58,7 @@ type
 { Initializes image (all is set to zeroes). Call this for each image
   before using it (before calling every other function) to be sure there
   are no random-filled bytes (which would cause errors later).}
-procedure InitImage(var Image: TImageData);
+procedure InitImage(out Image: TImageData);
 { Creates empty image of given dimensions and format. Image is filled with
   transparent black color (A=0, R=0, G=0, B=0).}
 function NewImage(Width, Height: LongInt; Format: TImageFormat;
@@ -869,7 +869,7 @@ end;
 
 { General Functions }
 
-procedure InitImage(var Image: TImageData);
+procedure InitImage(out Image: TImageData);
 begin
   FillChar(Image, SizeOf(Image), 0);
 end;

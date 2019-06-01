@@ -29,10 +29,6 @@ unit Main;
 
 {$I ImagingOptions.inc}
 
-{$IF not Defined(COMPONENT_SET_VCL) or not Defined(DELPHI)}
-  {$MESSAGE ERROR 'This program requires Delphi with VCL'}
-{$IFEND}
-
 interface
 
 uses

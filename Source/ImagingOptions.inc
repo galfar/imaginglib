@@ -44,14 +44,6 @@
 
 {.$DEFINE DONT_LINK_FILE_FORMATS} // no auto link support of any file format
 
-
-{ Component set used in ImagignComponents.pas unit. You usually don't need
-  to be concerned with this - proper component library is selected automatically
-  according to your compiler. }
-
-{$DEFINE COMPONENT_SET_VCL}   // use Delphi VCL
-{ $DEFINE COMPONENT_SET_LCL}  // use Lazarus LCL (set automatically when compiling with FPC)
-
 {
   Auto Options
   Following options and defines are set automatically and some

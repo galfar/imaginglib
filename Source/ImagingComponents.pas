@@ -33,10 +33,11 @@ unit ImagingComponents;
 
 interface
 
-{$IFDEF LCL}
+{$IF Defined(FPC) and Defined(LCL)}
   {$DEFINE COMPONENT_SET_LCL}
-  {$UNDEF COMPONENT_SET_VCL}
-{$ENDIF}
+{$ELSEIF Defined(DELPHI)}
+  {$DEFINE COMPONENT_SET_VCL}
+{$IFEND}
 
 {$IF not Defined(COMPONENT_SET_LCL) and not Defined(COMPONENT_SET_VCL)}
 // If no component sets should be used just include empty unit.
@@ -137,7 +138,7 @@ type
 
 {$IFNDEF DONT_LINK_BITMAP}
   { TImagingGraphic descendant for loading/saving Windows bitmaps.
-    VCL/CLX/LCL all have native support for bitmaps so you might
+    VCL/LCL both have native support for bitmaps so you might
     want to disable this class (although you can save bitmaps with
     RLE compression with this class).}
   TImagingBitmap = class(TImagingGraphicForSave)
@@ -497,11 +498,11 @@ end;
 
 procedure ConvertDataToBitmap(const Data: TImageData; Bitmap: TBitmap);
 var
-  I, LineBytes: LongInt;
   PF: TPixelFormat;
   Info: TImageFormatInfo;
   WorkData: TImageData;
 {$IFDEF COMPONENT_SET_VCL}
+  I, LineBytes: LongInt;
   LogPalette: TMaxLogPalette;
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
@@ -548,8 +549,6 @@ begin
     
   if PF = pfCustom then
     RaiseImaging(SBadFormatDataToBitmap, [ImageToStr(WorkData)]);
-      
-  LineBytes := WorkData.Width * Info.BytesPerPixel;
 
 {$IFDEF COMPONENT_SET_VCL}
   Bitmap.Width := WorkData.Width;
@@ -571,17 +570,19 @@ begin
     end;
     Bitmap.Palette := CreatePalette(PLogPalette(@LogPalette)^);
   end;
+
   // Copy scanlines
+    LineBytes := WorkData.Width * Info.BytesPerPixel;
   for I := 0 to WorkData.Height - 1 do
     Move(PByteArray(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
 
-  // Delphi 2009 and newer support alpha transparency fro TBitmap
+  // Delphi 2009 and newer support alpha transparency for TBitmap
 {$IF Defined(DELPHI) and (CompilerVersion >= 20.0)}
   if Bitmap.PixelFormat = pf32bit then
     Bitmap.AlphaFormat := afDefined;
 {$IFEND}
-
 {$ENDIF}
+
 {$IFDEF COMPONENT_SET_LCL}
   // Create 32bit raw image from image data
   FillChar(RawImage, SizeOf(RawImage), 0);
@@ -709,7 +710,7 @@ begin
       Move(PByteArray(RawImage.Data)[I * LineLazBytes],
         PByteArray(Data.Bits)[I * LineBytes], LineBytes);
     end;
-    // May need to swap RB order, depends on wifget set
+    // May need to swap RB order, depends on widget set
     if RawImage.Description.BlueShift > RawImage.Description.RedShift then
       SwapChannels(Data, ChannelRed, ChannelBlue);
 

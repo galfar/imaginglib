@@ -1,10 +1,10 @@
 {
   Vampyre Imaging Library Demo
-  LCL Imager (ObjectPascal, high level/component sets/canvas, Win32/Linux/BSD)
-  tested in Lazarus 0.9.30.2 (Windows: Win32; Linux: Gtk2, Qt; OSX: Carbon)
+  LCL Imager (ObjectPascal, high level/component sets/canvas, Win32/Linux/macOS)
+  tested in Lazarus 1.8.4 (Windows; Linux: Gtk2, Qt; macOS: Carbon, Cocoa)
   written by Marek Mauder
 
-  Simple image manipulator program which shows usage of Imaging VCL/CLX/LCL
+  Simple image manipulator program which shows usage of Imaging VCL/LCL
   classes (TImagingGraphic and its descendants) to display images on form.
   It also uses high level image classes and some low level functions.
   Demo uses TMultiImage class to store images (loaded from one file - MNG, DDS)
