@@ -80,7 +80,7 @@ begin
   WriteLn('       argument: number of desired mip levels. 0 or no arg means');
   WriteLn('                 create all possible levels');
   WriteLn('    -rotate: rotates input images counterclockwise');
-  WriteLn('       argument: angle in degrees, multiple of 90');
+  WriteLn('       argument: angle in degrees (integer)');
 
   // Enumerate all supported file formats and store default ext and
   // their capability to save files to string list.
@@ -347,10 +347,8 @@ begin
       end
       else if OpName = 'rotate' then
       begin
-        // Parse argument, only multiples of 90 degrees are allowed
+        // Parse argument, only integer degrees are allowed
         if not TryStrToInt(Arg, X) then
-          PrintInvalidArg(OpName, Arg);
-        if X mod 90 <> 0 then
           PrintInvalidArg(OpName, Arg);
         PrintInfo('Rotating images: %d degrees CCW', [X]);
         // Rotate all
@@ -400,7 +398,10 @@ end;
   -- TODOS ----------------------------------------------------
     - more operations
     - allow changing ImagingOptions too
-    - rotations not only multipples of 90
+
+  -- 0.80 -----------------------------------------------------
+    - Added Lanczos as a resampling option
+    - Removed no longer required limit on rotation angles to be multimples of 90.
 
   -- 0.77.1 ---------------------------------------------------
     - Refactored the demo (moved stuff to unit from dpr) and
