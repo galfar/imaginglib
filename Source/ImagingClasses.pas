@@ -210,7 +210,7 @@ type
     function GetImage(Index: Integer): TImageData; {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetImage(Index: Integer; Value: TImageData); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure SetPointer; override;
-    function PrepareInsert(Index, Count: Integer): Boolean;
+    function PrepareInsert(Index, InsertCount: Integer): Boolean;
     procedure DoInsertImages(Index: Integer; const Images: TDynImageDataArray);
     procedure DoInsertNew(Index: Integer; AWidth, AHeight: Integer; AFormat: TImageFormat);
   public
@@ -784,24 +784,27 @@ begin
   end;
 end;
 
-function TMultiImage.PrepareInsert(Index, Count: Integer): Boolean;
+function TMultiImage.PrepareInsert(Index, InsertCount: Integer): Boolean;
 var
   I: Integer;
+  OldImageCount, MoveCount: Integer;
 begin
+  OldImageCount := GetImageCount;
+
   // Inserting to empty image will add image at index 0
-  if GetImageCount = 0 then
+  if OldImageCount = 0 then
     Index := 0;
 
-  if (Index >= 0) and (Index <= GetImageCount) and (Count > 0) then
+  if (Index >= 0) and (Index <= OldImageCount) and (InsertCount > 0) then
   begin
-    SetLength(FDataArray, GetImageCount + Count);
-    if Index < GetImageCount - 1 then
+    SetLength(FDataArray, OldImageCount + InsertCount);
+    if Index < OldImageCount then
     begin
-      // Move imges to new position
-      System.Move(FDataArray[Index], FDataArray[Index + Count],
-        (GetImageCount - Count - Index) * SizeOf(TImageData));
+      // Move images to new position
+      MoveCount := OldImageCount - Index;
+      System.Move(FDataArray[Index], FDataArray[Index + InsertCount], MoveCount * SizeOf(TImageData));
       // Null old images, not free them!
-      for I := Index to Index + Count - 1 do
+      for I := Index to Index + InsertCount - 1 do
         InitImage(FDataArray[I]);
     end;
     Result := True;
@@ -923,7 +926,7 @@ end;
 procedure TMultiImage.InsertImages(Index: Integer;
   const Images: TDynImageDataArray);
 begin
-  DoInsertImages(Index, FDataArray);
+  DoInsertImages(Index, Images);
 end;
 
 procedure TMultiImage.InsertImages(Index: Integer; Images: TMultiImage);
