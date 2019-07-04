@@ -1,11 +1,11 @@
 object MainForm: TMainForm
-  Left = 914
+  Left = 3754
   Height = 680
-  Top = 452
+  Top = 354
   Width = 997
   AllowDropFiles = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
-  ClientHeight = 660
+  ClientHeight = 657
   ClientWidth = 997
   Constraints.MinHeight = 240
   Constraints.MinWidth = 320
@@ -87,19 +87,19 @@ object MainForm: TMainForm
   OnDestroy = FormDestroy
   OnDropFiles = FormDropFiles
   OnShow = FormShow
-  Position = poScreenCenter
-  LCLVersion = '1.8.2.0'
+  Position = poWorkAreaCenter
+  LCLVersion = '2.0.2.0'
   Visible = True
   object StatusBar: TStatusBar
     Left = 0
     Height = 23
-    Top = 637
+    Top = 634
     Width = 997
     Panels = <>
   end
   object PairSplitter: TPairSplitter
     Left = 0
-    Height = 637
+    Height = 634
     Top = 0
     Width = 997
     Align = alClient
@@ -107,14 +107,14 @@ object MainForm: TMainForm
     object PairSplitterSideLeft: TPairSplitterSide
       Cursor = crArrow
       Left = 0
-      Height = 637
+      Height = 634
       Top = 0
       Width = 180
       ClientWidth = 180
-      ClientHeight = 637
+      ClientHeight = 634
       object TreeImage: TTreeView
         Left = 0
-        Height = 637
+        Height = 634
         Top = 0
         Width = 180
         Align = alClient
@@ -132,15 +132,15 @@ object MainForm: TMainForm
     object PairSplitterSideRight: TPairSplitterSide
       Cursor = crArrow
       Left = 185
-      Height = 637
+      Height = 634
       Top = 0
       Width = 812
       ClientWidth = 812
-      ClientHeight = 637
+      ClientHeight = 634
       object Image: TImage
         Cursor = crHandPoint
         Left = 4
-        Height = 637
+        Height = 634
         Top = 0
         Width = 804
         Align = alClient
@@ -170,9 +170,16 @@ object MainForm: TMainForm
         OnClick = MenuItem44Click
       end
       object MenuItem5: TMenuItem
-        Caption = 'Save As ...'
+        Caption = 'Save As...'
         ShortCut = 16467
         OnClick = MenuItem5Click
+      end
+      object MenuItem93: TMenuItem
+        Caption = '-'
+      end
+      object MenuItem92: TMenuItem
+        Caption = 'Add Image(s) From File...'
+        OnClick = MenuItem92Click
       end
       object MenuItem25: TMenuItem
         Caption = '-'
@@ -203,8 +210,8 @@ object MainForm: TMainForm
         OnClick = ActViewFitToWindowExecute
       end
       object MenuItem17: TMenuItem
-        Action = ActViewRealSize
-        OnClick = ActViewRealSizeExecute
+        Action = ActViewActualSize
+        OnClick = ActViewActualSizeExecute
       end
       object MenuItem32: TMenuItem
         Caption = '-'
@@ -555,15 +562,18 @@ object MainForm: TMainForm
     left = 112
     top = 104
     object ActViewFitToWindow: TAction
+      Category = 'View'
       Caption = 'Fit To Window'
       OnExecute = ActViewFitToWindowExecute
     end
-    object ActViewRealSize: TAction
-      Caption = 'Real Size'
+    object ActViewActualSize: TAction
+      Category = 'View'
+      Caption = 'Actual Size'
       Checked = True
-      OnExecute = ActViewRealSizeExecute
+      OnExecute = ActViewActualSizeExecute
     end
     object ActViewInfo: TAction
+      Category = 'View'
       Caption = 'Image Info'
       OnExecute = ActViewInfoExecute
     end

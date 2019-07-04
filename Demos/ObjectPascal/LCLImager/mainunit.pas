@@ -32,8 +32,15 @@ interface
 uses
   Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, Variants,
   Menus, ExtCtrls, ExtDlgs, DemoUtils, AboutUnit, ActnList, StdCtrls, ComCtrls,
-  PairSplitter, FileUtil, ImagingTypes, Imaging, ImagingClasses, ImagingComponents,
-  ImagingCanvases, ImagingBinary, ImagingUtility;
+  PairSplitter, FileUtil,
+
+  ImagingTypes,
+  Imaging,
+  ImagingClasses,
+  ImagingComponents,
+  ImagingCanvases,
+  ImagingBinary,
+  ImagingUtility;
 
 type
   TManipulationType = (mtFlip, mtMirror, mtRotate90CW, mtRotate90CCW,
@@ -51,7 +58,7 @@ type
   TMainForm = class(TForm)
     ActViewInfo: TAction;
     ActViewFitToWindow: TAction;
-    ActViewRealSize: TAction;
+    ActViewActualSize: TAction;
     ActionList: TActionList;
     Image: TImage;
     MainMenu: TMainMenu;
@@ -119,6 +126,8 @@ type
     MenuItem69: TMenuItem;
     MenuItem70: TMenuItem;
     MenuItem91: TMenuItem;
+    MenuItem92: TMenuItem;
+    MenuItem93: TMenuItem;
     MIMorphology: TMenuItem;
     MenuItem71: TMenuItem;
     MenuItem72: TMenuItem;
@@ -164,7 +173,7 @@ type
     TreeImage: TTreeView;
     procedure ActViewFitToWindowExecute(Sender: TObject);
     procedure ActViewInfoExecute(Sender: TObject);
-    procedure ActViewRealSizeExecute(Sender: TObject);
+    procedure ActViewActualSizeExecute(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure FormDropFiles(Sender: TObject; const FileNames: array of String);
@@ -244,6 +253,7 @@ type
     procedure MenuItem89Click(Sender: TObject);
     procedure MenuItem90Click(Sender: TObject);
     procedure MenuItem91Click(Sender: TObject);
+    procedure MenuItem92Click(Sender: TObject);
     procedure TreeImageSelectionChanged(Sender: TObject);
   private
     FBitmap: TImagingBitmap;
@@ -254,7 +264,7 @@ type
     FParam1, FParam2, FParam3: Integer;
     procedure OpenFile(const FileName: string);
     procedure SaveFile(const FileName: string);
-    procedure SelectSubimage(Index: LongInt);
+    procedure SelectSubImage(Index: LongInt);
     procedure UpdateView(RebuildTree: Boolean);
     function CheckCanvasFormat: Boolean;
     procedure ApplyConvolution(Kernel: Pointer; Size: LongInt; NeedsBlur: Boolean);
@@ -569,12 +579,12 @@ end;
 
 procedure TMainForm.MenuItem34Click(Sender: TObject);
 begin
-  SelectSubimage(FImage.ActiveImage + 1);
+  SelectSubImage(FImage.ActiveImage + 1);
 end;
 
 procedure TMainForm.MenuItem35Click(Sender: TObject);
 begin
-  SelectSubimage(FImage.ActiveImage - 1);
+  SelectSubImage(FImage.ActiveImage - 1);
 end;
 
 function TMainForm.CheckCanvasFormat: Boolean;
@@ -954,18 +964,37 @@ begin
   ApplyAdditionalOp(aoDeskew);
 end;
 
+procedure TMainForm.MenuItem92Click(Sender: TObject);
+var
+  Images: TMultiImage;
+begin
+  OpenDialog.Filter := GetImageFileFormatsFilter(True);
+  if OpenDialog.Execute then
+  begin
+    Images := TMultiImage.Create;
+    try
+      Images.LoadMultiFromFile(OpenDialog.FileName);
+      FImage.AddImages(Images.DataArray);
+      BuildImageTree;
+      SelectSubImage(FImage.ActiveImage);
+    finally
+      Images.Free;
+    end;
+  end;
+end;
+
 procedure TMainForm.TreeImageSelectionChanged(Sender: TObject);
 var
   Node: TTreeNode;
 begin
   Node := TreeImage.Selected;
   if Node <> nil then
-    SelectSubimage(PtrInt(Node.Data));
+    SelectSubImage(PtrInt(Node.Data));
 end;
 
-procedure TMainForm.ActViewRealSizeExecute(Sender: TObject);
+procedure TMainForm.ActViewActualSizeExecute(Sender: TObject);
 begin
-  ActViewRealSize.Checked := True;
+  ActViewActualSize.Checked := True;
   ActViewFitToWindow.Checked := False;
   Image.Proportional := False;
   Image.Stretch := False;
@@ -974,7 +1003,7 @@ end;
 procedure TMainForm.ActViewFitToWindowExecute(Sender: TObject);
 begin
   ActViewFitToWindow.Checked := True;
-  ActViewRealSize.Checked := False;
+  ActViewActualSize.Checked := False;
   Image.Proportional := True;
   Image.Stretch := True;
 end;
@@ -1148,7 +1177,7 @@ begin
     FImage.CreateFromParams(32, 32, ifA8R8G8B8, 1);
     TreeImage.Items.Clear;
   end;
-  SelectSubimage(0);
+  SelectSubImage(0);
 end;
 
 procedure TMainForm.BuildImageTree;
@@ -1185,7 +1214,7 @@ begin
   end;
 end;
 
-procedure TMainForm.SelectSubimage(Index: LongInt);
+procedure TMainForm.SelectSubImage(Index: LongInt);
 begin
   FImage.ActiveImage := Index;
   MenuItemActSubImage.Caption := Format('Active Subimage: %d/%d', [FImage.ActiveImage + 1, FImage.ImageCount]);
@@ -1206,6 +1235,9 @@ end;
 
 {
   File Notes:
+
+  -- 0.80 Changes/Bug Fixes -----------------------------------
+    - Added "Add images from file" menu item
 
   -- 0.77.1 Changes/Bug Fixes ---------------------------------
     - Writing metadata from loaded file when resaving.
