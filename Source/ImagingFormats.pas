@@ -1588,7 +1588,7 @@ begin
     Result := 0.0;
 end;
 
-{ Micthell cubic filter.}
+{ Mitchell cubic filter.}
 function FilterMitchell(Value: Single): Single;
 const
   B = 1.0 / 3.0;
@@ -1653,7 +1653,7 @@ function BuildMappingTable(DstLow, DstHigh, SrcLow, SrcHigh, SrcImageWidth: Long
 var
   I, J, K, N: LongInt;
   Left, Right, SrcWidth, DstWidth: LongInt;
-  Weight, Scale, Center, Count: Single;
+  Weight, Scale, Center: Single;
 begin
   Result := nil;
   K := 0;
@@ -1703,13 +1703,11 @@ begin
         Center := SrcLow + I / Scale;
       Left := Floor(Center - Radius);
       Right := Ceil(Center + Radius);
-      Count := -1.0;
       for J := Left to Right do
       begin
         Weight := Filter((Center - J) * Scale) * Scale;
         if Weight <> 0.0 then
         begin
-          Count := Count + Weight;
           K := Length(Result[I]);
           SetLength(Result[I], K + 1);
           Result[I][K].Pos := ClampInt(J, SrcLow, SrcHigh - 1);
@@ -1721,9 +1719,7 @@ begin
         SetLength(Result[I], 1);
         Result[I][0].Pos := Floor(Center);
         Result[I][0].Weight := 1.0;
-      end
-      else if Count <> 0.0 then
-        Result[I][K div 2].Weight := Result[I][K div 2].Weight - Count;
+      end;
     end;
   end
   else // if Scale > 1.0 then
@@ -1738,13 +1734,11 @@ begin
         Center := SrcLow + I * Scale;
       Left := Floor(Center - Radius);
       Right := Ceil(Center + Radius);
-      Count := -1.0;
       for J := Left to Right do
       begin
         Weight := Filter(Center - J);
         if Weight <> 0.0 then
         begin
-          Count := Count + Weight;
           K := Length(Result[I]);
           SetLength(Result[I], K + 1);
 
@@ -1764,8 +1758,6 @@ begin
           Result[I][K].Weight := Weight;
         end;
       end;
-      if Count <> 0.0 then
-        Result[I][K div 2].Weight := Result[I][K div 2].Weight - Count;
     end;
   end;
 end;
@@ -1818,15 +1810,11 @@ begin
   if (MapX = nil) or (MapY = nil) then
     Exit;
 
-  ClusterX := nil;
-  ClusterY := nil;
-
   try
     // Find min and max X coords of pixels that will contribute to target image
     FindExtremes(MapX, XMinimum, XMaximum);
-
     SetLength(LineBufferFP, XMaximum - XMinimum + 1);
-    // Following code works for the rest of data formats
+
     for J := 0 to DstHeight - 1 do
     begin
       // First for each pixel in the current line sample vertically
@@ -1847,10 +1835,10 @@ begin
           // Accumulate this pixel's weighted value
           Weight := ClusterY[Y].Weight;
           SrcFloat := Info.GetPixelFP(@PByteArray(SrcImage.Bits)[(ClusterY[Y].Pos * SrcImage.Width + X) * Info.BytesPerPixel], @Info, nil);
-          AccumB := AccumB + SrcFloat.B * Weight;
-          AccumG := AccumG + SrcFloat.G * Weight;
-          AccumR := AccumR + SrcFloat.R * Weight;
           AccumA := AccumA + SrcFloat.A * Weight;
+          AccumR := AccumR + SrcFloat.R * Weight;
+          AccumG := AccumG + SrcFloat.G * Weight;
+          AccumB := AccumB + SrcFloat.B * Weight;
         end;
         // Store accumulated value for this pixel in buffer
         with LineBufferFP[X - XMinimum] do
@@ -1881,10 +1869,10 @@ begin
           Weight := ClusterX[X].Weight;
           with LineBufferFP[ClusterX[X].Pos - XMinimum] do
           begin
-            AccumB := AccumB + B * Weight;
-            AccumG := AccumG + G * Weight;
-            AccumR := AccumR + R * Weight;
             AccumA := AccumA + A * Weight;
+            AccumR := AccumR + R * Weight;
+            AccumG := AccumG + G * Weight;
+            AccumB := AccumB + B * Weight;
           end;
         end;
 
@@ -4186,7 +4174,6 @@ end;
 
 function GetBCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
 begin
-  Result := 0;
   raise ENotImplemented.Create();
 end;
 
