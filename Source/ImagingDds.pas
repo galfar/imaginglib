@@ -117,19 +117,19 @@ const
 
 const
   { Four character codes.}
-  DDSMagic    = LongWord(Byte('D') or (Byte('D') shl 8) or (Byte('S') shl 16) or
+  DDSMagic    = UInt32(Byte('D') or (Byte('D') shl 8) or (Byte('S') shl 16) or
     (Byte(' ') shl 24));
-  FOURCC_DXT1 = LongWord(Byte('D') or (Byte('X') shl 8) or (Byte('T') shl 16) or
+  FOURCC_DXT1 = UInt32(Byte('D') or (Byte('X') shl 8) or (Byte('T') shl 16) or
     (Byte('1') shl 24));
-  FOURCC_DXT3 = LongWord(Byte('D') or (Byte('X') shl 8) or (Byte('T') shl 16) or
+  FOURCC_DXT3 = UInt32(Byte('D') or (Byte('X') shl 8) or (Byte('T') shl 16) or
     (Byte('3') shl 24));
-  FOURCC_DXT5 = LongWord(Byte('D') or (Byte('X') shl 8) or (Byte('T') shl 16) or
+  FOURCC_DXT5 = UInt32(Byte('D') or (Byte('X') shl 8) or (Byte('T') shl 16) or
     (Byte('5') shl 24));
-  FOURCC_ATI1 = LongWord(Byte('A') or (Byte('T') shl 8) or (Byte('I') shl 16) or
+  FOURCC_ATI1 = UInt32(Byte('A') or (Byte('T') shl 8) or (Byte('I') shl 16) or
     (Byte('1') shl 24));
-  FOURCC_ATI2 = LongWord(Byte('A') or (Byte('T') shl 8) or (Byte('I') shl 16) or
+  FOURCC_ATI2 = UInt32(Byte('A') or (Byte('T') shl 8) or (Byte('I') shl 16) or
     (Byte('2') shl 24));
-  FOURCC_DX10 = LongWord(Byte('D') or (Byte('X') shl 8) or (Byte('1') shl 16) or
+  FOURCC_DX10 = UInt32(Byte('D') or (Byte('X') shl 8) or (Byte('1') shl 16) or
     (Byte('0') shl 24));
 
   { Some D3DFORMAT values used in DDS files as FourCC value.}
@@ -179,43 +179,43 @@ const
 type
   { Stores the pixel format information.}
   TDDPixelFormat = packed record
-    Size: LongWord;       // Size of the structure = 32 bytes
-    Flags: LongWord;      // Flags to indicate valid fields
-    FourCC: LongWord;     // Four-char code for compressed textures (DXT)
-    BitCount: LongWord;   // Bits per pixel if uncomp. usually 16,24 or 32
-    RedMask: LongWord;    // Bit mask for the Red component
-    GreenMask: LongWord;  // Bit mask for the Green component
-    BlueMask: LongWord;   // Bit mask for the Blue component
-    AlphaMask: LongWord;  // Bit mask for the Alpha component
+    Size: UInt32;       // Size of the structure = 32 bytes
+    Flags: UInt32;      // Flags to indicate valid fields
+    FourCC: UInt32;     // Four-char code for compressed textures (DXT)
+    BitCount: UInt32;   // Bits per pixel if uncomp. usually 16,24 or 32
+    RedMask: UInt32;    // Bit mask for the Red component
+    GreenMask: UInt32;  // Bit mask for the Green component
+    BlueMask: UInt32;   // Bit mask for the Blue component
+    AlphaMask: UInt32;  // Bit mask for the Alpha component
   end;
 
   { Specifies capabilities of surface.}
   TDDSCaps = packed record
-    Caps1: LongWord;      // Should always include DDSCAPS_TEXTURE
-    Caps2: LongWord;      // For cubic environment maps
-    Reserved: array[0..1] of LongWord; // Reserved
+    Caps1: UInt32;      // Should always include DDSCAPS_TEXTURE
+    Caps2: UInt32;      // For cubic environment maps
+    Reserved: array[0..1] of UInt32; // Reserved
   end;
 
   { Record describing DDS file contents.}
   TDDSurfaceDesc2 = packed record
-    Size: LongWord;       // Size of the structure = 124 Bytes
-    Flags: LongWord;      // Flags to indicate valid fields
-    Height: LongWord;     // Height of the main image in pixels
-    Width: LongWord;      // Width of the main image in pixels
-    PitchOrLinearSize: LongWord; // For uncomp formats number of bytes per
-                          // scanline. For comp it is the size in
-                          // bytes of the main image
-    Depth: LongWord;      // Only for volume text depth of the volume
-    MipMaps: LongInt;     // Total number of levels in the mipmap chain
-    Reserved1: array[0..10] of LongWord; // Reserved
+    Size: UInt32;       // Size of the structure = 124 Bytes
+    Flags: UInt32;      // Flags to indicate valid fields
+    Height: UInt32;     // Height of the main image in pixels
+    Width: UInt32;      // Width of the main image in pixels
+    PitchOrLinearSize: UInt32; // For uncomp formats number of bytes per
+                               // scanline. For comp it is the size in
+                               // bytes of the main image
+    Depth: UInt32;      // Only for volume text depth of the volume
+    MipMaps: Int32;     // Total number of levels in the mipmap chain
+    Reserved1: array[0..10] of UInt32; // Reserved
     PixelFormat: TDDPixelFormat; // Format of the pixel data
     Caps: TDDSCaps;       // Capabilities
-    Reserved2: LongWord;  // Reserved
+    Reserved2: UInt32;  // Reserved
   end;
 
   { DDS file header.}
   TDDSFileHeader = packed record
-    Magic: LongWord;       // File format magic
+    Magic: UInt32;       // File format magic
     Desc: TDDSurfaceDesc2; // Surface description
   end;
 
@@ -352,9 +352,9 @@ type
   TDX10Header = packed record
     DXGIFormat: TDXGIFormat;
     ResourceDimension: TD3D10ResourceDimension;
-    MiscFlags: LongWord;
-    ArraySize: LongWord;
-    Reserved: LongWord;
+    MiscFlags: UInt32;
+    ArraySize: UInt32;
+    Reserved: UInt32;
   end;
 
 { TDDSFileFormat class implementation }
@@ -460,7 +460,7 @@ var
   FmtInfo: TImageFormatInfo;
   NeedsSwapChannels: Boolean;
   CurrentWidth, CurrentHeight, ImageCount, LoadSize, I,
-    PitchOrLinear, MainImageLinearSize: Integer;
+    PitchOrLinear, MainImageLinearSize: LongInt;
   Data: PByte;
   UseAsPitch: Boolean;
   UseAsLinear: Boolean;
@@ -472,7 +472,7 @@ var
       (DDPF.BlueMask = PF.BBitMask);
   end;
 
-  function FindFourCCFormat(FourCC: LongWord): TImageFormat;
+  function FindFourCCFormat(FourCC: UInt32): TImageFormat;
   begin
     // Handle FourCC and large ARGB formats
     case FourCC of
@@ -837,7 +837,7 @@ var
   Hdr: TDDSFileHeader;
   MainImage, ImageToSave: TImageData;
   I, MainIdx, Len, ImageCount: LongInt;
-  J: LongWord;
+  J: UInt32;
   FmtInfo: TImageFormatInfo;
   MustBeFreed: Boolean;
   Is2DTexture, IsCubeMap, IsVolume: Boolean;

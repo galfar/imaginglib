@@ -176,7 +176,7 @@ type
     procedure HorzLineInternal(X1, X2, Y: LongInt; Color: Pointer; Bpp: LongInt); virtual;
     procedure CopyPixelInternal(X, Y: LongInt; Pixel: Pointer; Bpp: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
     procedure DrawInternal(const SrcRect: TRect; DestCanvas: TImagingCanvas;
-      DestX, DestY: Integer; SrcFactor, DestFactor: TBlendingFactor; PixelWriteProc: TPixelWriteProc);
+      DestX, DestY: LongInt; SrcFactor, DestFactor: TBlendingFactor; PixelWriteProc: TPixelWriteProc);
     procedure StretchDrawInternal(const SrcRect: TRect; DestCanvas: TImagingCanvas;
       const DestRect: TRect; SrcFactor, DestFactor: TBlendingFactor;
       Filter: TResizeFilter; PixelWriteProc: TPixelWriteProc);
@@ -227,13 +227,13 @@ type
       Resulting destination pixel color is:
         SrcColor * SrcFactor +  DstColor * DstFactor}
     procedure DrawBlend(const SrcRect: TRect; DestCanvas: TImagingCanvas;
-      DestX, DestY: Integer; SrcFactor, DestFactor: TBlendingFactor);
+      DestX, DestY: LongInt; SrcFactor, DestFactor: TBlendingFactor);
     { Draws contents of this canvas onto another one with typical alpha
       blending (Src 'over' Dest, factors are bfSrcAlpha and bfOneMinusSrcAlpha.)}
-    procedure DrawAlpha(const SrcRect: TRect; DestCanvas: TImagingCanvas; DestX, DestY: Integer); virtual;
+    procedure DrawAlpha(const SrcRect: TRect; DestCanvas: TImagingCanvas; DestX, DestY: LongInt); virtual;
     { Draws contents of this canvas onto another one using additive blending
       (source and dest factors are bfOne).}
-    procedure DrawAdd(const SrcRect: TRect; DestCanvas: TImagingCanvas; DestX, DestY: Integer);
+    procedure DrawAdd(const SrcRect: TRect; DestCanvas: TImagingCanvas; DestX, DestY: LongInt);
     { Draws stretched and filtered contents of this canvas onto another canvas
       with pixel blending. Blending factors are chosen using TBlendingFactor parameters.
       Resulting destination pixel color is:
@@ -376,7 +376,7 @@ type
 
     procedure UpdateCanvasState; override;
 
-    procedure DrawAlpha(const SrcRect: TRect; DestCanvas: TImagingCanvas; DestX, DestY: Integer); override;
+    procedure DrawAlpha(const SrcRect: TRect; DestCanvas: TImagingCanvas; DestX, DestY: LongInt); override;
     procedure StretchDrawAlpha(const SrcRect: TRect; DestCanvas: TImagingCanvas;
       const DestRect: TRect; Filter: TResizeFilter = rfBilinear); override;
     procedure InvertColors; override;
@@ -926,8 +926,7 @@ end;
 procedure TImagingCanvas.SetClipRect(const Value: TRect);
 begin
   FClipRect := Value;
-  SwapMin(FClipRect.Left, FClipRect.Right);
-  SwapMin(FClipRect.Top, FClipRect.Bottom);
+  NormalizeRect(FClipRect);
   IntersectRect(FClipRect, FClipRect, Rect(0, 0, FPData.Width, FPData.Height));
 end;
 
@@ -1007,7 +1006,7 @@ begin
     case Bpp of
       1: FillMemoryByte(PixelPtr, WidthBytes, PByte(Color)^);
       2: FillMemoryWord(PixelPtr, WidthBytes, PWord(Color)^);
-      4: FillMemoryLongWord(PixelPtr, WidthBytes, PLongWord(Color)^);
+      4: FillMemoryUInt32(PixelPtr, WidthBytes, PUInt32(Color)^);
     else
       for I := X1 to X2 do
       begin
@@ -1374,10 +1373,10 @@ begin
 end;
 
 procedure TImagingCanvas.DrawInternal(const SrcRect: TRect;
-  DestCanvas: TImagingCanvas; DestX, DestY: Integer; SrcFactor,
+  DestCanvas: TImagingCanvas; DestX, DestY: LongInt; SrcFactor,
   DestFactor: TBlendingFactor; PixelWriteProc: TPixelWriteProc);
 var
-  X, Y, SrcX, SrcY, Width, Height, SrcBpp, DestBpp: Integer;
+  X, Y, SrcX, SrcY, Width, Height, SrcBpp, DestBpp: LongInt;
   PSrc: TColorFPRec;
   SrcPointer, DestPointer: PByte;
 begin
@@ -1411,19 +1410,19 @@ begin
 end;
 
 procedure TImagingCanvas.DrawBlend(const SrcRect: TRect; DestCanvas: TImagingCanvas;
-  DestX, DestY: Integer; SrcFactor, DestFactor: TBlendingFactor);
+  DestX, DestY: LongInt; SrcFactor, DestFactor: TBlendingFactor);
 begin
   DrawInternal(SrcRect, DestCanvas, DestX, DestY, SrcFactor, DestFactor, PixelBlendProc);
 end;
 
 procedure TImagingCanvas.DrawAlpha(const SrcRect: TRect; DestCanvas: TImagingCanvas;
-  DestX, DestY: Integer);
+  DestX, DestY: LongInt);
 begin
   DrawInternal(SrcRect, DestCanvas, DestX, DestY, bfIgnore, bfIgnore, PixelAlphaProc);
 end;
 
 procedure TImagingCanvas.DrawAdd(const SrcRect: TRect;
-  DestCanvas: TImagingCanvas; DestX, DestY: Integer);
+  DestCanvas: TImagingCanvas; DestX, DestY: LongInt);
 begin
   DrawInternal(SrcRect, DestCanvas, DestX, DestY, bfIgnore, bfIgnore, PixelAddProc);
 end;
@@ -1436,11 +1435,11 @@ const
   FilterMapping: array[TResizeFilter] of TSamplingFilter =
     (sfNearest, sfLinear, DefaultCubicFilter, sfLanczos);
 var
-  X, Y, I, J, SrcX, SrcY, SrcWidth, SrcHeight: Integer;
-  DestX, DestY, DestWidth, DestHeight, SrcBpp, DestBpp: Integer;
+  X, Y, I, J, SrcX, SrcY, SrcWidth, SrcHeight: LongInt;
+  DestX, DestY, DestWidth, DestHeight, SrcBpp, DestBpp: LongInt;
   SrcPix: TColorFPRec;
   MapX, MapY: TMappingTable;
-  XMinimum, XMaximum: Integer;
+  XMinimum, XMaximum: LongInt;
   LineBuffer: array of TColorFPRec;
   ClusterX, ClusterY: TCluster;
   Weight, AccumA, AccumR, AccumG, AccumB: Single;
@@ -1595,7 +1594,7 @@ begin
             // Get pixels from neighbourhood of current pixel and add their
             // colors to accumulators weighted by filter kernel values
             Pixel := FFormatInfo.GetPixelFP(SrcPointer, @FFormatInfo, TempImage.Palette);
-            KernelValue := PLongIntArray(Kernel)[J * KernelSize + I];
+            KernelValue := PUInt32Array(Kernel)[J * KernelSize + I];
 
             R := R + Pixel.R * KernelValue;
             G := G + Pixel.G * KernelValue;
@@ -1872,9 +1871,9 @@ begin
 end;
 
 procedure TFastARGB32Canvas.DrawAlpha(const SrcRect: TRect;
-  DestCanvas: TImagingCanvas; DestX, DestY: Integer);
+  DestCanvas: TImagingCanvas; DestX, DestY: LongInt);
 var
-  X, Y, SrcX, SrcY, Width, Height: Integer;
+  X, Y, SrcX, SrcY, Width, Height: LongInt;
   SrcPix, DestPix: PColor32Rec;
 begin
   if DestCanvas.ClassType <> Self.ClassType then
@@ -1922,8 +1921,8 @@ procedure TFastARGB32Canvas.StretchDrawAlpha(const SrcRect: TRect;
 var
   X, Y, ScaleX, ScaleY, Yp, Xp, Weight1, Weight2, Weight3, Weight4, InvFracY, T1, T2: Integer;
   FracX, FracY: Cardinal;
-  SrcX, SrcY, SrcWidth, SrcHeight: Integer;
-  DestX, DestY, DestWidth, DestHeight: Integer;
+  SrcX, SrcY, SrcWidth, SrcHeight: LongInt;
+  DestX, DestY, DestWidth, DestHeight: LongInt;
   SrcLine, SrcLine2: PColor32RecArray;
   DestPix: PColor32Rec;
   Accum: TColor32Rec;
@@ -2032,7 +2031,7 @@ end;
 procedure TFastARGB32Canvas.UpdateCanvasState;
 var
   I: LongInt;
-  ScanPos: PLongWord;
+  ScanPos: PUInt32;
 begin
   inherited UpdateCanvasState;
 

@@ -88,8 +88,8 @@ type
 
   { Footer at the end of TGA file.}
   TTargaFooter = packed record
-    ExtOff: LongWord;             // Extension Area Offset
-    DevDirOff: LongWord;          // Developer Directory Offset
+    ExtOff: UInt32;               // Extension Area Offset
+    DevDirOff: UInt32;            // Developer Directory Offset
     Signature: TChar16;           // TRUEVISION-XFILE
     Reserved: Byte;               // ASCII period '.'
     NullChar: Byte;               // 0
@@ -117,7 +117,7 @@ var
   Hdr: TTargaHeader;
   Foo: TTargaFooter;
   FooterFound, ExtFound: Boolean;
-  I, PSize, PalSize: LongWord;
+  I, PSize, PalSize: Integer;
   Pal: Pointer;
   FmtInfo: TImageFormatInfo;
   WordValue: Word;
@@ -159,7 +159,7 @@ var
               1: Dest^ := Src^;
               2: PWord(Dest)^ := PWord(Src)^;
               3: PColor24Rec(Dest)^ := PColor24Rec(Src)^;
-              4: PLongWord(Dest)^ := PLongWord(Src)^;
+              4: PUInt32(Dest)^ := PUInt32(Src)^;
             end;
             Inc(Src, Bpp);
             Inc(Dest, Bpp);
@@ -177,7 +177,7 @@ var
               1: Dest^ := Src^;
               2: PWord(Dest)^ := PWord(Src)^;
               3: PColor24Rec(Dest)^ := PColor24Rec(Src)^;
-              4: PLongWord(Dest)^ := PLongWord(Src)^;
+              4: PUInt32(Dest)^ := PUInt32(Src)^;
             end;
             Inc(Dest, Bpp);
           end;
@@ -337,8 +337,8 @@ var
 
     function CountDiff(Data: PByte; Bpp, PixelCount: Longint): LongInt;
     var
-      Pixel: LongWord;
-      NextPixel: LongWord;
+      Pixel: UInt32;
+      NextPixel: UInt32;
       N: LongInt;
     begin
       N := 0;
@@ -353,7 +353,7 @@ var
         1: Pixel := Data^;
         2: Pixel := PWord(Data)^;
         3: PColor24Rec(@Pixel)^ := PColor24Rec(Data)^;
-        4: Pixel := PLongWord(Data)^;
+        4: Pixel := PUInt32(Data)^;
       end;
       while PixelCount > 1 do
       begin
@@ -362,7 +362,7 @@ var
           1: NextPixel := Data^;
           2: NextPixel := PWord(Data)^;
           3: PColor24Rec(@NextPixel)^ := PColor24Rec(Data)^;
-          4: NextPixel := PLongWord(Data)^;
+          4: NextPixel := PUInt32(Data)^;
         end;
         if NextPixel = Pixel then
           Break;
@@ -378,8 +378,8 @@ var
 
     function CountSame(Data: PByte; Bpp, PixelCount: LongInt): LongInt;
     var
-      Pixel: LongWord;
-      NextPixel: LongWord;
+      Pixel: UInt32;
+      NextPixel: UInt32;
       N: LongInt;
     begin
       N := 1;
@@ -389,7 +389,7 @@ var
         1: Pixel := Data^;
         2: Pixel := PWord(Data)^;
         3: PColor24Rec(@Pixel)^ := PColor24Rec(Data)^;
-        4: Pixel := PLongWord(Data)^;
+        4: Pixel := PUInt32(Data)^;
       end;
       PixelCount := PixelCount - 1;
       while PixelCount > 0 do
@@ -399,7 +399,7 @@ var
           1: NextPixel := Data^;
           2: NextPixel := PWord(Data)^;
           3: PColor24Rec(@NextPixel)^ := PColor24Rec(Data)^;
-          4: NextPixel := PLongWord(Data)^;
+          4: NextPixel := PUInt32(Data)^;
         end;
         if NextPixel <> Pixel then
           Break;
@@ -448,7 +448,7 @@ var
             1: Dest^ := Data^;
             2: PWord(Dest)^ := PWord(Data)^;
             3: PColor24Rec(Dest)^ := PColor24Rec(Data)^;
-            4: PLongWord(Dest)^ := PLongWord(Data)^;
+            4: PUInt32(Dest)^ := PUInt32(Data)^;
           end;
           Inc(Data, Bpp);
           Inc(Dest, Bpp);

@@ -340,7 +340,7 @@ var
       if ColStr[1] = '#' then
       begin
         Delete(ColStr, 1, 1);
-        Color := LongWord(StrToInt('$' + Trim(ColStr))) or $FF000000;
+        Color := UInt32(StrToInt('$' + Trim(ColStr))) or $FF000000;
       end
       else
         Color := NamedToColor(ColStr);

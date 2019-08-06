@@ -189,27 +189,27 @@ type
     UseJPEGPROPERTIES : LongBool;            // default = 0
     // DIB specific I/O data specifiers.
     DIBBytes          : PByte;               // default = NULL
-    DIBWidth          : LongWord;            // default = 0
-    DIBHeight         : LongWord;            // default = 0
-    DIBPadBytes       : LongWord;            // default = 0
-    DIBChannels       : LongWord;            // default = 3
+    DIBWidth          : UInt32;              // default = 0
+    DIBHeight         : UInt32;              // default = 0
+    DIBPadBytes       : UInt32;              // default = 0
+    DIBChannels       : UInt32;              // default = 3
     DIBColor          : TIJL_COLOR;          // default = IJL_BGR
     DIBSubsampling    : TIJL_DIBSUBSAMPLING; // default = IJL_NONE
     // JPEG specific I/O data specifiers.
     JPGFile           : PAnsiChar;           // default = NULL
     JPGBytes          : PByte;               // default = NULL
-    JPGSizeBytes      : LongWord;            // default = 0
-    JPGWidth          : LongWord;            // default = 0
-    JPGHeight         : LongWord;            // default = 0
-    JPGChannels       : LongWord;            // default = 3
+    JPGSizeBytes      : UInt32;              // default = 0
+    JPGWidth          : UInt32;              // default = 0
+    JPGHeight         : UInt32;              // default = 0
+    JPGChannels       : UInt32;              // default = 3
     JPGColor          : TIJL_COLOR;          // default = IJL_YCBCR
     JPGSubsampling    : TIJL_JPGSUBSAMPLING; // default = IJL_411
-    JPGThumbWidth     : LongWord;            // default = 0
-    JPGThumbHeight    : LongWord;            // default = 0
+    JPGThumbWidth     : UInt32;              // default = 0
+    JPGThumbHeight    : UInt32;              // default = 0
     // JPEG conversion properties.
     NeedsConvert      : LongBool;            // default = TRUE
     NeedsResample     : LongBool;            // default = TRUE
-    Quality           : LongWord;            // default = 75
+    Quality           : UInt32;              // default = 75
     // Low-level properties.
     PropsAndUnused    : array[0..19987] of Byte;
   end;

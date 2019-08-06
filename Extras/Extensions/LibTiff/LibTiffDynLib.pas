@@ -38,9 +38,9 @@ type
   // problems as pointers to client data are passed in thandle_t vars.
   thandle_t = THandle;
   tdata_t = Pointer;
-  ttag_t = LongWord;
+  ttag_t = UInt32;
   tdir_t = Word;
-  tstrip_t = LongWord;
+  tstrip_t = UInt32;
 
 const
   // LibTiff 4.0

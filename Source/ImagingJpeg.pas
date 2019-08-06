@@ -166,7 +166,7 @@ var
       EDI,
       ESP,
       EBP,
-      EIP: LongWord;
+      EIP: UInt32;
     end;
     pjmp_buf = ^jmp_buf;
 

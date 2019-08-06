@@ -99,15 +99,15 @@ type
     Version: Word;                 // Always 1
     Reserved: array[0..5] of Byte; // Reserved, all zero
     Channels: Word;                // Number of color channels (1-24) including alpha channels
-    Rows : LongWord;               // Height of image in pixels (1-30000)
-    Columns: LongWord;             // Width of image in pixels (1-30000)
+    Rows : UInt32;                 // Height of image in pixels (1-30000)
+    Columns: UInt32;               // Width of image in pixels (1-30000)
     Depth: Word;                   // Number of bits per channel (1, 8, and 16)
     Mode: TPSDColorMode;           // Color mode
   end;
 
   TPSDChannelInfo = packed record
     ChannelID: Word;               // 0 = Red, 1 = Green, 2 = Blue etc., -1 = Transparency mask, -2 = User mask
-    Size: LongWord;                // Size of channel data.
+    Size: UInt32;                  // Size of channel data.
   end;
 
 procedure SwapHeader(var Header: TPSDHeader);
@@ -115,8 +115,8 @@ begin
   Header.Version := SwapEndianWord(Header.Version);
   Header.Channels := SwapEndianWord(Header.Channels);
   Header.Depth := SwapEndianWord(Header.Depth);
-  Header.Rows := SwapEndianLongWord(Header.Rows);
-  Header.Columns := SwapEndianLongWord(Header.Columns);
+  Header.Rows := SwapEndianUInt32(Header.Rows);
+  Header.Columns := SwapEndianUInt32(Header.Columns);
   Header.Mode := TPSDColorMode(SwapEndianWord(Word(Header.Mode)));
 end; 
 
@@ -140,7 +140,7 @@ function TPSDFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Header: TPSDHeader;
-  ByteCount: LongWord;
+  ByteCount: UInt32;
   RawPal: array[0..767] of Byte;
   Compression, PackedSize: Word;
   LineSize, ChannelPixelSize, WidthBytes,
@@ -252,7 +252,7 @@ begin
 
     // Read or skip Color Mode Data Block (palette)
     Read(Handle, @ByteCount, SizeOf(ByteCount));
-    ByteCount := SwapEndianLongWord(ByteCount);
+    ByteCount := SwapEndianUInt32(ByteCount);
     if Format = ifIndex8 then
     begin
       // Read palette only for indexed images
@@ -270,11 +270,11 @@ begin
 
     // Skip Image Resources Block
     Read(Handle, @ByteCount, SizeOf(ByteCount));
-    ByteCount := SwapEndianLongWord(ByteCount);
+    ByteCount := SwapEndianUInt32(ByteCount);
     Seek(Handle, ByteCount, smFromCurrent);
     // Now there is Layer and Mask Information Block
     Read(Handle, @ByteCount, SizeOf(ByteCount));
-    ByteCount := SwapEndianLongWord(ByteCount);
+    ByteCount := SwapEndianUInt32(ByteCount);
     // Skip Layer and Mask Information Block
     Seek(Handle, ByteCount, smFromCurrent);
 
@@ -352,7 +352,7 @@ begin
 
             // Swap endian if needed
             if ChannelPixelSize = 4 then
-              SwapEndianLongWord(PLongWord(LineBuffer), Width)
+              SwapEndianUInt32(PUInt32(LineBuffer), Width)
             else if ChannelPixelSize = 2 then
               SwapEndianWord(PWordArray(LineBuffer), Width);
 
@@ -433,7 +433,7 @@ function TPSDFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 type
   TURect = packed record
-    Top, Left, Bottom, Right: LongWord;
+    Top, Left, Bottom, Right: UInt32;
   end;
 const
   BlendMode: TChar8 = '8BIMnorm';
@@ -448,7 +448,7 @@ var
   LayerBlockOffset, SaveOffset, ChannelInfoOffset: Integer;
   ChannelInfo: TPSDChannelInfo;
   R: TURect;
-  LongVal: LongWord;
+  LongVal: UInt32;
   WordVal, LayerCount: Word;
   RawPal: array[0..767] of Byte;
   ChannelDataSizes: array of Integer;
@@ -576,7 +576,7 @@ var
 
         // Write current channel line to file (swap endian if needed first)
         if ChannelPixelSize = 4 then
-          SwapEndianLongWord(PLongWord(LineBuffer), ImageToSave.Width)
+          SwapEndianUInt32(PUInt32(LineBuffer), ImageToSave.Width)
         else if ChannelPixelSize = 2 then
           SwapEndianWord(PWordArray(LineBuffer), ImageToSave.Width);
 
@@ -648,7 +648,7 @@ begin
     Write(Handle, @Header, SizeOf(Header));
 
     // Write palette size and data
-    LongVal := SwapEndianLongWord(IffUnsigned(Info.IsIndexed, SizeOf(RawPal), 0));
+    LongVal := SwapEndianUInt32(IffUnsigned(Info.IsIndexed, SizeOf(RawPal), 0));
     Write(Handle, @LongVal, SizeOf(LongVal));
     if Info.IsIndexed then
     begin
@@ -672,8 +672,8 @@ begin
       LayerCount := SwapEndianWord(Iff(Info.HasAlphaChannel, Word(-1), 1)); // Must be -1 to get transparency in Photoshop
       R.Top := 0;
       R.Left := 0;
-      R.Bottom := SwapEndianLongWord(Height);
-      R.Right := SwapEndianLongWord(Width);
+      R.Bottom := SwapEndianUInt32(Height);
+      R.Right := SwapEndianUInt32(Width);
       WordVal := SwapEndianWord(Info.ChannelCount);
       Write(Handle, @LongVal, SizeOf(LongVal));        // Layer section size, empty now
       Write(Handle, @LayerCount, SizeOf(LayerCount));  // Layer count
@@ -688,7 +688,7 @@ begin
 
       Write(Handle, @BlendMode, SizeOf(BlendMode));    // Blend mode = normal
       Write(Handle, @LayerOptions, SizeOf(LayerOptions)); // Predefined options
-      LongVal := SwapEndianLongWord(16);               // Extra data size (4 (mask size) + 4 (ranges size) + 8 (name))
+      LongVal := SwapEndianUInt32(16);               // Extra data size (4 (mask size) + 4 (ranges size) + 8 (name))
       Write(Handle, @LongVal, SizeOf(LongVal));
       LongVal := 0;
       Write(Handle, @LongVal, SizeOf(LongVal));        // Mask size = 0
@@ -704,9 +704,9 @@ begin
       Seek(Handle, LayerBlockOffset, smFromBeginning);
 
       // Update layer and mask section sizes
-      LongVal := SwapEndianLongWord(SaveOffset - LayerBlockOffset - 4);
+      LongVal := SwapEndianUInt32(SaveOffset - LayerBlockOffset - 4);
       Write(Handle, @LongVal, SizeOf(LongVal));
-      LongVal := SwapEndianLongWord(SaveOffset - LayerBlockOffset - 8);
+      LongVal := SwapEndianUInt32(SaveOffset - LayerBlockOffset - 8);
       Write(Handle, @LongVal, SizeOf(LongVal));
 
       // Update layer channel info
@@ -716,7 +716,7 @@ begin
         ChannelInfo.ChannelID := SwapEndianWord(I);
         if (I = Info.ChannelCount - 1) and Info.HasAlphaChannel then
           ChannelInfo.ChannelID := Swap(Word(-1));
-        ChannelInfo.Size := SwapEndianLongWord(ChannelDataSizes[I] + 2); // datasize (incl RLE table) + comp. flag
+        ChannelInfo.Size := SwapEndianUInt32(ChannelDataSizes[I] + 2); // datasize (incl RLE table) + comp. flag
         Write(Handle, @ChannelInfo, SizeOf(ChannelInfo));
       end;
 

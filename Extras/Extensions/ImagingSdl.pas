@@ -58,7 +58,7 @@ function LoadSDLSurfaceFromMemory(Data: Pointer; Size: LongInt): PSDL_Surface;
   used to convert image to specified format before SDL surface is created,
   ifUnknown means no conversion.}
 function CreateSDLSurfaceFromImage(const ImageData: TImageData;
-  Flags: LongWord; OverrideFormat: TImageFormat = ifUnknown): PSDL_Surface;
+  Flags: UInt32; OverrideFormat: TImageFormat = ifUnknown): PSDL_Surface;
 
 { Saves SDL surface to file in one of the formats supported by Imaging.}
 function SaveSDLSurfaceToFile(const FileName: string; Surface: PSDL_Surface): Boolean;
@@ -125,15 +125,15 @@ begin
 end;
 
 function CreateSDLSurfaceFromImage(const ImageData: TImageData;
-  Flags: LongWord; OverrideFormat: TImageFormat): PSDL_Surface;
+  Flags: UInt32; OverrideFormat: TImageFormat): PSDL_Surface;
 var
   WorkData: TImageData;
   Info: TImageFormatInfo;
   ConvFormat: TImageFormat;
-  AMask, RMask, GMask, BMask: LongWord;
+  AMask, RMask, GMask, BMask: UInt32;
   I, LineBytes: LongInt;
 
-  procedure DetermineSDLMasks(var AMask, RMask, GMask, BMask: LongWord);
+  procedure DetermineSDLMasks(var AMask, RMask, GMask, BMask: UInt32);
   begin
     if Info.UsePixelFormat then
     begin

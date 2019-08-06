@@ -800,9 +800,9 @@ end;
     Inc(DstY, P.Y);
     gdk_draw_rgb_32_image(TDeviceContext(Dest).Drawable, TDeviceContext(Dest).GC,
       DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
-      @PLongWordArray(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);
+      @PUInt32Array(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);
   end;
-  
+
 var
   DisplayImage: TImageData;
   NewWidth, NewHeight: Integer;

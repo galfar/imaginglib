@@ -155,7 +155,7 @@ procedure TBufferedStream.ReadBuffer;
 var
   SeekResult: Integer;
 begin
-  SeekResult := FStream.Seek(FBufStart, 0);
+  SeekResult := FStream.Seek(FBufStart, soBeginning);
   if SeekResult = -1 then
     raise Exception.Create('TBufferedStream.ReadBuffer: seek failed');
   FBytesInBuf := FStream.Read(FBuffer^, FBufSize);
@@ -168,7 +168,7 @@ var
   SeekResult: Integer;
   BytesWritten: Integer;
 begin
-  SeekResult := FStream.Seek(FBufStart, 0);
+  SeekResult := FStream.Seek(FBufStart, soBeginning);
   if SeekResult = -1 then
     raise Exception.Create('TBufferedStream.WriteBuffer: seek failed');
   BytesWritten := FStream.Write(FBuffer^, FBytesInBuf);
@@ -187,7 +187,7 @@ end;
 
 function TBufferedStream.Read(var Buffer; Count: Integer): Integer;
 var
-  BufAsBytes  : TByteArray absolute Buffer;
+  BufAsBytes: TByteArray absolute Buffer;
   BufIdx, BytesToGo, BytesToRead: Integer;
 begin
   // Calculate the actual number of bytes we can read - this depends on
@@ -432,7 +432,7 @@ end;
 
 function StreamSeek(Handle: TImagingHandle; Offset: Int64; Mode: TSeekMode): Int64; cdecl;
 begin
-  Result := TStream(Handle).Seek(Offset, LongInt(Mode));
+  Result := TStream(Handle).Seek(Offset, Word(Mode));
 end;
 
 function StreamTell(Handle: TImagingHandle): Int64; cdecl;

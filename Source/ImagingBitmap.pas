@@ -86,39 +86,39 @@ type
   { File Header for Windows/OS2 bitmap file.}
   TBitmapFileHeader = packed record
     ID: Word;           // Is always 19778 : 'BM'
-    Size: LongWord;     // Filesize
+    Size: UInt32;       // Filesize
     Reserved1: Word;
     Reserved2: Word;
-    Offset: LongWord;   // Offset from start pos to beginning of image bits
+    Offset: UInt32;     // Offset from start pos to beginning of image bits
   end;
 
   { Info Header for Windows bitmap file version 4.}
   TBitmapInfoHeader = packed record
-    Size: LongWord;
-    Width: LongInt;
-    Height: LongInt;
+    Size: UInt32;
+    Width: Int32;
+    Height: Int32;
     Planes: Word;
     BitCount: Word;
-    Compression: LongWord;
-    SizeImage: LongWord;
-    XPelsPerMeter: LongInt;
-    YPelsPerMeter: LongInt;
-    ClrUsed: LongInt;
-    ClrImportant: LongInt;
-    RedMask: LongWord;
-    GreenMask: LongWord;
-    BlueMask: LongWord;
-    AlphaMask: LongWord;
-    CSType: LongWord;
-    EndPoints: array[0..8] of LongWord;
-    GammaRed: LongWord;
-    GammaGreen: LongWord;
-    GammaBlue: LongWord;
+    Compression: UInt32;
+    SizeImage: UInt32;
+    XPelsPerMeter: Int32;
+    YPelsPerMeter: Int32;
+    ClrUsed: UInt32;
+    ClrImportant: UInt32;
+    RedMask: UInt32;
+    GreenMask: UInt32;
+    BlueMask: UInt32;
+    AlphaMask: UInt32;
+    CSType: UInt32;
+    EndPoints: array[0..8] of UInt32;
+    GammaRed: UInt32;
+    GammaGreen: UInt32;
+    GammaBlue: UInt32;
   end;
 
   { Info Header for OS2 bitmaps.}
   TBitmapCoreHeader = packed record
-    Size: LongWord;
+    Size: UInt32;
     Width: Word;
     Height: Word;
     Planes: Word;
@@ -210,8 +210,8 @@ var
   procedure LoadRLE4;
   var
     RLESrc: PByteArray;
-    Row, Col, WriteRow, I: LongInt;
-    SrcPos: LongWord;
+    Row, Col, WriteRow, I: Integer;
+    SrcPos: UInt32;
     DeltaX, DeltaY, Low, High: Byte;
     Pixels: PByteArray;
     OpCode: TRLEOpcode;
@@ -307,8 +307,8 @@ var
   procedure LoadRLE8;
   var
     RLESrc: PByteArray;
-    SrcCount, Row, Col, WriteRow: LongInt;
-    SrcPos: LongWord;
+    SrcCount, Row, Col, WriteRow: Integer;
+    SrcPos: UInt32;
     DeltaX, DeltaY: Byte;
     Pixels: PByteArray;
     OpCode: TRLEOpcode;

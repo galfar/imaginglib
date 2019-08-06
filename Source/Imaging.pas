@@ -1861,6 +1861,7 @@ var
   NotOnEdge: Boolean;
   Info: PImageFormatInfo;
   OldFmt: TImageFormat;
+
 begin
   Assert((ChunkWidth > 0) and (ChunkHeight > 0));
   Result := False;
@@ -1877,8 +1878,8 @@ begin
     ChunkWidth := ClampInt(ChunkWidth, 0, Image.Width);
     ChunkHeight := ClampInt(ChunkHeight, 0, Image.Height);
     // Number of chunks along X and Y axes is computed
-    XChunks := Trunc(Ceil(Image.Width / ChunkWidth));
-    YChunks := Trunc(Ceil(Image.Height / ChunkHeight));
+    XChunks := Ceil(Image.Width / ChunkWidth);
+    YChunks := Ceil(Image.Height / ChunkHeight);
     SetLength(Chunks, XChunks * YChunks);
 
     // For every chunk we create new image and copy a portion of
@@ -2352,7 +2353,7 @@ begin
         case Bpp of
           1: FillMemoryByte(LinePointer, RectWidthBytes, PByte(FillColor)^);
           2: FillMemoryWord(LinePointer, RectWidthBytes, PWord(FillColor)^);
-          4: FillMemoryLongWord(LinePointer, RectWidthBytes, PLongWord(FillColor)^);
+          4: FillMemoryUInt32(LinePointer, RectWidthBytes, PUInt32(FillColor)^);
         else
           PixPointer := LinePointer;
           for J := 0 to Width - 1 do
@@ -3455,7 +3456,7 @@ begin
 end;
 
 function TImageFileFormat.PrepareSave(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; var Index: Integer): Boolean;
+  const Images: TDynImageDataArray; var Index: LongInt): Boolean;
 var
   Len, I: LongInt;
 begin

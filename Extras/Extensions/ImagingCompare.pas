@@ -89,7 +89,7 @@ begin
           if Info.IsFloatingPoint then
             Diff := Abs(PSingle(PixelPtr2)^ - PSingle(PixelPtr1)^)
           else
-            Diff := Abs(PLongWord(PixelPtr2)^ - PLongWord(PixelPtr1)^);
+            Diff := Abs(PUInt32(PixelPtr2)^ - PUInt32(PixelPtr1)^);
         end;
     end;
 

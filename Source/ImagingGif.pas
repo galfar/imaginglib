@@ -975,7 +975,7 @@ var
       if FrameInfos[Index].HasTransparency then
         BGColor := Images[Index].Palette[FrameInfos[Index].TransIndex].Color;
       // Clear whole screen
-      FillMemoryLongWord(AnimFrame.Bits, AnimFrame.Size, BGColor);
+      FillMemoryUInt32(AnimFrame.Bits, AnimFrame.Size, BGColor);
 
       // Try to maximize First so we don't have to use all 0 to n raw frames
       while First > 0 do
@@ -1104,7 +1104,7 @@ begin
 end;
 
 function TGIFFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer): Boolean;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
   Header: TGIFHeader;
   ImageDesc: TImageDescriptor;

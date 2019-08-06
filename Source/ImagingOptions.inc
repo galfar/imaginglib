@@ -57,7 +57,7 @@
 {$BOOLEVAL OFF}           // Boolean eval: off
 {$EXTENDEDSYNTAX ON}      // Extended syntax: on
 {$LONGSTRINGS ON}         // string = AnsiString: on
-{$MINENUMSIZE 4}          // Min enum size: 4 B
+{$MINENUMSIZE 1}          // Min enum size: 1 B
 {$TYPEDADDRESS OFF}       // Typed pointers: off
 {$WRITEABLECONST OFF}     // Writeable constants: off
 
@@ -110,15 +110,15 @@
   {$ENDIF}
 {$IFEND}
 
-{$IF Defined (CPU86) and not Defined(CPUX86)}
+{$IF Defined(CPU86) and not Defined(CPUX86)}
   {$DEFINE CPUX86} // Compatibility with Delphi
 {$IFEND}
 
-{$IF Defined (CPUX86_64) and not Defined(CPUX64)}
+{$IF Defined(CPUX86_64) and not Defined(CPUX64)}
   {$DEFINE CPUX64} // Compatibility with Delphi
 {$IFEND}
 
-{$IF Defined (DARWIN) and not Defined(MACOS)}
+{$IF Defined(DARWIN) and not Defined(MACOS)}
   {$DEFINE MACOS} // Compatibility with Delphi
 {$IFEND}
 {$IF Defined(MACOS)}
@@ -168,6 +168,18 @@
 {$IF (Defined(DCC) and (CompilerVersion >= 20)) or
   (Defined(FPC) and (FPC_FULLVERSION >= 20600))}
   {$DEFINE HAS_GENERICS}
+{$IFEND}
+
+{ Compiler pecularities }
+
+// Delphi 64bit POSIX targets
+{$IF Defined(DCC) and (SizeOf(Integer) <> SizeOf(LongInt))}
+  {$DEFINE LONGINT_IS_NOT_INTEGER}
+{$IFEND}
+
+// They used to force IFEND, now they warn about it
+{$IF Defined(DCC) and (CompilerVersion >= 33)}
+  {$LEGACYIFEND ON}
 {$IFEND}
 
 { Imaging options check}

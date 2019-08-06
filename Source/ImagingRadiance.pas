@@ -315,7 +315,7 @@ begin
 end;
 
 function THdrFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer): Boolean;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 const
   LineEnd = #$0A;
   SPrgComment = '#Made with Vampyre Imaging Library';

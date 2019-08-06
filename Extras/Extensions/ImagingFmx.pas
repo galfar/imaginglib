@@ -56,10 +56,10 @@ procedure ConvertImageToFmxBitmap(Image: TBaseImage; Bitmap: TBitmap);
 
 { Copies rectangular area of pixels from TImageData record to existing FMX bitmap.}
 procedure CopyRectToFmxBitmap(const Image: TImageData; Bitmap: TBitmap;
-  SrcX, SrcY, Width, Height, DstX, DstY: Integer); overload;
+  SrcX, SrcY, Width, Height, DstX, DstY: LongInt); overload;
 { Copies rectangular area of pixels from TBaseImage instance to existing FMX bitmap.}
 procedure CopyRectToFmxBitmap(Image: TBaseImage; Bitmap: TBitmap;
-  SrcX, SrcY, Width, Height, DstX, DstY: Integer); overload;
+  SrcX, SrcY, Width, Height, DstX, DstY: LongInt); overload;
 
 implementation
 
@@ -222,7 +222,7 @@ begin
 end;
 
 procedure CopyRectToFmxBitmap(const Image: TImageData; Bitmap: TBitmap;
-  SrcX, SrcY, Width, Height, DstX, DstY: Integer);
+  SrcX, SrcY, Width, Height, DstX, DstY: LongInt);
 var
   TempImage: TImageData;
   X, Y, Bpp, SrcWidthBytes, MoveBytes: Integer;
@@ -287,7 +287,7 @@ begin
 end;
 
 procedure CopyRectToFmxBitmap(Image: TBaseImage; Bitmap: TBitmap;
-  SrcX, SrcY, Width, Height, DstX, DstY: Integer);
+  SrcX, SrcY, Width, Height, DstX, DstY: LongInt);
 begin
   CopyRectToFmxBitmap(Image.ImageDataPointer^, Bitmap,
     SrcX, SrcY, Width, Height, DstX, DstY);

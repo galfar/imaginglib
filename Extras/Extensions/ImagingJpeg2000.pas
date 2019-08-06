@@ -183,7 +183,7 @@ var
     case ChannelSize of
       1: Dest^ := Value;
       2: PWord(Dest)^ := Value;
-      4: PLongWord(Dest)^ := Value;
+      4: PUInt32(Dest)^ := Value;
     end;
   end;
 
@@ -192,7 +192,7 @@ var
     case ChannelSize of
       1: Dest^ := Src^;
       2: PWord(Dest)^ := PWord(Src)^;
-      4: PLongWord(Dest)^ := PLongWord(Src)^;
+      4: PUInt32(Dest)^ := PUInt32(Src)^;
     end;
   end;
 
@@ -554,7 +554,7 @@ begin
         case ChannelSize of
           1: image.comps[Z].data[I] := Pix^;
           2: image.comps[Z].data[I] := PWord(Pix)^;
-          4: LongWord(image.comps[Z].data[I]) := PLongWord(Pix)^;
+          4: UInt32(image.comps[Z].data[I]) := PUInt32(Pix)^;
         end;
         Inc(Pix, Info.BytesPerPixel);
       end;

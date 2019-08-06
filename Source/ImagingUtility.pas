@@ -40,14 +40,17 @@ const
   SFalse = 'False';
 
 type
+{$IF Defined(DELPHI) and (CompilerVersion <= 18.5)}
+  UInt32 = Cardinal;
+  PUInt32 = ^UInt32;
+{$IFEND}
+
   TByteArray = array[0..MaxInt - 1] of Byte;
   PByteArray = ^TByteArray;
   TWordArray = array[0..MaxInt div 2 - 1] of Word;
   PWordArray = ^TWordArray;
-  TLongIntArray = array[0..MaxInt div 4 - 1] of LongInt;
-  PLongIntArray = ^TLongIntArray;
-  TLongWordArray = array[0..MaxInt div 4 - 1] of LongWord;
-  PLongWordArray = ^TLongWordArray;
+  TUInt32Array = array[0..MaxInt div 4 - 1] of UInt32;
+  PUInt32Array = ^TUInt32Array;
   TInt64Array = array[0..MaxInt div 8 - 1] of Int64;
   PInt64Array = ^TInt64Array;
   TSingleArray = array[0..MaxInt div 4 - 1] of Single;
@@ -69,22 +72,22 @@ type
   TWordRecArray = array[0..MaxInt div 2 - 1] of TWordRec;
   PWordRecArray = ^TWordRecArray;
 
-  TLongWordRec = packed record
+  TUInt32Rec = packed record
     case Integer of
-      0: (LongWordValue: LongWord);
+      0: (UInt32Value: UInt32);
       1: (Low, High: Word);
       { Array variants - Index 0 means lowest significant byte (word, ...).}
       2: (Words: array[0..1] of Word);
       3: (Bytes: array[0..3] of Byte);
   end;
-  PLongWordRec = ^TLongWordRec;
-  TLongWordRecArray = array[0..MaxInt div 4 - 1] of TLongWordRec;
-  PLongWordRecArray = ^TLongWordRecArray;
+  PUInt32Rec = ^TUInt32Rec;
+  TUInt32RecArray = array[0..MaxInt div 4 - 1] of TUInt32Rec;
+  PUInt32RecArray = ^TUInt32RecArray;
 
   TInt64Rec = packed record
     case Integer of
       0: (Int64Value: Int64);
-      1: (Low, High: LongWord);
+      1: (Low, High: UInt32);
       { Array variants - Index 0 means lowest significant byte (word, ...).}
       2: (Words: array[0..3] of Word);
       3: (Bytes: array[0..7] of Byte);
@@ -97,7 +100,7 @@ type
     Data: Int64;
     case Integer of
       0: (Data64: Int64);
-      1: (Data32: LongWord);
+      1: (Data32: UInt32);
   end;
   PFloatHelper = ^TFloatHelper;
 
@@ -247,10 +250,10 @@ function SameFloat(const A, B: Double; const Delta: Double = 0.000001): Boolean;
 procedure Switch(var Value: Boolean); {$IFDEF USE_INLINE}inline;{$ENDIF}
 { If Condition is True then TruePart is retured, otherwise
   FalsePart is returned.}
-function Iff(Condition: Boolean; TruePart, FalsePart: LongInt): LongInt; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+function Iff(Condition: Boolean; TruePart, FalsePart: Integer): Integer; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { If Condition is True then TruePart is retured, otherwise
   FalsePart is returned.}
-function IffUnsigned(Condition: Boolean; TruePart, FalsePart: LongWord): LongWord; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+function IffUnsigned(Condition: Boolean; TruePart, FalsePart: Cardinal): Cardinal; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { If Condition is True then TruePart is retured, otherwise
   FalsePart is returned.}
 function Iff(Condition, TruePart, FalsePart: Boolean): Boolean; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -275,11 +278,15 @@ procedure SwapValues(var A, B: Boolean); overload;
 procedure SwapValues(var A, B: Byte); overload;
 { Swaps two Word values}
 procedure SwapValues(var A, B: Word); overload;
+{ Swaps two Integer values}
+procedure SwapValues(var A, B: Integer); overload;
+{$IFDEF LONGINT_IS_NOT_INTEGER}
 { Swaps two LongInt values}
 procedure SwapValues(var A, B: LongInt); overload;
+{$ENDIF}
 { Swaps two Single values}
 procedure SwapValues(var A, B: Single); overload;
-{ Swaps two LongInt values if necessary to ensure that Min <= Max.}
+{ Swaps two values if necessary to ensure that Min <= Max.}
 procedure SwapMin(var Min, Max: LongInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
 { This function returns True if running on little endian machine.}
 function IsLittleEndian: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -287,19 +294,19 @@ function IsLittleEndian: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
 function SwapEndianWord(Value: Word): Word; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Swaps byte order of multiple Word values.}
 procedure SwapEndianWord(P: PWordArray; Count: LongInt); overload;
-{ Swaps byte order of LongWord value.}
-function SwapEndianLongWord(Value: LongWord): LongWord; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Swaps byte order of multiple LongWord values.}
-procedure SwapEndianLongWord(P: PLongWord; Count: LongInt); overload;
+{ Swaps byte order of UInt32 value.}
+function SwapEndianUInt32(Value: UInt32): UInt32; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Swaps byte order of multiple UInt32 values.}
+procedure SwapEndianUInt32(P: PUInt32; Count: LongInt); overload;
 
 { Calculates CRC32 for the given data.}
-procedure CalcCrc32(var Crc: LongWord; Data: Pointer; Size: LongInt);
+procedure CalcCrc32(var Crc: UInt32; Data: Pointer; Size: LongInt);
 { Fills given memory with given Byte value. Size is size of buffer in bytes.}
 procedure FillMemoryByte(Data: Pointer; Size: LongInt; Value: Byte);
 { Fills given memory with given Word value. Size is size of buffer in bytes.}
 procedure FillMemoryWord(Data: Pointer; Size: LongInt; Value: Word);
-{ Fills given memory with given LongWord value. Size is size of buffer in bytes.}
-procedure FillMemoryLongWord(Data: Pointer; Size: LongInt; Value: LongWord);
+{ Fills given memory with given UInt32 value. Size is size of buffer in bytes.}
+procedure FillMemoryUInt32(Data: Pointer; Size: LongInt; Value: UInt32);
 { Fills given memory zeroes.}
 {$EXTERNALSYM ZeroMemory} // Conflicts with WinAPI ZeroMemory in C++ Builder
 procedure ZeroMemory(Data: Pointer; Size: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -330,7 +337,7 @@ procedure ClipStretchBounds(var SrcX, SrcY, SrcWidth, SrcHeight, DstX, DstY,
 { Scales one rectangle to fit into another. Proportions are preserved so
   it could be used for 'Stretch To Fit Window' image drawing for instance.}
 function ScaleRectToRect(const SourceRect, TargetRect: TRect): TRect;
-{ Scales given size to fit into max size while keeping the original ascpect ration.
+{ Scales given size to fit into max size while keeping the original aspect ratio.
   Useful for calculating thumbnail dimensions etc.}
 function ScaleSizeToFit(const CurrentSize, MaxSize: TSize): TSize;
 { Returns width of given rect. Part of RTL in newer Delphi.}
@@ -341,6 +348,9 @@ function RectHeight(const Rect: TRect): Integer;
 function RectInRect(const R1, R2: TRect): Boolean;
 { Returns True if R1 and R2 intersects.}
 function RectIntersects(const R1, R2: TRect): Boolean;
+{ Ensures that rect's right>left and bottom>top. }
+procedure NormalizeRect(var R: TRect);
+
 
 { Converts pixel size in micrometers to corrensponding DPI.}
 function PixelSizeToDpi(SizeInMicroMeters: Single): Single;
@@ -932,7 +942,7 @@ begin
   Value := not Value;
 end;
 
-function Iff(Condition: Boolean; TruePart, FalsePart: LongInt): LongInt;
+function Iff(Condition: Boolean; TruePart, FalsePart: Integer): Integer;
 begin
   if Condition then
     Result := TruePart
@@ -940,7 +950,7 @@ begin
     Result := FalsePart;
 end;
 
-function IffUnsigned(Condition: Boolean; TruePart, FalsePart: LongWord): LongWord;
+function IffUnsigned(Condition: Boolean; TruePart, FalsePart: Cardinal): Cardinal;
 begin
   if Condition then
     Result := TruePart
@@ -1023,6 +1033,16 @@ begin
   B := Tmp;
 end;
 
+procedure SwapValues(var A, B: Integer);
+var
+  Tmp: Integer;
+begin
+  Tmp := A;
+  A := B;
+  B := Tmp;
+end;
+
+{$IFDEF LONGINT_IS_NOT_INTEGER}
 procedure SwapValues(var A, B: LongInt);
 var
   Tmp: LongInt;
@@ -1031,6 +1051,7 @@ begin
   A := B;
   B := Tmp;
 end;
+{$ENDIF}
 
 procedure SwapValues(var A, B: Single);
 var
@@ -1160,21 +1181,21 @@ begin
 end;
 {$ENDIF}
 
-function SwapEndianLongWord(Value: LongWord): LongWord;
+function SwapEndianUInt32(Value: UInt32): UInt32;
 {$IF Defined(USE_ASM) and (not Defined(USE_INLINE))}
 asm
   BSWAP   EAX
 end;
 {$ELSE}
 begin
-  TLongWordRec(Result).Bytes[0] := TLongWordRec(Value).Bytes[3];
-  TLongWordRec(Result).Bytes[1] := TLongWordRec(Value).Bytes[2];
-  TLongWordRec(Result).Bytes[2] := TLongWordRec(Value).Bytes[1];
-  TLongWordRec(Result).Bytes[3] := TLongWordRec(Value).Bytes[0];
+  TUInt32Rec(Result).Bytes[0] := TUInt32Rec(Value).Bytes[3];
+  TUInt32Rec(Result).Bytes[1] := TUInt32Rec(Value).Bytes[2];
+  TUInt32Rec(Result).Bytes[2] := TUInt32Rec(Value).Bytes[1];
+  TUInt32Rec(Result).Bytes[3] := TUInt32Rec(Value).Bytes[0];
 end;
 {$IFEND}
 
-procedure SwapEndianLongWord(P: PLongWord; Count: LongInt);
+procedure SwapEndianUInt32(P: PUInt32; Count: LongInt);
 {$IFDEF USE_ASM}
 asm
 @Loop:
@@ -1188,21 +1209,21 @@ end;
 {$ELSE}
 var
   I: LongInt;
-  Temp: LongWord;
+  Temp: UInt32;
 begin
   for I := 0 to Count - 1 do
   begin
-    Temp := PLongWordArray(P)[I];
-    TLongWordRec(PLongWordArray(P)[I]).Bytes[0] := TLongWordRec(Temp).Bytes[3];
-    TLongWordRec(PLongWordArray(P)[I]).Bytes[1] := TLongWordRec(Temp).Bytes[2];
-    TLongWordRec(PLongWordArray(P)[I]).Bytes[2] := TLongWordRec(Temp).Bytes[1];
-    TLongWordRec(PLongWordArray(P)[I]).Bytes[3] := TLongWordRec(Temp).Bytes[0];
+    Temp := PUInt32Array(P)[I];
+    TUInt32Rec(PUInt32Array(P)[I]).Bytes[0] := TUInt32Rec(Temp).Bytes[3];
+    TUInt32Rec(PUInt32Array(P)[I]).Bytes[1] := TUInt32Rec(Temp).Bytes[2];
+    TUInt32Rec(PUInt32Array(P)[I]).Bytes[2] := TUInt32Rec(Temp).Bytes[1];
+    TUInt32Rec(PUInt32Array(P)[I]).Bytes[3] := TUInt32Rec(Temp).Bytes[0];
   end;
 end;
 {$ENDIF}
 
 type
-  TCrcTable = array[Byte] of LongWord;
+  TCrcTable = array[Byte] of UInt32;
 var
   CrcTable: TCrcTable;
 
@@ -1211,7 +1232,7 @@ const
   Polynom = $EDB88320;
 var
   I, J: LongInt;
-  C: LongWord;
+  C: UInt32;
 begin
   for I := 0 to 255 do
   begin
@@ -1227,7 +1248,7 @@ begin
   end;
 end;
 
-procedure CalcCrc32(var Crc: LongWord; Data: Pointer; Size: LongInt);
+procedure CalcCrc32(var Crc: UInt32; Data: Pointer; Size: LongInt);
 var
   I: LongInt;
   B: PByte;
@@ -1298,11 +1319,11 @@ asm
 end;
 {$ELSE}
 var
-  I, V: LongWord;
+  I, V: UInt32;
 begin
   V := Value * $10000 + Value;
   for I := 0 to Size div 4 - 1 do
-    PLongWordArray(Data)[I] := V;
+    PUInt32Array(Data)[I] := V;
   case Size mod 4 of
     1: PByteArray(Data)[Size - 1] := Lo(Value);
     2: PWordArray(Data)[Size div 2] := Value;
@@ -1315,7 +1336,7 @@ begin
 end;
 {$ENDIF}
 
-procedure FillMemoryLongWord(Data: Pointer; Size: LongInt; Value: LongWord);
+procedure FillMemoryUInt32(Data: Pointer; Size: LongInt; Value: UInt32);
 {$IFDEF USE_ASM}
 asm
   PUSH   EDI
@@ -1347,14 +1368,14 @@ var
   I: LongInt;
 begin
   for I := 0 to Size div 4 - 1 do
-    PLongWordArray(Data)[I] := Value;
+    PUInt32Array(Data)[I] := Value;
   case Size mod 4 of
-    1: PByteArray(Data)[Size - 1] := TLongWordRec(Value).Bytes[0];
-    2: PWordArray(Data)[Size div 2] := TLongWordRec(Value).Words[0];
+    1: PByteArray(Data)[Size - 1] := TUInt32Rec(Value).Bytes[0];
+    2: PWordArray(Data)[Size div 2] := TUInt32Rec(Value).Words[0];
     3:
       begin
-        PWordArray(Data)[Size div 2 - 1] := TLongWordRec(Value).Words[0];
-        PByteArray(Data)[Size - 1] := TLongWordRec(Value).Bytes[0];
+        PWordArray(Data)[Size div 2 - 1] := TUInt32Rec(Value).Words[0];
+        PByteArray(Data)[Size - 1] := TUInt32Rec(Value).Bytes[0];
       end;
   end;
 end;
@@ -1575,6 +1596,14 @@ begin
     not (R1.Bottom < R2.Top);
 end;
 
+procedure NormalizeRect(var R: TRect);
+begin
+  if R.Right < R.Left then
+    SwapValues(R.Right, R.Left);
+  if R.Bottom < R.Top then
+    SwapValues(R.Bottom, R.Top);
+end;
+
 function PixelSizeToDpi(SizeInMicroMeters: Single): Single;
 begin
   Result := 25400 / SizeInMicroMeters;
@@ -1662,9 +1691,6 @@ initialization
 
 {
   File Notes:
-
-  -- TODOS ----------------------------------------------------
-    - nothing now
 
   -- 0.77.1 ----------------------------------------------------
     - Added GetFileName, GetFileDir, RectWidth, RectHeight function.

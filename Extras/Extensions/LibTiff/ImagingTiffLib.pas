@@ -45,6 +45,11 @@ unit ImagingTiffLib;
   {$DEFINE USE_DYN_LIB}
 {$IFEND}
 
+{$IF Defined(DCC) and Defined(WIN64)}
+  // For Delphi Win64 target try to use LibTiff dynamic library.
+  {$DEFINE USE_DYN_LIB}
+{$IFEND}
+
 {$IF Defined(POSIX) and Defined(CPUX64)}
   // Workaround for problem on 64bit Linux where thandle_t in libtiff is
   // still 32bit so it cannot be used to pass pointers (for IO functions).
@@ -194,7 +199,7 @@ var
   Tiff: PTIFF;
   IOWrapper: TTiffIOWrapper;
   I, Idx, TiffResult, ScanLineSize, NumDirectories, X: Integer;
-  RowsPerStrip: LongWord;
+  RowsPerStrip: UInt32;
   Orientation, BitsPerSample, SamplesPerPixel, Photometric,
     PlanarConfig, SampleFormat: Word;
   DataFormat: TImageFormat;
@@ -438,7 +443,7 @@ var
   Info: TImageFormatInfo;
   Orientation, BitsPerSample, SamplesPerPixel, Photometric,
     PlanarConfig, SampleFormat, CompressionScheme: Word;
-  RowsPerStrip: LongWord;
+  RowsPerStrip: UInt32;
   Red, Green, Blue: array[Byte] of TWordRec;
   CompressionMismatch: Boolean;
   OpenMode: PAnsiChar;

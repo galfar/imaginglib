@@ -203,6 +203,22 @@ const
   ChannelAlpha = 3;
 
 type
+{$IFNDEF FPC}
+  {$IF CompilerVersion <= 18.5}
+    PtrUInt = Cardinal;
+    PtrInt = Integer;
+    // Some new Delphi platforms have 64bit LongInt/LongWord so rather use
+    // Int32/UInt32 where you really want 32bits.
+    Int32 = Integer;
+    PInt32 = ^Int32;
+    UInt32 = Cardinal;
+    PUInt32 = ^UInt32;
+  {$ELSE}
+    PtrUInt = NativeUInt;
+    PtrInt = NativeInt;
+  {$IFEND}
+{$ENDIF}
+
   { Enum defining image data format. In formats with more channels,
     first channel after "if" is stored in the most significant bits and channel
     before end is stored in the least significant.}
@@ -261,7 +277,7 @@ type
   );
 
   { Color value for 32 bit images.}
-  TColor32 = LongWord;
+  TColor32 = UInt32;
   PColor32 = ^TColor32;
 
   { Color value for 64 bit images.}
@@ -381,7 +397,7 @@ type
     image formats.}
   TPixelFormatInfo = packed record
     ABitCount, RBitCount, GBitCount, BBitCount: Byte;
-    ABitMask, RBitMask, GBitMask, BBitMask: LongWord;
+    ABitMask, RBitMask, GBitMask, BBitMask: UInt32;
     AShift, RShift, GShift, BShift: Byte;
     ARecDiv, RRecDiv, GRecDiv, BRecDiv: Byte;
   end;
@@ -487,16 +503,6 @@ type
   TReadProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
   TWriteProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
 
-{$IFNDEF FPC}
-type
-{$IF CompilerVersion <= 18.5}
-  PtrUInt = LongWord;
-  PtrInt = LongInt;
-{$ELSE}
-  PtrUInt = NativeUInt;
-  PtrInt = NativeInt;
-{$IFEND}
-{$ENDIF}
 
 implementation
 

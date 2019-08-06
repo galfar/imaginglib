@@ -15,7 +15,7 @@ type
 {$IFNDEF FPC}
 {$IF CompilerVersion <= 18.5}
   SizeInt = Integer;
-  PtrUInt = LongWord;
+  PtrUInt = Cardinal;
 {$ELSE}
   SizeInt = NativeInt;
   PtrUInt = NativeUInt;

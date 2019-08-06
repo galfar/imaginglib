@@ -475,7 +475,7 @@ begin
           // I will stick with Photoshops behaviour here
           Read(Handle, Bits, Size);
           if MapInfo.IsBigEndian then
-            SwapEndianLongWord(PLongWord(Dest), Size div SizeOf(LongWord));
+            SwapEndianUInt32(PUInt32(Dest), Size div SizeOf(UInt32));
         end;
 
         if MapInfo.TupleType in [ttBlackAndWhite, ttBlackAndWhiteAlpha] then
@@ -538,7 +538,7 @@ begin
 end;
 
 function TPortableMapFileFormat.SaveDataInternal(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer; var MapInfo: TPortableMapInfo): Boolean;
+  const Images: TDynImageDataArray; Index: LongInt; var MapInfo: TPortableMapInfo): Boolean;
 const
   // Use Unix linebreak, for many viewers/editors it means that
   // 16bit samples are stored as big endian - so we need to swap byte order
@@ -768,7 +768,7 @@ begin
 end;
 
 function TPGMFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer): Boolean;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
   MapInfo: TPortableMapInfo;
 begin
@@ -816,7 +816,7 @@ begin
 end;
 
 function TPPMFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer): Boolean;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
   MapInfo: TPortableMapInfo;
 begin
@@ -863,7 +863,7 @@ begin
 end;
 
 function TPAMFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer): Boolean;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
   MapInfo: TPortableMapInfo;
 begin
@@ -905,7 +905,7 @@ begin
 end;
 
 function TPFMFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer): Boolean;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
   Info: TImageFormatInfo;
   MapInfo: TPortableMapInfo;
