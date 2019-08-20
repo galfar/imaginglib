@@ -154,7 +154,7 @@ var
   procedure ReadChunk;
   begin
     GetIO.Read(Handle, @Chunk, SizeOf(Chunk));
-    Chunk.DataSize := SwapEndianLongWord(Chunk.DataSize);
+    Chunk.DataSize := SwapEndianUInt32(Chunk.DataSize);
   end;
 
   procedure ReadChunkData;
@@ -227,7 +227,7 @@ var
   procedure Reconstruct;
   var
     Index, I, J, K: LongInt;
-    RowOffsets: PLongIntArray;
+    RowOffsets: PUInt32Array;
     Idx: Byte;
     W: Word;
   begin
@@ -244,7 +244,7 @@ var
         // Load animated image:
         // At the beggining of the chunk data there is BHDR.Height * BHDR.Frames
         // 32bit offsets. Each BHDR.Height offsets point to rows of the current frame
-        RowOffsets := PLongIntArray(ChunkData);
+        RowOffsets := PUInt32Array(ChunkData);
 
         for I := 0 to BHDR.Frames - 1 do
         begin
@@ -286,7 +286,7 @@ var
       begin
         // Load animated BattleSpire image, uses offset list just like Redguard
         // animated textures (but high word must be zeroed first to get valid offset)
-        RowOffsets := PLongIntArray(ChunkData);
+        RowOffsets := PUInt32Array(ChunkData);
 
         for I := 0 to BHDR.Frames - 1 do
         begin
