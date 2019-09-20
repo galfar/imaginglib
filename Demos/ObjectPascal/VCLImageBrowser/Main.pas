@@ -1,9 +1,9 @@
 {
   Vampyre Imaging Library Demo
-  VCL Image Browser (class api, canvas, vcl interaction)
+  Image Browser (class api, canvas, VCL/LCL interaction)
 
   This simple viewer application shows usage of high level class interface
-  to Imaging library and also drawing images onto standard VCL TCanvas.
+  to Imaging library and also drawing images onto standard VCL/LCL TCanvas.
   TImagingCanvas class is also used here.
 
   In the left part of the window is shell tree view component. Here you can
@@ -44,6 +44,7 @@ uses
 
 type
   TMainForm = class(TForm)
+    ImageList: TImageList;
     LeftPanel: TPanel;
     RightPanel: TPanel;
     InfoPanel: TPanel;
@@ -95,6 +96,10 @@ type
     FOriginalFormats: array of TImageFormat;
     FOriginalSizes: array of Integer;
     FSupported: Boolean;
+ {$IFDEF FPC}
+    procedure TreeGetImageIndex(Sender: TObject; Node: TTreeNode);
+    procedure TreeGetSelectedIndex(Sender: TObject; Node: TTreeNode);
+ {$ENDIF}
   public
     procedure SetSupported;
     procedure SetUnsupported;
@@ -112,11 +117,37 @@ var
 
 implementation
 
-{$R *.dfm}
-{$IF (CompilerVersion >= 15.0) and (CompilerVersion <= 23.0)}
-uses
-  XPMan;
-{$IFEND}
+{$IFDEF fpc}
+ {$R *.lfm}
+{$ELSE}
+ {$R *.dfm}
+ {$IF (CompilerVersion >= 15.0) and (CompilerVersion <= 23.0)}
+ uses
+   XPMan;
+ {$IFEND}
+{$ENDIF}
+
+procedure TMainForm.FormCreate(Sender: TObject);
+begin
+  Caption := Caption + ' version ' + Imaging.GetVersionStr;
+  FImage := TMultiImage.Create;
+  FImageCanvas := TImagingCanvas.Create;
+  FBack := TSingleImage.CreateFromParams(128, 128, ifA8R8G8B8);
+  FBackCanvas := FindBestCanvasForImage(FBack).CreateForImage(FBack);
+  SetUnsupported;
+{$IFDEF FPC}
+  Tree.OnGetImageIndex := TreeGetImageIndex;
+  Tree.OnGetSelectedIndex := TreeGetSelectedIndex;
+{$ENDIF}
+end;
+
+procedure TMainForm.FormDestroy(Sender: TObject);
+begin
+  FImage.Free;
+  FImageCanvas.Free;
+  FBack.Free;
+  FBackCanvas.Free;
+end;
 
 procedure TMainForm.LoadFile;
 var
@@ -295,6 +326,21 @@ begin
     SetUnsupported;
 end;
 
+{$IFDEF FPC}
+procedure TMainForm.TreeGetImageIndex(Sender: TObject; Node: TTreeNode);
+begin
+  if Node.HasChildren then
+    Node.ImageIndex := 1
+  else if IsFileFormatSupported(Node.Text) then
+    Node.ImageIndex := 0;
+end;
+
+procedure TMainForm.TreeGetSelectedIndex(Sender: TObject; Node: TTreeNode);
+begin
+  Node.SelectedIndex := Node.ImageIndex;
+end;
+{$ENDIF}
+
 procedure TMainForm.TreeKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
@@ -311,24 +357,6 @@ begin
   FBack.Resize(PaintBox.ClientWidth, PaintBox.ClientHeight, rfNearest);
   // Update back canvas state after resizing of associated image
   FBackCanvas.UpdateCanvasState;
-end;
-
-procedure TMainForm.FormDestroy(Sender: TObject);
-begin
-  FImage.Free;
-  FImageCanvas.Free;
-  FBack.Free;
-  FBackCanvas.Free;
-end;
-
-procedure TMainForm.FormCreate(Sender: TObject);
-begin
-  Caption := Caption + ' version ' + Imaging.GetVersionStr;
-  FImage := TMultiImage.Create;
-  FImageCanvas := TImagingCanvas.Create;
-  FBack := TSingleImage.CreateFromParams(128, 128, ifA8R8G8B8);
-  FBackCanvas := FindBestCanvasForImage(FBack).CreateForImage(FBack);
-  SetUnsupported;
 end;
 
 procedure TMainForm.PaintBoxPaint(Sender: TObject);
@@ -369,8 +397,8 @@ end;
 {
   File Notes:
 
-  -- TODOS ----------------------------------------------------
-    - nothing now
+  -- 0.80 Changes/Bug Fixes ---------------------------------
+    - Added Lazarus support so dropped "VCL" prefix.
 
   -- 0.77 Changes/Bug Fixes ---------------------------------
     - Displays size of image in memory.

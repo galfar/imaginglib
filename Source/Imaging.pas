@@ -3174,6 +3174,10 @@ var
   I: LongInt;
 begin
   Result := nil;
+
+  if FileName = '' then
+    Exit;
+
   for I := ImageFileFormats.Count - 1 downto 0 do
     if TImageFileFormat(ImageFileFormats[I]).TestFileName(FileName) then
     begin

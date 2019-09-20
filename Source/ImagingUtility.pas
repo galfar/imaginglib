@@ -351,7 +351,6 @@ function RectIntersects(const R1, R2: TRect): Boolean;
 { Ensures that rect's right>left and bottom>top. }
 procedure NormalizeRect(var R: TRect);
 
-
 { Converts pixel size in micrometers to corrensponding DPI.}
 function PixelSizeToDpi(SizeInMicroMeters: Single): Single;
 { Converts DPI to corrensponding pixel size in micrometers.}
