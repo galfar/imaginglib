@@ -18,7 +18,7 @@ default: $(PROJECTS)
 Bench.exe: Benchmark\Bench.dpr
   $(DCC)
 
-ImgBrowser.exe: VCLImageBrowser\ImgBrowser.dpr
+ImgBrowser.exe: ImageBrowser\ImgBrowser.dpr
   $(DCC)
 
 SDLDemo.exe: SDLDemo\SDLDemo.dpr
