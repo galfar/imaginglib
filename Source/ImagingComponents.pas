@@ -787,18 +787,15 @@ begin
   DisplayImageDataOnDC(DstCanvas.Handle, DstRect, ImageData, SrcRect);
 end;
 {$ELSEIF Defined(LCLGTK2)}
-  type
-    TDeviceContext = TGtk2DeviceContext;
-
   procedure GDKDrawBitmap(Dest: HDC; DstX, DstY: Integer; SrcX, SrcY,
     SrcWidth, SrcHeight: Integer; ImageData: TImageData);
   var
     P: TPoint;
   begin
-    P := TDeviceContext(Dest).Offset;
+    P := TGtkDeviceContext(Dest).Offset;
     Inc(DstX, P.X);
     Inc(DstY, P.Y);
-    gdk_draw_rgb_32_image(TDeviceContext(Dest).Drawable, TDeviceContext(Dest).GC,
+    gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
       DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
       @PUInt32Array(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);
   end;

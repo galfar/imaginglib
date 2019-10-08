@@ -32,7 +32,10 @@ unit Main;
 interface
 
 uses
-  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+{$IFDEF MSWINDOWS}
+  Windows,
+{$ENDIF}
+  Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
   Dialogs, ComCtrls, ShellCtrls, ExtCtrls, StdCtrls, Buttons, ExtDlgs,
   ImagingTypes,
   Imaging,
@@ -117,8 +120,10 @@ var
 
 implementation
 
-{$IFDEF fpc}
- {$R *.lfm}
+{$IFDEF FPC}
+{$R *.lfm}
+uses
+  LCLType;
 {$ELSE}
  {$R *.dfm}
  {$IF (CompilerVersion >= 15.0) and (CompilerVersion <= 23.0)}
