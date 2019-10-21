@@ -39,18 +39,28 @@ uses
 type
   { Class for loading of BSI format textures and images found
     in Redguard and BattleSpire (maybe in other games too, Skynet?). This format
-    uses chunk structure similar to PNG (HDR/DAT/END). Redguard stores
-    multiple images in one file (usually related like textures for various
-    parts of single 3d object). Image data is stored as 8bit. Each image
-    can have its own embedded palette or it can use external default palette.
+    uses chunk structure similar to PNG (HDR/DAT/END).
     BattleSpire BSI use *.bsi file extension whilst Redguard uses
     texbsi.* mask with number extension (just like Daggerfall).
     Only loading is supported for this format.
-    BattleSpire images also contain some sort of 8bit->16bit color mapping data
-    which I've not yet figured out (only blue channel known).}
+
+    Redguard stores multiple images in one file (usually related like textures for various
+    parts of single 3d object). Image data is stored as 8bit. Each image
+    can have its own embedded palette or it can use external palette.
+    Default palette (fxart\Redguard.col) is applied to textures without the embeded one
+    although some texture sets look like their external pal is different (see more *.col
+    files in fxart).
+
+    BattleSpire uses 15bit palette and some lighting data, also some of the images
+    are RLE compressed. Multiple frames can also be stored in BSI
+    (multiple frames vs images in Redguard). BSI in BattleSpire are stored in BSA archive -> this
+    version of BSA support compression of files so you need BSA extractor
+    which takes BSpire version in account.
+    Working BSA extractor and BSI description: https://github.com/ariscop/battlespire-tools.}
   TBSIFileFormat = class(TElderFileFormat)
   private
     function IsMultiBSI(Handle: TImagingHandle): Boolean;
+    procedure ConvertHICLToPalette(HICL: PWordArray; Pal: PPalette32);
   protected
     procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
@@ -72,27 +82,27 @@ type
   { BSI chunk header.}
   TChunk = packed record
     ChunkID: TChar4;
-    DataSize: LongWord; // In Big Endian!
+    DataSize: UInt32; // In Big Endian!
   end;
 
   { Additional header of BSI textures.}
   TTextureBSIHeader = packed record
     Name: array[0..8] of AnsiChar;
-    ImageSize: LongInt;
+    ImageSize: UInt32;
   end;
 
   { Main image info header located in BHDR chunk's data.}
   TBHDRChunk = packed record
-    OffsetX: Word;
-    OffsetY: Word;
-    Width: SmallInt;
-    Height: SmallInt;
+    OffsetX: Int16;
+    OffsetY: Int16;
+    Width: Int16;
+    Height: Int16;
     Unk1, Unk2: Byte;
     Unk3, Unk4: Word;
     Frames: Word;
     Unk6, Unk7, Unk8: Word;
     Unk9, Unk10: Byte;
-    Unk11: Word;
+    Compression: Word;
   end;
 
 const
@@ -104,7 +114,6 @@ const
   HTBLSignature: TChar4 = 'HTBL';
   DATASignature: TChar4 = 'DATA';
   ENDSignature:  TChar4 = 'END ';
-
 
 { TBSIFileFormat class implementation }
 
@@ -137,16 +146,35 @@ begin
   end;
 end;
 
+procedure TBSIFileFormat.ConvertHICLToPalette(HICL: PWordArray; Pal: PPalette32);
+var
+  I, Idx: Integer;
+  Col: Word;
+begin
+  for I := 0 to 127 do
+  begin
+    // HICL is 256B in size with 128 word colors (R5G5B5).
+    // Indices in DATA chunk are scaled to full 8 bits.
+    // So either multiply pal entries by 2 or divide every index in DATA by 2 =>
+    // since 128 <<< size(DATA) we modify the palette.
+    Col := HICL[I];
+    Idx := I * 2;
+    Pal[Idx].A := 255;
+    Pal[Idx].R := MulDiv(((Col shr 11) and 31), 255, 31);
+    Pal[Idx].G := MulDiv(((Col shr 6) and 31), 255, 31);
+    Pal[Idx].B := MulDiv(((Col shr 1) and 31), 255, 31);
+  end;
+end;
+
 function TBSIFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Chunk: TChunk;
   ChunkData: Pointer;
-  DATASize: LongInt;
   BHDR: TBHDRChunk;
   PalLoaded: TPalette24Size256;
-  HICL: PByteArray;
-  HTBL: PWordArray;
+  HICL: PWordArray;
+  HTBL: PByteArray;
   IsMulti: Boolean;
   TextureHdr: TTextureBSIHeader;
   PaletteFound: Boolean;
@@ -159,7 +187,7 @@ var
 
   procedure ReadChunkData;
   var
-    ReadBytes: LongWord;
+    ReadBytes: LongInt;
   begin
     FreeMemNil(ChunkData);
     GetMem(ChunkData, Chunk.DataSize);
@@ -203,10 +231,9 @@ var
   procedure GetDATA;
   begin
     ReadChunkData;
-    DATASize := Chunk.DataSize;
   end;
 
-  function AddImage(Width, Height: LongInt): LongInt;
+  function AddImage(Width, Height: LongInt): Integer;
   begin
     Result := Length(Images);
     SetLength(Images, Length(Images) + 1);
@@ -217,39 +244,45 @@ var
       ConvertPalette(PalLoaded, Images[Result].Palette);
   end;
 
-  function AddImageHiColor(Width, Height: LongInt): LongInt;
+  function AddImageHiColor(Width, Height: LongInt; HICL: PWordArray): Integer;
   begin
     Result := Length(Images);
     SetLength(Images, Length(Images) + 1);
-    NewImage(Width, Height, ifA8R8G8B8, Images[Result]);
+    NewImage(Width, Height, ifIndex8, Images[Result]);
+    ConvertHICLToPalette(HICL, Images[Result].Palette);
   end;
 
   procedure Reconstruct;
   var
-    Index, I, J, K: LongInt;
+    ImgIndex, I, J, K: Integer;
     RowOffsets: PUInt32Array;
-    Idx: Byte;
-    W: Word;
+    RowPtr: PByte;
+    Offset: UInt32;
+    Idx, C: Byte;
+    IsRleLine, IsRleRun: Boolean;
+    DestLine: PByte;
+    Ix, Ir: Integer;
   begin
     if HICL = nil then
     begin
+      // No HICL data => mostly Redguard images
       if BHDR.Frames = 1 then
       begin
-        // Load simple image
-        Index := AddImage(BHDR.Width, BHDR.Height);
-        Move(ChunkData^, Images[Index].Bits^, Images[Index].Size);
+        // Load single image
+        ImgIndex := AddImage(BHDR.Width, BHDR.Height);
+        Move(ChunkData^, Images[ImgIndex].Bits^, Images[ImgIndex].Size);
       end
       else
       begin
         // Load animated image:
-        // At the beggining of the chunk data there is BHDR.Height * BHDR.Frames
+        // At the beginning of the chunk data there is BHDR.Height * BHDR.Frames
         // 32bit offsets. Each BHDR.Height offsets point to rows of the current frame
         RowOffsets := PUInt32Array(ChunkData);
 
         for I := 0 to BHDR.Frames - 1 do
         begin
-          Index := AddImage(BHDR.Width, BHDR.Height);
-          with Images[Index] do
+          ImgIndex := AddImage(BHDR.Width, BHDR.Height);
+          with Images[ImgIndex] do
           for J := 0 to BHDR.Height - 1 do
             Move(PByteArray(ChunkData)[RowOffsets[I * BHDR.Height + J]],
               PByteArray(Bits)[J * Width], Width);
@@ -260,53 +293,84 @@ var
     begin
       if BHDR.Frames = 1 then
       begin
-        // Experimental BattleSpire 16bit image support!
-        Index := AddImageHiColor(BHDR.Width, BHDR.Height);
-        with Images[Index] do
-        for I := 0 to DATASize - 1 do
-        with PColor32RecArray(Bits)[I] do
-        begin
-          // It looks like "HICL[PByteArray(ChunkData)[I]] and 63" gives
-          // value of 6bit Blue channel, not other channels are sure yet.
-          // So now it looks grayscalish.
-          // You can also get interesting results using HTBL as look up table
-          // 8->16bit. There are 16 tables for shading (table 0 - darkest colors,
-          // table 15 - lightest) each with 256 16bit Words. But their data format
-          // is weird (555 is closest). There are some pixels that look
-          // as they should (proper color) but some does not.
-          // PWordArray(Bits)[I] := HTBL[256 * 15 + PByteArray(ChunkData)[I]]
-          Idx := PByteArray(ChunkData)[I];
-          A := Iff(Idx <> 0, 255, 0);
-          R := MulDiv(HICL[Idx] and 63, 255, 63);
-          G := MulDiv(HICL[Idx] and 63, 255, 63);
-          B := MulDiv(HICL[Idx] and 63, 255, 63);
-        end;
+        // Load single image
+        ImgIndex := AddImageHiColor(BHDR.Width, BHDR.Height, HICL);
+        Move(ChunkData^, Images[ImgIndex].Bits^, Images[ImgIndex].Size);
       end
       else
       begin
         // Load animated BattleSpire image, uses offset list just like Redguard
-        // animated textures (but high word must be zeroed first to get valid offset)
+        // animated textures (but high word must be zeroed first to get valid offset).
+        // Frames can also be RLE compressed.
         RowOffsets := PUInt32Array(ChunkData);
 
         for I := 0 to BHDR.Frames - 1 do
         begin
-          Index := AddImageHiColor(BHDR.Width, BHDR.Height);
-          with Images[Index] do
-          for J := 0 to BHDR.Height - 1 do
-            for K := 0 to BHDR.Width - 1 do
-            with PColor32RecArray(Bits)[J * BHDR.Width + K] do
+          ImgIndex := AddImageHiColor(BHDR.Width, BHDR.Height, HICL);
+
+          if BHDR.Compression = 0 then
+          begin
+            with Images[ImgIndex] do
+            for J := 0 to BHDR.Height - 1 do
+              for K := 0 to BHDR.Width - 1 do
+              begin
+                Idx := PByteArray(ChunkData)[RowOffsets[I * BHDR.Height + J] and $FFFF + K];
+                PByteArray(Bits)[J * Width + K] := Idx;
+              end;
+          end
+          else
+          begin
+            with Images[ImgIndex] do
+            for J := 0 to BHDR.Height - 1 do
             begin
-              Idx := PByteArray(ChunkData)[RowOffsets[I * BHDR.Height + J] and $FFFF + K];
-              W := HTBL[256 * 15 + Idx];
-              A := Iff(Idx <> 0, 255, 0);
-              R := MulDiv(W shr 10 and 31, 255, 31);
-              G := MulDiv(W shr 5 and 31, 255, 31);
-              B := MulDiv(W and 31, 255, 31);
-          {    A := Iff(Idx <> 0, 255, 0);
-          R := MulDiv(HICL[Idx] and 63, 255, 63);
-          G := MulDiv(HICL[Idx] and 63, 255, 63);
-          B := MulDiv(HICL[Idx] and 63, 255, 63);}
+              Offset := RowOffsets[I * BHDR.Height + J];
+              IsRleLine := (Offset and $80000000) = $80000000;
+              Offset := Offset and $FFFFFF;
+              RowPtr := @PByteArray(ChunkData)[Offset];
+              DestLine := @PByteArray(Bits)[J * BHDR.Width];
+
+              if not IsRleLine then
+              begin
+                Move(PByteArray(ChunkData)[Offset], PByteArray(Bits)[J * Width], Width);
+              end
+              else
+              begin
+                Ix := 0;
+                while Ix < Width do
+                begin
+                  C := RowPtr^;
+                  Inc(RowPtr);
+
+                  IsRleRun := C >= 128;
+                  C := C and 127;
+                  if IsRleRun then
+                  begin
+                    Idx := RowPtr^;
+                    Inc(RowPtr);
+
+                    for Ir := 1 to C do
+                    begin
+                      DestLine^ := Idx;
+                      Inc(DestLine);
+                    end;
+                  end
+                  else
+                  begin
+                    for Ir := 1 to C do
+                    begin
+                      Idx := RowPtr^;
+                      Inc(RowPtr);
+
+                      DestLine^ := Idx;
+                      Inc(DestLine);
+                    end;
+                  end;
+
+                  Inc(Ix, C);
+                end;
+              end;
             end;
+          end;
         end;
       end;
     end;
@@ -391,8 +455,8 @@ end;
 {
   Changes/Bug Fixes:
 
-  -- TODOS ----------------------------------------------------
-    - crack the BattleSpire format completely
+  -- 0.80 -----------------------------------------------------
+    - BattleSpire images now have correct colors.
 
   -- 0.21 -----------------------------------------------------
     - Blue channel of BattleSpire images cracked but others arer still unknown.

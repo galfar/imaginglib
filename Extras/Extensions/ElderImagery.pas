@@ -59,7 +59,7 @@ type
     FARGBPalette: PPalette32;
     procedure Define; override;
     { Decodes RLE compressed data.}
-    procedure DagRLEDecode(InData: Pointer; OutSize: LongInt; out OutData: Pointer);
+    procedure DagRLEDecode(InData: Pointer; OutSize: LongInt; var OutData: Pointer);
     function FindNoHeaderInfo(Size: LongInt; Infos: array of TNoHeaderFileInfo): LongInt;
     function TestNoHeaderFormat(Handle: TImagingHandle): TElderFileFormatClass;
     procedure ConvertPalette(const ElderPal: TPalette24Size256; ARGBPal: PPalette32);
@@ -478,7 +478,7 @@ begin
 end;
 
 procedure TElderFileFormat.DagRLEDecode(InData: Pointer; OutSize: LongInt;
-  out OutData: Pointer);
+  var OutData: Pointer);
 var
   I, Pos, CByte: LongInt;
   Rle, B: Byte;

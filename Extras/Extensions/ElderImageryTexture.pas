@@ -81,12 +81,12 @@ type
   { Offset list for texture.}
   TOffset = packed record
     Type1: Word;           // ??
-    HdrOffset: LongInt;    // Contains offsetof Img header from the origin
+    HdrOffset: Int32;      // Contains offset of Img header from the origin
                            //  of the file
     Type2: Word;           // ??
-    Unk: LongWord;         // Ranges from 0 to 4 (0 in 90%)
-    Null1: LongWord;       // Always 0
-    Null2: LongWord;       // Always 0
+    Unk: UInt32;           // Ranges from 0 to 4 (0 in 90%)
+    Null1: UInt32;         // Always 0
+    Null2: UInt32;         // Always 0
   end;
 
   TOffsetList = array[Word] of TOffset;
@@ -102,15 +102,15 @@ type
                            //   compressed data.
                            // $1108 = Image has RLE type compressed data with
                            //   a row offset section before the single image data.
-    ImageSize: LongInt;    // Image size (including header)
-    ImageOff: LongInt;     // Pointer to start of image data from this header
+    ImageSize: UInt32;     // Image size (including header)
+    ImageOff: UInt32;      // Pointer to start of image data from this header
     Unk2: Word;            // $0000 = Image has subimages in special
                            //   compressed format.
                            // $00C0 = Usual value, regular single image.
                            // NonZero = Regular single image.Unknown what the
                            //   differences indicate
     SubImages: Word;       // Number of subimages (1 = single image)
-    Unk3: LongInt;
+    Unk3: UInt32;
     Unk4: Word;
   end;
 
@@ -178,7 +178,7 @@ var
 
   procedure LoadUncompressedSubImages;
   var
-    SubOffs: packed array[0..63] of LongInt;
+    SubOffs: packed array[0..63] of Int32;
     I, StartPos, J, WritePos: LongInt;
     NumZeroes, NumImageBytes: Byte;
     SubWidth, SubHeight: Word;

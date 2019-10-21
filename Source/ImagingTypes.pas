@@ -213,6 +213,7 @@ type
     PInt32 = ^Int32;
     UInt32 = Cardinal;
     PUInt32 = ^UInt32;
+    Int16 = SmallInt;
   {$ELSE}
     PtrUInt = NativeUInt;
     PtrInt = NativeInt;

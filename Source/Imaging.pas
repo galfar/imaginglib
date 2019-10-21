@@ -595,7 +595,7 @@ type
       different file format but keeping the metadata).}
     procedure CopyLoadedMetaItemsForSaving;
 
-    function GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
+    function GetPhysicalPixelSize(ResUnit: TResolutionUnit; out XSize,
       YSize: Single; MetaForSave: Boolean = False; ImageIndex: Integer = 0): Boolean;
     procedure SetPhysicalPixelSize(ResUnit: TResolutionUnit; XSize, YSize: Single;
       MetaForSave: Boolean = False; ImageIndex: Integer = 0);
@@ -4071,7 +4071,7 @@ begin
   Result := Iff(ImageIndex = 0, Id, Format(SMetaIdForSubImage, [Id, ImageIndex]));
 end;
 
-function TMetadata.GetPhysicalPixelSize(ResUnit: TResolutionUnit; var XSize,
+function TMetadata.GetPhysicalPixelSize(ResUnit: TResolutionUnit; out XSize,
   YSize: Single; MetaForSave: Boolean; ImageIndex: Integer): Boolean;
 type
   TGetter = function(const Id: string; ImageIndex: Integer): Variant of object;
