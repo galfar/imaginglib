@@ -2,7 +2,7 @@
   This source is only used to compile and install the package.
  }
 
-unit vampyreimagingpackage_ext;
+unit VampyreImagingPackage_Ext;
 
 {$warn 5023 off : no warning about unused units}
 interface
@@ -21,5 +21,5 @@ begin
 end;
 
 initialization
-  RegisterPackage('vampyreimagingpackage_ext', @Register);
+  RegisterPackage('VampyreImagingPackage_Ext', @Register);
 end.

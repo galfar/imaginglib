@@ -9,9 +9,9 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\..\..\Source"/>
-        <OtherUnitFiles Value="..\..\Extensions"/>
-        <UnitOutputDirectory Value="..\..\..\bin\ppu\$(TargetCPU)-$(TargetOS)\opengl"/>
+        <IncludeFiles Value="..\..\Source"/>
+        <OtherUnitFiles Value="..\Extensions"/>
+        <UnitOutputDirectory Value="..\..\bin\ppu\$(TargetCPU)-$(TargetOS)\opengl"/>
       </SearchPaths>
       <Other>
         <CustomOptions Value="-dOPENGL_NO_EXT_HEADERS"/>
@@ -25,7 +25,7 @@
     <Version Minor="80"/>
     <Files Count="1">
       <Item1>
-        <Filename Value="..\..\Extensions\ImagingOpenGL.pas"/>
+        <Filename Value="..\Extensions\ImagingOpenGL.pas"/>
         <UnitName Value="ImagingOpenGL"/>
       </Item1>
     </Files>

@@ -2,40 +2,40 @@
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
-    <Name Value="vampyreimagingpackage_gr32"/>
+    <Name Value="vampyreimagingpackage_sdl"/>
     <Type Value="RunAndDesignTime"/>
     <Author Value="Marek Mauder (http://imaginglib.sourceforge.net)"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\..\..\Source"/>
-        <OtherUnitFiles Value="..\..\Extensions"/>
-        <UnitOutputDirectory Value="..\..\..\bin\ppu\$(TargetCPU)-$(TargetOS)\graphics32"/>
+        <IncludeFiles Value="..\..\Source"/>
+        <OtherUnitFiles Value="..\Extensions;..\..\Demos\ObjectPascal\Common"/>
+        <UnitOutputDirectory Value="../../bin/ppu/$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
-    <Description Value="Vampyre Imaging Library Package for Lazarus - Addon for Graphics32
-"/>
+    <Description Value="Vampyre Imaging Library Package for Lazarus - Addon for SDL"/>
     <License Value="Imaging comes with two open source licenses from which you can choose the one which fits your needs best:
 * MPL - Mozilla Public License
 * LGPL - GNU Lesser General Public License"/>
     <Version Minor="80"/>
-    <Files Count="1">
+    <Files Count="2">
       <Item1>
-        <Filename Value="..\..\Extensions\ImagingGraphics32.pas"/>
-        <UnitName Value="ImagingGraphics32"/>
-      </Item1>
-    </Files>
-    <RequiredPkgs Count="3">
-      <Item1>
-        <PackageName Value="graphics32"/>
+        <Filename Value="..\..\Demos\ObjectPascal\Common\sdl.pas"/>
+        <UnitName Value="sdl"/>
       </Item1>
       <Item2>
-        <PackageName Value="vampyreimagingpackage_ext"/>
+        <Filename Value="..\Extensions\ImagingSdl.pas"/>
+        <UnitName Value="ImagingSDL"/>
       </Item2>
-      <Item3>
+    </Files>
+    <RequiredPkgs Count="2">
+      <Item1>
+        <PackageName Value="VampyreImagingPackage"/>
+      </Item1>
+      <Item2>
         <PackageName Value="FCL"/>
-      </Item3>
+      </Item2>
     </RequiredPkgs>
     <UsageOptions>
       <UnitPath Value="$(PkgOutDir)"/>
