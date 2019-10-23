@@ -40,9 +40,13 @@ const
   SFalse = 'False';
 
 type
-{$IF Defined(DELPHI) and (CompilerVersion <= 18.5)}
-  UInt32 = Cardinal;
-  PUInt32 = ^UInt32;
+{$IF Defined(DELPHI)}
+  {$IF not Defined(UInt32)}
+    UInt32 = Cardinal;
+  {$IFEND}
+  {$IF not Defined(PUInt32)}
+    PUInt32 = ^UInt32;
+  {$IFEND}
 {$IFEND}
 
   TByteArray = array[0..MaxInt - 1] of Byte;

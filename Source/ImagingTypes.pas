@@ -203,20 +203,23 @@ const
   ChannelAlpha = 3;
 
 type
-{$IFNDEF FPC}
+{$IFDEF DCC}
   {$IF CompilerVersion <= 18.5}
     PtrUInt = Cardinal;
     PtrInt = Integer;
-    // Some new Delphi platforms have 64bit LongInt/LongWord so rather use
-    // Int32/UInt32 where you really want 32bits.
+    { Some new Delphi platforms have 64bit LongInt/LongWord so rather use
+      Int32/UInt32 where you really want 32bits. }
     Int32 = Integer;
-    PInt32 = ^Int32;
     UInt32 = Cardinal;
-    PUInt32 = ^UInt32;
     Int16 = SmallInt;
   {$ELSE}
     PtrUInt = NativeUInt;
     PtrInt = NativeInt;
+  {$IFEND}
+  { Not sure which Delphi version defined these (e.g. XE3 has UInt32 but not PUInt32). }
+  {$IF not Defined(PInt32) or not Defined(PUInt32)}
+    PInt32 = ^Int32;
+    PUInt32 = ^UInt32;
   {$IFEND}
 {$ENDIF}
 

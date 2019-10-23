@@ -23,9 +23,14 @@ uses
   SysUtils, Classes, LibDelphi;
 
 type
+{$IF Defined(DCC)}
+  {$IF not Defined(UInt32)}
+    UInt32 = Cardinal;
+  {$IFEND}
+{$IFEND}
   tmsize_t = SizeInt;
   tsize_t = SizeInt;
-  toff_t = {$ifdef VER403}int64{$else}Integer{$endif};
+  toff_t = {$ifdef VER403}Int64{$else}Integer{$endif};
   poff_t = ^toff_t;
   tsample_t = Word;
   // Beware: THandle is 32bit in size even on 64bit Linux - this may cause

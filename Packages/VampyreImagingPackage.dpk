@@ -1,6 +1,7 @@
 package VampyreImagingPackage;
 
 {$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
@@ -22,6 +23,7 @@ package VampyreImagingPackage;
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $7A00000}
+{$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'Vampyre Imaging Library Package'}
 {$IMPLICITBUILD OFF}
 {$DEFINE FULL_FEATURE_SET}
@@ -35,28 +37,34 @@ contains
   ImagingBitmap in '..\Source\ImagingBitmap.pas',
   ImagingCanvases in '..\Source\ImagingCanvases.pas',
   ImagingClasses in '..\Source\ImagingClasses.pas',
+  ImagingColors in '..\Source\ImagingColors.pas',
   ImagingComponents in '..\Source\ImagingComponents.pas',
+  ImagingDds in '..\Source\ImagingDds.pas',
+  ImagingFormats in '..\Source\ImagingFormats.pas',
+  ImagingGif in '..\Source\ImagingGif.pas',
+  ImagingIO in '..\Source\ImagingIO.pas',
   ImagingJpeg in '..\Source\ImagingJpeg.pas',
   ImagingNetworkGraphics in '..\Source\ImagingNetworkGraphics.pas',
+  ImagingPortableMaps in '..\Source\ImagingPortableMaps.pas',
+  ImagingRadiance in '..\Source\ImagingRadiance.pas',
   ImagingTarga in '..\Source\ImagingTarga.pas',
   ImagingTypes in '..\Source\ImagingTypes.pas',
   ImagingUtility in '..\Source\ImagingUtility.pas',
-  ImagingIO in '..\Source\ImagingIO.pas',
-  ImagingFormats in '..\Source\ImagingFormats.pas',
-  ImagingDds in '..\Source\ImagingDds.pas',
-  ImagingPortableMaps in '..\Source\ImagingPortableMaps.pas',
-  ImagingGif in '..\Source\ImagingGif.pas',
-  ImagingColors in '..\Source\ImagingColors.pas',
-  ImagingRadiance in '..\Source\ImagingRadiance.pas'
   ImagingExtras in '..\Extensions\ImagingExtras.pas',
+  ImagingJpeg2000 in '..\Extensions\ImagingJpeg2000.pas',
+  ImagingPcx in '..\Extensions\ImagingPcx.pas',
+  ImagingPsd in '..\Extensions\ImagingPsd.pas',
+  ImagingTiff in '..\Extensions\ImagingTiff.pas',
+  ImagingXpm in '..\Extensions\ImagingXpm.pas',
+  OpenJpeg in '..\Extensions\OpenJpeg.pas',
   dzlib in '..\Source\ZLib\dzlib.pas',
-  impaszlib in '..\Source\ZLib\impaszlib.pas',
   imadler in '..\Source\ZLib\imadler.pas',
   iminfblock in '..\Source\ZLib\iminfblock.pas',
   iminfcodes in '..\Source\ZLib\iminfcodes.pas',
   iminffast in '..\Source\ZLib\iminffast.pas',
   iminftrees in '..\Source\ZLib\iminftrees.pas',
   iminfutil in '..\Source\ZLib\iminfutil.pas',
+  impaszlib in '..\Source\ZLib\impaszlib.pas',
   imtrees in '..\Source\ZLib\imtrees.pas',
   imzdeflate in '..\Source\ZLib\imzdeflate.pas',
   imzinflate in '..\Source\ZLib\imzinflate.pas',
@@ -108,6 +116,17 @@ contains
   imjpeglib in '..\Source\JpegLib\imjpeglib.pas',
   imjquant1 in '..\Source\JpegLib\imjquant1.pas',
   imjquant2 in '..\Source\JpegLib\imjquant2.pas',
-  imjutils in '..\Source\JpegLib\imjutils.pas';
+  imjutils in '..\Source\JpegLib\imjutils.pas',
+  ImagingTiffLib in '..\Extensions\LibTiff\ImagingTiffLib.pas',
+  LibDelphi in '..\Extensions\LibTiff\LibDelphi.pas',
+  LibJpegDelphi in '..\Extensions\LibTiff\LibJpegDelphi.pas',
+  LibTiffDelphi in '..\Extensions\LibTiff\LibTiffDelphi.pas',
+  ZLibDelphi in '..\Extensions\LibTiff\ZLibDelphi.pas',
+  ElderImagery in '..\Extensions\ElderImagery.pas',
+  ElderImageryBsi in '..\Extensions\ElderImageryBsi.pas',
+  ElderImageryCif in '..\Extensions\ElderImageryCif.pas',
+  ElderImageryImg in '..\Extensions\ElderImageryImg.pas',
+  ElderImagerySky in '..\Extensions\ElderImagerySky.pas',
+  ElderImageryTexture in '..\Extensions\ElderImageryTexture.pas';
 
 end.
