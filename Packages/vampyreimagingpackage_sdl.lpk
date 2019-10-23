@@ -2,16 +2,15 @@
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
-    <Name Value="vampyreimagingpackage_sdl"/>
-    <Type Value="RunAndDesignTime"/>
+    <Name Value="VampyreImagingPackage_Sdl"/>
     <Author Value="Marek Mauder (http://imaginglib.sourceforge.net)"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\..\Source"/>
-        <OtherUnitFiles Value="..\Extensions;..\..\Demos\ObjectPascal\Common"/>
-        <UnitOutputDirectory Value="../../bin/ppu/$(TargetCPU)-$(TargetOS)"/>
+        <IncludeFiles Value="..\Source"/>
+        <OtherUnitFiles Value="..\Extensions;..\Demos\ObjectPascal\Common"/>
+        <UnitOutputDirectory Value="..\Bin\ppu\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Vampyre Imaging Library Package for Lazarus - Addon for SDL"/>
@@ -21,7 +20,7 @@
     <Version Minor="80"/>
     <Files Count="2">
       <Item1>
-        <Filename Value="..\..\Demos\ObjectPascal\Common\sdl.pas"/>
+        <Filename Value="..\Demos\ObjectPascal\Common\sdl.pas"/>
         <UnitName Value="sdl"/>
       </Item1>
       <Item2>

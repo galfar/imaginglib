@@ -2,16 +2,15 @@
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
-    <Name Value="vampyreimagingpackage_gr32"/>
-    <Type Value="RunAndDesignTime"/>
+    <Name Value="VampyreImagingPackage_GR32"/>
     <Author Value="Marek Mauder (http://imaginglib.sourceforge.net)"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\..\Source"/>
+        <IncludeFiles Value="..\Source"/>
         <OtherUnitFiles Value="..\Extensions"/>
-        <UnitOutputDirectory Value="..\..\bin\ppu\$(TargetCPU)-$(TargetOS)\graphics32"/>
+        <UnitOutputDirectory Value="..\Bin\ppu\$(TargetCPU)-$(TargetOS)\graphics32"/>
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Vampyre Imaging Library Package for Lazarus - Addon for Graphics32
@@ -28,10 +27,10 @@
     </Files>
     <RequiredPkgs Count="3">
       <Item1>
-        <PackageName Value="graphics32"/>
+        <PackageName Value="VampyreImagingPackage"/>
       </Item1>
       <Item2>
-        <PackageName Value="vampyreimagingpackage_ext"/>
+        <PackageName Value="GR32_Lazarus"/>
       </Item2>
       <Item3>
         <PackageName Value="FCL"/>

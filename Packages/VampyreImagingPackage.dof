@@ -90,11 +90,11 @@ MaxStackSize=1048576
 ImageBase=127926272
 ExeDescription=Vampyre Imaging Library Package
 [Directories]
-OutputDir=..\..\Bin
-UnitOutputDir=..\..\Bin\Dcu\Win32
-PackageDLLOutputDir=..\..\Bin
+OutputDir=..\Bin
+UnitOutputDir=..\Bin\Dcu\Win32
+PackageDLLOutputDir=..\Bin
 PackageDCPOutputDir=
-SearchPath=..\..\Source;..\..\Source\JpegLib;..\..\Source\ZLib;..\Extensions;..\Extensions\LibTiff
+SearchPath=..\Source;..\Source\JpegLib;..\Source\ZLib;..\Extensions;..\Extensions\LibTiff
 Conditionals=FULL_FEATURE_SET
 DebugSourceDirs=
 UsePackages=0

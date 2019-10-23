@@ -1,7 +1,7 @@
 Vampyre Imaging Library
 ===================================
 
-<img style="float: right" src="https://raw.githubusercontent.com/galfar/imaginglib/master/Doc/Common/logo.png">
+![Imaging Logo](https://raw.githubusercontent.com/galfar/imaginglib/master/Doc/Common/logo.png)
 
 Object Pascal image loading, saving, and manipulation library.
 

@@ -17,6 +17,7 @@ implementation
 
 procedure Register;
 begin
+  // TGraphic types auto-registered in ImagingComponents
 end;
 
 initialization

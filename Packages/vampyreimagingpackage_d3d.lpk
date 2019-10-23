@@ -2,16 +2,15 @@
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
-    <Name Value="vampyreimagingpackage_d3d"/>
-    <Type Value="RunAndDesignTime"/>
+    <Name Value="VampyreImagingPackage_D3D"/>
     <Author Value="Marek Mauder (http://imaginglib.sourceforge.net)"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\..\Source"/>
-        <OtherUnitFiles Value="..\Extensions;..\..\Demos\ObjectPascal\Common"/>
-        <UnitOutputDirectory Value="../../bin/ppu/$(TargetCPU)-$(TargetOS)"/>
+        <IncludeFiles Value="..\Source"/>
+        <OtherUnitFiles Value="..\Extensions;..\Demos\ObjectPascal\Common"/>
+        <UnitOutputDirectory Value="..\Bin\ppu\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Vampyre Imaging Library Package for Lazarus - Addon for Direct3D."/>
@@ -25,11 +24,11 @@
         <UnitName Value="ImagingDirect3D9"/>
       </Item1>
       <Item2>
-        <Filename Value="..\..\Demos\ObjectPascal\Common\Direct3D9.pas"/>
+        <Filename Value="..\Demos\ObjectPascal\Common\Direct3D9.pas"/>
         <UnitName Value="Direct3D9"/>
       </Item2>
       <Item3>
-        <Filename Value="..\..\Demos\ObjectPascal\Common\DXTypes.pas"/>
+        <Filename Value="..\Demos\ObjectPascal\Common\DXTypes.pas"/>
         <UnitName Value="DXTypes"/>
       </Item3>
     </Files>

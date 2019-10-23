@@ -336,6 +336,8 @@ procedure DisplayImage(DstCanvas: TCanvas; const DstRect: TRect; Image: TBaseIma
 procedure DisplayImageDataOnDC(DC: HDC; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
 {$ENDIF}
 
+procedure RegisterTypes;
+
 implementation
 
 uses
@@ -371,7 +373,13 @@ resourcestring
   SUnsupportedLCLWidgetSet = 'This function is not implemented for current LCL widget set';
   SImagingGraphicName = 'Imaging Graphic AllInOne';
 
-{ Registers types to VCL/LCL.}
+var
+  RegisteredFormats: TList;
+  RegisteredGraphicsClasses: Boolean = False;
+
+{ Registers types to VCL/LCL.
+  In some cases (base+ext package installed in Lazarus) RegisterTypes can be
+  called twice so must keep track of which formats were already registered. }
 procedure RegisterTypes;
 var
   I: LongInt;
@@ -380,9 +388,15 @@ var
   var
     I: LongInt;
   begin
+    if RegisteredFormats.IndexOf(Format) >= 0 then
+      Exit;
+
     for I := 0 to Format.Extensions.Count - 1 do
+    begin
       TPicture.RegisterFileFormat(Format.Extensions[I], SImagingGraphicName,
         TImagingGraphic);
+    end;
+    RegisteredFormats.Add(Format);
   end;
 
   procedure RegisterFileFormat(AClass: TImagingGraphicForSaveClass);
@@ -398,6 +412,9 @@ begin
   for I := Imaging.GetFileFormatCount - 1 downto 0 do
     RegisterFileFormatAllInOne(Imaging.GetFileFormatAtIndex(I));
   Classes.RegisterClass(TImagingGraphic);
+
+  if RegisteredGraphicsClasses then
+    Exit;
 
 {$IFNDEF DONT_LINK_TARGA}
   RegisterFileFormat(TImagingTarga);
@@ -434,7 +451,9 @@ begin
 {$IFNDEF DONT_LINK_BITMAP}
   RegisterFileFormat(TImagingBitmap);
   Classes.RegisterClass(TImagingBitmap);
-{$ENDIF}   
+{$ENDIF}
+
+  RegisteredGraphicsClasses := True;
 end;
 
 { Unregisters types from VCL/LCL.}
@@ -1229,9 +1248,11 @@ end;
 {$ENDIF}
 
 initialization
+  RegisteredFormats := TList.Create;
   RegisterTypes;
 finalization
   UnRegisterTypes;
+  RegisteredFormats.Free;
 
 {$IFEND} // {$IF not Defined(COMPONENT_SET_LCL) and not Defined(COMPONENT_SET_VCL)}
 

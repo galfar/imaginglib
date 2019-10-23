@@ -10,14 +10,17 @@ interface
 uses
   ElderImagery, ElderImageryBsi, ElderImageryCif, ElderImageryImg, 
   ElderImagerySky, ElderImageryTexture, ImagingBinary, ImagingCompare, 
-  ImagingExtras, ImagingJpeg2000, ImagingPcx, ImagingPsd, ImagingSdl,
+  ImagingExtras, ImagingJpeg2000, ImagingPcx, ImagingPsd, ImagingSdl, 
   ImagingTiff, ImagingXpm, OpenJpeg, ImagingTiffLib, LibDelphi, LibJpegDelphi, 
-  LibTiffDelphi, ZLibDelphi, LazarusPackageIntf;
+  LibTiffDelphi, ZLibDelphi, VampyreImagingPackage_Ext_Register, 
+  LazarusPackageIntf;
 
 implementation
 
 procedure Register;
 begin
+  RegisterUnit('VampyreImagingPackage_Ext_Register', 
+    @VampyreImagingPackage_Ext_Register.Register);
 end;
 
 initialization

@@ -2,20 +2,14 @@
   This source is only used to compile and install the package.
  }
 
-unit vampyreimagingpackage_opengl;
+unit VampyreImagingPackage_OpenGL;
 
 {$warn 5023 off : no warning about unused units}
 interface
 
 uses
-  ImagingOpenGL, LazarusPackageIntf;
+  ImagingOpenGL;
 
 implementation
 
-procedure Register;
-begin
-end;
-
-initialization
-  RegisterPackage('vampyreimagingpackage_opengl', @Register);
 end.

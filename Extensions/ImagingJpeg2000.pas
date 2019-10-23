@@ -32,6 +32,16 @@ unit ImagingJpeg2000;
 
 interface
 
+{$IF not (
+  (Defined(DCC) and Defined(CPUX86) and not Defined(MACOS)) or
+  (Defined(FPC) and not Defined(MSDOS) and
+    ((Defined(CPUX86) and (Defined(LINUX) or Defined(WIN32) or Defined(MACOS)) or
+     (Defined(CPUX64) and Defined(LINUX)))))
+  )}
+  // JPEG2000 only for 32bit Windows/Linux/OSX and for 64bit Unix with FPC
+implementation
+begin
+{$ELSE}
 uses
   SysUtils, ImagingTypes, Imaging, ImagingColors, ImagingIO, ImagingUtility,
   ImagingExtras, OpenJpeg;
@@ -638,5 +648,5 @@ initialization
     - Initial loading-only version created.
 
 }
-
+{$IFEND}
 end.

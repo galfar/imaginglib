@@ -1,11 +1,11 @@
 object MainForm: TMainForm
-  Left = 3754
+  Left = 473
   Height = 680
-  Top = 354
+  Top = 405
   Width = 997
   AllowDropFiles = True
   Caption = 'LCL Imager (Vampyre Imaging Library Demo)'
-  ClientHeight = 657
+  ClientHeight = 660
   ClientWidth = 997
   Constraints.MinHeight = 240
   Constraints.MinWidth = 320
@@ -88,18 +88,18 @@ object MainForm: TMainForm
   OnDropFiles = FormDropFiles
   OnShow = FormShow
   Position = poWorkAreaCenter
-  LCLVersion = '2.0.2.0'
+  LCLVersion = '2.0.4.0'
   Visible = True
   object StatusBar: TStatusBar
     Left = 0
     Height = 23
-    Top = 634
+    Top = 637
     Width = 997
     Panels = <>
   end
   object PairSplitter: TPairSplitter
     Left = 0
-    Height = 634
+    Height = 637
     Top = 0
     Width = 997
     Align = alClient
@@ -107,14 +107,14 @@ object MainForm: TMainForm
     object PairSplitterSideLeft: TPairSplitterSide
       Cursor = crArrow
       Left = 0
-      Height = 634
+      Height = 637
       Top = 0
       Width = 180
       ClientWidth = 180
-      ClientHeight = 634
+      ClientHeight = 637
       object TreeImage: TTreeView
         Left = 0
-        Height = 634
+        Height = 637
         Top = 0
         Width = 180
         Align = alClient
@@ -132,15 +132,15 @@ object MainForm: TMainForm
     object PairSplitterSideRight: TPairSplitterSide
       Cursor = crArrow
       Left = 185
-      Height = 634
+      Height = 637
       Top = 0
       Width = 812
       ClientWidth = 812
-      ClientHeight = 634
+      ClientHeight = 637
       object Image: TImage
         Cursor = crHandPoint
         Left = 4
-        Height = 634
+        Height = 637
         Top = 0
         Width = 804
         Align = alClient

@@ -9,9 +9,10 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\..\Source"/>
+        <IncludeFiles Value="..\Source"/>
+        <Libraries Value="..\Extensions\J2KObjects;..\Extensions\LibTiff\Compiled"/>
         <OtherUnitFiles Value="..\Extensions;..\Extensions\LibTiff"/>
-        <UnitOutputDirectory Value="..\..\bin\ppu\$(TargetCPU)-$(TargetOS)\extras"/>
+        <UnitOutputDirectory Value="..\Bin\ppu\$(TargetCPU)-$(TargetOS)\ext"/>
       </SearchPaths>
       <Other>
         <CustomOptions Value="-dFULL_FEATURE_SET"/>
@@ -26,7 +27,7 @@
 * LGPL - GNU Lesser General Public License
 "/>
     <Version Minor="80"/>
-    <Files Count="21">
+    <Files Count="22">
       <Item1>
         <Filename Value="..\Extensions\ElderImagery.pas"/>
         <UnitName Value="ElderImagery"/>
@@ -111,6 +112,11 @@
         <Filename Value="..\Extensions\LibTiff\ZLibDelphi.pas"/>
         <UnitName Value="ZLibDelphi"/>
       </Item21>
+      <Item22>
+        <Filename Value="vampyreimagingpackage_ext_register.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="VampyreImagingPackage_Ext_Register"/>
+      </Item22>
     </Files>
     <RequiredPkgs Count="2">
       <Item1>
@@ -121,10 +127,14 @@
       </Item2>
     </RequiredPkgs>
     <UsageOptions>
+      <LibraryPath Value="..\Extensions\J2KObjects;..\Extensions\LibTiff\Compiled"/>
       <UnitPath Value="$(PkgOutDir)"/>
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
     </PublishOptions>
+    <CustomOptions Items="ExternHelp" Version="2">
+      <_ExternHelp Items="Count"/>
+    </CustomOptions>
   </Package>
 </CONFIG>
