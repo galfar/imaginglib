@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="10"/>
+    <Version Value="11"/>
     <PathDelim Value="\"/>
     <General>
       <Flags>
         <LRSInOutputDirectory Value="False"/>
       </Flags>
+      <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
     </General>
     <VersionInfo>
       <UseVersionInfo Value="True"/>
       <MinorVersionNr Value="80"/>
     </VersionInfo>
-    <BuildModes Count="2" Active="Release">
+    <BuildModes Count="2">
       <Item1 Name="Debug" Default="True"/>
       <Item2 Name="Release">
         <CompilerOptions>
@@ -24,9 +25,9 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="..\..\Source;..\..\Source\JpegLib;..\..\Source\ZLib"/>
-            <Libraries Value="..\Extensions\J2KObjects;..\Extensions\LibTiff\Compiled"/>
-            <OtherUnitFiles Value="..\..\Source;..\..\Source\JpegLib;..\..\Source\ZLib;..\Extensions;..\Extensions\LibTiff"/>
-            <UnitOutputDirectory Value="..\..\Dcu\$(TargetCPU)-$(Target_OS)"/>
+            <Libraries Value="..\..\Extensions\J2KObjects;..\..\Extensions\LibTiff\Compiled"/>
+            <OtherUnitFiles Value="..\..\Source;..\..\Source\JpegLib;..\..\Source\ZLib;..\..\Extensions;..\..\Extensions\LibTiff"/>
+            <UnitOutputDirectory Value="..\..\Bin\Ppu\$(TargetCPU)-$(Target_OS)"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -51,158 +52,25 @@
               <ExecutableType Value="Library"/>
             </Options>
           </Linking>
+          <Other>
+            <CustomOptions Value="-dFULL_FEATURE_SET"/>
+          </Other>
         </CompilerOptions>
       </Item2>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
-      <IgnoreBinaries Value="False"/>
-      <IncludeFileFilter Value="*.(pas|pp|inc|lfm|lpr|lrs|lpi|lpk|sh|xml)"/>
-      <ExcludeFileFilter Value="*.(bak|ppu|ppw|o|so);*~;backup"/>
     </PublishOptions>
     <RunParams>
-      <local>
-        <FormatVersion Value="1"/>
-        <LaunchingApplication PathPlusParams="\usr\X11R6\bin\xterm -T 'Lazarus Run Output' -e $(LazarusDir)\tools\runwait.sh $(TargetCmdLine)"/>
-      </local>
+      <FormatVersion Value="2"/>
+      <Modes Count="0"/>
     </RunParams>
-    <Units Count="10">
+    <Units Count="1">
       <Unit0>
         <Filename Value="VampyreImaging.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="22"/>
-        <CursorPos X="40" Y="34"/>
-        <UsageCount Value="25"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit0>
-      <Unit1>
-        <Filename Value="..\..\Source\ImagingOptions.inc"/>
-        <EditorIndex Value="7"/>
-        <TopLine Value="94"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit1>
-      <Unit2>
-        <Filename Value="..\..\Source\ImagingComponents.pas"/>
-        <EditorIndex Value="8"/>
-        <TopLine Value="321"/>
-        <CursorPos X="27" Y="521"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit2>
-      <Unit3>
-        <Filename Value="..\..\Source\Imaging.pas"/>
-        <EditorIndex Value="9"/>
-        <TopLine Value="674"/>
-        <CursorPos X="13" Y="681"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit3>
-      <Unit4>
-        <Filename Value="..\Extensions\ImagingTiff.pas"/>
-        <EditorIndex Value="5"/>
-        <CursorPos X="13" Y="42"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit4>
-      <Unit5>
-        <Filename Value="ImagingExport.pas"/>
-        <EditorIndex Value="6"/>
-        <TopLine Value="110"/>
-        <CursorPos X="13" Y="223"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit5>
-      <Unit6>
-        <Filename Value="..\Extensions\LibTiff\LibDelphi.pas"/>
-        <EditorIndex Value="1"/>
-        <CursorPos Y="6"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit6>
-      <Unit7>
-        <Filename Value="..\Extensions\LibTiff\LibJpegDelphi.pas"/>
-        <EditorIndex Value="2"/>
-        <CursorPos Y="6"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit7>
-      <Unit8>
-        <Filename Value="..\Extensions\LibTiff\ZLibDelphi.pas"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="51"/>
-        <CursorPos X="24" Y="57"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="..\Extensions\ImagingJpeg2000.pas"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="4"/>
-        <TopLine Value="532"/>
-        <CursorPos X="18" Y="557"/>
-        <UsageCount Value="10"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
-      </Unit9>
     </Units>
-    <JumpHistory Count="12" HistoryIndex="11">
-      <Position1>
-        <Filename Value="VampyreImaging.lpr"/>
-        <Caret Line="34" Column="12" TopLine="29"/>
-      </Position1>
-      <Position2>
-        <Filename Value="..\..\Source\ImagingComponents.pas"/>
-      </Position2>
-      <Position3>
-        <Filename Value="..\..\Source\Imaging.pas"/>
-      </Position3>
-      <Position4>
-        <Filename Value="..\..\Source\ImagingComponents.pas"/>
-        <Caret Line="528" Column="3" TopLine="505"/>
-      </Position4>
-      <Position5>
-        <Filename Value="..\..\Source\ImagingComponents.pas"/>
-        <Caret Line="38" Column="26" TopLine="13"/>
-      </Position5>
-      <Position6>
-        <Filename Value="..\..\Source\ImagingComponents.pas"/>
-        <Caret Line="530" Column="17" TopLine="507"/>
-      </Position6>
-      <Position7>
-        <Filename Value="..\..\Source\Imaging.pas"/>
-        <Caret Line="701" Column="16" TopLine="678"/>
-      </Position7>
-      <Position8>
-        <Filename Value="..\..\Source\Imaging.pas"/>
-        <Caret Line="811" Column="28" TopLine="788"/>
-      </Position8>
-      <Position9>
-        <Filename Value="VampyreImaging.lpr"/>
-        <Caret Line="17" Column="37"/>
-      </Position9>
-      <Position10>
-        <Filename Value="..\Extensions\ImagingTiff.pas"/>
-        <Caret Line="3" Column="12"/>
-      </Position10>
-      <Position11>
-        <Filename Value="..\Extensions\ImagingTiff.pas"/>
-        <Caret Line="42" Column="13"/>
-      </Position11>
-      <Position12>
-        <Filename Value="ImagingExport.pas"/>
-        <Caret Line="223" Column="13" TopLine="110"/>
-      </Position12>
-    </JumpHistory>
   </ProjectOptions>
   <CompilerOptions>
     <Version Value="11"/>

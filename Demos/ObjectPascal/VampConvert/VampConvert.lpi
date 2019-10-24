@@ -82,8 +82,8 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;$(ProjOutDir)"/>
-      <Libraries Value="..\..\..\Extras\Extensions\J2KObjects;..\..\..\Extras\Extensions\LibTiff\Compiled"/>
-      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;..\Common"/>
+      <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
+      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>
       <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Parsing>
