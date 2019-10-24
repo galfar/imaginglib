@@ -14,7 +14,7 @@
   Image is loaded from the file in a background thread while the UI shows
   progress animation.
 
-  Note: tested only in Delphi 10 Seattle now
+  Note: tested only in Delphi 10.3 now
 }
 unit MainForm;
 

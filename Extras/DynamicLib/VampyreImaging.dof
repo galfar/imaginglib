@@ -91,10 +91,10 @@ ImageBase=7995392
 ExeDescription=
 [Directories]
 OutputDir=..\..\Bin
-UnitOutputDir=..\..\Bin\Dcu\Win32
+UnitOutputDir=..\..\Bin\Dcu
 PackageDLLOutputDir=
 PackageDCPOutputDir=
-SearchPath=..\..\Source;..\..\Source\JpegLib;..\..\Source\ZLib;..\Extensions;..\Extensions\LibTiff
+SearchPath=..\..\Source;..\..\Source\JpegLib;..\..\Source\ZLib;..\..\Extensions;..\..\Extensions\LibTiff
 Packages=
 Conditionals=FULL_FEATURE_SET
 DebugSourceDirs=

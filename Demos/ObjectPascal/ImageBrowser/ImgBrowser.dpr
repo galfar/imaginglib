@@ -18,7 +18,7 @@ begin
   Application.Scaled := True;
 {$ENDIF}
   Application.Initialize;
-  Application.Title := 'ImgBrowser';
+  Application.Title := 'Image Browser';
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.

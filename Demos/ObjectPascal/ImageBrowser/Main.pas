@@ -125,11 +125,7 @@ implementation
 uses
   LCLType;
 {$ELSE}
- {$R *.dfm}
- {$IF (CompilerVersion >= 15.0) and (CompilerVersion <= 23.0)}
- uses
-   XPMan;
- {$IFEND}
+{$R *.dfm}
 {$ENDIF}
 
 procedure TMainForm.FormCreate(Sender: TObject);

@@ -13,7 +13,7 @@ unit DemoUnit;
 
 { Define this to write results to log file or undef it to
   display them on screen.}
-{$DEFINE LOG_TO_FILE}
+{.$DEFINE LOG_TO_FILE}
 { Define this to write images created in saving test on disk.
   They are saved only to memory when testing.}
 {$DEFINE SAVE_IMAGES_TO_FILES}
