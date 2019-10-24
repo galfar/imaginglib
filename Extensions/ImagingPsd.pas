@@ -64,7 +64,7 @@ type
 implementation
 
 uses
-  ImagingExtras;
+  ImagingExtFileFormats;
 
 const
   SPSDFormatName = 'Photoshop Image';

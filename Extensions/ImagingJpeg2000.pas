@@ -44,7 +44,7 @@ begin
 {$ELSE}
 uses
   SysUtils, ImagingTypes, Imaging, ImagingColors, ImagingIO, ImagingUtility,
-  ImagingExtras, OpenJpeg;
+  ImagingExtFileFormats, OpenJpeg;
 
 type
   { Type Jpeg 2000 file (needed for OpenJPEG codec settings).}

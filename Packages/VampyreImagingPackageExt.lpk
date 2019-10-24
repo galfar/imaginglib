@@ -2,7 +2,7 @@
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
-    <Name Value="VampyreImagingPackage_Ext"/>
+    <Name Value="VampyreImagingPackageExt"/>
     <Type Value="RunAndDesignTime"/>
     <Author Value="Marek Mauder (http://imaginglib.sourceforge.net)"/>
     <CompilerOptions>
@@ -61,8 +61,8 @@
         <UnitName Value="ImagingCompare"/>
       </Item8>
       <Item9>
-        <Filename Value="..\Extensions\ImagingExtras.pas"/>
-        <UnitName Value="ImagingExtras"/>
+        <Filename Value="..\Extensions\ImagingExtFileFormats.pas"/>
+        <UnitName Value="ImagingExtFileFormats"/>
       </Item9>
       <Item10>
         <Filename Value="..\Extensions\ImagingJpeg2000.pas"/>
@@ -113,9 +113,9 @@
         <UnitName Value="ZLibDelphi"/>
       </Item21>
       <Item22>
-        <Filename Value="vampyreimagingpackage_ext_register.pas"/>
+        <Filename Value="VampyreImagingPackageExtRegister.pas"/>
         <HasRegisterProc Value="True"/>
-        <UnitName Value="VampyreImagingPackage_Ext_Register"/>
+        <UnitName Value="VampyreImagingPackageExtRegister"/>
       </Item22>
     </Files>
     <RequiredPkgs Count="2">
@@ -132,9 +132,6 @@
     </UsageOptions>
     <PublishOptions>
       <Version Value="2"/>
-    </PublishOptions>
-    <CustomOptions Items="ExternHelp" Version="2">
-      <_ExternHelp Items="Count"/>
-    </CustomOptions>
+    </PublishOptions>    
   </Package>
 </CONFIG>

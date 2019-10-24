@@ -25,12 +25,12 @@
   For more information about the LGPL: http://www.gnu.org/copyleft/lesser.html
 }
 
-{ This is helper unit that registers all image file formats in Extras package
+{ This is helper unit that registers all image file formats in Extensions package
   to Imaging core loading and saving functions. Just put this unit in your uses
   clause instead of adding every unit that provides new file format support.
   Also new constants for SetOption/GetOption functions for new file formats
   are located here.}
-unit ImagingExtras;
+unit ImagingExtFileFormats;
 
 {$I ImagingOptions.inc}
 

@@ -2,7 +2,7 @@
   This source is only used to compile and install the package.
  }
 
-unit VampyreImagingPackage_Ext;
+unit VampyreImagingPackageExt;
 
 {$warn 5023 off : no warning about unused units}
 interface
@@ -10,19 +10,19 @@ interface
 uses
   ElderImagery, ElderImageryBsi, ElderImageryCif, ElderImageryImg, 
   ElderImagerySky, ElderImageryTexture, ImagingBinary, ImagingCompare, 
-  ImagingExtras, ImagingJpeg2000, ImagingPcx, ImagingPsd, ImagingSdl, 
+  ImagingExtFileFormats, ImagingJpeg2000, ImagingPcx, ImagingPsd, ImagingSdl, 
   ImagingTiff, ImagingXpm, OpenJpeg, ImagingTiffLib, LibDelphi, LibJpegDelphi, 
-  LibTiffDelphi, ZLibDelphi, VampyreImagingPackage_Ext_Register, 
+  LibTiffDelphi, ZLibDelphi, VampyreImagingPackageExtRegister, 
   LazarusPackageIntf;
 
 implementation
 
 procedure Register;
 begin
-  RegisterUnit('VampyreImagingPackage_Ext_Register', 
-    @VampyreImagingPackage_Ext_Register.Register);
+  RegisterUnit('VampyreImagingPackageExtRegister', 
+    @VampyreImagingPackageExtRegister.Register);
 end;
 
 initialization
-  RegisterPackage('VampyreImagingPackage_Ext', @Register);
+  RegisterPackage('VampyreImagingPackageExt', @Register);
 end.

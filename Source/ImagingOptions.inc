@@ -38,9 +38,9 @@
 {.$DEFINE DONT_LINK_RADHDR}      // link support for Radiance HDR/RGBE file format
 
 {.$DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
-                             // Extras package. Exactly which formats will be
+                             // Extensions package. Exactly which formats will be
                              // registered depends on settings in
-                             // ImagingExtras.pas unit.
+                             // ImagingExtFileFormats.pas unit.
 
 {.$DEFINE DONT_LINK_FILE_FORMATS} // no auto link support of any file format
 

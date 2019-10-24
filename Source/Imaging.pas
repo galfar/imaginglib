@@ -723,7 +723,7 @@ uses
   ImagingRadiance,
 {$ENDIF}
 {$IFNDEF DONT_LINK_EXTRAS}
-  ImagingExtras,
+  ImagingExtFileFormats,
 {$ENDIF}
 {$ENDIF}
   //ImagingDebug,
@@ -4176,10 +4176,7 @@ finalization
   GlobalMetadata.Free;
 
 {
-  File Notes:
-
-  -- TODOS ----------------------------------------------------
-    - nothing now
+  File Notes (obsolete):
 
   -- 0.80 ------------------------------------------------------
     - Added new color records constructor functions (Color24(..), Color32(..)).

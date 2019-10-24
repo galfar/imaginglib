@@ -8,9 +8,9 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\Source"/>
-        <OtherUnitFiles Value="..\Extensions;..\Demos\ObjectPascal\Common"/>
-        <UnitOutputDirectory Value="..\Bin\ppu\$(TargetCPU)-$(TargetOS)"/>
+        <IncludeFiles Value="..\..\Source"/>
+        <OtherUnitFiles Value="..\..\Extensions;..\..\Demos\ObjectPascal\Common"/>
+        <UnitOutputDirectory Value="..\..\Bin\Ppu\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Vampyre Imaging Library Package for Lazarus - Addon for SDL"/>
@@ -20,11 +20,11 @@
     <Version Minor="80"/>
     <Files Count="2">
       <Item1>
-        <Filename Value="..\Demos\ObjectPascal\Common\sdl.pas"/>
+        <Filename Value="..\..\Demos\ObjectPascal\Common\sdl.pas"/>
         <UnitName Value="sdl"/>
       </Item1>
       <Item2>
-        <Filename Value="..\Extensions\ImagingSdl.pas"/>
+        <Filename Value="..\..\Extensions\ImagingSdl.pas"/>
         <UnitName Value="ImagingSDL"/>
       </Item2>
     </Files>

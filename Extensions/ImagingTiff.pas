@@ -5,7 +5,7 @@ unit ImagingTiff;
 interface
 
 uses
-  SysUtils, Imaging, ImagingTypes, ImagingUtility, ImagingIO, ImagingExtras;
+  SysUtils, Imaging, ImagingTypes, ImagingUtility, ImagingIO;
 
 type
   { TIFF (Tag Image File Format) loader/saver base class.}
@@ -65,10 +65,11 @@ implementation
   {$UNDEF USE_LIBTIFF}
 {$IFEND}
 
-{$IFDEF USE_LIBTIFF}
 uses
-  ImagingTiffLib;
+{$IFDEF USE_LIBTIFF}
+  ImagingTiffLib,
 {$ENDIF}
+  ImagingExtFileFormats;
 
 {$ENDIF}
 

@@ -8,9 +8,9 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <IncludeFiles Value="..\Source"/>
-        <OtherUnitFiles Value="..\Extensions"/>
-        <UnitOutputDirectory Value="..\Bin\ppu\$(TargetCPU)-$(TargetOS)\graphics32"/>
+        <IncludeFiles Value="..\..\Source"/>
+        <OtherUnitFiles Value="..\..\Extensions"/>
+        <UnitOutputDirectory Value="..\..\Bin\Ppu\$(TargetCPU)-$(TargetOS)\graphics32"/>
       </SearchPaths>
     </CompilerOptions>
     <Description Value="Vampyre Imaging Library Package for Lazarus - Addon for Graphics32
@@ -21,7 +21,7 @@
     <Version Minor="80"/>
     <Files Count="1">
       <Item1>
-        <Filename Value="..\Extensions\ImagingGraphics32.pas"/>
+        <Filename Value="..\..\Extensions\ImagingGraphics32.pas"/>
         <UnitName Value="ImagingGraphics32"/>
       </Item1>
     </Files>

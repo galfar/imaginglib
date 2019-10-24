@@ -1,4 +1,4 @@
-unit VampyreImagingPackage_Ext_Register;
+unit VampyreImagingPackageExtRegister;
 
 {$warn 5023 off : no warning about unused units}
 interface
