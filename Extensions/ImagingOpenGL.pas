@@ -33,11 +33,9 @@ unit ImagingOpenGL;
 
 { Define this symbol if you want to use dglOpenGL header.}
 {$DEFINE OPENGL_USE_DGL_HEADERS}
-{ $DEFINE OPENGL_USE_GLSCENE_HEADERS}
 
 {$IFDEF OPENGL_NO_EXT_HEADERS}
   {$UNDEF OPENGL_USE_DGL_HEADERS}
-  {$UNDEF OPENGL_USE_GLSCENE_HEADERS}
 {$ENDIF}
 
 interface
@@ -46,8 +44,6 @@ uses
   SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats,
 {$IF Defined(OPENGL_USE_DGL_HEADERS)}
   dglOpenGL,
-{$ELSEIF Defined(OPENGL_USE_GLSCENE_HEADERS)}
-  OpenGL1x,
 {$ELSE}
   gl, glext,
 {$IFEND}
@@ -685,7 +681,7 @@ begin
     // Generate new texture, bind it and set
     glGenTextures(1, @Result);
     glBindTexture(GL_TEXTURE_2D, Result);
-    if Byte(glIsTexture(Result)) <> GL_TRUE then
+    if glIsTexture(Result) <> GL_TRUE then
       Exit;
 
     for I := MainLevelIndex to MipLevels - 1 + MainLevelIndex do
@@ -872,7 +868,7 @@ begin
   FreeImagesInArray(Images);
   SetLength(Images, 0);
   Result := False;
-  if Byte(glIsTexture(Texture)) = GL_TRUE then
+  if glIsTexture(Texture) = GL_TRUE then
   begin
     // Check if desired mipmap level count is valid
     glBindTexture(GL_TEXTURE_2D, Texture);
