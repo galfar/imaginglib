@@ -122,7 +122,7 @@ type
   PD3DVector = DXTypes.PD3DVector;
 
   PD3DColorValue = ^TD3DColorValue;
-  _D3DCOLORVALUE = packed record
+  _D3DCOLORVALUE = record
     r: Single;
     g: Single;
     b: Single;
@@ -146,7 +146,7 @@ type
   TD3DRect = _D3DRECT;
 
   PD3DMatrix = ^TD3DMatrix;
-  _D3DMATRIX = packed record
+  _D3DMATRIX = record
     case integer of
       0 : (_11, _12, _13, _14: Single;
            _21, _22, _23, _24: Single;
@@ -160,7 +160,7 @@ type
   TD3DMatrix = _D3DMATRIX;
 
   PD3DViewport9 = ^TD3DViewport9;
-  _D3DVIEWPORT9 = packed record
+  _D3DVIEWPORT9 = record
     X: DWord;
     Y: DWord;         { Viewport Top left }
     Width: DWord;
@@ -241,7 +241,7 @@ const
 
 type
   PD3DClipStatus9 = ^TD3DClipStatus9;
-  _D3DCLIPSTATUS9 = packed record
+  _D3DCLIPSTATUS9 = record
     ClipUnion: DWord;
     ClipIntersection: DWord;
   end {_D3DCLIPSTATUS9};
@@ -251,7 +251,7 @@ type
   TD3DClipStatus9 = _D3DCLIPSTATUS9;
 
   PD3DMaterial9 = ^TD3DMaterial9;
-  _D3DMATERIAL9 = packed record
+  _D3DMATERIAL9 = record
     Diffuse: TD3DColorValue;   { Diffuse color RGBA }
     Ambient: TD3DColorValue;   { Ambient color RGB }
     Specular: TD3DColorValue;  { Specular 'shininess' }
@@ -281,7 +281,7 @@ type
   TD3DLightType = _D3DLIGHTTYPE;
 
   PD3DLight9 = ^TD3DLight9;
-  _D3DLIGHT9 = packed record
+  _D3DLIGHT9 = record
     _Type: TD3DLightType;       { Type of light source }
     Diffuse: TD3DColorValue;    { Diffuse color of light }
     Specular: TD3DColorValue;   { Specular color of light }
@@ -1502,7 +1502,7 @@ const
 
 type
   PD3DVertexElement9 = ^TD3DVertexElement9;
-  _D3DVERTEXELEMENT9 = packed record
+  _D3DVERTEXELEMENT9 = record
     Stream:     Word;                 // Stream index
     Offset:     Word;                 // Offset in the stream in bytes
     _Type:      TD3DDeclType{Byte};   // Data type
@@ -2818,7 +2818,7 @@ type
 
   { Display Modes }
   PD3DDisplayMode = ^TD3DDisplayMode;
-  _D3DDISPLAYMODE = packed record
+  _D3DDISPLAYMODE = record
     Width: LongWord;
     Height: LongWord;
     RefreshRate: LongWord;
@@ -2831,7 +2831,7 @@ type
 
   { Creation Parameters }
   PD3DDeviceCreationParameters = ^TD3DDeviceCreationParameters;
-  _D3DDEVICE_CREATION_PARAMETERS = packed record
+  _D3DDEVICE_CREATION_PARAMETERS = record
     AdapterOrdinal: LongWord;
     DeviceType: TD3DDevType;
     hFocusWindow: HWND;
@@ -2882,7 +2882,7 @@ const
 type
   { Resize Optional Parameters }
   PD3DPresentParameters = ^TD3DPresentParameters;
-  _D3DPRESENT_PARAMETERS_ = packed record
+  _D3DPRESENT_PARAMETERS_ = record
     BackBufferWidth:                    LongWord;
     BackBufferHeight:                   LongWord;
     BackBufferFormat:                   TD3DFormat;
@@ -2930,7 +2930,7 @@ const
 
 type
   PD3DGammaRamp = ^TD3DGammaRamp;
-  _D3DGAMMARAMP = packed record
+  _D3DGAMMARAMP = record
     red   : array [0..255] of Word;
     green : array [0..255] of Word;
     blue  : array [0..255] of Word;
@@ -3078,7 +3078,7 @@ const
 type
   { Vertex Buffer Description }
   PD3DVertexBufferDesc = ^TD3DVertexBufferDesc;
-  _D3DVERTEXBUFFER_DESC = packed record
+  _D3DVERTEXBUFFER_DESC = record
     Format : TD3DFormat;
     _Type  : TD3DResourceType;
     Usage  : DWord;
@@ -3094,7 +3094,7 @@ type
 
   { Index Buffer Description }
   PD3DIndexBufferDesc = ^TD3DIndexBufferDesc;
-  _D3DINDEXBUFFER_DESC = packed record
+  _D3DINDEXBUFFER_DESC = record
     Format : TD3DFormat;
     _Type  : TD3DResourceType;
     Usage  : DWord;
@@ -3109,7 +3109,7 @@ type
 
  { Surface Description }
   PD3DSurfaceDesc = ^TD3DSurfaceDesc;
-  _D3DSURFACE_DESC = packed record
+  _D3DSURFACE_DESC = record
     Format : TD3DFormat;
     _Type  : TD3DResourceType;
     Usage  : DWord;
@@ -3126,7 +3126,7 @@ type
   TD3DSurfaceDesc = _D3DSURFACE_DESC;
 
   PD3DVolumeDesc = ^TD3DVolumeDesc;
-  _D3DVOLUME_DESC = packed record
+  _D3DVOLUME_DESC = record
     Format : TD3DFormat;
     _Type  : TD3DResourceType;
     Usage  : DWord;
@@ -3143,7 +3143,7 @@ type
 
   { Structure for LockRect }
   PD3DLockedRect = ^TD3DLockedRect;
-  _D3DLOCKED_RECT = packed record
+  _D3DLOCKED_RECT = record
     Pitch: Integer;
     pBits: Pointer; // void*
   end {_D3DLOCKED_RECT};
@@ -3154,7 +3154,7 @@ type
 
   { Structures for LockBox }
   PD3DBox = ^TD3DBox;
-  _D3DBOX = packed record
+  _D3DBOX = record
     Left        : LongWord;
     Top         : LongWord;
     Right       : LongWord;
@@ -3168,7 +3168,7 @@ type
   TD3DBox = _D3DBOX;
 
   PD3DLockedBox = ^TD3DLockedBox;
-  _D3DLOCKED_BOX = packed record
+  _D3DLOCKED_BOX = record
     RowPitch    : Integer;
     SlicePitch  : Integer;
     pBits       : Pointer; // void*
@@ -3180,7 +3180,7 @@ type
 
   { Structures for LockRange }
   PD3DRange = ^TD3DRange;
-  _D3DRANGE = packed record
+  _D3DRANGE = record
     Offset      : LongWord;
     Size        : LongWord;
   end {_D3DRANGE};
@@ -3191,7 +3191,7 @@ type
 
   { Structures for high order primitives }
   PD3DRectPatchInfo = ^TD3DRectPatchInfo;
-  _D3DRECTPATCH_INFO = packed record
+  _D3DRECTPATCH_INFO = record
     StartVertexOffsetWidth  : LongWord;
     StartVertexOffsetHeight : LongWord;
     Width                   : LongWord;
@@ -3206,7 +3206,7 @@ type
   TD3DRectPatchInfo = _D3DRECTPATCH_INFO;
 
   PD3DTriPatchInfo = ^TD3DTriPatchInfo;
-  _D3DTRIPATCH_INFO = packed record
+  _D3DTRIPATCH_INFO = record
     StartVertexOffset : LongWord;
     NumVertices       : LongWord;
     Basis             : TD3DBasisType;
@@ -3223,7 +3223,7 @@ const
   {$EXTERNALSYM MAX_DEVICE_IDENTIFIER_STRING}
 type
   PD3DAdapterIdentifier9 = ^TD3DAdapterIdentifier9;
-  _D3DADAPTER_IDENTIFIER9 = packed record
+  _D3DADAPTER_IDENTIFIER9 = record
     Driver      : array [0..MAX_DEVICE_IDENTIFIER_STRING-1] of AnsiChar;
     Description : array [0..MAX_DEVICE_IDENTIFIER_STRING-1] of AnsiChar;
     DeviceName  : array [0..31] of AnsiChar;   { Device name for GDI (ex. \\.\DISPLAY1) }
@@ -3253,7 +3253,7 @@ type
 
   { Raster Status structure returned by GetRasterStatus }
   PD3DRasterStatus = ^TD3DRasterStatus;
-  _D3DRASTER_STATUS = packed record
+  _D3DRASTER_STATUS = record
     InVBlank : Bool;
     ScanLine : LongWord;
   end;
@@ -3362,7 +3362,7 @@ const
 
 type
   PD3DResourceStats = ^TD3DResourceStats;
-  _D3DRESOURCESTATS = packed record
+  _D3DRESOURCESTATS = record
   // Data collected since last Present()
     bThrashing                  : BOOL;  (* indicates if thrashing *)
     ApproxBytesDownloaded       : DWORD; (* Approximate number of bytes downloaded by resource manager *)
@@ -3388,7 +3388,7 @@ const
 
 type
   PD3DDevInfoResourceManager = ^TD3DDevInfoResourceManager;
-  _D3DDEVINFO_RESOURCEMANAGER = packed record
+  _D3DDEVINFO_RESOURCEMANAGER = record
 //#ifndef WOW64_ENUM_WORKAROUND
     stats: array [0..D3DRTYPECOUNT-1] of TD3DResourceStats;
 //#else
@@ -3401,7 +3401,7 @@ type
   TD3DDevInfoResourceManager = _D3DDEVINFO_RESOURCEMANAGER;
 
   PD3DDevInfoD3DVertexStats = ^TD3DDevInfoD3DVertexStats;
-  _D3DDEVINFO_D3DVERTEXSTATS = packed record
+  _D3DDEVINFO_D3DVERTEXSTATS = record
     NumRenderedTriangles        : DWORD; (* total number of triangles that are not clipped in this frame *)
     NumExtraClippingTriangles   : DWORD; (* Number of new triangles generated by clipping *)
   end;
@@ -3411,7 +3411,7 @@ type
   TD3DDevInfoD3DVertexStats = _D3DDEVINFO_D3DVERTEXSTATS;
 
   PD3DDevInfoVCache = ^TD3DDevInfoVCache;
-  _D3DDEVINFO_VCACHE = packed record
+  _D3DDEVINFO_VCACHE = record
     Pattern     : DWORD;        (* bit pattern, return value must be FOUR_CC('C', 'A', 'C', 'H') *)
     OptMethod   : DWORD;        (* optimization method 0 means longest strips, 1 means vertex cache based *)
     CacheSize   : DWORD;        (* cache size to optimize for  (only required if type is 1) *)
@@ -3424,7 +3424,7 @@ type
 
 
   PD3DDevInfoD3D9PipelineTimings = ^TD3DDevInfoD3D9PipelineTimings;
-  _D3DDEVINFO_D3D9PIPELINETIMINGS = packed record
+  _D3DDEVINFO_D3D9PIPELINETIMINGS = record
     VertexProcessingTimePercent: Single;
     PixelProcessingTimePercent: Single;
     OtherGPUProcessingTimePercent: Single;
@@ -3436,7 +3436,7 @@ type
   TD3DDevInfoD3D9PipelineTimings = _D3DDEVINFO_D3D9PIPELINETIMINGS;
 
   PD3DDevInfoD3D9InterfaceTimings = ^TD3DDevInfoD3D9InterfaceTimings;
-  _D3DDEVINFO_D3D9INTERFACETIMINGS = packed record
+  _D3DDEVINFO_D3D9INTERFACETIMINGS = record
     WaitingForGPUToUseApplicationResourceTimePercent: Single;
     WaitingForGPUToAcceptMoreCommandsTimePercent: Single;
     WaitingForGPUToStayWithinLatencyTimePercent: Single;
@@ -3449,7 +3449,7 @@ type
   TD3DDevInfoD3D9InterfaceTimings = _D3DDEVINFO_D3D9INTERFACETIMINGS;
 
   PD3DDevInfoD3D9StageTimings = ^TD3DDevInfoD3D9StageTimings;
-  _D3DDEVINFO_D3D9STAGETIMINGS = packed record
+  _D3DDEVINFO_D3D9STAGETIMINGS = record
     MemoryProcessingPercent: Single;
     ComputationProcessingPercent: Single;
   end;
@@ -3459,7 +3459,7 @@ type
   TD3DDevInfoD3D9StageTimings = _D3DDEVINFO_D3D9STAGETIMINGS;
 
   PD3DDevInfoD3D9BandwidthTimings = ^TD3DDevInfoD3D9BandwidthTimings;
-  _D3DDEVINFO_D3D9BANDWIDTHTIMINGS = packed record
+  _D3DDEVINFO_D3D9BANDWIDTHTIMINGS = record
     MaxBandwidthUtilized: Single;
     FrontEndUploadMemoryUtilizedPercent: Single;
     VertexRateUtilizedPercent: Single;
@@ -3472,7 +3472,7 @@ type
   TD3DDevInfoD3D9BandwidthTimings = _D3DDEVINFO_D3D9BANDWIDTHTIMINGS;
 
   PD3DDevInfoD3D9CacheUtilization = ^TD3DDevInfoD3D9CacheUtilization;
-  _D3DDEVINFO_D3D9CACHEUTILIZATION = packed record
+  _D3DDEVINFO_D3D9CACHEUTILIZATION = record
     TextureCacheHitRate: Single; // Percentage of cache hits
     PostTransformVertexCacheHitRate: Single;
   end;
@@ -3612,7 +3612,7 @@ type
 
 type
   PD3DVShaderCaps2_0 = ^TD3DVShaderCaps2_0;
-  _D3DVSHADERCAPS2_0 = packed record
+  _D3DVSHADERCAPS2_0 = record
     Caps:                     DWORD;
     DynamicFlowControlDepth:  Integer;
     NumTemps:                 Integer;
@@ -3642,7 +3642,7 @@ const
 
 type
   PD3DPShaderCaps2_0 = ^TD3DPShaderCaps2_0;
-  _D3DPSHADERCAPS2_0 = packed record
+  _D3DPSHADERCAPS2_0 = record
     Caps:                     DWORD;
     DynamicFlowControlDepth:  Integer;
     NumTemps:                 Integer;
