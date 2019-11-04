@@ -10,8 +10,8 @@ interface
 uses
   ElderImagery, ElderImageryBsi, ElderImageryCif, ElderImageryImg, 
   ElderImagerySky, ElderImageryTexture, ImagingBinary, ImagingCompare, 
-  ImagingExtFileFormats, ImagingJpeg2000, ImagingPcx, ImagingPsd, ImagingSdl, 
-  ImagingTiff, ImagingXpm, OpenJpeg, ImagingTiffLib, LibDelphi, LibJpegDelphi, 
+  ImagingExtFileFormats, ImagingJpeg2000, ImagingPcx, ImagingPsd,
+  ImagingTiff, ImagingXpm, ImagingTiffLib, LibDelphi, LibJpegDelphi,
   LibTiffDelphi, ZLibDelphi, VampyreImagingPackageExtRegister, 
   LazarusPackageIntf;
 

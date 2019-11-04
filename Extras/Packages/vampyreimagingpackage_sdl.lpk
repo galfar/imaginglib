@@ -25,7 +25,7 @@
       </Item1>
       <Item2>
         <Filename Value="..\..\Extensions\ImagingSdl.pas"/>
-        <UnitName Value="ImagingSDL"/>
+        <UnitName Value="ImagingSdl"/>
       </Item2>
     </Files>
     <RequiredPkgs Count="2">

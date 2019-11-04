@@ -27,7 +27,7 @@
 
 { This unit contains functions for loading/saving SDL surfaces using Imaging
   and for converting images to surfaces and vice versa.}
-unit ImagingSDL;
+unit ImagingSdl;
 
 {$I ImagingOptions.inc}
 
