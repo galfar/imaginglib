@@ -6,9 +6,8 @@ Vampyre Imaging Library
 Object Pascal image loading, saving, and manipulation library.
 
 <https://github.com/galfar/imaginglib>  
-<https://bitbucket.org/galfar/imaginglib>  
 
-Homepage: <http://imaginglib.sf.net>  
+Homepage: <https://imaginglib.sourceforge.io>  
 Forum: <https://galfar.vevb.net/imaging/smf>
 
 Overview
