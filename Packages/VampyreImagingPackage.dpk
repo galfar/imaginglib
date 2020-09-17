@@ -50,7 +50,7 @@ contains
   ImagingTarga in '..\Source\ImagingTarga.pas',
   ImagingTypes in '..\Source\ImagingTypes.pas',
   ImagingUtility in '..\Source\ImagingUtility.pas',
-  ImagingExtras in '..\Extensions\ImagingExtras.pas',
+  ImagingExtFileFormats in '..\Extensions\ImagingExtFileFormats.pas',
   ImagingJpeg2000 in '..\Extensions\ImagingJpeg2000.pas',
   ImagingPcx in '..\Extensions\ImagingPcx.pas',
   ImagingPsd in '..\Extensions\ImagingPsd.pas',
