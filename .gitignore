@@ -5,6 +5,7 @@ Doc/_HTMLHelp/
 Doc/html/
 Doc/chm/
 Doc/RefDoc
+Doc/_final
 Extras/TestCases/
 Demos/Bin/_BenchOut/
 Scripts/_*
@@ -14,7 +15,10 @@ Tests/*
 Dcu/*
 
 __history
-*/backup/*
+**/backup/**
+
+*.dproj
+*.groupproj
 
 *.dcu
 *.ppu
@@ -38,20 +42,27 @@ __history
 *.compiled
 *.stat
 *.tvsconfig
+*.otares
 
 Doc/*.chm
 Doc/*.chw
 Doc/*.html
 
+Demos/**/*.res
+Demos/**/*.cfg
+
 Extras/DynamicLib/Demos/Cpp/*/*.bat
 Extras/DynamicLib/Demos/Cpp/*/*.sh
+Extras/DynamicLib/*.res
+Extras/DynamicLib/*.cfg
 
-Source/*.hpp
-Source/*/*.hpp
-Extras/Extensions/*.hpp
-Extras/Extensions/*/*.hpp
+Packages/*.res
+Packages/*.cfg
 
-Extras/IdePackages/Lazarus/lib/*
+Source/**/*.hpp
+Extensions/**/*.hpp
+
+
 
 
 

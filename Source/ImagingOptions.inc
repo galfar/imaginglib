@@ -68,6 +68,9 @@
 
 {$IFDEF DCC}
   {$DEFINE DELPHI}
+  {$IF (Defined(DCC) and (CompilerVersion >= 25.0))}
+    {$LEGACYIFEND ON}
+  {$IFEND}  
 {$ENDIF}
 
 {$IF (Defined(DCC) and (CompilerVersion >= 18.5))}

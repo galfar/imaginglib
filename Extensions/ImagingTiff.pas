@@ -65,6 +65,11 @@ implementation
   {$UNDEF USE_LIBTIFF}
 {$IFEND}
 
+// Also disable for Delphi ARM targets
+{$IF Defined(DELPHI) and Defined(CPUARM))}
+  {$UNDEF USE_LIBTIFF}
+{$IFEND}
+
 uses
 {$IFDEF USE_LIBTIFF}
   ImagingTiffLib,

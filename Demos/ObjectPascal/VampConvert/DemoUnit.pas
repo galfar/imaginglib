@@ -208,7 +208,7 @@ end;
 
 procedure ProcessOperations;
 var
-  I, J, X, Y, NewWidth, NewHeight: LongInt;
+  I, J, X, Y, NewWidth, NewHeight: Integer;
   OpName, Arg, S: string;
   Images: TDynImageDataArray;
   Format: TImageFormat;
