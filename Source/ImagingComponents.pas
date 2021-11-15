@@ -304,13 +304,19 @@ procedure ConvertImageToBitmap(Image: TBaseImage; Bitmap: TBitmap);
   When Image is TMultiImage only the current image level is overwritten.}
 procedure ConvertBitmapToImage(Bitmap: TBitmap; Image: TBaseImage);
 
+{ Displays image onto TCanvas to rectangle DstRect. This procedure
+  draws image without converting from Imaging format to TBitmap.
+  Only [ifA8R8G8B8, ifX8R8G8B8] image formats are supported. Use this
+  when you want displaying images that change frequently (because converting to
+  TBitmap by ConvertImageDataToBitmap is generally slow).}
+procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData); overload;
 { Displays image stored in TImageData structure onto TCanvas. This procedure
   draws image without converting from Imaging format to TBitmap.
   Only [ifA8R8G8B8, ifX8R8G8B8] image formats are supported. Use this
   when you want displaying images that change frequently (because converting to
   TBitmap by ConvertImageDataToBitmap is generally slow). Dest and Src
   rectangles represent coordinates in the form (X1, Y1, X2, Y2).}
-procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
+procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect); overload;
 { Displays image onto TCanvas at position [DstX, DstY]. This procedure
   draws image without converting from Imaging format to TBitmap.
   Only [ifA8R8G8B8, ifX8R8G8B8] image formats are supported. Use this
@@ -800,6 +806,11 @@ begin
 end;
 {$ENDIF}
 
+procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData);
+begin
+  DisplayImageData(DstCanvas, DstRect, ImageData, Rect(0, 0, ImageData.Width, ImageData.Height));
+end;
+
 procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
 {$IF Defined(DCC) or Defined(LCLWIN32)} // Delphi or LCL Win32
 begin
@@ -814,9 +825,19 @@ end;
     P := TGtkDeviceContext(Dest).Offset;
     Inc(DstX, P.X);
     Inc(DstY, P.Y);
-    gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
-      DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
-      @PUInt32Array(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);
+
+    if ImageData.Format = ifR8G8B8 then
+    begin
+      gdk_draw_rgb_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
+        DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
+        @PUInt32Array(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 3);
+    end
+    else
+    begin
+      gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
+        DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
+        @PUInt32Array(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);
+    end;
   end;
 
 var
@@ -826,9 +847,10 @@ var
 begin
   if TestImage(ImageData) then
   begin
-    Assert(ImageData.Format in [ifA8R8G8B8, ifX8R8G8B8], SBadFormatDisplay);
-    InitImage(DisplayImage);
+    if not (ImageData.Format in [ifR8G8B8, ifA8R8G8B8, ifX8R8G8B8]) then
+      raise EImagingError.Create(SBadFormatDisplay);
 
+    InitImage(DisplayImage);
     SrcBounds := RectToBounds(SrcRect);
     DstBounds := RectToBounds(DstRect);
     WidgetSet.GetClipBox(DstCanvas.Handle, @DstClip);
@@ -871,7 +893,7 @@ begin
 end;
 {$ELSE}
 begin
-  raise Exception.Create(SUnsupportedLCLWidgetSet);
+  raise EImagingError.Create(SUnsupportedLCLWidgetSet);
 end;
 {$IFEND}
 
