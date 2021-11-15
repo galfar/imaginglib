@@ -25,16 +25,14 @@ interface
 
 {$IF not Defined(COMPONENT_SET_LCL) and not Defined(COMPONENT_SET_VCL)}
 // If no component sets should be used just include empty unit.
-//DOC-IGNORE-BEGIN
 implementation
-//DOC-IGNORE-END
 {$ELSE}
 
 uses
-  SysUtils, Types, Classes,
 {$IFDEF MSWINDOWS}
   Windows,
 {$ENDIF}
+  SysUtils, Types, Classes,
 {$IFDEF COMPONENT_SET_VCL}
   Graphics,
 {$ENDIF}
