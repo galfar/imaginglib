@@ -207,8 +207,10 @@ function SplitImage(var Image: TImageData; var Chunks: TDynImageDataArray;
   Pal must be allocated to have at least MaxColors entries.}
 function MakePaletteForImages(var Images: TDynImageDataArray; Pal: PPalette32;
   MaxColors: LongInt; ConvertImages: Boolean): Boolean;
-{ Rotates image by Angle degrees counterclockwise. All angles are allowed.}
+{ Rotates image by Angle degrees counterclockwise. All angles are allowed. }
 procedure RotateImage(var Image: TImageData; Angle: Single);
+{ Rotates image by Angle that is multiple of 90 degrees counterclockwise. }
+procedure RotateImageMul90(var Image: TImageData; AngleDeg: Integer);
 
 { Drawing/Pixel functions }
 
@@ -2250,9 +2252,87 @@ begin
 
     if OldFmt <> Image.Format then
       ConvertImage(Image, OldFmt);
-
   except
     raise UpdateExceptMessage(GetExceptObject, SErrorRotateImage, [ImageToStr(Image), Angle]);
+  end;
+end;
+
+procedure RotateImageMul90(var Image: TImageData; AngleDeg: Integer);
+var
+  RotImage: TImageData;
+  X, Y, BytesPerPixel: Integer;
+  RotPix, Pix: PByte;
+begin
+  if TestImage(Image) then
+  try
+    InitImage(RotImage);
+
+    while AngleDeg >= 360 do
+      AngleDeg := AngleDeg - 360;
+    while AngleDeg < 0 do
+      AngleDeg := AngleDeg + 360;
+
+    if (AngleDeg = 0) or (Abs(AngleDeg) = 360) then
+      Exit;
+
+    if not ((AngleDeg mod 90) = 0) then
+      raise EImagingError.CreateFmt('Angle must be multiple of 90 but was: %d', [AngleDeg]);
+
+    if ((AngleDeg = 90) or (AngleDeg = 270)) and (Image.Width <> Image.Height) then
+      NewImage(Image.Height, Image.Width, Image.Format, RotImage)
+    else
+      NewImage(Image.Width, Image.Height, Image.Format, RotImage);
+
+    BytesPerPixel := ImageFormatInfos[Image.Format].BytesPerPixel;
+
+    RotPix := RotImage.Bits;
+    case AngleDeg of
+      90:
+        begin
+          for Y := 0 to RotImage.Height - 1 do
+          begin
+            Pix := @PByteArray(Image.Bits)[(Image.Width - Y - 1) * BytesPerPixel];
+            for X := 0 to RotImage.Width - 1 do
+            begin
+              CopyPixel(Pix, RotPix, BytesPerPixel);
+              Inc(RotPix, BytesPerPixel);
+              Inc(Pix, Image.Width * BytesPerPixel);
+            end;
+          end;
+        end;
+      180:
+        begin
+          Pix := @PByteArray(Image.Bits)[((Image.Height - 1) * Image.Width +
+            (Image.Width - 1)) * BytesPerPixel];
+          for Y := 0 to RotImage.Height - 1 do
+            for X := 0 to RotImage.Width - 1 do
+            begin
+              CopyPixel(Pix, RotPix, BytesPerPixel);
+              Inc(RotPix, BytesPerPixel);
+              Dec(Pix, BytesPerPixel);
+            end;
+        end;
+      270:
+        begin
+          for Y := 0 to RotImage.Height - 1 do
+          begin
+            Pix := @PByteArray(Image.Bits)[((Image.Height - 1) * Image.Width + Y) * BytesPerPixel];
+            for X := 0 to RotImage.Width - 1 do
+            begin
+              CopyPixel(Pix, RotPix, BytesPerPixel);
+              Inc(RotPix, BytesPerPixel);
+              Dec(Pix, Image.Width * BytesPerPixel);
+            end;
+          end;
+        end;
+    end;
+
+    FreeMemNil(Image.Bits);
+    RotImage.Palette := Image.Palette;
+    Image := RotImage;
+  except
+    raise UpdateExceptMessage(GetExceptObject, 'Error while rotating image %s by %d degrees',
+      [ImageToStr(Image), AngleDeg]);
   end;
 end;
 

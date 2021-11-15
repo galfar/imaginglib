@@ -1,5 +1,4 @@
-_internal/
-_0.30/
+__internal/
 Doc/_Dox/
 Doc/_HTMLHelp/
 Doc/html/
@@ -14,7 +13,7 @@ Demos/Bin/
 Tests/*
 Dcu/*
 
-__history
+**/__history/**
 **/backup/**
 
 *.dproj
@@ -38,7 +37,6 @@ __history
 *.rsm
 *.suo
 *.vcxproj.user
-*.XE2.res
 *.compiled
 *.stat
 *.tvsconfig

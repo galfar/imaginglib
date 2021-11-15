@@ -15,15 +15,14 @@ const
   SDataDir = 'Data';
   SSourceDir = 'Source';
 
-{ }
+
 function ExpandFileTo(const FileName, BasePath: string): string;
-{ }
 function SwapPathDelims(const FileName: string; const NewDelim: string = PathDelim): string;
-{ }
+
 function GetDataDir: string;
-{ }
 function GetRootDir: string;
-{ Returns next valid image format.}
+
+// Returns next valid image format.
 function NextFormat(Format: TImageFormat): TImageFormat;
 
 implementation
