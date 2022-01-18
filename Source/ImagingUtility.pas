@@ -50,7 +50,7 @@ type
   TDynIntegerArray = array of Integer;
   TDynBooleanArray = array of Boolean;
   TDynStringArray = array of string;
-  
+
   TWordRec = packed record
     case Integer of
       0: (WordValue: Word);
@@ -162,7 +162,9 @@ function StrMaskMatch(const Subject, Mask: string; CaseSensitive: Boolean = Fals
 function BuildFileList(Path: string; Attr: LongInt; Files: TStrings;
   Options: TFileListOptions = []): Boolean;
 { Similar to RTL's Pos function but with optional Offset where search will start.
-  This function is in the RTL StrUtils unit but }
+  In recent FPC and Delphi XE3+ regular SysUtils.Pos has the Offset parameter as well.
+  This function is in the RTL StrUtils unit, it's here to depend on additional
+  unit for just this one function. }
 function PosEx(const SubStr, S: string; Offset: LongInt = 1): LongInt;
 { Same as PosEx but without case sensitivity.}
 function PosNoCase(const SubStr, S: string; Offset: LongInt = 1): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -188,6 +190,12 @@ function ContainsAnySubStr(const S: string; const SubStrs: array of string): Boo
 { Extracts substring starting at IdxStart ending at IdxEnd.
   S[IdxEnd] is not included in the result.}
 function SubString(const S: string; IdxStart, IdxEnd: Integer): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Similar to Trim() but removes only characters in a given set.
+  Part of FPC RTL here for Delphi compatibility. }
+function TrimSet(const S: string; const CharSet: TSysCharSet): string;
+{ Similar to TrimLeft() but removes only characters in a given set.
+  Part of FPC RTL here for Delphi compatibility. }
+function TrimLeftSet(const S: string; const CharSet:TSysCharSet): string;
 
 { Clamps integer value to range <Min, Max>}
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -543,7 +551,7 @@ var
             Inc(KeyPos);
           end;
       end;
-    end;  
+    end;
 
     while (MaskPos <= MaskLen) and (AnsiChar(Mask[MaskPos]) in ['?', '*']) do
       Inc(MaskPos);
@@ -774,6 +782,35 @@ end;
 function SubString(const S: string; IdxStart, IdxEnd: Integer): string;
 begin
   Result := Copy(S, IdxStart, IdxEnd - IdxStart);
+end;
+
+function TrimSet(const S: string; const CharSet: TSysCharSet): string;
+var
+  I, L: Integer;
+begin
+  L := Length(S);
+  I := 1;
+  while (I <= L) and (S[I] in CharSet) do
+    Inc(I);
+  if I > L then
+    Result := ''
+  else
+  begin
+    while S[L] in CharSet do
+      Dec(L);
+    Result := Copy(S, I, L - I + 1);
+  end;
+end;
+
+function TrimLeftSet(const S: string; const CharSet: TSysCharSet): string;
+var
+  I, L: Integer;
+begin
+  L := Length(S);
+  I := 1;
+  while (I <= L) and (S[I] in CharSet) do
+    Inc(I);
+  Result := Copy(S, I, MaxInt);
 end;
 
 function ClampInt(Number: LongInt; Min, Max: LongInt): LongInt;
@@ -1708,7 +1745,7 @@ initialization
   -- 0.24.3 Changes/Bug Fixes -----------------------------------
     - Added GetTimeMilliseconds function.
     - Added IntToStrFmt and FloatToStrFmt helper functions.
-    
+
   -- 0.23 Changes/Bug Fixes -----------------------------------
     - Added RectInRect and RectIntersects functions
     - Added some string utils: StrToken, StrTokenEnd, PosEx, PosNoCase.
@@ -1727,7 +1764,7 @@ initialization
     - added BoundsToRect, ClipBounds, ClipCopyBounds, ClipStretchBounds functions
     - added MulDiv function
     - FreeAndNil is not inline anymore - caused AV in one program
-    
+
   -- 0.17 Changes/Bug Fixes -----------------------------------
 
     - GetAppExe didn't return absolute path in FreeBSD, fixed

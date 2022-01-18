@@ -289,7 +289,7 @@ function PushOptions: Boolean;
   if successfull (max stack depth is 8 now). }
 function PopOptions: Boolean;
 
-{ Image Format Functions }
+{ Image Data Format Functions }
 
 { Returns short information about given image format.}
 function GetImageFormatInfo(Format: TImageFormat; out Info: TImageFormatInfo): Boolean;
@@ -637,11 +637,12 @@ function RegisterOption(OptionId: LongInt; Variable: PLongInt): Boolean;
 { Registers new image loader/saver so it can be used by LoadFrom/SaveTo
   functions.}
 procedure RegisterImageFileFormat(AClass: TImageFileFormatClass);
-{ Returns image format loader/saver according to given extension
-  or nil if not found.}
+{ Returns image format loader/saver according to a given extension
+  (case insensitive) or nil if not found. Extension may or may not
+  contain the initial dot.}
 function FindImageFileFormatByExt(const Ext: string): TImageFileFormat;
-{ Returns image format loader/saver according to given filename
-  or nil if not found.}
+{ Returns image format loader/saver according to a given filename
+  (case insensitive) or nil if not found. }
 function FindImageFileFormatByName(const FileName: string): TImageFileFormat;
 { Returns image format loader/saver based on its class
   or nil if not found or not registered.}
@@ -3223,10 +3224,13 @@ end;
 function FindImageFileFormatByExt(const Ext: string): TImageFileFormat;
 var
   I: LongInt;
+  SearchedExt: string;
 begin
   Result := nil;
+  SearchedExt := TrimLeftSet(Ext, ['.']);
+
   for I := ImageFileFormats.Count - 1 downto 0 do
-    if TImageFileFormat(ImageFileFormats[I]).Extensions.IndexOf(Ext) >= 0 then
+    if TImageFileFormat(ImageFileFormats[I]).Extensions.IndexOf(SearchedExt) >= 0 then
     begin
       Result := TImageFileFormat(ImageFileFormats[I]);
       Exit;
