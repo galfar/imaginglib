@@ -327,6 +327,7 @@ procedure WriteRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
 
 { Convenience/helper Functions }
 
+{ Resizes image proportionally to fit the given width and height. }
 procedure ResizeImageToFit(const SrcImage: TImageData; FitWidth, FitHeight: Integer;
   Filter: TResizeFilter; var DestImage: TImageData);
 

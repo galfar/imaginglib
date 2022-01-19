@@ -67,7 +67,7 @@ type
 
     { Resizes current image with optional resampling.}
     procedure Resize(NewWidth, NewHeight: Integer; Filter: TResizeFilter);
-
+    { Resizes current image proportionally to fit the given width and height. }
     procedure ResizeToFit(FitWidth, FitHeight: Integer; Filter: TResizeFilter; DstImage: TBaseImage);
     { Flips current image. Reverses the image along its horizontal axis the top
       becomes the bottom and vice versa.}
@@ -110,10 +110,10 @@ type
     procedure LoadFromStream(Stream: TStream); virtual;
 
     { Saves current image data to file.}
-    procedure SaveToFile(const FileName: string);
+    function SaveToFile(const FileName: string): Boolean;
     { Saves current image data to stream. Ext identifies desired image file
-      format (jpg, png, dds, ...)}
-    procedure SaveToStream(const Ext: string; Stream: TStream);
+      format (jpg, png, dds, ...).}
+    function SaveToStream(const Ext: string; Stream: TStream): Boolean;
 
     { Width of current image in pixels.}
     property Width: Integer read GetWidth write SetWidth;
@@ -209,17 +209,17 @@ type
     { Assigns multi image from array of image data records.}
     procedure AssignFromArray(const ADataArray: TDynImageDataArray);
 
-    { Adds new image at the end of the image array. }
+    { Adds new image at the end of the image array. Returns index of the added image.}
     function AddImage(AWidth, AHeight: Integer; AFormat: TImageFormat = ifDefault): Integer; overload;
-    { Adds existing image at the end of the image array. }
+    { Adds existing image at the end of the image array. Returns index of the added image.}
     function AddImage(const Image: TImageData): Integer; overload;
-    { Adds existing image (Active image of a TmultiImage)
-      at the end of the image array. }
+    { Adds existing image (or active image of a TMultiImage)
+      at the end of the image array. Returns index of the added image.}
     function AddImage(Image: TBaseImage): Integer; overload;
-    { Adds existing image array ((all images of a multi image))
-      at the end of the image array. }
+    { Adds existing image array (all images of a multi image)
+      at the end of the image array.}
     procedure AddImages(const Images: TDynImageDataArray); overload;
-    { Adds existing MultiImage images at the end of the image array. }
+    { Adds existing MultiImage images at the end of the image array.}
     procedure AddImages(Images: TMultiImage); overload;
 
     { Inserts new image image at the given position in the image array. }
@@ -261,10 +261,10 @@ type
     { Loads whole multi image from stream.}
     procedure LoadMultiFromStream(Stream: TStream);
     { Saves whole multi image to file.}
-    procedure SaveMultiToFile(const FileName: string);
+    function SaveMultiToFile(const FileName: string): Boolean;
     { Saves whole multi image to stream. Ext identifies desired
       image file format (jpg, png, dds, ...).}
-    procedure SaveMultiToStream(const Ext: string; Stream: TStream);
+    function SaveMultiToStream(const Ext: string; Stream: TStream): Boolean;
 
     { Indicates active image of this multi image. All methods inherited
       from TBaseImage operate on this image only.}
@@ -575,16 +575,20 @@ begin
     DoDataSizeChanged;
 end;
 
-procedure TBaseImage.SaveToFile(const FileName: string);
+function TBaseImage.SaveToFile(const FileName: string): Boolean;
 begin
   if Valid then
-    Imaging.SaveImageToFile(FileName, FPData^);
+    Result := Imaging.SaveImageToFile(FileName, FPData^)
+  else
+    Result := False;
 end;
 
-procedure TBaseImage.SaveToStream(const Ext: string; Stream: TStream);
+function TBaseImage.SaveToStream(const Ext: string; Stream: TStream): Boolean;
 begin
   if Valid then
-    Imaging.SaveImageToStream(Ext, Stream, FPData^);
+    Result := Imaging.SaveImageToStream(Ext, Stream, FPData^)
+  else
+    Result := False;
 end;
 
 
@@ -1007,21 +1011,18 @@ begin
   SetActiveImage(0);
 end;
 
-procedure TMultiImage.SaveMultiToFile(const FileName: string);
+function TMultiImage.SaveMultiToFile(const FileName: string): Boolean;
 begin
-  Imaging.SaveMultiImageToFile(FileName, FDataArray);
+  Result := Imaging.SaveMultiImageToFile(FileName, FDataArray);
 end;
 
-procedure TMultiImage.SaveMultiToStream(const Ext: string; Stream: TStream);
+function TMultiImage.SaveMultiToStream(const Ext: string; Stream: TStream): Boolean;
 begin
-  Imaging.SaveMultiImageToStream(Ext, Stream, FDataArray);
+  Result := Imaging.SaveMultiImageToStream(Ext, Stream, FDataArray);
 end;
 
 {
-  File Notes:
-
-  -- TODOS ----------------------------------------------------
-    - nothing now
+  File Notes (obsolete):
 
   -- 0.77.1 ---------------------------------------------------
     - Added TSingleImage.AssignFromData and TMultiImage.AssigntFromArray
