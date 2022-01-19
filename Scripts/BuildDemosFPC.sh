@@ -1,23 +1,49 @@
 #!/bin/bash
 
 echo "Building Demos using Free Pascal"
+echo
+
+set -e
+FPCTARGET=$(fpc -iTP)-$(fpc -iTO)
 
 ROOTDIR=".."
 DEMOPATH="$ROOTDIR/Demos/ObjectPascal" 
+UNITPATH="$ROOTDIR/Demos/Bin/Dcu/$FPCTARGET"
+BINPATH="$ROOTDIR/Demos/Bin"
+# FPC does not like creating any new directories passed by -FE -FU
+mkdir -p $UNITPATH
+mkdir -p $BINPATH
+# There could be units compiled with other defines 
+find $UNITPATH -mindepth 1 -delete
+set +e
+
+DEFINES="-dFULL_FEATURE_SET"
+OUTPUT="-FE$BINPATH -FU$UNITPATH"
+# This is how you suppress -vn set in fpc.cfg
+OPTIONS="-O3 -Xs -vn-"
+
 UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib
-  -Fu$ROOTDIR/Extras/Extensions -Fu$ROOTDIR\Extras\Extensions\LibTiff -Fu$DEMOPATH/Common"
+  -Fu$ROOTDIR/Extensions -Fu$ROOTDIR\Extensions\LibTiff -Fu$DEMOPATH/Common"
 INCLUDE="-Fi$ROOTDIR/Source"
-LIBS="-Fl$ROOTDIR/Extras/Extensions/J2KObjects"  
-OUTPUT="-FE$ROOTDIR/Demos/Bin"
-OPTIONS="-MDelphi -Scghi -Cg -OG2 -Xs"
+LIBS="-Fl$ROOTDIR/Extensions/J2KObjects"  
 
-fpc $OPTIONS $OUTPUT "$DEMOPATH/Benchmark/Bench.dpr" $UNITS $INCLUDE $LIBS -oBench
-if test $? = 0; then
-fpc $OPTIONS $OUTPUT "$DEMOPATH/VampConvert/VampConvert.dpr" $UNITS $INCLUDE $LIBS -oVampConvert
-fi
+DEMOS_BUILD=0
+DEMO_COUNT=2
 
-if test $? = 0; then 
+function buildDemo {
+  fpc $OPTIONS $OUTPUT $DEFINES $UNITS $INCLUDE $LIBS $1 -o$2 
+  if [ $? = 0 ]; then 
+    ((DEMOS_BUILD++))
+  fi   
+  echo
+} 
+
+buildDemo "$DEMOPATH/Benchmark/Bench.dpr" Bench
+buildDemo "$DEMOPATH/VampConvert/VampConvert.dpr" VampConvert
+
+if [ $DEMOS_BUILD = $DEMO_COUNT ]; then
   echo "Demos successfuly build in Demos/Bin directory"
 else
   echo "Error when building demos!"
 fi
+

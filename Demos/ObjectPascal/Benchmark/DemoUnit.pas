@@ -346,8 +346,10 @@ begin
     WriteLn('Error!' + sLineBreak + '"Data" directory with ' +
       'required "Tigers.*" images not found.');
     WriteLn;
+{$IFDEF DEBUG}
     WriteLn('Press RETURN key to exit');
     ReadLn;
+{$ENDIF}
     Halt(1);
   end;
 
@@ -428,9 +430,11 @@ begin
   {$ENDIF}
   end;
 
+{$IFDEF DEBUG}
   WriteLn;
   WriteLn('Press RETURN key to exit');
   ReadLn;
+{$ENDIF}
 end;
 
 {

@@ -67,8 +67,8 @@ begin
   WriteLn('    -format:  changes data format of input images');
   WriteLn('       argument: name of data format supported by Imaging like A8R8G8B8');
   WriteLn('    -resize:  changes size of input images');
-  WriteLn('       argument: string in format AxBxC (%dx%dx%s) where A is desired');
-  WriteLn('                 width, B is desired height, and C is resampling filter used.');
+  WriteLn('       argument: string in format AxBxC where A is desired width,');
+  WriteLn('                 B is desired height, and C is resampling filter used.');
   WriteLn('                 If A or B is 0 then original dimension will be preserved.');
   WriteLn('                 C is optional and can have one of following values: ');
   WriteLn('                 nearest(default), bilinear, bicubic, lanczos.');
