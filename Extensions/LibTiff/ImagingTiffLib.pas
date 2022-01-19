@@ -191,27 +191,29 @@ var
   Ptr: PByte;
   Red, Green, Blue: PWordRecArray;
 
-  procedure LoadMetadata(Tiff: PTiff; TiffPage: Integer);
+  procedure LoadMetadata(Tiff: PTiff; PageIndex: Integer);
   var
     TiffResUnit, CompressionScheme: Word;
     XRes, YRes: Single;
     ResUnit: TResolutionUnit;
     CompressionName: string;
+    HasResolution: Boolean;
   begin
     TIFFGetFieldDefaulted(Tiff, TIFFTAG_RESOLUTIONUNIT, @TiffResUnit);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_XRESOLUTION, @XRes);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_YRESOLUTION, @YRes);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_COMPRESSION, @CompressionScheme);
+    FMetadata.SetMetaItem(SMetaTiffResolutionUnit, TiffResUnit, PageIndex);
 
-    FMetadata.SetMetaItem(SMetaTiffResolutionUnit, TiffResUnit);
+    HasResolution := (TIFFGetField(Tiff, TIFFTAG_XRESOLUTION, @XRes) = 1) and
+                     (TIFFGetField(Tiff, TIFFTAG_YRESOLUTION, @YRes) = 1);
 
-    if (TiffResUnit <> RESUNIT_NONE) and (XRes >= 0.1) and (YRes >= 0.1) then
+    if HasResolution and (TiffResUnit <> RESUNIT_NONE) and (XRes >= 0.1) and (YRes >= 0.1) then
     begin
       ResUnit := ruDpi;
       if TiffResUnit = RESUNIT_CENTIMETER then
         ResUnit := ruDpcm;
-      FMetadata.SetPhysicalPixelSize(ResUnit, XRes, YRes, False, TiffPage);
+      FMetadata.SetPhysicalPixelSize(ResUnit, XRes, YRes, False, PageIndex);
     end;
+
+    TIFFGetFieldDefaulted(Tiff, TIFFTAG_COMPRESSION, @CompressionScheme);
 
     case CompressionScheme of
       COMPRESSION_NONE: CompressionName := 'None';
@@ -226,7 +228,7 @@ var
       CompressionName := 'Unknown';
     end;
 
-    FMetadata.SetMetaItem(SMetaTiffCompressionName, CompressionName);
+    FMetadata.SetMetaItem(SMetaTiffCompressionName, CompressionName, PageIndex);
   end;
 
 begin
@@ -363,7 +365,7 @@ begin
       if TiffResult = 0 then
         RaiseImaging(LastError, []);
       // Swap Red and Blue, if YCbCr.
-      if Photometric=PHOTOMETRIC_YCBCR then
+      if Photometric = PHOTOMETRIC_YCBCR then
         SwapChannels(Images[Idx], ChannelRed, ChannelBlue);
     end
     else
@@ -432,7 +434,7 @@ var
   CompressionMismatch: Boolean;
   OpenMode: PAnsiChar;
 
-  procedure SaveMetadata(Tiff: PTiff; TiffPage: Integer);
+  procedure SaveMetadata(Tiff: PTiff; PageIndex: Integer);
   var
     XRes, YRes: Double;
     ResUnit: TResolutionUnit;
@@ -447,7 +449,7 @@ var
     if FMetadata.HasMetaItemForSaving(SMetaTiffResolutionUnit) then
     begin
       // Check if DPI resolution unit is requested to be used (e.g. to
-      // use the same unit when just resaving files - also some )
+      // use the same unit when just resaving files)
       StoredTiffResUnit := FMetadata.MetaItemsForSaving[SMetaTiffResolutionUnit];
       if StoredTiffResUnit = RESUNIT_INCH then
       begin
@@ -458,12 +460,14 @@ var
 
     // First try to find phys. size for current TIFF page index. If not found then
     // try size for main image (index 0).
-    if not FMetadata.GetPhysicalPixelSize(ResUnit, XRes, YRes, True, TiffPage) then
+    if not FMetadata.GetPhysicalPixelSize(ResUnit, XRes, YRes, True, PageIndex) then
       FMetadata.GetPhysicalPixelSize(ResUnit, XRes, YRes, True, 0);
 
     if (XRes > 0) and (YRes > 0) then
     begin
       TIFFSetField(Tiff, TIFFTAG_RESOLUTIONUNIT, TiffResUnit);
+      // Resolution tags are defined as 32bit float in TIFF docs
+      // but libtiff handles double input just fine.
       TIFFSetField(Tiff, TIFFTAG_XRESOLUTION, XRes);
       TIFFSetField(Tiff, TIFFTAG_YRESOLUTION, YRes);
     end;

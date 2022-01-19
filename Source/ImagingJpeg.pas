@@ -454,19 +454,16 @@ var
 
   procedure LoadMetaData;
   var
-    XDensity, YDensity: Single;
     ResUnit: TResolutionUnit;
   begin
     // Density unit: 0 - undef, 1 - inch, 2 - cm
     if jc.d.saw_JFIF_marker and (jc.d.density_unit > 0) and
       (jc.d.X_density > 0) and (jc.d.Y_density > 0) then
     begin
-      XDensity := jc.d.X_density;
-      YDensity := jc.d.Y_density;
       ResUnit := ruDpi;
       if jc.d.density_unit = 2 then
         ResUnit := ruDpcm;
-      FMetadata.SetPhysicalPixelSize(ResUnit, XDensity, YDensity);
+      FMetadata.SetPhysicalPixelSize(ResUnit, jc.d.X_density, jc.d.Y_density);
     end;
   end;
 
