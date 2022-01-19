@@ -573,7 +573,7 @@ var
 
   procedure SaveMetaData;
   var
-    XRes, YRes: Single;
+    XRes, YRes: Double;
   begin
     if FMetadata.GetPhysicalPixelSize(ruDpcm, XRes, YRes, True) then
     begin

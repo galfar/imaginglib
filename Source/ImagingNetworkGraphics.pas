@@ -1863,7 +1863,7 @@ var
 
   procedure WriteGlobalMetaDataChunks(Frame: TFrameInfo);
   var
-    XRes, YRes: Single;
+    XRes, YRes: Double;
   begin
     if FileFormat.FMetadata.GetPhysicalPixelSize(ruDpm, XRes, YRes, True) then
     begin
