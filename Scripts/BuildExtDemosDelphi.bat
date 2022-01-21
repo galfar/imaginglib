@@ -6,6 +6,7 @@ set DEMOPATH=%ROOTDIR%\Demos\ObjectPascal
 set OUTPUT=-E%ROOTDIR%\Demos\Bin
 set INCLUDE=-I%ROOTDIR%\Source 
 set UNITOUT=-N%ROOTDIR%\Demos\Bin\Dcu\
+rem -NS Unit scopes are needed for newer Delphi and argument is happily ignored by D7
 set OPTIONS=-B -$D- -$L- -$Y- -Q -DRELEASE -NSSystem;Winapi
 
 set DEFINES=-DDONT_LINK_EXTRAS
