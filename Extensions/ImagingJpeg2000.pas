@@ -16,16 +16,18 @@ unit ImagingJpeg2000;
 
 interface
 
-{$IF not (
-  (Defined(DCC) and Defined(CPUX86) and not Defined(MACOS)) or
-  (Defined(FPC) and not Defined(MSDOS) and
-    ((Defined(CPUX86) and (Defined(LINUX) or Defined(WIN32) or Defined(MACOS)) or
-     (Defined(CPUX64) and Defined(LINUX)))))
-  )}
-  // JPEG2000 only for 32bit Windows/Linux/OSX and for 64bit Unix with FPC
-implementation
-begin
-{$ELSE}
+{
+  JPEG2000 support needs precompiled C object files and only some targets are
+  available.
+
+  Delphi targets: Windows 32b
+  FPC targets: Windows 32b, Linux 32+64b, OSX 32b
+}
+
+{$IF (Defined(DCC) and Defined(MSWINDOWS) and Defined(CPUX86)) or
+     (Defined(FPC) and Defined(MSWINDOWS) and Defined(CPUX86)) or
+     (Defined(FPC) and Defined(LINUX) and (Defined(CPUX86) or Defined(CPUX64))) or
+     (Defined(FPC) and Defined(MACOS) and Defined(CPUX86))}
 uses
   SysUtils, ImagingTypes, Imaging, ImagingColors, ImagingIO, ImagingUtility,
   ImagingExtFileFormats, OpenJpeg;
@@ -602,6 +604,11 @@ end;
 initialization
   RegisterImageFileFormat(TJpeg2000FileFormat);
 
+{$ELSE}
+implementation
+begin
+{$IFEND}
+
 {
   File Notes:
 
@@ -632,5 +639,4 @@ initialization
     - Initial loading-only version created.
 
 }
-{$IFEND}
 end.
