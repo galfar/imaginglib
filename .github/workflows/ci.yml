@@ -13,16 +13,23 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        # currently stable=2.0.12 with setup-lazarus@v3.0.2 
-        lazarus-versions: [stable]
+        # currently stable="Lazarus 2.2.0 / FPC 3.2.2" with setup-lazarus@v3.0.16
+        # also test one older version "2.0.8 - comes with FPC v3.0.4" (minimum for macOS)
+        lazarus-versions: [stable, 2.0.8]        
     steps:
       - uses: actions/checkout@v2
       - name: Install Lazarus
-        uses: gcarreno/setup-lazarus@v3.0.2
+        uses: gcarreno/setup-lazarus@v3.0.16
         with:
           lazarus-version: ${{ matrix.lazarus-versions }}          
       - name: Print Lazarus version
         run: lazbuild --version
+      - name: Setup Linux
+        if: runner.os == 'Linux'
+        shell: bash                
+        run:  |    
+          # needed for SDL and GL demos
+          sudo apt install libsdl1.2-dev  
       - name: Build Demos 
         shell: bash        
         run:  |          
@@ -33,13 +40,13 @@ jobs:
                     
           if [ "$RUNNER_OS" != "macOS" ]; then                                 
               lazbuild "LCLImager/lclimager.lpi"          
-              lazbuild "ImageBrowser/ImgBrowser.lpi"                        
+              lazbuild "ImageBrowser/ImgBrowser.lpi"
+              lazbuild "OpenGLDemo/OpenGLDemo.lpi"
+              lazbuild "SDLDemo/SDLDemo.lpi" 
           fi
                     
-          if [ "$RUNNER_OS" == "Windows" ]; then
-              lazbuild "OpenGLDemo/OpenGLDemo.lpi"                    
-              lazbuild "D3DDemo/D3DDemo.lpi"  
-              lazbuild "SDLDemo/SDLDemo.lpi" 
+          if [ "$RUNNER_OS" == "Windows" ]; then                                  
+              lazbuild "D3DDemo/D3DDemo.lpi" 
           fi    
       - name: List Demos Bin directory
         shell: bash
