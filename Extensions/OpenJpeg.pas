@@ -34,7 +34,7 @@
   PasOpenJpeg
   Free JPEG 2000 library for Delphi and Free Pascal
 
-  Headers translated to Object Pascal and C code precompliled
+  Headers translated to Object Pascal and C code precompiled
   by Marek Mauder (http://galfar.vevb.net)
   for Vampyre Imaging Library (http://imaginglib.sourceforge.net).
 

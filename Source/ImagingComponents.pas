@@ -48,7 +48,7 @@ uses
 type
   { Graphic class which uses Imaging to load images.
     It has standard TBitmap class as ancestor and it can
-    Assign also to/from TImageData structres and TBaseImage
+    Assign also to/from TImageData structures and TBaseImage
     classes. For saving is uses inherited TBitmap methods.
     This class is automatically registered to TPicture for all
     file extensions supported by Imaging (useful only for loading).
@@ -196,19 +196,19 @@ type
 
 {$IFNDEF DONT_LINK_DDS}
   { Compresssion type used when saving DDS files by TImagingDds.}
-  TDDSCompresion = (dcNone, dcDXT1, dcDXT3, dcDXT5);
+  TDDSCompression = (dcNone, dcDXT1, dcDXT3, dcDXT5);
 
   { TImagingGraphic descendant for loading/saving DDS images.}
   TImagingDDS = class(TImagingGraphicForSave)
   protected
-    FCompression: TDDSCompresion;
+    FCompression: TDDSCompression;
   public
     constructor Create; override;
     procedure SaveToStream(Stream: TStream); override;
     class function GetFileFormat: TImageFileFormat; override;
     { You can choose compression type used when saving DDS file.
       dcNone means that file will be saved in the current bitmaps pixel format.}
-    property Compression: TDDSCompresion read FCompression write FCompression;
+    property Compression: TDDSCompression read FCompression write FCompression;
   end;
 {$ENDIF}
 
@@ -426,7 +426,7 @@ begin
 {$ENDIF}
 {$IFNDEF DONT_LINK_PNG}
   {$IFDEF COMPONENT_SET_LCL}
-    // Unregister Lazarus´ default PNG loader which crashes on some PNG files
+    // Unregister Lazarus default PNG loader which crashes on some PNG files
     TPicture.UnregisterGraphicClass(TPortableNetworkGraphic);
   {$ENDIF}
   RegisterFileFormat(TImagingPNG);
@@ -522,7 +522,7 @@ begin
 
   if (PF = pf8bit) and PaletteHasAlpha(Data.Palette, Info.PaletteEntries) then
   begin
-    // Some indexed images may have valid alpha data, dont lose it!
+    // Some indexed images may have valid alpha data, don't lose it!
     // (e.g. transparent 8bit PNG or GIF images)
     PF := pfCustom;
   end;
@@ -647,7 +647,7 @@ begin
   // old image but not convert it to new format) nor we can determine bitmaps's
   // current format (it is usually set to pfDevice). So bitmap's format is obtained
   // trough RawImage api and cannot be changed to mirror some Imaging format
-  // (so formats with no coresponding Imaging format cannot be saved now).
+  // (so formats with no corresponding Imaging format cannot be saved now).
 
   if RawImage_DescriptionFromBitmap(Bitmap.Handle, RawImage.Description) then
     case RawImage.Description.BitsPerPixel of
@@ -770,7 +770,7 @@ begin
           DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Left,
           Top, Right - Left, Bottom - Top, Bits, BitmapInfo, DIB_RGB_COLORS, SRCCOPY) <> Height then
         begin
-          // StretchDIBits may fail on some ocassions (error 487, http://support.microsoft.com/kb/269585).
+          // StretchDIBits may fail on some occasions (error 487, http://support.microsoft.com/kb/269585).
           // This fallback is slow but works every time. Thanks to Sergey Galezdinov for the fix.
           Bmp := TBitmap.Create;
           try
@@ -849,7 +849,7 @@ begin
       if (SrcBounds.Right = NewWidth) and (SrcBounds.Bottom = NewHeight) then
       try
         CloneImage(ImageData, DisplayImage);
-        // Swap R-B channels for GTK display compatability!
+        // Swap R-B channels for GTK display compatibility!
         SwapChannels(DisplayImage, ChannelRed, ChannelBlue);
         GDKDrawBitmap(DstCanvas.Handle, DstBounds.Left, DstBounds.Top,
           SrcBounds.Left, SrcBounds.Top, NewWidth, NewHeight, DisplayImage);
@@ -863,7 +863,7 @@ begin
         // Stretch pixels from old image to new one  TResizeFilter = (rfNearest, rfBilinear, rfBicubic);
         StretchRect(ImageData, SrcBounds.Left, SrcBounds.Top, SrcBounds.Right,
           SrcBounds.Bottom, DisplayImage, 0, 0, NewWidth, NewHeight, rfNearest);
-        // Swap R-B channels for GTK display compatability!
+        // Swap R-B channels for GTK display compatibility!
         SwapChannels(DisplayImage, ChannelRed, ChannelBlue);
         GDKDrawBitmap(DstCanvas.Handle, DstBounds.Left, DstBounds.Top, 0, 0,
           NewWidth, NewHeight, DisplayImage);
@@ -1295,7 +1295,7 @@ finalization
   -- 0.24.1 Changes/Bug Fixes ---------------------------------
     - Fixed wrong IFDEF causing that Imaging wouldn't compile in Lazarus
       with GTK2 target.
-    - Added commnets with code for Lazarus rev. 11861+ regarding
+    - Added comments with code for Lazarus rev. 11861+ regarding
       RawImage interface. Replace current code with that in comments
       if you use Lazarus from SVN. New RawImage interface will be used by
       default after next Lazarus release. 
@@ -1317,7 +1317,7 @@ finalization
     - added procedures: ConvertImageToBitmap and ConvertBitmapToImage
 
   -- 0.17 Changes/Bug Fixes -----------------------------------
-    - LCL data to bitmap conversion didn´t work in Linux, fixed
+    - LCL data to bitmap conversion didn't work in Linux, fixed
     - added MNG file format
     - added JNG file format
 

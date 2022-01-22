@@ -146,7 +146,7 @@ type
     { Indicates whether the current image is valid (proper format,
       allowed dimensions, right size, ...).}
     property Valid: Boolean read GetValid;
-    { Indicates whether image containst any data (size in bytes > 0).}
+    { Indicates whether image contains any data (size in bytes > 0).}
     property Empty: Boolean read GetEmpty;
     { Specifies the bounding rectangle of the image.}
     property BoundsRect: TRect read GetBoundsRect;
@@ -226,12 +226,12 @@ type
     procedure InsertImage(Index, AWidth, AHeight: Integer; AFormat: TImageFormat = ifDefault); overload;
     { Inserts existing image at the given position in the image array. }
     procedure InsertImage(Index: Integer; const Image: TImageData); overload;
-    { Inserts existing image (Active image of a TmultiImage)
+    { Inserts existing image (Active image of a TMultiImage)
       at the given position in the image array. }
     procedure InsertImage(Index: Integer; Image: TBaseImage); overload;
     { Inserts existing image at the given position in the image array. }
     procedure InsertImages(Index: Integer; const Images: TDynImageDataArray); overload;
-    { Inserts existing images (all images of a TmultiImage) at
+    { Inserts existing images (all images of a TMultiImage) at
       the given position in the image array. }
     procedure InsertImages(Index: Integer; Images: TMultiImage); overload;
 
@@ -249,11 +249,11 @@ type
     { Resizes all images.}
     procedure ResizeImages(NewWidth, NewHeight: Integer; Filter: TResizeFilter);
 
-    { Overloaded loading method that will add new image to multiimage if
-      image array is empty bero loading. }
+    { Overloaded loading method that will add new image to multi-image if
+      image array is empty before loading. If it's not empty the active image is replaced.}
     procedure LoadFromFile(const FileName: string); override;
-    { Overloaded loading method that will add new image to multiimage if
-      image array is empty bero loading. }
+    { Overloaded loading method that will add new image to multi-image if
+      image array is empty before loading. If it's not empty the active image is replaced.}
     procedure LoadFromStream(Stream: TStream); override;
 
     { Loads whole multi image from file.}
@@ -286,7 +286,7 @@ implementation
 
 const
   DefaultWidth = 16;
-  Defaultheight = 16;
+  DefaultHeight = 16;
 
 function GetArrayFromImageData(const ImageData: TImageData): TDynImageDataArray;
 begin
@@ -1025,7 +1025,7 @@ end;
   File Notes (obsolete):
 
   -- 0.77.1 ---------------------------------------------------
-    - Added TSingleImage.AssignFromData and TMultiImage.AssigntFromArray
+    - Added TSingleImage.AssignFromData and TMultiImage.AssignFromArray
       as a replacement for constructors used as methods (that is
       compiler error in Delphi XE3).
     - Added TBaseImage.ResizeToFit method.
@@ -1076,7 +1076,7 @@ end;
 
   -- 0.17 Changes/Bug Fixes -----------------------------------
     - added props PaletteEntries and ScanLine to TBaseImage
-    - aded new constructor to TBaseImage that take TBaseImage source
+    - added new constructor to TBaseImage that take TBaseImage source
     - TMultiImage levels adding and inserting rewritten internally
     - added some new functions to TMultiImage: AddLevels, InsertLevels
     - added some new functions to TBaseImage: Flip, Mirror, Rotate,

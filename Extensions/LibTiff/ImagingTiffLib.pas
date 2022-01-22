@@ -551,7 +551,7 @@ begin
 
       if Format = ifIndex8 then
       begin
-        // Set paletee for indexed images
+        // Set palette for indexed images
         for J := 0 to 255 do
         with ImageToSave.Palette[J] do
         begin

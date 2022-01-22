@@ -133,14 +133,14 @@ procedure FreeMem(P: Pointer); {$IFDEF USE_INLINE}inline;{$ENDIF}
 function GetExceptObject: Exception; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns time value with microsecond resolution.}
 function GetTimeMicroseconds: Int64;
-{ Returns time value with milisecond resolution.}
+{ Returns time value with millisecond resolution.}
 function GetTimeMilliseconds: Int64;
 
 { Returns file extension (without "." dot)}
 function GetFileExt(const FileName: string): string;
 { Returns file name of application's executable.}
 function GetAppExe: string;
-{ Returns directory where application's exceutable is located without
+{ Returns directory where application's executable is located without
   path delimiter at the end.}
 function GetAppDir: string;
 { Works like SysUtils.ExtractFileName but supports '/' and '\' dir delimiters
@@ -183,7 +183,7 @@ function IntToStrFmt(const I: Int64): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
   Uses current locale.}
 function FloatToStrFmt(const F: Double; Precision: Integer = 2): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns format settings for parsing floats (dot as decimal separator).
-  Useful when fomatting/parsing floats etc.}
+  Useful when formatting/parsing floats etc.}
 function GetFormatSettingsForFloats: TFormatSettings;
 { Returns True if S contains at least one of the substrings in SubStrs array. Case sensitive.}
 function ContainsAnySubStr(const S: string; const SubStrs: array of string): Boolean;
@@ -208,7 +208,7 @@ function ClampToWord(Value: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF
 { Returns True if Num is power of 2.}
 function IsPow2(Num: LongInt): Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns next power of 2 greater than or equal to Num
-  (if Num itself is power of 2 then it retuns Num).}
+  (if Num itself is power of 2 then it returns Num).}
 function NextPow2(Num: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Raises 2 to the given integer power (in range [0, 30]).}
 function Pow2Int(Exponent: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -244,28 +244,28 @@ function SameFloat(const A, B: Double; const Delta: Double = 0.000001): Boolean;
 
 { Switches Boolean value.}
 procedure Switch(var Value: Boolean); {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ If Condition is True then TruePart is retured, otherwise
+{ If Condition is True then TruePart is returned, otherwise
   FalsePart is returned.}
 function Iff(Condition: Boolean; TruePart, FalsePart: Integer): Integer; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ If Condition is True then TruePart is retured, otherwise
+{ If Condition is True then TruePart is returned, otherwise
   FalsePart is returned.}
 function IffUnsigned(Condition: Boolean; TruePart, FalsePart: Cardinal): Cardinal; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ If Condition is True then TruePart is retured, otherwise
+{ If Condition is True then TruePart is returned, otherwise
   FalsePart is returned.}
 function Iff(Condition, TruePart, FalsePart: Boolean): Boolean; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ If Condition is True then TruePart is retured, otherwise
+{ If Condition is True then TruePart is returned, otherwise
   FalsePart is returned.}
 function Iff(Condition: Boolean; const TruePart, FalsePart: string): string; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ If Condition is True then TruePart is retured, otherwise
+{ If Condition is True then TruePart is returned, otherwise
   FalsePart is returned.}
 function Iff(Condition: Boolean; TruePart, FalsePart: Char): Char; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ If Condition is True then TruePart is retured, otherwise
+{ If Condition is True then TruePart is returned, otherwise
   FalsePart is returned.}
 function Iff(Condition: Boolean; TruePart, FalsePart: Pointer): Pointer; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ If Condition is True then TruePart is retured, otherwise
+{ If Condition is True then TruePart is returned, otherwise
   FalsePart is returned.}
 function Iff(Condition: Boolean; const TruePart, FalsePart: Int64): Int64; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ If Condition is True then TruePart is retured, otherwise
+{ If Condition is True then TruePart is returned, otherwise
   FalsePart is returned.}
 function IffFloat(Condition: Boolean; TruePart, FalsePart: Single): Single; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Swaps two Boolean values}
@@ -347,9 +347,9 @@ function RectIntersects(const R1, R2: TRect): Boolean;
 { Ensures that rect's right>left and bottom>top. }
 procedure NormalizeRect(var R: TRect);
 
-{ Converts pixel size in micrometers to corrensponding DPI.}
+{ Converts pixel size in micrometers to corresponding DPI.}
 function PixelSizeToDpi(SizeInMicroMeters: Single): Single;
-{ Converts DPI to corrensponding pixel size in micrometers.}
+{ Converts DPI to corresponding pixel size in micrometers.}
 function DpiToPixelSize(Dpi: Single): Single;
 
 function FloatPoint(AX, AY: Single): TFloatPoint; {$IFDEF USE_INLINE}inline;{$ENDIF}
