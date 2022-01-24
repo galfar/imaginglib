@@ -88,7 +88,13 @@ type
     procedure AssignFromImageData(const ImageData: TImageData);
     { Copies the current image to TImageData structure.}
     procedure AssignToImageData(var ImageData: TImageData);
+
   {$IFDEF COMPONENT_SET_LCL}
+    { Needed for TGraphic.LoadFromResourceName() to work.
+      We return RT_RCDATA here. Also for TImagingBitmap since
+      RT_BITMAP is stored differently than bitmap on disk (no BITMAPFILEHEADER).}
+    function GetResourceType: TResourceType; override;
+    { Used by TPicture.LoadFromStream to find the right TGraphic class for streams. }
     class function IsStreamFormatSupported(Stream: TStream): boolean; override;
   {$ENDIF}
   end;
@@ -651,6 +657,7 @@ var
   LineLazBytes: LongInt;
 {$ENDIF}
 begin
+  Format := ifUnknown;
 {$IFDEF COMPONENT_SET_LCL}
   // In the current Lazarus 0.9.10 Bitmap.PixelFormat property is useless.
   // We cannot change bitmap's format by changing it (it will just release
@@ -671,8 +678,6 @@ begin
       32: Format := ifA8R8G8B8;
       48: Format := ifR16G16B16;
       64: Format := ifA16R16G16B16;
-    else
-      Format := ifUnknown;
     end;
 {$ELSE}
   Format := PixelFormatToDataFormat(Bitmap.PixelFormat);
@@ -967,6 +972,11 @@ begin
 end;
 
 {$IFDEF COMPONENT_SET_LCL}
+function TImagingGraphic.GetResourceType: TResourceType;
+begin
+  Result := RT_RCDATA;
+end;
+
 class function TImagingGraphic.IsStreamFormatSupported(Stream: TStream): Boolean;
 begin
   Result := DetermineStreamFormat(Stream) <> '';
