@@ -17,18 +17,18 @@ mkdir %BINPATH%\ %UNITPATH%\  2>nul
 set DEFINES=-dFULL_FEATURE_SET
 set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZLib -Fu%ROOTDIR%\Extensions -Fu%ROOTDIR%\Extensions\LibTiff -Fu%DEMOPATH%\Common
 set INCLUDE=-Fi%ROOTDIR%\Source 
-set LIBS=-Fl%ROOTDIR%\Extensions\J2KObjects -Fu%ROOTDIR%\Extensions\LibTiff\Compiled
+set LIBS=-Fl%ROOTDIR%\Extensions\J2KObjects -Fl%ROOTDIR%\Extensions\LibTiff\Compiled
 
 set DEMOSBUILD=0
 set DEMOCOUNT=2
 
-call :BUILD Benchmark\Bench.dpr Bench.exe
-call :BUILD VampConvert\VampConvert.dpr VampConvert.exe
+call :BUILD Benchmark\Bench.dpr 
+call :BUILD VampConvert\VampConvert.dpr 
 
 goto END
 
 :BUILD
-  fpc %TARGET% %OPTIONS% %OUTPUT% %DEFINES% %UNITS% %INCLUDE% %LIBS% "%DEMOPATH%\%1" -o%2
+  fpc %TARGET% %OPTIONS% %OUTPUT% %DEFINES% %UNITS% %INCLUDE% %LIBS% "%DEMOPATH%\%1" 
   if errorlevel 1 (echo Error when building %1) else (set /a DEMOSBUILD+=1)
   echo.
 goto :EOF

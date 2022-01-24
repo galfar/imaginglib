@@ -22,14 +22,14 @@ set INCLUDE=-Fi%ROOTDIR%\Source
 set DEMOSBUILD=0
 set DEMOCOUNT=3
 
-call :BUILD SDLDemo\SDLDemo.dpr SDLDemo.exe
-call :BUILD OpenGLDemo\OpenGLDemo.dpr OpenGLDemo.exe
-call :BUILD D3DDemo\D3DDemo.dpr D3DDemo.exe
+call :BUILD SDLDemo\SDLDemo.dpr 
+call :BUILD OpenGLDemo\OpenGLDemo.dpr 
+call :BUILD D3DDemo\D3DDemo.dpr 
 
 goto END
 
 :BUILD
-  fpc %TARGET% %OPTIONS% %OUTPUT% %DEFINES% %UNITS% %INCLUDE% %LIBS% "%DEMOPATH%\%1" -o%2
+  fpc %TARGET% %OPTIONS% %OUTPUT% %DEFINES% %UNITS% %INCLUDE% %LIBS% "%DEMOPATH%\%1" 
   if errorlevel 1 (echo Error when building %1) else (set /a DEMOSBUILD+=1)
   echo.
 goto :EOF
