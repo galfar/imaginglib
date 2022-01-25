@@ -2,7 +2,7 @@
   This source is only used to compile and install the package.
  }
 
-unit VampyreImagingPackage_Sdl;
+unit VampyreImagingPackage_SDL;
 
 {$warn 5023 off : no warning about unused units}
 interface
