@@ -5,7 +5,7 @@
 # FPC compiler command
 FPC=fpc
 # You can override default FPC target (to cross-compile etc.)
-TARGET=#-Ttarget
+#TARGET=-Tuser
 # Uncomment if you run this shell script in WSL and want to run Windows-side FPC instead of Linux FPC
 #FPC=fpc.exe
 
