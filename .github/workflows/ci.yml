@@ -14,8 +14,9 @@ jobs:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
         # currently stable="Lazarus 2.2.0 / FPC 3.2.2" with setup-lazarus@v3.0.16
-        # also test one older version "2.0.8 - comes with FPC v3.0.4" (minimum for macOS)
-        lazarus-versions: [stable, 2.0.8]        
+        # also test one older version "2.0.10 - comes with FPC v3.2.0" 
+        # minimum for macOS is 2.0.8 but that still crashes building "lazbuild --ws=cocoa" demos
+        lazarus-versions: [stable, 2.0.10]        
     steps:
       - uses: actions/checkout@v2
       - name: Install Lazarus
@@ -29,7 +30,7 @@ jobs:
         shell: bash                
         run:  |    
           # needed for SDL and GL demos
-          sudo apt install libsdl1.2-dev  
+          sudo apt install libsdl1.2-dev -y
       - name: Build Demos 
         shell: bash        
         run:  |          
@@ -44,6 +45,11 @@ jobs:
               lazbuild "OpenGLDemo/OpenGLDemo.lpi"
               lazbuild "SDLDemo/SDLDemo.lpi" 
           fi
+          
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            lazbuild --ws=cocoa "LCLImager/lclimager.lpi"          
+            lazbuild --ws=cocoa "ImageBrowser/ImgBrowser.lpi"
+          fi
                     
           if [ "$RUNNER_OS" == "Windows" ]; then                                  
               lazbuild "D3DDemo/D3DDemo.lpi" 
@@ -54,16 +60,14 @@ jobs:
       - name:  Run tests
         shell: bash
         run:   |          
-          cd Demos/Bin 
-          if [ "$RUNNER_OS" == "Linux" ]; then
-              ./Bench
-          elif [ "$RUNNER_OS" == "Windows" ]; then
-              ./Bench.exe
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-              ./Bench
-          fi           
+          cd Demos/Bin           
+          ./Bench
+          ./VampConvert -h           
       - uses: actions/upload-artifact@v2
         with:
-          name: demo-binaries-${{ matrix.operating-system }}
-          path: Demos/Bin            
+          name: ci-artifacts-${{ matrix.operating-system }}-laz-${{ matrix.lazarus-versions }}
+          # exclude compiled units etc.
+          path: |
+            Demos/Bin            
+            !Demos/Bin/Dcu            
           if-no-files-found: error
