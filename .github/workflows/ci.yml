@@ -13,10 +13,8 @@ jobs:
     strategy:
       matrix:
         operating-system: [ubuntu-latest, windows-latest, macos-latest]
-        # currently stable="Lazarus 2.2.0 / FPC 3.2.2" with setup-lazarus@v3.0.16
-        # also test one older version "2.0.10 - comes with FPC v3.2.0" 
-        # minimum for macOS is 2.0.8 but that still crashes building "lazbuild --ws=cocoa" demos
-        lazarus-versions: [stable, 2.0.10]        
+        # currently stable="Lazarus 2.2.0 / FPC 3.2.2" with setup-lazarus@v3.0.16        
+        lazarus-versions: [stable]        
     steps:
       - uses: actions/checkout@v2
       - name: Install Lazarus
@@ -31,6 +29,8 @@ jobs:
         run:  |    
           # needed for SDL and GL demos
           sudo apt install libsdl1.2-dev -y
+          # to build LCL demos with Qt5 backend
+          sudo apt install libqt5pas-dev -y
       - name: Build Demos 
         shell: bash        
         run:  |          
@@ -46,14 +46,19 @@ jobs:
               lazbuild "SDLDemo/SDLDemo.lpi" 
           fi
           
+          if [ "$RUNNER_OS" == "Linux" ]; then                                               
+              lazbuild --ws=qt5 "LCLImager/lclimager.lpi"                        
+              lazbuild --ws=qt5 "ImageBrowser/ImgBrowser.lpi"             
+          fi
+          
+          if [ "$RUNNER_OS" == "Windows" ]; then                                  
+              lazbuild "D3DDemo/D3DDemo.lpi" 
+          fi  
+          
           if [ "$RUNNER_OS" == "macOS" ]; then
             lazbuild --ws=cocoa "LCLImager/lclimager.lpi"          
             lazbuild --ws=cocoa "ImageBrowser/ImgBrowser.lpi"
           fi
-                    
-          if [ "$RUNNER_OS" == "Windows" ]; then                                  
-              lazbuild "D3DDemo/D3DDemo.lpi" 
-          fi    
       - name: List Demos Bin directory
         shell: bash
         run:  ls Demos/Bin            
@@ -63,6 +68,11 @@ jobs:
           cd Demos/Bin           
           ./Bench
           ./VampConvert -h           
+      - name: Compile Lazarus Packages
+        shell: bash        
+        run:  |                  
+          lazbuild "Packages/VampyreImagingPackage.lpk"    
+          lazbuild "Packages/VampyreImagingPackageExt.lpk" 
       - uses: actions/upload-artifact@v2
         with:
           name: ci-artifacts-${{ matrix.operating-system }}-laz-${{ matrix.lazarus-versions }}
