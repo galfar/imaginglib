@@ -31,7 +31,15 @@ jobs:
           sudo apt install libsdl1.2-dev -y
           # to build LCL demos with Qt5 backend
           sudo apt install libqt5pas-dev -y
-      - name: Build Demos 
+      - name: Build demos with FPC (Linux)
+        if: runner.os == 'Linux'
+        shell: bash                
+        run:  |    
+          cd Scripts
+          ./BuildDemosFPC.sh
+          ./BuildExtDemosFPC.sh
+          ./Clean.sh --clean-also-bin-dirs    
+      - name: Build demos with Lazarus
         shell: bash        
         run:  |          
           cd Demos/ObjectPascal           
@@ -62,7 +70,7 @@ jobs:
       - name: List Demos Bin directory
         shell: bash
         run:  ls Demos/Bin            
-      - name:  Run tests
+      - name:  Run demos
         shell: bash
         run:   |          
           cd Demos/Bin           
