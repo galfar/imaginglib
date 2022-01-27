@@ -436,6 +436,7 @@ begin
     SaveHeader;
     // Save uncompressed pixels
     SavePixels;
+    Result := True;
   finally
     if MustBeFreed then
       FreeImage(ImageToSave);
