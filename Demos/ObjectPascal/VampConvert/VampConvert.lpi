@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <PathDelim Value="\"/>
     <General>
       <Flags>
         <MainUnitHasUsesSectionForAllUnits Value="False"/>
         <MainUnitHasCreateFormStatements Value="False"/>
         <MainUnitHasTitleStatement Value="False"/>
+        <MainUnitHasScaledStatement Value="False"/>
+        <CompatibilityMode Value="True"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <MainUnit Value="0"/>
       <Title Value="VampConvert"/>
       <UseAppBundle Value="False"/>
       <ResourceType Value="res"/>
@@ -28,10 +29,10 @@
             <Filename Value="..\..\Bin\VampConvert"/>
           </Target>
           <SearchPaths>
-            <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;$(ProjOutDir)"/>
-            <Libraries Value="..\..\..\Extras\Extensions\J2KObjects;..\..\..\Extras\Extensions\LibTiff\Compiled"/>
-            <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;..\Common"/>
-            <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
+            <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
+            <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
+            <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>            
+            <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
           </SearchPaths>
           <Parsing>
             <SyntaxOptions>
@@ -49,19 +50,19 @@
               <GenerateDebugInfo Value="False"/>
             </Debugging>
             <LinkSmart Value="True"/>
-          </Linking>
-          <Other>
-            <CustomOptions Value="-dFULL_FEATURE_SET"/>
-          </Other>
+          </Linking>          
         </CompilerOptions>
       </Item2>
+      <SharedMatrixOptions Count="2">
+        <Item1 ID="149315369584" Modes="Debug,Release" Value="-dFULL_FEATURE_SET"/>
+        <Item2 ID="734469810654" Modes="Debug,Release" Value="-vn-h-"/>        
+      </SharedMatrixOptions>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
     </PublishOptions>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="0"/>
     </RunParams>
     <Units Count="2">
       <Unit0>
@@ -81,10 +82,10 @@
       <Filename Value="..\..\Bin\VampConvert"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;$(ProjOutDir)"/>
+      <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
       <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
-      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>
-      <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>    
+      <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
@@ -100,6 +101,9 @@
         <StackChecks Value="True"/>
       </Checks>
       <VerifyObjMethodCallValidity Value="True"/>
+      <Optimizations>
+        <OptimizationLevel Value="0"/>
+      </Optimizations>
     </CodeGeneration>
     <Linking>
       <Debugging>
@@ -108,10 +112,7 @@
         <TrashVariables Value="True"/>
         <UseExternalDbgSyms Value="True"/>
       </Debugging>
-    </Linking>
-    <Other>
-      <CustomOptions Value="-dFULL_FEATURE_SET"/>
-    </Other>
+    </Linking>    
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">
