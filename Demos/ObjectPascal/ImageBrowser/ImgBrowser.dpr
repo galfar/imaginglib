@@ -15,10 +15,10 @@ uses
 begin
 {$IFDEF LCL}
   RequireDerivedFormResource := True;
-  Application.Scaled := True;
+  Application.Scaled:=True;
 {$ENDIF}
+  Application.Title:='Image Browser';
   Application.Initialize;
-  Application.Title := 'ImgBrowser';
   Application.CreateForm(TMainForm, MainForm);
   Application.Run;
 end.
