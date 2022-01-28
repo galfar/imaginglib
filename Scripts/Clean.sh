@@ -34,12 +34,6 @@ delWholeDir() {
 delWholeDir "$ROOTDIR/Bin/Dcu"
 delWholeDir "$ROOTDIR/Demos/Bin/Dcu"
 
-if [ $ARG = "--clean-also-bin-dirs" ]; then
-  # careful
-  delWholeDir "$ROOTDIR/Bin/*" 
-  delWholeDir "$ROOTDIR/Demos/Bin/*" 
-fi
-
 delInTree "$ROOTDIR/Source" "$ALL_PATS"
 delInTree "$ROOTDIR/Demos" "$ALL_PATS" 
 delInTree "$ROOTDIR/Packages" "$ALL_PATS" 
@@ -50,5 +44,15 @@ delInTree "$ROOTDIR/Extras" "$ALL_BUT_OBJ_PATS"
 delWholeDir "$ROOTDIR/**/__history"
 delWholeDir "$ROOTDIR/**/backup"
 delWholeDir "$ROOTDIR/**/__recovery"
+
+# Careful with the following options
+if [ $ARG = "--clean-also-bin-dirs" ]; then  
+  delWholeDir "$ROOTDIR/Bin/*" 
+  delWholeDir "$ROOTDIR/Demos/Bin/*" 
+fi
+if [ $ARG = "--clean-delphi-projects" ]; then
+  delInTree "$ROOTDIR/Demos" "*.cfg *.dsk"  
+  delInTree "$ROOTDIR/Packages" "*.cfg *.dsk"  
+fi
 
 echo "Clean finished"
