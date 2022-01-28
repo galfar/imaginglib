@@ -11,8 +11,8 @@ uses
 {$R *.res}
 
 begin
+  Application.Title:='LCL Imager';
   Application.Scaled:=True;
-  Application.Title := 'LCL Imager';
   Application.Initialize;
   Application.CreateForm(TMainForm, MainForm);
   Application.CreateForm(TAboutForm, AboutForm);

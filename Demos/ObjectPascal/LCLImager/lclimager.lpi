@@ -1,32 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="11"/>
+    <Version Value="12"/>
     <PathDelim Value="\"/>
     <General>
       <Flags>
-        <SaveClosedFiles Value="False"/>
-        <LRSInOutputDirectory Value="False"/>
+        <CompatibilityMode Value="True"/>
       </Flags>
       <SessionStorage Value="InProjectDir"/>
-      <MainUnit Value="0"/>
       <Title Value="LCL Imager"/>
       <Scaled Value="True"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
       <XPManifest>
+        <DpiAware Value="True"/>
         <TextDesc Value="LCL Imager Demo"/>
       </XPManifest>
       <Icon Value="0"/>
     </General>
-    <VersionInfo>
-      <UseVersionInfo Value="True"/>
-      <MinorVersionNr Value="80"/>
-      <StringTable ProductVersion="0.0.0.0"/>
-    </VersionInfo>
-    <BuildModes Count="5">
+    <BuildModes Count="2">
       <Item1 Name="Debug" Default="True"/>
-      <Item2 Name="Release - Win64">
+      <Item2 Name="Release">
         <CompilerOptions>
           <Version Value="11"/>
           <PathDelim Value="\"/>
@@ -34,20 +28,16 @@
             <Filename Value="..\..\Bin\LCLImager"/>
           </Target>
           <SearchPaths>
-            <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib"/>
-            <Libraries Value="..\..\..\Extras\Extensions\J2KObjects;..\..\..\Extras\Extensions\LibTiff\Compiled"/>
-            <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType);..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;..\Common"/>
-            <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
+            <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
+            <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
+            <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
+            <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
           </SearchPaths>
           <CodeGeneration>
             <SmartLinkUnit Value="True"/>
-            <TargetCPU Value="x86_64"/>
-            <TargetOS Value="win64"/>
             <Optimizations>
               <OptimizationLevel Value="3"/>
-              <VariablesInRegisters Value="True"/>
             </Optimizations>
-            <SmallerCode Value="True"/>
           </CodeGeneration>
           <Linking>
             <Debugging>
@@ -61,158 +51,25 @@
               </Win32>
             </Options>
           </Linking>
-          <Other>
-            <Verbosity>
-              <ShoLineNum Value="True"/>
-            </Verbosity>
-            <CustomOptions Value="-dFULL_FEATURE_SET"/>
-          </Other>
         </CompilerOptions>
       </Item2>
-      <Item3 Name="Release - Linux">
-        <CompilerOptions>
-          <Version Value="11"/>
-          <PathDelim Value="\"/>
-          <Target>
-            <Filename Value="..\..\Bin\LCLImager"/>
-          </Target>
-          <SearchPaths>
-            <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib"/>
-            <Libraries Value="..\..\..\Extras\Extensions\J2KObjects;..\..\..\Extras\Extensions\LibTiff\Compiled"/>
-            <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType);..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;..\Common"/>
-            <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
-          </SearchPaths>
-          <CodeGeneration>
-            <SmartLinkUnit Value="True"/>
-            <TargetCPU Value="x86_64"/>
-            <TargetOS Value="linux"/>
-            <Optimizations>
-              <OptimizationLevel Value="3"/>
-              <VariablesInRegisters Value="True"/>
-            </Optimizations>
-            <SmallerCode Value="True"/>
-          </CodeGeneration>
-          <Linking>
-            <Debugging>
-              <GenerateDebugInfo Value="False"/>
-              <StripSymbols Value="True"/>
-            </Debugging>
-            <LinkSmart Value="True"/>
-            <Options>
-              <Win32>
-                <GraphicApplication Value="True"/>
-              </Win32>
-            </Options>
-          </Linking>
-          <Other>
-            <Verbosity>
-              <ShoLineNum Value="True"/>
-            </Verbosity>
-            <CustomOptions Value="-dFULL_FEATURE_SET"/>
-          </Other>
-        </CompilerOptions>
-      </Item3>
-      <Item4 Name="Release - Win32">
-        <CompilerOptions>
-          <Version Value="11"/>
-          <PathDelim Value="\"/>
-          <Target>
-            <Filename Value="..\..\Bin\LCLImager"/>
-          </Target>
-          <SearchPaths>
-            <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib"/>
-            <Libraries Value="..\..\..\Extras\Extensions\J2KObjects;..\..\..\Extras\Extensions\LibTiff\Compiled"/>
-            <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType);..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;..\Common"/>
-            <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
-          </SearchPaths>
-          <Parsing>
-            <Style Value="1"/>
-          </Parsing>
-          <CodeGeneration>
-            <SmartLinkUnit Value="True"/>
-            <Optimizations>
-              <OptimizationLevel Value="3"/>
-              <VariablesInRegisters Value="True"/>
-            </Optimizations>
-            <SmallerCode Value="True"/>
-          </CodeGeneration>
-          <Linking>
-            <Debugging>
-              <GenerateDebugInfo Value="False"/>
-              <StripSymbols Value="True"/>
-            </Debugging>
-            <LinkSmart Value="True"/>
-            <Options>
-              <Win32>
-                <GraphicApplication Value="True"/>
-              </Win32>
-            </Options>
-          </Linking>
-          <Other>
-            <Verbosity>
-              <ShoLineNum Value="True"/>
-            </Verbosity>
-            <CustomOptions Value="-dFULL_FEATURE_SET"/>
-          </Other>
-        </CompilerOptions>
-      </Item4>
-      <Item5 Name="Release - OSX">
-        <CompilerOptions>
-          <Version Value="11"/>
-          <PathDelim Value="\"/>
-          <Target>
-            <Filename Value="..\..\Bin\LCLImager"/>
-          </Target>
-          <SearchPaths>
-            <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib"/>
-            <Libraries Value="..\..\..\Extras\Extensions\J2KObjects;..\..\..\Extras\Extensions\LibTiff\Compiled"/>
-            <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType);..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extras\Extensions;..\..\..\Extras\Extensions\LibTiff;..\Common"/>
-            <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
-          </SearchPaths>
-          <CodeGeneration>
-            <SmartLinkUnit Value="True"/>
-            <TargetCPU Value="i386"/>
-            <TargetOS Value="darwin"/>
-            <Optimizations>
-              <OptimizationLevel Value="3"/>
-              <VariablesInRegisters Value="True"/>
-            </Optimizations>
-            <SmallerCode Value="True"/>
-          </CodeGeneration>
-          <Linking>
-            <Debugging>
-              <GenerateDebugInfo Value="False"/>
-              <StripSymbols Value="True"/>
-            </Debugging>
-            <LinkSmart Value="True"/>
-            <Options>
-              <Win32>
-                <GraphicApplication Value="True"/>
-              </Win32>
-            </Options>
-          </Linking>
-          <Other>
-            <Verbosity>
-              <ShoLineNum Value="True"/>
-            </Verbosity>
-            <CustomOptions Value="-dFULL_FEATURE_SET"/>
-          </Other>
-        </CompilerOptions>
-      </Item5>
+      <SharedMatrixOptions Count="2">
+        <Item1 ID="149315369584" Modes="Debug,Release" Value="-dFULL_FEATURE_SET"/>
+        <Item2 ID="734469810654" Modes="Debug,Release" Value="-vn-h-"/>
+      </SharedMatrixOptions>
     </BuildModes>
     <PublishOptions>
       <Version Value="2"/>
     </PublishOptions>
     <RunParams>
       <FormatVersion Value="2"/>
-      <Modes Count="0"/>
     </RunParams>
     <RequiredPackages Count="1">
       <Item1>
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="3">
+    <Units Count="14">
       <Unit0>
         <Filename Value="lclimager.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -234,6 +91,50 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="AboutUnit"/>
       </Unit2>
+      <Unit3>
+        <Filename Value="..\..\..\Source\Imaging.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="..\..\..\Source\ImagingComponents.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit4>
+      <Unit5>
+        <Filename Value="..\..\..\Source\ImagingTypes.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="..\..\..\Source\ImagingCanvases.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit6>
+      <Unit7>
+        <Filename Value="..\..\..\Source\ImagingClasses.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit7>
+      <Unit8>
+        <Filename Value="..\..\..\Source\ImagingColors.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit8>
+      <Unit9>
+        <Filename Value="..\..\..\Source\ImagingUtility.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit9>
+      <Unit10>
+        <Filename Value="..\..\..\Source\ImagingFormats.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="..\..\..\Extensions\ImagingBinary.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="..\..\..\Extensions\ImagingCompare.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit12>
+      <Unit13>
+        <Filename Value="..\..\..\Extensions\ImagingExtFileFormats.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit13>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -243,14 +144,13 @@
       <Filename Value="..\..\Bin\LCLImager"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib"/>
+      <IncludeFiles Value="..\..\..\Source"/>
       <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
-      <OtherUnitFiles Value="$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType);..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>
-      <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)"/>
+      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
+      <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
     </SearchPaths>
     <Parsing>
       <SyntaxOptions>
-        <SyntaxMode Value="Delphi"/>
         <IncludeAssertionCode Value="True"/>
       </SyntaxOptions>
     </Parsing>
@@ -264,12 +164,11 @@
       <VerifyObjMethodCallValidity Value="True"/>
       <Optimizations>
         <OptimizationLevel Value="0"/>
-        <VariablesInRegisters Value="True"/>
       </Optimizations>
-      <SmallerCode Value="True"/>
     </CodeGeneration>
     <Linking>
       <Debugging>
+        <DebugInfoType Value="dsDwarf2Set"/>
         <UseHeaptrc Value="True"/>
         <TrashVariables Value="True"/>
         <UseExternalDbgSyms Value="True"/>
@@ -280,12 +179,18 @@
         </Win32>
       </Options>
     </Linking>
-    <Other>
-      <Verbosity>
-        <ShowHints Value="False"/>
-        <ShoLineNum Value="True"/>
-      </Verbosity>
-      <CustomOptions Value="-dFULL_FEATURE_SET"/>
-    </Other>
   </CompilerOptions>
+  <Debugging>
+    <Exceptions Count="3">
+      <Item1>
+        <Name Value="EAbort"/>
+      </Item1>
+      <Item2>
+        <Name Value="ECodetoolError"/>
+      </Item2>
+      <Item3>
+        <Name Value="EFOpenError"/>
+      </Item3>
+    </Exceptions>
+  </Debugging>
 </CONFIG>

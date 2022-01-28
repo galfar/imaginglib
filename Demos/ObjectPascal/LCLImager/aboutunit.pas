@@ -1,7 +1,5 @@
 unit AboutUnit;
 
-{$mode objfpc}{$H+}
-
 interface
 
 uses
@@ -32,6 +30,8 @@ var
 
 implementation
 
+{$R *.lfm}
+
 { TAboutForm }
 
 procedure TAboutForm.FormShow(Sender: TObject);
@@ -42,9 +42,6 @@ begin
     Image.Picture.LoadFromFile(GetDataDir + PathDelim + 'LogoAlpha.png');
   end;
 end;
-
-initialization
-  {$I aboutunit.lrs}
 
 end.
 

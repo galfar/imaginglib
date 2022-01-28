@@ -60,7 +60,10 @@ Packages/*.cfg
 Source/**/*.hpp
 Extensions/**/*.hpp
 
+Demos/**/ImgBrowser.ico
+Demos/**/lclimager.ico
 
-
+!Demos/**/ImgBrowser.res
+!Demos/**/lclimager.res
 
 
