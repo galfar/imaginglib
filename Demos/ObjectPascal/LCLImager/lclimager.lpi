@@ -30,7 +30,7 @@
           <SearchPaths>
             <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
             <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
-            <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
+            <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>
             <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -144,9 +144,9 @@
       <Filename Value="..\..\Bin\LCLImager"/>
     </Target>
     <SearchPaths>
-      <IncludeFiles Value="..\..\..\Source"/>
+      <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
       <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
-      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common;$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS);$(LazarusDir)\lcl\units\$(TargetCPU)-$(TargetOS)\$(LCLWidgetType)"/>
+      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>
       <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
     </SearchPaths>
     <Parsing>
