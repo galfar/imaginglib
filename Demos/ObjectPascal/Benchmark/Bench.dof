@@ -95,6 +95,7 @@ UnitOutputDir=..\..\Bin\Dcu
 PackageDLLOutputDir=
 PackageDCPOutputDir=
 SearchPath=..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extensions;..\Common;..\..\..\Extensions\LibTiff
+Conditionals=FULL_FEATURE_SET
 Conditionals=
 DebugSourceDirs=
 UsePackages=0
