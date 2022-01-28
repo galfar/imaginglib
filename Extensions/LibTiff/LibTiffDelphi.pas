@@ -15,6 +15,10 @@ unit LibTiffDelphi;
   {$DEFINE DCC}
   {$ALIGN 8}
   {$MINENUMSIZE 1}
+
+  {$IFDEF CPUX64}
+    {$MESSAGE FATAL 'Not supported' }
+  {$ENDIF}
 {$ENDIF}
 
 interface

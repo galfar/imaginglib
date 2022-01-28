@@ -75,6 +75,10 @@ unit OpenJpeg;
   {$DEFINE DCC}
   {$ALIGN 8}
   {$MINENUMSIZE 4}
+
+  {$IFDEF CPUX64}
+    {$MESSAGE FATAL 'Not supported' }
+  {$ENDIF}
 {$ENDIF}
 
 interface

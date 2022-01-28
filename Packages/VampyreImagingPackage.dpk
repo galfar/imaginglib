@@ -23,10 +23,10 @@ package VampyreImagingPackage;
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $7A00000}
+{$DEFINE FULL_FEATURE_SET}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'Vampyre Imaging Library Package'}
 {$IMPLICITBUILD OFF}
-{$DEFINE FULL_FEATURE_SET}
 
 requires
   rtl,
@@ -56,7 +56,6 @@ contains
   ImagingPsd in '..\Extensions\ImagingPsd.pas',
   ImagingTiff in '..\Extensions\ImagingTiff.pas',
   ImagingXpm in '..\Extensions\ImagingXpm.pas',
-  OpenJpeg in '..\Extensions\OpenJpeg.pas',
   dzlib in '..\Source\ZLib\dzlib.pas',
   imadler in '..\Source\ZLib\imadler.pas',
   iminfblock in '..\Source\ZLib\iminfblock.pas',
@@ -104,7 +103,6 @@ contains
   imjfdctfst in '..\Source\JpegLib\imjfdctfst.pas',
   imjfdctint in '..\Source\JpegLib\imjfdctint.pas',
   imjchuff in '..\Source\JpegLib\imjchuff.pas',
-  imjidctasm in '..\Source\JpegLib\imjidctasm.pas',
   imjidctflt in '..\Source\JpegLib\imjidctflt.pas',
   imjidctfst in '..\Source\JpegLib\imjidctfst.pas',
   imjidctint in '..\Source\JpegLib\imjidctint.pas',
@@ -118,10 +116,6 @@ contains
   imjquant2 in '..\Source\JpegLib\imjquant2.pas',
   imjutils in '..\Source\JpegLib\imjutils.pas',
   ImagingTiffLib in '..\Extensions\LibTiff\ImagingTiffLib.pas',
-  LibDelphi in '..\Extensions\LibTiff\LibDelphi.pas',
-  LibJpegDelphi in '..\Extensions\LibTiff\LibJpegDelphi.pas',
-  LibTiffDelphi in '..\Extensions\LibTiff\LibTiffDelphi.pas',
-  ZLibDelphi in '..\Extensions\LibTiff\ZLibDelphi.pas',
   ElderImagery in '..\Extensions\ElderImagery.pas',
   ElderImageryBsi in '..\Extensions\ElderImageryBsi.pas',
   ElderImageryCif in '..\Extensions\ElderImageryCif.pas',

@@ -16,9 +16,6 @@ Dcu/*
 **/__history/**
 **/backup/**
 
-*.dproj
-*.groupproj
-
 *.dcu
 *.ppu
 *.dpu
