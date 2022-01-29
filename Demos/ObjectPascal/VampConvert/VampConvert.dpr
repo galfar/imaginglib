@@ -9,7 +9,8 @@ program VampConvert;
 {$ENDIF}  
 
 uses
-  DemoUnit;
+  DemoUnit in 'DemoUnit.pas',
+  Imaging in '..\..\..\Source\Imaging.pas';
 
 begin
   RunDemo;

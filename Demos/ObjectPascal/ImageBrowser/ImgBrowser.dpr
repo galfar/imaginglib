@@ -2,13 +2,13 @@ program ImgBrowser;
 
 uses
   Forms,
-{$IFDEF LCL}
-  {$IFDEF UNIX}{$IFDEF UseCThreads}
-  cthreads,
-  {$ENDIF}{$ENDIF}
+  {$IFDEF LCL}
   Interfaces,
-{$ENDIF}
-  Main;
+  {$ENDIF}
+  Main in 'Main.pas',
+  Imaging in '..\..\..\Source\Imaging.pas',
+  ImagingCanvases in '..\..\..\Source\ImagingCanvases.pas',
+  ImagingClasses in '..\..\..\Source\ImagingClasses.pas';
 
 {$R *.res}
 

@@ -19,10 +19,14 @@
   client area using DisplayImage procedure (direct bit copy, no need to
   convert Imaging's data to TGraphic).
 
-  You need ShellCtrls unit and its components installed in Delphi for this demo.
-  In BDS 2006 you can find them in Demos\DelphiWin32\VCLWin32\ShellControls
-  directory. In some other versions of Delphi it is installed by default during
-  IDE installation.
+  Delphi: ShellCtrls unit with used TShellTreeView component is not installed in the IDE
+  by default in most Delphi versions. It used to be a part of demos
+  (in BDS 2006 you can find them in Demos\DelphiWin32\VCLWin32\ShellControls,
+  in newer in c:\Users\Public\Documents\Embarcadero\Studio\21.0\Samples).
+  Later the unit was incorporated in VCL sources
+  (c:\Program Files (x86)\Embarcadero\RAD Studio\10.0\source\vcl\Vcl.Shell.ShellCtrls.pas)
+  but the demo and package was removed in XE7 (https://stackoverflow.com/questions/578241)
+
 }
 
 unit Main;
