@@ -1,0 +1,108 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{57A0E229-ACD6-4007-B79A-7EF40C5B4853}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="Benchmark\Bench.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="ImageBrowser\ImgBrowser.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="SDLDemo\SDLDemo.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="D3DDemo\D3DDemo.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="OpenGLDemo\OpenGLDemo.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="VampConvert\VampConvert.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="FireMonkeyDemo\FireMonkeyDemo.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="Bench">
+        <MSBuild Projects="Benchmark\Bench.dproj"/>
+    </Target>
+    <Target Name="Bench:Clean">
+        <MSBuild Projects="Benchmark\Bench.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Bench:Make">
+        <MSBuild Projects="Benchmark\Bench.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="ImgBrowser">
+        <MSBuild Projects="ImageBrowser\ImgBrowser.dproj"/>
+    </Target>
+    <Target Name="ImgBrowser:Clean">
+        <MSBuild Projects="ImageBrowser\ImgBrowser.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="ImgBrowser:Make">
+        <MSBuild Projects="ImageBrowser\ImgBrowser.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="SDLDemo">
+        <MSBuild Projects="SDLDemo\SDLDemo.dproj"/>
+    </Target>
+    <Target Name="SDLDemo:Clean">
+        <MSBuild Projects="SDLDemo\SDLDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="SDLDemo:Make">
+        <MSBuild Projects="SDLDemo\SDLDemo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="D3DDemo">
+        <MSBuild Projects="D3DDemo\D3DDemo.dproj"/>
+    </Target>
+    <Target Name="D3DDemo:Clean">
+        <MSBuild Projects="D3DDemo\D3DDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="D3DDemo:Make">
+        <MSBuild Projects="D3DDemo\D3DDemo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="OpenGLDemo">
+        <MSBuild Projects="OpenGLDemo\OpenGLDemo.dproj"/>
+    </Target>
+    <Target Name="OpenGLDemo:Clean">
+        <MSBuild Projects="OpenGLDemo\OpenGLDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="OpenGLDemo:Make">
+        <MSBuild Projects="OpenGLDemo\OpenGLDemo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="VampConvert">
+        <MSBuild Projects="VampConvert\VampConvert.dproj"/>
+    </Target>
+    <Target Name="VampConvert:Clean">
+        <MSBuild Projects="VampConvert\VampConvert.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="VampConvert:Make">
+        <MSBuild Projects="VampConvert\VampConvert.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="FireMonkeyDemo">
+        <MSBuild Projects="FireMonkeyDemo\FireMonkeyDemo.dproj"/>
+    </Target>
+    <Target Name="FireMonkeyDemo:Clean">
+        <MSBuild Projects="FireMonkeyDemo\FireMonkeyDemo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="FireMonkeyDemo:Make">
+        <MSBuild Projects="FireMonkeyDemo\FireMonkeyDemo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="Bench;ImgBrowser;SDLDemo;D3DDemo;OpenGLDemo;VampConvert;FireMonkeyDemo"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="Bench:Clean;ImgBrowser:Clean;SDLDemo:Clean;D3DDemo:Clean;OpenGLDemo:Clean;VampConvert:Clean;FireMonkeyDemo:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="Bench:Make;ImgBrowser:Make;SDLDemo:Make;D3DDemo:Make;OpenGLDemo:Make;VampConvert:Make;FireMonkeyDemo:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

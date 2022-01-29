@@ -5,7 +5,10 @@ program OpenGLDemo;
 {$ENDIF}
 
 uses
-  DemoUnit;
+  DemoUnit in 'DemoUnit.pas',
+  Imaging in '..\..\..\Source\Imaging.pas',
+  ImagingOpenGL in '..\..\..\Extensions\ImagingOpenGL.pas';
+
 begin
   RunDemo;
 end.

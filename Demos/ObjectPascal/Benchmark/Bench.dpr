@@ -9,7 +9,9 @@ program Bench;
 {$ENDIF}
 
 uses
-  DemoUnit;
+  DemoUnit in 'DemoUnit.pas',
+  Imaging in '..\..\..\Source\Imaging.pas';
+
 begin
   RunDemo;
 end.

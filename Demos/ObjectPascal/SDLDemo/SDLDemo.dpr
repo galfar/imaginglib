@@ -9,7 +9,10 @@ program SDLDemo;
 {$ENDIF}  
 
 uses
-  DemoUnit;
+  DemoUnit in 'DemoUnit.pas',
+  Imaging in '..\..\..\Source\Imaging.pas',
+  ImagingSdl in '..\..\..\Extensions\ImagingSdl.pas';
+
 begin
   RunDemo;
 end.
