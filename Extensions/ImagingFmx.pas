@@ -15,6 +15,10 @@ unit ImagingFmx;
 
 {$I ImagingOptions.inc}
 
+{$IF not Defined (DCC) or (CompilerVersion < 25.0)}
+  {$MESSAGE FATAL 'Needs at least Delphi XE4'}
+{$IFEND}
+
 interface
 
 uses

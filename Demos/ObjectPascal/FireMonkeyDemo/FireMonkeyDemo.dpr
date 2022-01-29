@@ -1,12 +1,12 @@
 program FireMonkeyDemo;
 
 uses
-  //FastMM4,
   FMX.Forms,
   FMX.Types,
-  DemoUtils in '../Common/DemoUtils.pas',
+  DemoUtils in '..\Common\DemoUtils.pas',
   MainForm in 'MainForm.pas' {FormMain},
-  AboutForm in 'AboutForm.pas' {FormAbout};
+  AboutForm in 'AboutForm.pas' {FormAbout},
+  ImagingFmx in '..\..\..\Extensions\ImagingFmx.pas';
 
 {$R *.res}
 
