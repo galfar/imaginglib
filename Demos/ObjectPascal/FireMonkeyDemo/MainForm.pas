@@ -14,9 +14,13 @@
   Image is loaded from the file in a background thread while the UI shows
   progress animation.
 
-  Note: tested only in Delphi 10.3 now
+  Note: tested only in Delphi 10.4 now
 }
 unit MainForm;
+
+{$IF not Defined (DCC) or (CompilerVersion < 25.0)}
+  {$MESSAGE FATAL 'Needs at least Delphi XE4'}
+{$IFEND}
 
 interface
 

@@ -64,7 +64,7 @@ object FormAbout: TFormAbout
       Size.Height = 15.000000000000000000
       Size.PlatformDefault = False
       TextSettings.Font.Size = 14.000000000000000000
-      Text = 'http://imaginglib.sourceforge.net/'
+      Text = 'https://imaginglib.sourceforge.io'
     end
     object Effect: TWaveEffect
       Enabled = False
