@@ -6,12 +6,10 @@ object MainForm: TMainForm
   Caption = 'Image Browser - Vampyre Imaging Library Demo'
   ClientHeight = 791
   ClientWidth = 1026
-  Color = clWhite
+  Color = clWindow
   Font.CharSet = EASTEUROPE_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
-  Font.Name = 'Verdana'
-  Font.Style = [fsBold]
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   Position = poScreenCenter
@@ -31,8 +29,6 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     ClientHeight = 791
     ClientWidth = 249
-    Color = clWhite
-    ParentColor = False
     TabOrder = 0
     object Tree: TShellTreeView
       Left = 0
@@ -60,14 +56,12 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     ClientHeight = 791
     ClientWidth = 772
-    Color = clWhite
     Constraints.MinHeight = 300
     Constraints.MinWidth = 400
-    ParentColor = False
     TabOrder = 1
     object InfoPanel: TPanel
       Left = 0
-      Height = 88
+      Height = 90
       Top = 4
       Width = 772
       Align = alTop
@@ -75,9 +69,9 @@ object MainForm: TMainForm
       BorderSpacing.Top = 4
       BorderSpacing.Bottom = 4
       BevelOuter = bvNone
-      ClientHeight = 88
+      ClientHeight = 90
       ClientWidth = 772
-      Color = clWhite
+      Color = clWindow
       ParentColor = False
       TabOrder = 0
       object LabDataFormat: TLabel
@@ -113,7 +107,7 @@ object MainForm: TMainForm
         Left = 4
         Height = 13
         Top = 53
-        Width = 82
+        Width = 65
         BorderSpacing.Around = 4
         Caption = 'Data format:'
       end
@@ -121,7 +115,7 @@ object MainForm: TMainForm
         Left = 4
         Height = 13
         Top = 37
-        Width = 76
+        Width = 59
         BorderSpacing.Around = 4
         Caption = 'File format:'
       end
@@ -129,7 +123,7 @@ object MainForm: TMainForm
         Left = 4
         Height = 13
         Top = 21
-        Width = 79
+        Width = 64
         BorderSpacing.Around = 4
         Caption = 'Dimensions:'
       end
@@ -137,7 +131,7 @@ object MainForm: TMainForm
         Left = 4
         Height = 13
         Top = 5
-        Width = 85
+        Width = 69
         BorderSpacing.Around = 4
         Caption = 'Selected file:'
       end
@@ -145,7 +139,7 @@ object MainForm: TMainForm
         Left = 4
         Height = 13
         Top = 69
-        Width = 112
+        Width = 90
         BorderSpacing.Around = 4
         Caption = 'Active subimage:'
       end
@@ -160,7 +154,7 @@ object MainForm: TMainForm
         Left = 228
         Height = 22
         Hint = 'Previous subimage'
-        Top = 66
+        Top = 68
         Width = 23
         Glyph.Data = {
           76050000424D7605000000000000360400002800000011000000100000000100
@@ -216,7 +210,7 @@ object MainForm: TMainForm
         Left = 257
         Height = 22
         Hint = 'Next subimage'
-        Top = 66
+        Top = 68
         Width = 23
         Glyph.Data = {
           76050000424D7605000000000000360400002800000011000000100000000100
@@ -273,7 +267,7 @@ object MainForm: TMainForm
         Left = 316
         Height = 22
         Hint = 'First subimage'
-        Top = 66
+        Top = 68
         Width = 23
         Glyph.Data = {
           76050000424D7605000000000000360400002800000014000000100000000100
@@ -329,7 +323,7 @@ object MainForm: TMainForm
         Left = 345
         Height = 22
         Hint = 'Last subimage'
-        Top = 66
+        Top = 68
         Width = 23
         Glyph.Data = {
           B6050000424DB605000000000000360400002800000015000000100000000100
@@ -394,10 +388,10 @@ object MainForm: TMainForm
         TabOrder = 0
       end
       object CheckFilter: TCheckBox
-        Left = 638
-        Height = 19
+        Left = 655
+        Height = 18
         Top = 36
-        Width = 122
+        Width = 105
         Anchors = [akTop, akRight]
         Caption = 'Bicubic filtering'
         Checked = True
@@ -408,12 +402,12 @@ object MainForm: TMainForm
     end
     object ViewPanel: TPanel
       Left = 0
-      Height = 695
-      Top = 96
+      Height = 693
+      Top = 98
       Width = 772
       Align = alClient
       BevelOuter = bvNone
-      ClientHeight = 695
+      ClientHeight = 693
       ClientWidth = 772
       Color = 16777126
       ParentColor = False
@@ -421,7 +415,7 @@ object MainForm: TMainForm
       OnResize = ViewPanelResize
       object PaintBox: TPaintBox
         Left = 0
-        Height = 672
+        Height = 675
         Top = 0
         Width = 772
         Align = alClient
@@ -431,8 +425,8 @@ object MainForm: TMainForm
       end
       object StatusBar: TStatusBar
         Left = 0
-        Height = 23
-        Top = 672
+        Height = 18
+        Top = 675
         Width = 772
         Color = clWhite
         Panels = <>
