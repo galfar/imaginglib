@@ -1,7 +1,7 @@
 {
   Vampyre Imaging Library Demo
   LCL Imager (ObjectPascal, high level/component sets/canvas, Win32/Linux/macOS)
-  tested in Lazarus 1.8.4 (Windows; Linux: Gtk2, Qt; macOS: Carbon, Cocoa)
+  tested in Lazarus 2.2.0 (Windows; Linux: Gtk2, Qt; macOS: Carbon, Cocoa)
   written by Marek Mauder
 
   Simple image manipulator program which shows usage of Imaging VCL/LCL
@@ -334,7 +334,7 @@ begin
 {$ELSEIF Defined(LINUX)}
   Platform := ' - Linux';
 {$ELSEIF Defined(DARWIN)}
-  Platform := ' - OSX';
+  Platform := ' - macOS';
 {$ENDIF}
 
   Caption := Format(SWindowTitle, [Imaging.GetVersionStr]) + Platform;

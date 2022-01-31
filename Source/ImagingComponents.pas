@@ -349,6 +349,9 @@ uses
   {$IF Defined(LCLGTK2)}
     InterfaceBase, GLib2, GDK2, GTK2, GTK2Def, GTK2Proc,
   {$IFEND}
+  {$IF Defined(LCLcocoa)}
+    InterfaceBase, CocoaGDIObjects, CocoaUtils,
+  {$IFEND}
 {$IFEND}
 {$IFNDEF DONT_LINK_BITMAP}
   ImagingBitmap,
@@ -885,6 +888,28 @@ begin
        finally
         FreeImage(DisplayImage);
       end
+    end;
+  end;
+end;
+{$ELSEIF Defined(LCLcocoa)}
+var
+  CocoaBmp: TCocoaBitmap;
+  Context: TCocoaContext;
+begin
+  if TestImage(ImageData) then
+  begin
+    if not (ImageData.Format in [ifA8R8G8B8, ifX8R8G8B8]) then
+      raise EImagingError.Create(SBadFormatDisplay);
+
+    Context := CheckDC(DstCanvas.Handle);
+
+    // We copy the data since it needs R/B swap and potentially alpha pre-multiply
+    CocoaBmp := TCocoaBitmap.Create(ImageData.Width, ImageData.Height, 32, 32,
+      cbaDWord, cbtBGRA, ImageData.Bits, True);
+    try
+      Context.DrawImageRep(RectToNSRect(DstRect), RectToNSRect(SrcRect), CocoaBmp.ImageRep);
+    finally
+      CocoaBmp.Free;
     end;
   end;
 end;
