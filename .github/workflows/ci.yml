@@ -44,28 +44,28 @@ jobs:
         run:  |          
           cd Demos/ObjectPascal           
           
-          lazbuild "Benchmark/Bench.lpi"    
-          lazbuild "VampConvert/VampConvert.lpi"
-                    
-          if [ "$RUNNER_OS" != "macOS" ]; then                                 
-              lazbuild "LCLImager/lclimager.lpi"          
-              lazbuild "ImageBrowser/ImgBrowser.lpi"
-              lazbuild "OpenGLDemo/OpenGLDemo.lpi"
-              lazbuild "SDLDemo/SDLDemo.lpi" 
-          fi
+          lazbuild --bm="Release" "Benchmark/Bench.lpi"    
+          lazbuild --bm="Release" "VampConvert/VampConvert.lpi"
           
           if [ "$RUNNER_OS" == "Linux" ]; then                                               
-              lazbuild --ws=qt5 "LCLImager/lclimager.lpi"                        
-              lazbuild --ws=qt5 "ImageBrowser/ImgBrowser.lpi"             
+              lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"                        
+              lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"             
+          fi
+          
+          if [ "$RUNNER_OS" != "macOS" ]; then                                 
+              lazbuild --bm="Release" "LCLImager/lclimager.lpi"          
+              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+              lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
+              lazbuild --bm="Release" "SDLDemo/SDLDemo.lpi" 
           fi
           
           if [ "$RUNNER_OS" == "Windows" ]; then                                  
-              lazbuild "D3DDemo/D3DDemo.lpi" 
+              lazbuild --bm="Release" "D3DDemo/D3DDemo.lpi" 
           fi  
           
           if [ "$RUNNER_OS" == "macOS" ]; then
-            lazbuild --ws=cocoa "LCLImager/lclimager.lpi"          
-            lazbuild --ws=cocoa "ImageBrowser/ImgBrowser.lpi"
+            lazbuild --ws=cocoa --bm="Release" "LCLImager/lclimager.lpi"          
+            lazbuild --ws=cocoa --bm="Release" "ImageBrowser/ImgBrowser.lpi"
           fi
       - name: List Demos Bin directory
         shell: bash
