@@ -346,11 +346,13 @@ implementation
 
 uses
 {$IF Defined(LCL)}
+  InterfaceBase,
   {$IF Defined(LCLGTK2)}
-    InterfaceBase, GLib2, GDK2, GTK2, GTK2Def, GTK2Proc,
-  {$IFEND}
-  {$IF Defined(LCLcocoa)}
-    InterfaceBase, CocoaGDIObjects, CocoaUtils,
+    GLib2, GDK2, GTK2, GTK2Def, GTK2Proc,
+  {$ELSEIF Defined(LCLqt5)}
+    Qt5, qtobjects,
+  {$ELSEIF Defined(LCLcocoa)}
+    CocoaGDIObjects, CocoaUtils,
   {$IFEND}
 {$IFEND}
 {$IFNDEF DONT_LINK_BITMAP}
@@ -888,6 +890,28 @@ begin
        finally
         FreeImage(DisplayImage);
       end
+    end;
+  end;
+end;
+{$ELSEIF Defined(LCLqt5)}
+var
+  QImage: TQtImage;
+  Context: TQtDeviceContext;
+begin
+  if TestImage(ImageData) then
+  begin
+    if not (ImageData.Format in [ifA8R8G8B8, ifX8R8G8B8]) then
+      raise EImagingError.Create(SBadFormatDisplay);
+
+    Context := TQtDeviceContext(DstCanvas.Handle);
+
+    // QImage directly uses the image memory, there is no copy done
+    QImage := TQtImage.Create(ImageData.Bits, ImageData.Width, ImageData.Height,
+      ImageData.Width * 4, QImageFormat_ARGB32, False);
+    try
+      QPainter_drawImage(Context.Widget, PRect(@DstRect), QImage.Handle, @SrcRect, QtAutoColor);
+    finally
+      QImage.Free;
     end;
   end;
 end;
