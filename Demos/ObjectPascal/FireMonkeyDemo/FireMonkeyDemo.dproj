@@ -6,7 +6,7 @@
         <MainSource>FireMonkeyDemo.dpr</MainSource>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
-        <Platform Condition="'$(Platform)'==''">Android</Platform>
+        <Platform Condition="'$(Platform)'==''">Win64</Platform>
         <TargetedPlatforms>36883</TargetedPlatforms>
         <AppType>Application</AppType>
     </PropertyGroup>
@@ -268,10 +268,10 @@
         <Borland.Personality>Delphi.Personality.12</Borland.Personality>
         <Borland.ProjectType/>
         <BorlandProject>
-            <Delphi.Personality>                
+            <Delphi.Personality>
                 <Source>
                     <Source Name="MainSource">FireMonkeyDemo.dpr</Source>
-                </Source>                
+                </Source>
             </Delphi.Personality>
             <Deployment Version="3">
                 <DeployFile LocalName="$(BDS)\bin\Artwork\Android\FM_LauncherIcon_36x36.png" Configuration="Debug" Class="Android_LauncherIcon36">

@@ -8,8 +8,8 @@ Object Pascal image loading, saving, and manipulation library.
 <https://github.com/galfar/imaginglib>  
 
 Homepage: <https://imaginglib.sourceforge.io>  
-Issues: <https://github.com/galfar/imaginglib/issues>
-Discuss: <https://github.com/galfar/imaginglib/discussions>
+Issues: <https://github.com/galfar/imaginglib/issues>  
+Discuss: <https://github.com/galfar/imaginglib/discussions>  
 
 Overview
 --------------------------
@@ -38,16 +38,16 @@ Loading and saving of these image file formats:
 - PNG/APNG, MNG, JNG
 - JPEG
 - GIF
-- DDS
-- TGA, BMP
-- HDR, PCX, XPM, PNM
+- DDS, HDR
+- TGA, BMP 
+- PCX, XPM, PNM/PPM
 - TIFF, JPEG2000 (not native Pascal, depends on platform)
 - and more
 
 Supported platforms are:
 
 - Delphi: Windows, macOS
-- FPC: Windows, Linux x86/ARMv7, Android, macOS
+- FPC: Windows, Linux x86/ARM, Android, macOS
 
 Many internal image data formats and conversions:
 

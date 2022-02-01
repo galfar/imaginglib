@@ -56,7 +56,8 @@ uses
   ImagingUtility;
 
 {$IF Defined(FPC) and Defined(PASJPEG)}
-  { When using FPC's pasjpeg in FPC the channel order is BGR instead of RGB}
+  { When using FPC's pasjpeg the channel order is BGR instead of RGB.
+    See RGB_RED_IS_0 in jconfig.inc. }
   {$DEFINE RGBSWAPPED}
 {$IFEND}
 
