@@ -60,70 +60,70 @@ var
   X, Y, Bpp, SrcWidthBytes: Integer;
   TargetInfo: TImageFormatInfo;
 begin
-    Bitmap.Map(TMapAccess.maRead, MapData);
-    GetImageFormatInfo(Image.Format, TargetInfo);
+  Bitmap.Map(TMapAccess.maRead, MapData);
+  GetImageFormatInfo(Image.Format, TargetInfo);
 
-    Bpp := TargetInfo.BytesPerPixel;
-    SrcWidthBytes := Image.Width * Bpp;
-    TargetData := @PByteArray(Image.Bits)[0];
+  Bpp := TargetInfo.BytesPerPixel;
+  SrcWidthBytes := Image.Width * Bpp;
+  TargetData := @PByteArray(Image.Bits)[0];
 
-    for Y := 0 to Pred(Bitmap.Height) do
-     for X:= 0 to Pred(Bitmap.Width) do
-      begin
-        SourceData:= @PAlphaColorRecArray(MapData.Data)[Y * (MapData.Pitch div 4) + X];
-        case TargetInfo.Format of
-          ifIndex8:
-            begin
-              Image.Palette[TargetData^].R := SourceData^.R;
-              Image.Palette[TargetData^].G := SourceData^.G;
-              Image.Palette[TargetData^].B := SourceData^.B;
-              Image.Palette[TargetData^].A := SourceData^.A;
-            end;
-          ifGray8:
-              TargetData^ := SourceData.R;
-          ifA8Gray8:
-            begin
-              TargetData^ := SourceData.R;
-              PWordRec(TargetData).High := SourceData.A;
-            end;
-          ifGray16:
-              PWord(TargetData)^ := SourceData.R;
-          ifR8G8B8:
-            begin
-              PColor24Rec(TargetData)^.R := SourceData.R;
-              PColor24Rec(TargetData)^.G := SourceData.G;
-              PColor24Rec(TargetData)^.B := SourceData.B;
-            end;
-          ifA8R8G8B8:
-            begin
-              PColor32Rec(TargetData)^.A := SourceData^.B;
-              PColor32Rec(TargetData)^.G := SourceData^.R;
-              PColor32Rec(TargetData)^.R := SourceData^.G;
-              PColor32Rec(TargetData)^.B := SourceData^.A;
-            end;
-          ifR16G16B16:
-            begin
-              PColor48Rec(TargetData).R := Round(SourceData.R * $FFFF / 255);
-              PColor48Rec(TargetData).G := Round(SourceData.G * $FFFF / 255);
-              PColor48Rec(TargetData).B := Round(SourceData.B * $FFFF / 255);
-            end;
-          ifA16R16G16B16:
-            begin
-              PColor64Rec(TargetData).R  := Round(SourceData.R * $FFFF / 255);
-              PColor64Rec(TargetData).G  := Round(SourceData.G * $FFFF / 255);
-              PColor64Rec(TargetData).B  := Round(SourceData.B * $FFFF / 255);
-              PColor64Rec(TargetData).A  := Round(SourceData.A * $FFFF / 255);
-            end;
-        else
-          Color32.R := SourceData^.R;
-          Color32.G := SourceData^.G;
-          Color32.B := SourceData^.B;
-          Color32.A := SourceData^.A;
-          TargetInfo.SetPixel32(TargetData,@TargetInfo, Image.Palette,Color32);
-        end;
-        Inc(TargetData, Bpp);
+  for Y := 0 to Bitmap.Height - 1 do
+   for X:= 0 to Bitmap.Width - 1 do
+    begin
+      SourceData:= @PAlphaColorRecArray(MapData.Data)[Y * (MapData.Pitch div 4) + X];
+      case TargetInfo.Format of
+        ifIndex8:
+          begin
+            Image.Palette[TargetData^].R := SourceData^.R;
+            Image.Palette[TargetData^].G := SourceData^.G;
+            Image.Palette[TargetData^].B := SourceData^.B;
+            Image.Palette[TargetData^].A := SourceData^.A;
+          end;
+        ifGray8:
+            TargetData^ := SourceData.R;
+        ifA8Gray8:
+          begin
+            TargetData^ := SourceData.R;
+            PWordRec(TargetData).High := SourceData.A;
+          end;
+        ifGray16:
+            PWord(TargetData)^ := SourceData.R;
+        ifR8G8B8:
+          begin
+            PColor24Rec(TargetData)^.R := SourceData.R;
+            PColor24Rec(TargetData)^.G := SourceData.G;
+            PColor24Rec(TargetData)^.B := SourceData.B;
+          end;
+        ifA8R8G8B8:
+          begin
+            PColor32Rec(TargetData)^.A := SourceData^.B;
+            PColor32Rec(TargetData)^.G := SourceData^.R;
+            PColor32Rec(TargetData)^.R := SourceData^.G;
+            PColor32Rec(TargetData)^.B := SourceData^.A;
+          end;
+        ifR16G16B16:
+          begin
+            PColor48Rec(TargetData).R := Round(SourceData.R * $FFFF / 255);
+            PColor48Rec(TargetData).G := Round(SourceData.G * $FFFF / 255);
+            PColor48Rec(TargetData).B := Round(SourceData.B * $FFFF / 255);
+          end;
+        ifA16R16G16B16:
+          begin
+            PColor64Rec(TargetData).R  := Round(SourceData.R * $FFFF / 255);
+            PColor64Rec(TargetData).G  := Round(SourceData.G * $FFFF / 255);
+            PColor64Rec(TargetData).B  := Round(SourceData.B * $FFFF / 255);
+            PColor64Rec(TargetData).A  := Round(SourceData.A * $FFFF / 255);
+          end;
+      else
+        Color32.R := SourceData^.R;
+        Color32.G := SourceData^.G;
+        Color32.B := SourceData^.B;
+        Color32.A := SourceData^.A;
+        TargetInfo.SetPixel32(TargetData,@TargetInfo, Image.Palette,Color32);
       end;
-     Bitmap.Unmap(MapData);
+      Inc(TargetData, Bpp);
+    end;
+  Bitmap.Unmap(MapData);
 end;
 
 procedure ConvertImageDataToFmxBitmap(const Image: TImageData; Bitmap: TBitmap);
@@ -238,10 +238,14 @@ begin
     begin
       if Info.Format = ifA8R8G8B8 then
       begin
-       for X := 0 to Pred(Width) do
+       for X := 0 to Width - 1 do
         begin
           DstPtr := @PColor32RecArray(MapData.Data)[Y * (MapData.Pitch div 4) + X];
           Move(SrcPtr^, ARGB, 4);
+
+          if MapData.PixelFormat = TPixelFormat.RGBA then
+            SwapValues(ARGB.R, ARGB.B);
+
           DstPtr^.A := ARGB.A;
           DstPtr^.R := ARGB.R;
           DstPtr^.G := ARGB.G;
@@ -283,9 +287,6 @@ end;
 
 {
   File Notes:
-
-  -- TODOS ----------------------------------------------------
-    - nothing now
 
   -- 0.77.1 Changes/Bug Fixes ---------------------------------
     - Removed support for old FMX versions (XE2 etc.)

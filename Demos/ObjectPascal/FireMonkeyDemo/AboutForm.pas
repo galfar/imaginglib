@@ -44,8 +44,12 @@ begin
 end;
 
 procedure TFormAbout.FormCreate(Sender: TObject);
+var
+  LogoPath: string;
 begin
-  ImgLogo.Bitmap.LoadFromFile(GetDataDir + PathDelim + 'LogoAlpha.png');
+  LogoPath := GetDataDir + PathDelim + 'LogoAlpha.png';
+  if FileExists(LogoPath) then
+    ImgLogo.Bitmap.LoadFromFile(LogoPath);
   LabVersion.Text := LabVersion.Text + GetVersionStr;
 end;
 
