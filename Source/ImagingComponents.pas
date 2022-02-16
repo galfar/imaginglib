@@ -57,9 +57,8 @@ type
     class or simply use TPicture.LoadFromXXX which will create this class
     automatically.
 
-    For saving it uses inherited TBitmap methods
-    (it saves the image in BMP format regardless of extension you request).
-    For TGraphic class that saves with Imaging look
+    For saving it always uses PNG fallback.
+    For TGraphic classes that save in different formats look
     at TImagingGraphicForSave class.}
   TImagingGraphic = class(TBitmap)
   protected
@@ -77,6 +76,8 @@ type
       even though it is called by descendant class capable of
       saving only one file format.}
     procedure LoadFromStream(Stream: TStream); override;
+    { Always saves as PNG.}
+    procedure SaveToStream(Stream: TStream); override;
     { Copies the image contained in Source to this graphic object.
       Supports also TBaseImage descendants from ImagingClasses unit. }
     procedure Assign(Source: TPersistent); override;
@@ -983,9 +984,9 @@ end;
 
 procedure TImagingGraphic.WriteData(Stream: TStream);
 begin
-  // This should never occur in the wild since IDE would create one of the descendants
-  // of TImagingGraphicForSave for specific format+extension when e.g. setting TPicture of TImage.
-  raise ENotImplemented.CreateFmt('Not implemented: Use TImagingGraphicForSave class for writing with TFiler.', []);
+  // This can happen when streaming some of the formats that don't have
+  // TImagingGraphicForSave descendant.
+  SaveToStream(Stream);
 end;
 
 procedure TImagingGraphic.LoadFromStream(Stream: TStream);
@@ -996,6 +997,19 @@ begin
   try
     Image.LoadFromStream(Stream);
     Assign(Image);
+  finally
+    Image.Free;
+  end;
+end;
+
+procedure TImagingGraphic.SaveToStream(Stream: TStream);
+var
+  Image: TSingleImage;
+begin
+  Image := TSingleImage.Create;
+  try
+    Image.Assign(Self);
+    Image.SaveToStream('png', Stream);
   finally
     Image.Free;
   end;
@@ -1064,7 +1078,6 @@ begin
   ConvertBitmapToData(Self, ImageData);
 end;
 
-
 { TImagingGraphicForSave class implementation }
 
 constructor TImagingGraphicForSave.Create;
@@ -1111,9 +1124,6 @@ end;
 {$ENDIF}
 
 {$IFNDEF DONT_LINK_BITMAP}
-
-{ TImagingBitmap class implementation }
-
 constructor TImagingBitmap.Create;
 begin
   inherited Create;
@@ -1135,9 +1145,6 @@ end;
 {$ENDIF}
 
 {$IFNDEF DONT_LINK_JPEG}
-
-{ TImagingJpeg class implementation }
-
 constructor TImagingJpeg.Create;
 begin
   inherited Create;
@@ -1169,9 +1176,6 @@ end;
 {$ENDIF}
 
 {$IFNDEF DONT_LINK_PNG}
-
-{ TImagingPNG class implementation }
-
 constructor TImagingPNG.Create;
 begin
   inherited Create;
@@ -1195,20 +1199,13 @@ end;
 {$ENDIF}
 
 {$IFNDEF DONT_LINK_GIF}
-
-{ TImagingGIF class implementation}
-
 class function TImagingGIF.GetFileFormat: TImageFileFormat;
 begin
   Result := FindImageFileFormatByClass(TGIFFileFormat);
 end;
-
 {$ENDIF}
 
 {$IFNDEF DONT_LINK_TARGA}
-
-{ TImagingTarga class implementation }
-
 constructor TImagingTarga.Create;
 begin
   inherited Create;
@@ -1230,9 +1227,6 @@ end;
 {$ENDIF}
 
 {$IFNDEF DONT_LINK_DDS}
-
-{ TImagingDDS class implementation }
-
 constructor TImagingDDS.Create;
 begin
   inherited Create;
@@ -1263,9 +1257,6 @@ end;
 {$ENDIF}
 
 {$IFNDEF DONT_LINK_MNG}
-
-{ TImagingMNG class implementation }
-
 constructor TImagingMNG.Create;
 begin
   inherited Create;
@@ -1304,9 +1295,6 @@ end;
 {$ENDIF}
 
 {$IFNDEF DONT_LINK_JNG}
-
-{ TImagingJNG class implementation }
-
 constructor TImagingJNG.Create;
 begin
   inherited Create;
