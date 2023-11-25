@@ -60,7 +60,7 @@ var
   X, Y, Bpp, SrcWidthBytes: Integer;
   TargetInfo: TImageFormatInfo;
 begin
-  Bitmap.Map(TMapAccess.maRead, MapData);
+  Bitmap.Map(TMapAccess.Read, MapData);
   GetImageFormatInfo(Image.Format, TargetInfo);
 
   Bpp := TargetInfo.BytesPerPixel;
@@ -232,7 +232,7 @@ begin
     SrcWidthBytes := Image.Width * Bpp;
     MoveBytes := Width * Bpp;
     SrcPtr := @PByteArray(Image.Bits)[SrcY * SrcWidthBytes + SrcX * Bpp];
-    Bitmap.Map(TMapAccess.maReadWrite, MapData);
+    Bitmap.Map(TMapAccess.ReadWrite, MapData);
 
     for Y := 0 to Height - 1 do
     begin
