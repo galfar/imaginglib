@@ -1,4 +1,4 @@
-{
+﻿{
   Vampyre Imaging Library
   by Marek Mauder
   https://github.com/galfar/imaginglib
@@ -381,7 +381,6 @@ type
     ffLoad,
     ffSave,
     ffMultiImage,
-    ffReadOnSave,
     ffProgress,
     ffReadScanlines);
 
@@ -410,8 +409,6 @@ type
       index and sets FFirstIdx and FLastIdx for multi-images).}
     function PrepareSave(Handle: TImagingHandle; const Images: TDynImageDataArray;
       var Index: LongInt): Boolean;
-    { Returns file open mode used for saving images. Depends on defined Features.}
-    function GetSaveOpenMode: TOpenMode;
   protected
     FName: string;
     FFeatures: TFileFormatFeatures;
@@ -3739,7 +3736,7 @@ begin
     if IsMultiImageFormat or
       (not IsMultiImageFormat and (OnlyFirstLevel or (Len = 1))) then
     begin
-      Handle := IO.Open(PChar(FileName), GetSaveOpenMode);
+      Handle := IO.Open(PChar(FileName), omCreate);
       try
         if OnlyFirstLevel then
           Index := 0
@@ -3759,7 +3756,7 @@ begin
       Result := True;
       for I := 0 to Len - 1 do
       begin
-        Handle := IO.Open(PChar(Format(FName + '%.3d' + Ext, [I])), GetSaveOpenMode);
+        Handle := IO.Open(PChar(Format(FName + '%.3d' + Ext, [I])), omCreate);
         try
           Index := I;
           Result := Result and PrepareSave(Handle, Images, Index) and
@@ -3788,7 +3785,7 @@ begin
   if CanSave and TestImagesInArray(Images) then
   try
     SetStreamIO;
-    Handle := IO.Open(PChar(Stream), GetSaveOpenMode);
+    Handle := IO.Open(PChar(Stream), omCreate);
     try
       if IsMultiImageFormat or OnlyFirstLevel then
       begin
@@ -3834,7 +3831,7 @@ begin
   try
     SetMemoryIO;
     IORec := PrepareMemIO(Data, Size);
-    Handle := IO.Open(PChar(@IORec), GetSaveOpenMode);
+    Handle := IO.Open(PChar(@IORec), omCreate);
     try
       if IsMultiImageFormat or OnlyFirstLevel then
       begin
@@ -3947,14 +3944,6 @@ begin
   Result := ffMultiImage in FFeatures;
 end;
 
-function TImageFileFormat.GetSaveOpenMode: TOpenMode;
-begin
-  // TODO: fix
-  //if ffReadOnSave in FFeatures then
-  //  Result := omReadWrite
-  //else
-    Result := omCreate;
-end;
 
 { TOptionStack  class implementation }
 
