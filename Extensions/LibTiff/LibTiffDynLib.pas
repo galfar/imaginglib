@@ -507,7 +507,7 @@ var
   TIFFClientOpen: function(
     const Name: PAnsiChar;
     const Mode: PAnsiChar;
-    ClientData: Cardinal;
+    ClientData: thandle_t;
     ReadProc: TIFFReadWriteProc;
     WriteProc: TIFFReadWriteProc;
     SeekProc: TIFFSeekProc;
@@ -540,7 +540,7 @@ function  TIFFRegisterCODEC(Scheme: Word; Name: PAnsiChar; InitMethod: TIFFInitM
 procedure TIFFUnRegisterCODEC(c: PTIFFCodec); cdecl; external SLibName;
 function  TIFFIsCODECConfigured(Scheme: Word): Integer; cdecl; external SLibName;
 function  TIFFGetConfiguredCODECs: PTIFFCodec; cdecl; external SLibName;
-function  TIFFClientOpen(Name: PAnsiChar; Mode: PAnsiChar; ClientData: THandle;
+function  TIFFClientOpen(Name: PAnsiChar; Mode: PAnsiChar; ClientData: thandle_t;
           ReadProc: TIFFReadWriteProc;
           WriteProc: TIFFReadWriteProc;
           SeekProc: TIFFSeekProc;
