@@ -14,7 +14,7 @@
   Image is loaded from the file in a background thread while the UI shows
   progress animation.
 
-  Note: tested only in Delphi 10.4 now
+  Note: tested only in Delphi 11
 }
 unit MainForm;
 
@@ -28,13 +28,14 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Filter.Effects, FMX.Graphics,
   FMX.Layouts, FMX.ListBox, FMX.ExtCtrls, FMX.Objects, FMX.StdCtrls, FMX.Effects,
-  FMX.Controls.Presentation,
+  FMX.Controls.Presentation, System.ImageList, FMX.ImgList, FMX.ComboEdit, FMX.Edit,
 
   ImagingTypes,
   Imaging,
   ImagingClasses,
   ImagingUtility,
-  ImagingFmx;
+  ImagingFmx, Data.Bind.EngExt, Fmx.Bind.DBEngExt, System.Rtti,
+  System.Bindings.Outputs, Fmx.Bind.Editors, Data.Bind.Components;
 
 type
   TFormMain = class(TForm)
@@ -49,21 +50,45 @@ type
     OpenDialog: TOpenDialog;
     BtnSaveImage: TSpeedButton;
     BtnAbout: TSpeedButton;
-    EmbossEffect: TEmbossEffect;
     SaveDialog: TSaveDialog;
+    ImageList: TImageList;
+    DropTarget: TDropTarget;
+    BlurEffect: TGaussianBlurEffect;
+    LayoutCombo: TLayout;
+    ComboScale: TComboEdit;
+    LayoutSide: TLayout;
+    HueAdjustEffect: THueAdjustEffect;
+    LineSep: TLine;
+    BindingsList: TBindingsList;
+    LinkControlToPropertyHue: TLinkControlToProperty;
+    LayoutTrack: TLayout;
+    HueTrackBar: TTrackBar;
     procedure BtnOpenImageClick(Sender: TObject);
     procedure BtnAboutClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure BtnSaveImageClick(Sender: TObject);
     procedure ListImagesChange(Sender: TObject);
+    procedure DropTargetDropped(Sender: TObject; const Data: TDragObject;
+      const Point: TPointF);
+    procedure DropTargetDragOver(Sender: TObject; const Data: TDragObject;
+      const Point: TPointF; var Operation: TDragOperation);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; var KeyChar: Char;
+      Shift: TShiftState);
+    procedure ComboScaleClosePopup(Sender: TObject);
+    procedure ComboScaleKeyUp(Sender: TObject; var Key: Word; var KeyChar: Char;
+      Shift: TShiftState);
+    procedure ImageViewerCalcContentBounds(Sender: TObject;
+      var ContentBounds: TRectF);
   private
     FImage: TMultiImage;
     FFileName: string;
     FLoaderThread: TThread;
+    procedure OpenFile(const FileName: string);
     procedure LoadingFinished(Success: Boolean; const ErrorMsg: string);
     procedure FillListBox(Image: TMultiImage);
     procedure SelectImage(Index: Integer);
+    procedure UpdateScaleText;
   end;
 
 var
@@ -164,6 +189,24 @@ end;
 
 { TFormMain }
 
+procedure TFormMain.FormCreate(Sender: TObject);
+begin
+  Caption := Caption + ' - ' + Imaging.SImagingLibTitle + ' ' + Imaging.GetVersionStr;
+  FImage := TMultiImage.Create;
+  // For panning the scaled up image with a mouse drag
+  ImageViewer.AniCalculations.TouchTracking := [ttVertical, ttHorizontal];
+
+  if (ParamCount > 0) and FileExists(ParamStr(1)) then
+    OpenFile(ParamStr(1));
+end;
+
+procedure TFormMain.FormDestroy(Sender: TObject);
+begin
+  ListImages.Clear;
+  ClearImagesAndThumbs(FImage);
+  FImage.Free;
+end;
+
 procedure TFormMain.FillListBox(Image: TMultiImage);
 var
   Item: TListBoxItem;
@@ -201,22 +244,65 @@ begin
   end;
 end;
 
-procedure TFormMain.FormCreate(Sender: TObject);
+procedure TFormMain.UpdateScaleText;
 begin
-  Caption := Caption + ' - ' + Imaging.SImagingLibTitle + ' ' + Imaging.GetVersionStr;
-  FImage := TMultiImage.Create;
+  ComboScale.Text := FloatToStrFmt(ImageViewer.BitmapScale * 100, 0) + ' %';
 end;
 
-procedure TFormMain.FormDestroy(Sender: TObject);
+procedure TFormMain.FormKeyDown(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState);
 begin
-  ClearImagesAndThumbs(FImage);
-  FImage.Free;
+  if ssCtrl in Shift then
+  begin
+    case Key of
+      vkAdd: ImageViewer.BitmapScale := ImageViewer.BitmapScale * 1.1;
+      vkSubtract: ImageViewer.BitmapScale := ImageViewer.BitmapScale * 0.9;
+    end;
+  end;
+end;
+
+procedure TFormMain.ImageViewerCalcContentBounds(Sender: TObject;
+  var ContentBounds: TRectF);
+begin
+  UpdateScaleText;
 end;
 
 procedure TFormMain.ListImagesChange(Sender: TObject);
 begin
   if ListImages.ItemIndex >= 0 then
     SelectImage(ListImages.ItemIndex);
+end;
+
+procedure TFormMain.ComboScaleClosePopup(Sender: TObject);
+const
+  Scales: array[0..5] of Double = (0.25, 0.5, 1.0, 1.5, 2.0, 4.0);
+begin
+  if ComboScale.ItemIndex <= 5 then
+    ImageViewer.BitmapScale := Scales[ComboScale.ItemIndex]
+  else if ComboScale.ItemIndex = ComboScale.Items.Count - 1 then
+    ImageViewer.BestFit;
+
+  ComboScale.ResetFocus;
+  UpdateScaleText;
+end;
+
+procedure TFormMain.ComboScaleKeyUp(Sender: TObject; var Key: Word;
+  var KeyChar: Char; Shift: TShiftState);
+var
+  Scale: Integer;
+begin
+  if Key = vkReturn then
+  begin
+    var Text := ComboScale.Text.Trim([' ', '%']);
+    if TryStrToInt(Text, Scale) then
+    begin
+      if (Scale >= 1) and (Scale <= 1000) then
+        ImageViewer.BitmapScale := Scale / 100;
+    end;
+
+    ComboScale.ResetFocus;
+    UpdateScaleText;
+  end;
 end;
 
 procedure TFormMain.LoadingFinished(Success: Boolean; const ErrorMsg: string);
@@ -233,7 +319,7 @@ begin
   end;
 
   AniIndicator.Visible := False;
-  EmbossEffect.Enabled := False;
+  BlurEffect.Enabled := False;
   ToolBar.Enabled := True;
 end;
 
@@ -245,6 +331,10 @@ begin
   try
     ImagingFmx.ConvertImageToFmxBitmap(FImage, ImageViewer.Bitmap);
     ImageViewer.BestFit;
+
+    ComboScale.Enabled := True;
+    ImageViewer.DisableMouseWheel := False;
+    HueTrackBar.Enabled := True;
   finally
     ImageViewer.EndUpdate;
   end;
@@ -269,6 +359,44 @@ begin
   end;
 end;
 
+procedure TFormMain.DropTargetDragOver(Sender: TObject; const Data: TDragObject;
+  const Point: TPointF; var Operation: TDragOperation);
+begin
+  if (Length(Data.Files) > 0) and Imaging.IsFileFormatSupported(Data.Files[0]) then
+  begin
+    Operation := TDragOperation.Copy;
+  end;
+end;
+
+procedure TFormMain.OpenFile(const FileName: string);
+begin
+  FFileName := FileName;
+
+  ListImages.Clear;
+  ImageViewer.Bitmap.SetSize(0, 0);
+  ToolBar.Enabled := False;
+  AniIndicator.Visible := True;
+  BlurEffect.Enabled := True;
+
+  FLoaderThread := TImgLoaderThread.Create(FFileName, FImage, LoadingFinished);
+end;
+
+procedure TFormMain.DropTargetDropped(Sender: TObject; const Data: TDragObject;
+  const Point: TPointF);
+begin
+  if Length(Data.Files) > 0 then
+  begin
+    OpenFile(Data.Files[0]);
+  end;
+end;
+
+procedure TFormMain.BtnOpenImageClick(Sender: TObject);
+begin
+  OpenDialog.Filter := Imaging.GetImageFileFormatsFilter(True);
+  if OpenDialog.Execute then
+    OpenFile(OpenDialog.FileName);
+end;
+
 procedure TFormMain.BtnAboutClick(Sender: TObject);
 var
   X, Y: Integer;
@@ -281,21 +409,5 @@ begin
   FormAbout.ShowModal;
 end;
 
-procedure TFormMain.BtnOpenImageClick(Sender: TObject);
-begin
-  OpenDialog.Filter := Imaging.GetImageFileFormatsFilter(True);
-  if OpenDialog.Execute then
-  begin
-    FFileName := OpenDialog.FileName;
-
-    ListImages.Clear;
-    ImageViewer.Bitmap.SetSize(0, 0);
-    ToolBar.Enabled := False;
-    AniIndicator.Visible := True;
-    EmbossEffect.Enabled := True;
-
-    FLoaderThread := TImgLoaderThread.Create(FFileName, FImage, LoadingFinished);
-  end;
-end;
 
 end.

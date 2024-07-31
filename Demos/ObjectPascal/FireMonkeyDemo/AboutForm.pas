@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Objects, FMX.Ani,
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Objects, FMX.Ani, FMX.Layouts,
   FMX.Filter.Effects, FMX.Effects, FMX.StdCtrls, FMX.Controls.Presentation,
 
   Imaging,
@@ -14,16 +14,17 @@ type
   TFormAbout = class(TForm)
     ImgLogo: TImage;
     PanelBack: TPanel;
-    Timer: TTimer;
     BtnOk: TButton;
-    Label1: TLabel;
     LabVersion: TLabel;
     LabWebsite: TLabel;
-    Effect: TWaveEffect;
-    WaveAnim: TFloatAnimation;
+    LabImaging: TLabel;
+    FlowLayout: TFlowLayout;
+    LabGitHub: TLabel;
+    Effect: TPixelateEffect;
+    EffectAnimation: TFloatAnimation;
     procedure FormCreate(Sender: TObject);
     procedure BtnOkClick(Sender: TObject);
-    procedure WaveAnimFinish(Sender: TObject);
+    procedure EffectAnimationFinish(Sender: TObject);
   private
     { Private declarations }
   public
@@ -37,7 +38,7 @@ implementation
 
 {$R *.fmx}
 
-procedure TFormAbout.WaveAnimFinish(Sender: TObject);
+procedure TFormAbout.EffectAnimationFinish(Sender: TObject);
 begin
   Effect.Enabled := False;
   Close;
@@ -47,7 +48,7 @@ procedure TFormAbout.FormCreate(Sender: TObject);
 var
   LogoPath: string;
 begin
-  LogoPath := GetDataDir + PathDelim + 'LogoAlpha.png';
+  LogoPath := GetDataDir + PathDelim + 'Logo.png';
   if FileExists(LogoPath) then
     ImgLogo.Bitmap.LoadFromFile(LogoPath);
   LabVersion.Text := LabVersion.Text + GetVersionStr;
@@ -58,7 +59,7 @@ begin
   if Effect.Enabled then
     Exit;
   Effect.Enabled := True;
-  WaveAnim.Start;
+  EffectAnimation.Start;
 end;
 
 end.

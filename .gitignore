@@ -14,6 +14,7 @@ Tests/*
 Dcu/*
 
 **/__history/**
+**/__recovery**
 **/backup/**
 
 *.dcu
@@ -38,6 +39,7 @@ Dcu/*
 *.stat
 *.tvsconfig
 *.otares
+*.vlb
 
 Doc/*.chm
 Doc/*.chw

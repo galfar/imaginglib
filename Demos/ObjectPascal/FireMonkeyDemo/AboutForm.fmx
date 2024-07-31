@@ -4,8 +4,8 @@ object FormAbout: TFormAbout
   BorderIcons = [biSystemMenu]
   BorderStyle = Single
   Caption = 'About - FireMonkey Demo'
-  ClientHeight = 290
-  ClientWidth = 318
+  ClientHeight = 394
+  ClientWidth = 440
   Position = Designed
   FormFactor.Width = 320
   FormFactor.Height = 480
@@ -14,78 +14,109 @@ object FormAbout: TFormAbout
   DesignerMasterStyle = 0
   object PanelBack: TPanel
     Align = Contents
-    Size.Width = 318.000000000000000000
-    Size.Height = 290.000000000000000000
+    Size.Width = 440.000000000000000000
+    Size.Height = 394.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 1
     object ImgLogo: TImage
       MultiResBitmap = <
         item
         end>
-      Align = MostTop
-      Size.Width = 318.000000000000000000
-      Size.Height = 111.000000000000000000
+      Align = Top
+      EnableDragHighlight = False
+      Margins.Top = 16.000000000000000000
+      Position.Y = 16.000000000000000000
+      Size.Width = 440.000000000000000000
+      Size.Height = 188.000000000000000000
       Size.PlatformDefault = False
     end
     object BtnOk: TButton
-      Position.X = 60.000000000000000000
-      Position.Y = 240.000000000000000000
-      Size.Width = 202.000000000000000000
+      Align = Bottom
+      Margins.Left = 32.000000000000000000
+      Margins.Right = 32.000000000000000000
+      Margins.Bottom = 16.000000000000000000
+      Position.X = 32.000000000000000000
+      Position.Y = 338.000000000000000000
+      Size.Width = 376.000000000000000000
       Size.Height = 40.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 2
+      TabOrder = 1
       Text = 'OK'
       TextSettings.Font.Size = 14.000000000000000000
       OnClick = BtnOkClick
     end
-    object Label1: TLabel
-      Position.X = 10.000000000000000000
-      Position.Y = 120.000000000000000000
-      Size.Width = 241.000000000000000000
-      Size.Height = 15.000000000000000000
+    object FlowLayout: TFlowLayout
+      Anchors = [akLeft, akTop, akRight]
+      ClipChildren = True
+      Position.X = 32.000000000000000000
+      Position.Y = 220.000000000000000000
+      Size.Width = 376.000000000000000000
+      Size.Height = 89.000000000000000000
       Size.PlatformDefault = False
-      TextSettings.Font.Size = 14.000000000000000000
-      Text = 'Vampyre Imaging Library'
-    end
-    object LabVersion: TLabel
-      Position.X = 10.000000000000000000
-      Position.Y = 140.000000000000000000
-      Size.Width = 241.000000000000000000
-      Size.Height = 15.000000000000000000
-      Size.PlatformDefault = False
-      TextSettings.Font.Size = 14.000000000000000000
-      Text = 'version: '
-    end
-    object LabWebsite: TLabel
-      Cursor = crHandPoint
-      Position.X = 10.000000000000000000
-      Position.Y = 160.000000000000000000
-      Size.Width = 241.000000000000000000
-      Size.Height = 15.000000000000000000
-      Size.PlatformDefault = False
-      TextSettings.Font.Size = 14.000000000000000000
-      Text = 'https://imaginglib.sourceforge.io'
-    end
-    object Effect: TWaveEffect
-      Enabled = False
-      Time = 0.000000000000000000
-      WaveSize = 256.000000000000000000
-      object WaveAnim: TFloatAnimation
-        AnimationType = Out
-        Enabled = True
-        Duration = 0.600000023841857900
-        Interpolation = Exponential
-        OnFinish = WaveAnimFinish
-        PropertyName = 'WaveSize'
-        StartValue = 256.000000000000000000
-        StopValue = 32.000000000000000000
+      TabOrder = 2
+      Justify = Justify
+      JustifyLastLine = Justify
+      FlowDirection = LeftToRight
+      VerticalGap = 4.000000000000000000
+      object LabImaging: TLabel
+        AutoSize = True
+        Margins.Bottom = 8.000000000000000000
+        Scale.X = 1.500000000000000000
+        Scale.Y = 1.500000000000000000
+        Size.Width = 249.000000000000000000
+        Size.Height = 16.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        Text = 'Vampyre Imaging Library - FMX Demo'
+        TabOrder = 0
+      end
+      object LabVersion: TLabel
+        AutoSize = True
+        Position.Y = 28.000000000000000000
+        Size.Width = 241.000000000000000000
+        Size.Height = 16.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        Text = 'version: '
+        TabOrder = 1
+      end
+      object LabGitHub: TLabel
+        Cursor = crHandPoint
+        StyledSettings = [Family, Size, Style]
+        Position.Y = 48.000000000000000000
+        Size.Width = 345.000000000000000000
+        Size.Height = 15.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.FontColor = claDodgerblue
+        Text = 'https://github.com/galfar/imaginglib'
+        TabOrder = 2
+      end
+      object LabWebsite: TLabel
+        Cursor = crHandPoint
+        StyledSettings = [Family, Size, Style]
+        Position.Y = 67.000000000000000000
+        Size.Width = 345.000000000000000000
+        Size.Height = 15.000000000000000000
+        Size.PlatformDefault = False
+        TextSettings.Font.Size = 14.000000000000000000
+        TextSettings.FontColor = claDodgerblue
+        Text = 'https://imaginglib.sourceforge.io'
+        TabOrder = 3
       end
     end
-  end
-  object Timer: TTimer
-    Enabled = False
-    Interval = 15
-    Left = 270
-    Top = 120
+    object Effect: TPixelateEffect
+      Enabled = False
+      BlockCount = 25.000000000000000000
+      object EffectAnimation: TFloatAnimation
+        AnimationType = Out
+        Duration = 0.600000023841857900
+        Interpolation = Exponential
+        OnFinish = EffectAnimationFinish
+        PropertyName = 'BlockCount'
+        StartValue = 200.000000000000000000
+        StopValue = 20.000000000000000000
+      end
+    end
   end
 end
