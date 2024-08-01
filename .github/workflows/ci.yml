@@ -30,7 +30,14 @@ jobs:
           # needed for SDL and GL demos
           sudo apt install libsdl1.2-dev -y
           # to build LCL demos with Qt5 backend
-          sudo apt install libqt5pas-dev -y
+          #sudo apt install libqt5pas-dev -y
+          
+          
+          wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas1_2.15-1_amd64.deb
+          sudo apt install ./libqt5pas1_2.15-1_amd64.deb -y 
+          
+          wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas-dev_2.15-1_amd64.deb
+          sudo apt install ./libqt5pas-dev_2.15-1_amd64.deb -y 
       - name: Build demos with FPC (Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -54,19 +61,17 @@ jobs:
 
           lazbuild --bm="Release" "Benchmark/Bench.lpi"
           lazbuild --bm="Release" "VampConvert/VampConvert.lpi"
+          lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
+          lazbuild --bm="Release" "SDLDemo/SDLDemo.lpi"
 
-          if [ "$RUNNER_OS" == "Linux" ]; then              
-              lazbuild --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"
-
-              lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
+          if [ "$RUNNER_OS" == "Linux" ]; then                             
+              lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
+              lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
           fi
 
           if [ "$RUNNER_OS" != "macOS" ]; then
               lazbuild --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"
-              lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
-              lazbuild --bm="Release" "SDLDemo/SDLDemo.lpi"
+              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"              
           fi
 
           if [ "$RUNNER_OS" == "Windows" ]; then
