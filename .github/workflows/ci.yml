@@ -56,8 +56,10 @@ jobs:
           lazbuild --bm="Release" "VampConvert/VampConvert.lpi"
 
           if [ "$RUNNER_OS" == "Linux" ]; then
-              lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+              #lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
+              #lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+              lazbuild --bm="Release" "LCLImager/lclimager.lpi"
+              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"
           fi
 
           if [ "$RUNNER_OS" != "macOS" ]; then
