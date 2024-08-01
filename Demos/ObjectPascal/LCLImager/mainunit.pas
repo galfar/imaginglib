@@ -372,8 +372,8 @@ begin
 
   if (ParamCount > 0) and FileExists(ParamStr(1)) then
     OpenFile(ParamStr(1))
-  else
-    OpenFile(GetDataDir + PathDelim + 'Tigers.jpg');
+  else if FileExists(FileNameInDataDir('Tigers.jpg')) then
+    OpenFile(FileNameInDataDir('Tigers.jpg'));
 end;
 
 procedure TMainForm.MenuItem10Click(Sender: TObject);

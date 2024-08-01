@@ -20,6 +20,8 @@ function ExpandFileTo(const FileName, BasePath: string): string;
 function SwapPathDelims(const FileName: string; const NewDelim: string = PathDelim): string;
 
 function GetDataDir: string;
+function FileNameInDataDir(const BaseFileName: string): string; inline;
+
 function GetRootDir: string;
 
 // Returns next valid image format.
@@ -64,6 +66,11 @@ begin
     Inc(Iter);
   end;
   Result := Result + PathDelim + SDataDir;
+end;
+
+function FileNameInDataDir(const BaseFileName: string): string;
+begin
+  Result := GetDataDir + PathDelim + BaseFileName;
 end;
 
 function GetRootDir: string;

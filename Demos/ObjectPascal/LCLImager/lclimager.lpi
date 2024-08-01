@@ -17,6 +17,9 @@
         <TextDesc Value="LCL Imager Demo"/>
       </XPManifest>
       <Icon Value="0"/>
+      <Resources Count="1">
+        <Resource_0 FileName="..\..\Data\Logo.png" Type="RCDATA" ResourceName="LOGO"/>
+      </Resources>
     </General>
     <BuildModes Count="2">
       <Item1 Name="Debug" Default="True"/>
@@ -51,11 +54,16 @@
               </Win32>
             </Options>
           </Linking>
+          <Other>
+            <Verbosity>
+              <ShowNotes Value="False"/>
+              <ShowHints Value="False"/>
+            </Verbosity>
+          </Other>
         </CompilerOptions>
       </Item2>
-      <SharedMatrixOptions Count="2">
+      <SharedMatrixOptions Count="1">
         <Item1 ID="149315369584" Modes="Debug,Release" Value="-dFULL_FEATURE_SET"/>
-        <Item2 ID="734469810654" Modes="Debug,Release" Value="-vn-h-"/>
       </SharedMatrixOptions>
     </BuildModes>
     <PublishOptions>
@@ -179,6 +187,13 @@
         </Win32>
       </Options>
     </Linking>
+    <Other>
+      <Verbosity>
+        <ShowHints Value="False"/>
+        <ShowLineNum Value="True"/>
+        <ShowHintsForSenderNotUsed Value="True"/>
+      </Verbosity>
+    </Other>
   </CompilerOptions>
   <Debugging>
     <Exceptions Count="3">

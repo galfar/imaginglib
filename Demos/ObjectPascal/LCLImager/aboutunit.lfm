@@ -1,30 +1,39 @@
 object AboutForm: TAboutForm
   Left = 679
-  Height = 320
+  Height = 456
   Top = 537
-  Width = 286
+  Width = 400
   ActiveControl = BitBtn1
   BorderIcons = []
   BorderStyle = bsSingle
   Caption = 'About'
-  ClientHeight = 320
-  ClientWidth = 286
+  ClientHeight = 456
+  ClientWidth = 400
   Color = clWindow
   OnShow = FormShow
   Position = poMainFormCenter
-  LCLVersion = '2.2.0.4'
-  object Image: TImage
-    Left = 48
-    Height = 89
-    Top = 16
-    Width = 188
+  LCLVersion = '3.4.0.0'
+  object ImageLogo: TImage
+    AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideTop.Control = Owner
+    Left = 13
+    Height = 188
+    Top = 12
+    Width = 374
+    BorderSpacing.Top = 12
     Center = True
   end
-  object Image2: TImage
-    Left = 56
+  object ImageLaz: TImage
+    AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideTop.Control = LabWeb
+    AnchorSideTop.Side = asrBottom
+    Left = 176
     Height = 48
-    Top = 208
+    Top = 306
     Width = 48
+    BorderSpacing.Top = 20
     Picture.Data = {
       055449636F6EBE1C00000000010001003030000000000000A81C000016000000
       2800000030000000600000000100180000000000801C00000000000000000000
@@ -259,60 +268,103 @@ object AboutForm: TAboutForm
       FFFFFFFFFFFF0000
     }
   end
-  object labImaging: TLabel
-    Left = 8
-    Height = 32
-    Top = 120
-    Width = 272
+  object LabImaging: TLabel
+    AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideTop.Control = ImageLogo
+    AnchorSideTop.Side = asrBottom
+    Left = 131
+    Height = 15
+    Top = 212
+    Width = 138
     Alignment = taCenter
-    AutoSize = False
+    BorderSpacing.Top = 12
     Caption = 'Vampyre Imaging Library'
     Font.Style = [fsBold]
     ParentFont = False
   end
-  object Label1: TLabel
-    Left = 112
-    Height = 56
-    Top = 208
-    Width = 136
+  object LabDemo: TLabel
+    AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideTop.Control = ImageLaz
+    AnchorSideTop.Side = asrBottom
+    Left = 140
+    Height = 15
+    Top = 362
+    Width = 121
     AutoSize = False
+    BorderSpacing.Top = 8
     Caption = 'Lazarus Imager Demo'
     Font.Style = [fsBold]
     ParentFont = False
     WordWrap = True
   end
-  object ImLabel1: TLabel
-    Left = 14
-    Height = 18
-    Top = 176
-    Width = 272
+  object LabWeb: TLabel
+    AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideTop.Control = LabGitHub
+    AnchorSideTop.Side = asrBottom
+    Cursor = crHandPoint
+    Left = 112
+    Height = 15
+    Top = 271
+    Width = 176
     Alignment = taCenter
     AutoSize = False
+    BorderSpacing.Top = 4
     Caption = 'https://imaginglib.sourceforge.io'
     Font.Color = 16744448
     Font.Height = 16
     Layout = tlCenter
-    ParentFont = False
     OptimalFill = True
+    ParentFont = False
+    OnClick = LabLinkClick
   end
   object BitBtn1: TBitBtn
-    Left = 104
-    Height = 30
-    Top = 280
-    Width = 75
+    AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideBottom.Control = Owner
+    AnchorSideBottom.Side = asrBottom
+    Left = 155
+    Height = 40
+    Top = 400
+    Width = 90
+    Anchors = [akLeft, akBottom]
+    BorderSpacing.Bottom = 16
     BorderSpacing.InnerBorder = 2
     Caption = '&Close'
+    Default = True
     Kind = bkClose
     TabOrder = 0
   end
   object LabVersion: TLabel
-    Left = 0
-    Height = 32
-    Top = 148
-    Width = 280
+    AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideTop.Control = LabImaging
+    AnchorSideTop.Side = asrBottom
+    Left = 181
+    Height = 15
+    Top = 233
+    Width = 38
     Alignment = taCenter
-    AutoSize = False
+    BorderSpacing.Top = 6
     Caption = 'version'
     ParentFont = False
+  end
+  object LabGitHub: TLabel
+    AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
+    AnchorSideTop.Control = LabVersion
+    AnchorSideTop.Side = asrBottom
+    Cursor = crHandPoint
+    Left = 101
+    Height = 15
+    Top = 252
+    Width = 199
+    BorderSpacing.Top = 4
+    Caption = 'https://github.com/galfar/imaginglib'
+    Font.Color = 16744448
+    ParentFont = False
+    OnClick = LabLinkClick
   end
 end

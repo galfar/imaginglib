@@ -12,13 +12,15 @@ type
 
   TAboutForm = class(TForm)
     BitBtn1: TBitBtn;
-    Image: TImage;
-    Image2: TImage;
-    labImaging: TLabel;
-    ImLabel1: TLabel;
+    ImageLogo: TImage;
+    ImageLaz: TImage;
+    LabGitHub: TLabel;
+    LabImaging: TLabel;
+    LabWeb: TLabel;
     LabVersion: TLabel;
-    Label1: TLabel;
+    LabDemo: TLabel;
     procedure FormShow(Sender: TObject);
+    procedure LabLinkClick(Sender: TObject);
   private
     { private declarations }
   public
@@ -30,6 +32,10 @@ var
 
 implementation
 
+uses
+  LCLIntf,
+  ImagingComponents;
+
 {$R *.lfm}
 
 { TAboutForm }
@@ -37,10 +43,15 @@ implementation
 procedure TAboutForm.FormShow(Sender: TObject);
 begin
   LabVersion.Caption := 'version ' + Imaging.GetVersionStr;
-  if Image.Picture.Graphic = nil then
+  if ImageLogo.Picture.Graphic = nil then
   begin
-    Image.Picture.LoadFromFile(GetDataDir + PathDelim + 'LogoAlpha.png');
+    ImageLogo.Picture.LoadFromResourceName(HInstance, 'LOGO', ImagingComponents.TImagingPNG);
   end;
+end;
+
+procedure TAboutForm.LabLinkClick(Sender: TObject);
+begin
+  OpenURL(TLabel(Sender).Caption);
 end;
 
 end.
