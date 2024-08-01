@@ -55,11 +55,11 @@ jobs:
           lazbuild --bm="Release" "Benchmark/Bench.lpi"
           lazbuild --bm="Release" "VampConvert/VampConvert.lpi"
 
-          if [ "$RUNNER_OS" == "Linux" ]; then
-              #lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
-              #lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+          if [ "$RUNNER_OS" == "Linux" ]; then              
               lazbuild --bm="Release" "LCLImager/lclimager.lpi"
               lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+
+              lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
           fi
 
           if [ "$RUNNER_OS" != "macOS" ]; then
