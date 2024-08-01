@@ -29,13 +29,14 @@ jobs:
         run:  |
           # needed for SDL and GL demos
           sudo apt install libsdl1.2-dev -y
+          
           # to build LCL demos with Qt5 backend
-          #sudo apt install libqt5pas-dev -y
-          
-          
+          # sudo apt install libqt5pas-dev -y
+
+          # With current Lazarus + Ubuntu versions we need to get newer libqt5pas release
+          # (https://forum.lazarus.freepascal.org/index.php/topic,65619.msg500216.html#msg500216)
           wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas1_2.15-1_amd64.deb
-          sudo apt install ./libqt5pas1_2.15-1_amd64.deb -y 
-          
+          sudo apt install ./libqt5pas1_2.15-1_amd64.deb -y           
           wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas-dev_2.15-1_amd64.deb
           sudo apt install ./libqt5pas-dev_2.15-1_amd64.deb -y 
       - name: Build demos with FPC (Linux)
@@ -59,28 +60,33 @@ jobs:
         run:  |
           cd Demos/ObjectPascal
 
+          # Built for all platforms
           lazbuild --bm="Release" "Benchmark/Bench.lpi"
           lazbuild --bm="Release" "VampConvert/VampConvert.lpi"
-          lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
-          lazbuild --bm="Release" "SDLDemo/SDLDemo.lpi"
-
+          
           if [ "$RUNNER_OS" == "Linux" ]; then                             
+              # For Linux build LCL demos also with Qt5 (just to test that it builds)
               lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
               lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
           fi
 
           if [ "$RUNNER_OS" != "macOS" ]; then
+              # Build these for non macOS platforms
               lazbuild --bm="Release" "LCLImager/lclimager.lpi"
               lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"              
+              lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
+              lazbuild --bm="Release" "SDLDemo/SDLDemo.lpi"
           fi
 
           if [ "$RUNNER_OS" == "Windows" ]; then
+              # Build D3D demo just for Windows
               lazbuild --bm="Release" "D3DDemo/D3DDemo.lpi"
           fi
 
           if [ "$RUNNER_OS" == "macOS" ]; then
-            lazbuild --ws=cocoa --bm="Release" "LCLImager/lclimager.lpi"
-            lazbuild --ws=cocoa --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+              # For macOS we need to build LCL demos with Cocoa 
+              lazbuild --ws=cocoa --bm="Release" "LCLImager/lclimager.lpi"
+              lazbuild --ws=cocoa --bm="Release" "ImageBrowser/ImgBrowser.lpi"
           fi
       - name: List Demos Bin directory
         shell: bash
