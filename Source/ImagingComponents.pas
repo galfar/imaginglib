@@ -447,10 +447,6 @@ begin
   Classes.RegisterClass(TImagingGIF);
 {$ENDIF}
 {$IFNDEF DONT_LINK_PNG}
-  {$IFDEF COMPONENT_SET_LCL}
-    // Unregister Lazarus default PNG loader which crashes on some PNG files
-    TPicture.UnregisterGraphicClass(TPortableNetworkGraphic);
-  {$ENDIF}
   RegisterFileFormat(TImagingPNG);
   Classes.RegisterClass(TImagingPNG);
 {$ENDIF}
