@@ -5,7 +5,7 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Objects, FMX.Ani, FMX.Layouts,
-  FMX.Filter.Effects, FMX.Effects, FMX.StdCtrls, FMX.Controls.Presentation,
+  FMX.Filter.Effects, FMX.Effects, FMX.StdCtrls, FMX.Controls.Presentation, FMX.Graphics,
 
   Imaging,
   DemoUtils;
@@ -36,7 +36,29 @@ var
 
 implementation
 
+uses
+  ImagingClasses,
+  ImagingFmx;
+
 {$R *.fmx}
+
+procedure LoadFmxBitmapFromResourceWithImaging(const ResName: string; Bitmap: TBitmap);
+var
+  ResourceStream: TResourceStream;
+  Image: TSingleImage;
+begin
+  // Could read from stream directly to FMX Bitmap but let's also show
+  // reading from resources to TSingleImage.
+  ResourceStream := TResourceStream.Create(HInstance, ResName, RT_RCDATA);
+  Image := TSingleImage.Create;
+  try
+    Image.LoadFromStream(ResourceStream);
+    ImagingFmx.ConvertImageToFmxBitmap(Image, Bitmap);
+  finally
+    ResourceStream.Free;
+    Image.Free;
+  end;
+end;
 
 procedure TFormAbout.EffectAnimationFinish(Sender: TObject);
 begin
@@ -45,12 +67,8 @@ begin
 end;
 
 procedure TFormAbout.FormCreate(Sender: TObject);
-var
-  LogoPath: string;
 begin
-  LogoPath := GetDataDir + PathDelim + 'Logo.png';
-  if FileExists(LogoPath) then
-    ImgLogo.Bitmap.LoadFromFile(LogoPath);
+  LoadFmxBitmapFromResourceWithImaging('LOGO', ImgLogo.Bitmap);
   LabVersion.Text := LabVersion.Text + GetVersionStr;
 end;
 

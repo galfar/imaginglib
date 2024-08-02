@@ -6,7 +6,6 @@ object FormAbout: TFormAbout
   Caption = 'About - FireMonkey Demo'
   ClientHeight = 394
   ClientWidth = 440
-  Position = Designed
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop, iPhone, iPad]
@@ -43,6 +42,7 @@ object FormAbout: TFormAbout
       TabOrder = 1
       Text = 'OK'
       TextSettings.Font.Size = 14.000000000000000000
+      TextSettings.Trimming = None
       OnClick = BtnOkClick
     end
     object FlowLayout: TFlowLayout
