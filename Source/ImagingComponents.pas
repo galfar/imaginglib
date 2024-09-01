@@ -795,7 +795,7 @@ begin
             StretchBlt(DC, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
               Bmp.Canvas.Handle, 0, 0, Width, Height, SRCCOPY);
           finally
-            Bmp.Free;
+            FreeAndNil(Bmp);
           end;
         end;
     finally
@@ -908,7 +908,7 @@ begin
     try
       QPainter_drawImage(Context.Widget, PRect(@DstRect), QImage.Handle, @SrcRect, QtAutoColor);
     finally
-      QImage.Free;
+      FreeAndNil(QImage);
     end;
   end;
 end;
@@ -930,7 +930,7 @@ begin
     try
       Context.DrawImageRep(RectToNSRect(DstRect), RectToNSRect(SrcRect), CocoaBmp.ImageRep);
     finally
-      CocoaBmp.Free;
+      FreeAndNil(CocoaBmp);
     end;
   end;
 end;
@@ -994,7 +994,7 @@ begin
     Image.LoadFromStream(Stream);
     Assign(Image);
   finally
-    Image.Free;
+    FreeAndNil(Image);
   end;
 end;
 
@@ -1007,7 +1007,7 @@ begin
     Image.Assign(Self);
     Image.SaveToStream('png', Stream);
   finally
-    Image.Free;
+    FreeAndNil(Image);
   end;
 end;
 
@@ -1102,7 +1102,7 @@ begin
         Image.Format := FSavingFormat;
       Image.SaveToStream(FDefaultFileExt, Stream);
     finally
-      Image.Free;
+      FreeAndNil(Image);
     end;
   end;
 end;
@@ -1324,7 +1324,7 @@ initialization
   RegisterTypes;
 finalization
   UnRegisterTypes;
-  RegisteredFormats.Free;
+  FreeAndNil(RegisteredFormats);
 
 {$IFEND} // {$IF not Defined(COMPONENT_SET_LCL) and not Defined(COMPONENT_SET_VCL)}
 

@@ -341,6 +341,7 @@ begin
     OutBytes := strm.total_out;
   except
     zlibFreeMem(nil, OutBuf);
+    OutBuf := nil;
     raise
   end;
 end;

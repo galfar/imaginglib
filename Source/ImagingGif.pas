@@ -286,7 +286,11 @@ var
     RawCode := Context.Buf[Word(ByteIndex)] +
       (Word(Context.Buf[Word(ByteIndex + 1)]) shl 8);
     if Context.CodeSize > 8 then
+      begin
+      if ByteIndex+2 >= Length(Context.Buf) then
+         RaiseImaging(SGIFDecodingError, []);
       RawCode := RawCode + (Integer(Context.Buf[ByteIndex + 2]) shl 16);
+      end;
     RawCode := RawCode shr (Context.Inx and 7);
     Context.Inx := Context.Inx + Byte(Context.CodeSize);
     Result := RawCode and Context.ReadMask;
@@ -407,7 +411,9 @@ begin
         end;
         while CurCode > BitMask do
         begin
-          if OutCount > CodeTableSize then
+          if OutCount >= CodeTableSize then
+            RaiseImaging(SGIFDecodingError, []);
+          if CurCode >= CodeTableSize then
             RaiseImaging(SGIFDecodingError, []);
           OutCode^[OutCount] := Suffix^[CurCode];
           Inc(OutCount);
@@ -639,7 +645,7 @@ begin
     WriteCode(EndingCode, WriteCtxt);
     FlushCode(WriteCtxt);
   finally
-    HashTable.Free;
+    FreeAndNil(HashTable);
     FreeMem(Dict);
   end;
 end;
@@ -682,6 +688,7 @@ var
     BlockSize, BlockType, ExtType: Byte;
     AppRec: TGIFApplicationRec;
     LoopCount: SmallInt;
+    BytesRead:integer;
 
     procedure SkipBytes;
     begin
@@ -702,7 +709,8 @@ var
     while BlockID = GIFExtensionIntroducer do
     with GetIO do
     begin
-      Read(Handle, @ExtType, SizeOf(ExtType));
+      BytesRead := Read(Handle, @ExtType, SizeOf(ExtType));
+      if BytesRead=0 then Break;
 
       while ExtType in [GIFGraphicControlExtension, GIFCommentExtension, GIFApplicationExtension, GIFPlainText] do
       begin
@@ -900,7 +908,7 @@ var
           Exit;
         end;
       finally
-        LZWStream.Free;
+        FreeAndNil(LZWStream);
       end;
     end;
   end;

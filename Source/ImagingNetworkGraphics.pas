@@ -469,9 +469,9 @@ begin
   FreeMem(Palette);
   FreeMem(Transparency);
   FreeMem(Background);
-  IDATMemory.Free;
-  JDATMemory.Free;
-  JDAAMemory.Free;
+  FreeAndNil(IDATMemory);
+  FreeAndNil(JDATMemory);
+  FreeAndNil(JDAAMemory);
   inherited Destroy;
 end;
 
@@ -500,7 +500,7 @@ var
   I: LongInt;
 begin
   for I := 0 to Length(Frames) - 1 do
-    Frames[I].Free;
+    FreeAndNil(Frames[I]);
   SetLength(Frames, 0);
   FreeMemNil(GlobalPalette);
   GlobalPaletteEntries := 0;
@@ -998,6 +998,7 @@ begin
   try
     BytesPerLine := (Width * BitCount + 7) div 8;
     SrcDataSize := Height * BytesPerLine;
+    Data:=nil;
     GetMem(Data, SrcDataSize);
     FillChar(Data^, SrcDataSize, 0);
     GetMem(ZeroLine, BytesPerLine);
@@ -1070,23 +1071,32 @@ begin
       // If source data size is different from size of image in assigned
       // format we must convert it (it is in 1/2/4 bit count)
       GetMem(Bits, Size);
-      case IHDR.BitDepth of
-        1:
-          begin
-            // Convert only indexed, keep black and white in ifBinary
-            if IHDR.ColorType <> 0 then
-              Convert1To8(Data, Bits, Width, Height, BytesPerLine, False);
+      try
+          case IHDR.BitDepth of
+            1:
+              begin
+                // Convert only indexed, keep black and white in ifBinary
+                if IHDR.ColorType <> 0 then
+                  Convert1To8(Data, Bits, Width, Height, BytesPerLine, False);
+              end;
+            2: Convert2To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
+            4: Convert4To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
           end;
-        2: Convert2To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
-        4: Convert4To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
+      finally
+        FreeMem(Data);
+        Data:=nil;
       end;
-      FreeMem(Data);
     end
     else
     begin
       // If source data size is the same as size of
       // image Bits in assigned format we simply copy pointer reference
-      Bits := Data;
+      //////////
+      // sorry guys, but it is better to copy variable
+      //Bits := Data;
+      GetMem(Bits, SrcDataSize);
+      Move(Data^, Bits^, SrcDataSize);
+      FreeMemNil(Data);
     end;
 
     // LOCO transformation was used too (only for color types 2 and 6)
@@ -1097,10 +1107,11 @@ begin
     if IHDR.BitDepth = 16 then
       SwapEndianWord(Bits, Width * Height * BytesPerPixel div SizeOf(Word));
   finally
-    FreeMem(LineBuffer[True]);
-    FreeMem(LineBuffer[False]);
-    FreeMem(TotalBuffer);
-    FreeMem(ZeroLine);
+    if Data<>nil then FreeMemNil(Data);
+    FreeMemNil(LineBuffer[True]);
+    FreeMemNil(LineBuffer[False]);
+    if TotalBuffer<>nil then FreeMemNil(TotalBuffer); // may be already freed in DecompressBuf
+    FreeMemNil(ZeroLine);
   end;
 end;
 
@@ -1134,7 +1145,7 @@ var
         DestImage := DynImages[0];
       finally
         StreamIO.Close(Handle);
-        JpegFormat.Free;
+        FreeAndNil(JpegFormat);
         SetLength(DynImages, 0);
       end;
     end
@@ -1568,7 +1579,7 @@ var
     finally
       StreamIO.Close(Handle);
       SetLength(DynImages, 0);
-      JpegFormat.Free;
+      FreeAndNil(JpegFormat);
     end;
   end;
 
@@ -2170,8 +2181,8 @@ begin
     FreeImage(Images[SrcIdx]);
   end;
 
-  DestCanvas.Free;
-  SrcCanvas.Free;
+  FreeAndNil(DestCanvas);
+  FreeAndNil(SrcCanvas);
   FreeImage(PreviousCache);
 
   // Assign dest frames to final output images
@@ -2307,16 +2318,22 @@ begin
     begin
       Len := Length(NGFileLoader.Frames);
       SetLength(Images, Len);
-      for I := 0 to Len - 1 do
-      with NGFileLoader.Frames[I] do
-      begin
-        // Build actual image bits
-        if not IsJpegFrame then
-          NGFileLoader.LoadImageFromPNGFrame(FrameWidth, FrameHeight, IHDR, IDATMemory, Images[I]);
-        // Build palette, aply color key or background
+      try
+        for I := 0 to Len - 1 do
+        with NGFileLoader.Frames[I] do
+        begin
+           // Build actual image bits
+          if not IsJpegFrame then
+            NGFileLoader.LoadImageFromPNGFrame(FrameWidth, FrameHeight, IHDR, IDATMemory, Images[I]);
+          // Build palette, aply color key or background
 
-        NGFileLoader.ApplyFrameSettings(NGFileLoader.Frames[I], Images[I]);
-        Result := True;
+          NGFileLoader.ApplyFrameSettings(NGFileLoader.Frames[I], Images[I]);
+          Result := True;
+        end;
+      except
+        FreeImagesInArray(Images);
+        SetLength(Images, 0);
+        exit;
       end;
       // Animate APNG images
       if (NGFileLoader.FileType = ngAPNG) and FLoadAnimated then
@@ -2324,7 +2341,7 @@ begin
     end;
   finally
     NGFileLoader.LoadMetaData; // Store metadata
-    NGFileLoader.Free;
+    FreeAndNil(NGFileLoader);
   end;
 end;
 
@@ -2420,7 +2437,7 @@ begin
     SaveFile(Handle);
     Result := True;
   finally
-    NGFileSaver.Free;
+    FreeAndNil(NGFileSaver);
   end;
 end;
 
@@ -2483,7 +2500,7 @@ begin
     end;
   finally
     NGFileLoader.LoadMetaData; // Store metadata
-    NGFileLoader.Free;
+    FreeAndNil(NGFileLoader);
   end;
 end;
 
@@ -2536,7 +2553,7 @@ begin
     SaveFile(Handle);
     Result := True;
   finally
-    NGFileSaver.Free;
+    FreeAndNil(NGFileSaver);
   end;
 end;
 
@@ -2585,7 +2602,7 @@ begin
     end;
   finally
     NGFileLoader.LoadMetaData; // Store metadata
-    NGFileLoader.Free;
+    FreeAndNil(NGFileLoader);
   end;
 end;
 
@@ -2609,7 +2626,7 @@ begin
       SaveFile(Handle);
     finally
       // Free NG saver and compatible image
-      NGFileSaver.Free;
+      FreeAndNil(NGFileSaver);
       if MustBeFreed then
         FreeImage(ImageToSave);
     end;

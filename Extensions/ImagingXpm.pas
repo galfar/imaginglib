@@ -389,10 +389,10 @@ begin
     ParsePalette;
     ParsePixels;
 
-    Contents.Free;
+    FreeAndNil(Contents);
     for I := 0 to PalLookup.Count - 1 do
       PalLookup.Objects[I].Free;
-    PalLookup.Free;
+    FreeAndNil(PalLookup);
     Result := True;
   end;
 end;
@@ -515,9 +515,9 @@ begin
 
     Result := True;
   finally
-    StrFile.Free;
-    ColTable.Free;
-    Stream.Free;
+    FreeAndNil(StrFile);
+    FreeAndNil(ColTable);
+    FreeAndNil(Stream);
     if MustBeFreed then
       FreeImage(ImageToSave);
   end;

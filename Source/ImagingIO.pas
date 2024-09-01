@@ -239,16 +239,24 @@ var
   NewBufStart, NewPos: Integer;
 begin
   // Calculate the new position
-  case Origin of
-    soFromBeginning : NewPos := Offset;
-    soFromCurrent   : NewPos := FBufStart + FBufPos + Offset;
-    soFromEnd       : NewPos := FSize + Offset;
-  else
-    raise Exception.Create('TBufferedStream.Seek: invalid origin');
+  try
+    case Origin of
+      soFromBeginning : NewPos := Offset;
+      soFromCurrent   : NewPos := FBufStart + FBufPos + Offset;
+      soFromEnd       : NewPos := FSize + Offset;
+    else
+      raise Exception.Create('TBufferedStream.Seek: invalid origin');
+    end;
+  except // integer overflow or seek failed
+    NewPos:=-1;
+    Result := NewPos;
+    raise Exception.Create('TBufferedStream.Seek: seek failed');
+    exit;
   end;
 
   if (NewPos < 0) or (NewPos > FSize) then
   begin
+    raise Exception.Create('TBufferedStream.Seek: seek failed');   // integer overflow or whatever
     //NewPos := ClampInt(NewPos, 0, FSize); don't do this - for writing
   end;
   // Calculate which page of the file we need to be at
@@ -369,8 +377,8 @@ var
   Stream: TStream;
 begin
   Stream := TBufferedStream(Handle).Stream;
-  TBufferedStream(Handle).Free;
-  Stream.Free;
+  FreeAndNil(TBufferedStream(Handle));
+  FreeAndNil(Stream);
 end;
 
 function FileEof(Handle: TImagingHandle): Boolean; cdecl;

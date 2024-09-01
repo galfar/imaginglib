@@ -932,8 +932,8 @@ begin
   try
     if TestImage(Image) then
     begin
-      FreeMemNil(Image.Bits);
-      FreeMemNil(Image.Palette);
+      if Image.Bits<>nil then FreeMemNil(Image.Bits);
+      if Image.Palette<>nil then FreeMemNil(Image.Palette);
     end;
     InitImage(Image);
   except
@@ -3482,8 +3482,8 @@ end;
 
 destructor TImageFileFormat.Destroy;
 begin
-  FExtensions.Free;
-  FMasks.Free;
+  FreeAndNil(FExtensions);
+  FreeAndNil(FMasks);
   inherited Destroy;
 end;
 
@@ -4077,8 +4077,8 @@ destructor TMetadata.Destroy;
 begin
   ClearMetaItems;
   ClearMetaItemsForSaving;
-  FLoadMetaItems.Free;
-  FSaveMetaItems.Free;
+  FreeAndNil(FLoadMetaItems);
+  FreeAndNil(FSaveMetaItems);
   inherited;
 end;
 
@@ -4172,7 +4172,8 @@ type
 var
   Adder: TAdder;
 begin
-  TranslateUnits(ResUnit, XSize, YSize);
+  if (XSize>0) and (YSize>0) then
+    TranslateUnits(ResUnit, XSize, YSize);
 
   if MetaForSave then
     Adder := SetMetaItemForSaving
@@ -4231,7 +4232,7 @@ initialization
 finalization
   FreeOptions;
   FreeImageFileFormats;
-  GlobalMetadata.Free;
+  FreeAndNil(GlobalMetadata);
 
 {
   File Notes (obsolete):

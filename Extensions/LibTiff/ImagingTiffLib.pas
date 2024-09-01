@@ -242,173 +242,190 @@ begin
   TiffIOWrapper := IOWrapper;
 {$ENDIF}
 
-  Tiff := TIFFClientOpen('LibTIFF', 'r', THandle(@IOWrapper), @TIFFReadProc,
-    @TIFFWriteProc, @TIFFSeekProc, @TIFFCloseProc,
-    @TIFFSizeProc, @TIFFNoMapProc, @TIFFNoUnmapProc);
-
-  if Tiff <> nil then
-    TIFFSetFileNo(Tiff, THandle(@IOWrapper))
-  else
-    Exit;
-
-  NumDirectories := TIFFNumberOfDirectories(Tiff);
-  if OnlyFirstLevel then
-    NumDirectories := Min(1, NumDirectories);
-
-  SetLength(Images, NumDirectories);
-
-  for Idx := 0 to NumDirectories - 1 do
-  begin
-    TIFFSetDirectory(Tiff, Idx);
-
-    // Set defaults for TIFF fields
-    DataFormat := ifUnknown;
-
-    // Read some TIFF fields with basic image info
-    TIFFGetField(Tiff, TIFFTAG_IMAGEWIDTH, @Images[Idx].Width);
-    TIFFGetField(Tiff, TIFFTAG_IMAGELENGTH, @Images[Idx].Height);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_ORIENTATION, @Orientation);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_BITSPERSAMPLE, @BitsPerSample);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_SAMPLESPERPIXEL, @SamplesPerPixel);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_SAMPLEFORMAT, @SampleFormat);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_PHOTOMETRIC, @Photometric);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_PLANARCONFIG, @PlanarConfig);
-    TIFFGetFieldDefaulted(Tiff, TIFFTAG_ROWSPERSTRIP, @RowsPerStrip);
-
-    // Load supported metadata
-    LoadMetadata(Tiff, Idx);
-    // See if we can just copy scanlines from TIFF to Imaging image
-    CanAccessScanlines := (PlanarConfig = PLANARCONFIG_CONTIG) or (SamplesPerPixel = 1);
-
-    if CanAccessScanlines then
-    begin
-      // We can copy scanlines so we try to find data format that best matches
-      // TIFFs internal data format
-      if (Photometric = PHOTOMETRIC_MINISBLACK) or (Photometric = PHOTOMETRIC_MINISWHITE) then
-      begin
-        if SampleFormat = SAMPLEFORMAT_UINT then
-        begin
-          case BitsPerSample of
-             1:
-               if SamplesPerPixel = 1 then
-                 DataFormat := ifBinary;
-             8:
-               case SamplesPerPixel of
-                 1: DataFormat := ifGray8;
-                 2: DataFormat := ifA8Gray8;
-               end;
-            16:
-               case SamplesPerPixel of
-                 1: DataFormat := ifGray16;
-                 2: DataFormat := ifA16Gray16;
-               end;
-            32:
-               if SamplesPerPixel = 1 then
-                 DataFormat := ifGray32;
-          end;
-        end
-        else if SampleFormat = SAMPLEFORMAT_IEEEFP then
-        begin
-          case BitsPerSample of
-            16:
-               if SamplesPerPixel = 1 then
-                 DataFormat := ifR16F;
-            32:
-               if SamplesPerPixel = 1 then
-                 DataFormat := ifR32F;
-          end;
-        end;
-      end
-      else if Photometric = PHOTOMETRIC_RGB then
-      begin
-        if SampleFormat = SAMPLEFORMAT_UINT then
-        begin
-          case BitsPerSample of
-             8:
-               case SamplesPerPixel of
-                 3: DataFormat := ifR8G8B8;
-                 4: DataFormat := ifA8R8G8B8;
-               end;
-            16:
-               case SamplesPerPixel of
-                 3: DataFormat := ifR16G16B16;
-                 4: DataFormat := ifA16R16G16B16;
-               end;
-          end;
-        end
-        else if SampleFormat = SAMPLEFORMAT_IEEEFP then
-        begin
-          case BitsPerSample of
-            16:
-               if SamplesPerPixel = 4 then
-                 DataFormat := ifA16R16G16B16F;
-            32:
-               if SamplesPerPixel = 4 then
-                 DataFormat := ifA32R32G32B32F;
-          end;
-        end;
-      end
-      else if Photometric = PHOTOMETRIC_PALETTE then
-      begin
-        if (SamplesPerPixel = 1) and (SampleFormat = SAMPLEFORMAT_UINT) and (BitsPerSample = 8) then
-          DataFormat := ifIndex8
-      end;
+  Tiff:=nil;
+  try
+    try
+      Tiff := TIFFClientOpen('LibTIFF', 'r', THandle(@IOWrapper), @TIFFReadProc,
+        @TIFFWriteProc, @TIFFSeekProc, @TIFFCloseProc,
+        @TIFFSizeProc, @TIFFNoMapProc, @TIFFNoUnmapProc);
+    except
+      //TIFFClose(Tiff);
+      FreeMem(Tiff);
+      Tiff:=nil;
+      RaiseImaging('LibTIFF load error');
+      exit;
     end;
 
-    if DataFormat = ifUnknown then
-    begin
-      // Use RGBA interface to read A8R8G8B8 TIFFs and mainly TIFFs in various
-      // formats with no Imaging equivalent, exotic color spaces etc.
-      NewImage(Images[Idx].Width, Images[Idx].Height, ifA8R8G8B8, Images[Idx]);
-      TiffResult := TIFFReadRGBAImageOriented(Tiff, Images[Idx].Width, Images[Idx].Height,
-        Images[Idx].Bits, Orientation, 0);
-      if TiffResult = 0 then
-        RaiseImaging(LastError, []);
-      // Swap Red and Blue, if YCbCr.
-      if Photometric = PHOTOMETRIC_YCBCR then
-        SwapChannels(Images[Idx], ChannelRed, ChannelBlue);
-    end
+    if Tiff <> nil then
+      TIFFSetFileNo(Tiff, THandle(@IOWrapper))
     else
+      Exit;
+
+    NumDirectories := TIFFNumberOfDirectories(Tiff);
+    if OnlyFirstLevel then
+      NumDirectories := Min(1, NumDirectories);
+
+    SetLength(Images, NumDirectories);
+
+    for Idx := 0 to NumDirectories - 1 do
     begin
-      // Create new image in given format and read scanlines from TIFF,
-      // read palette too if needed
-      NewImage(Images[Idx].Width, Images[Idx].Height, DataFormat, Images[Idx]);
-      ScanLineSize := TIFFScanlineSize(Tiff);
+      TIFFSetDirectory(Tiff, Idx);
 
-      for I := 0 to Images[Idx].Height - 1 do
-        TIFFReadScanline(Tiff, @PByteArray(Images[Idx].Bits)[I * ScanLineSize], I, 0);
+      // Set defaults for TIFF fields
+      DataFormat := ifUnknown;
 
-      if DataFormat = ifIndex8 then
+      // Read some TIFF fields with basic image info
+      TIFFGetField(Tiff, TIFFTAG_IMAGEWIDTH, @Images[Idx].Width);
+      TIFFGetField(Tiff, TIFFTAG_IMAGELENGTH, @Images[Idx].Height);
+      TIFFGetFieldDefaulted(Tiff, TIFFTAG_ORIENTATION, @Orientation);
+      TIFFGetFieldDefaulted(Tiff, TIFFTAG_BITSPERSAMPLE, @BitsPerSample);
+      TIFFGetFieldDefaulted(Tiff, TIFFTAG_SAMPLESPERPIXEL, @SamplesPerPixel);
+      TIFFGetFieldDefaulted(Tiff, TIFFTAG_SAMPLEFORMAT, @SampleFormat);
+      TIFFGetFieldDefaulted(Tiff, TIFFTAG_PHOTOMETRIC, @Photometric);
+      TIFFGetFieldDefaulted(Tiff, TIFFTAG_PLANARCONFIG, @PlanarConfig);
+      TIFFGetFieldDefaulted(Tiff, TIFFTAG_ROWSPERSTRIP, @RowsPerStrip);
+
+      // Load supported metadata
+      LoadMetadata(Tiff, Idx);
+      // See if we can just copy scanlines from TIFF to Imaging image
+      CanAccessScanlines := (PlanarConfig = PLANARCONFIG_CONTIG) or (SamplesPerPixel = 1);
+
+      if CanAccessScanlines then
       begin
-        TIFFGetField(Tiff, TIFFTAG_COLORMAP, @Red, @Green, @Blue);
-        for I := 0 to 255 do
-        with Images[Idx].Palette[I] do
+        // We can copy scanlines so we try to find data format that best matches
+        // TIFFs internal data format
+        if (Photometric = PHOTOMETRIC_MINISBLACK) or (Photometric = PHOTOMETRIC_MINISWHITE) then
         begin
-          A := 255;
-          R := Red[I].High;
-          G := Green[I].High;
-          B := Blue[I].High;
+          if SampleFormat = SAMPLEFORMAT_UINT then
+          begin
+            case BitsPerSample of
+               1:
+                 if SamplesPerPixel = 1 then
+                   DataFormat := ifBinary;
+               8:
+                 case SamplesPerPixel of
+                   1: DataFormat := ifGray8;
+                   2: DataFormat := ifA8Gray8;
+                 end;
+              16:
+                 case SamplesPerPixel of
+                   1: DataFormat := ifGray16;
+                   2: DataFormat := ifA16Gray16;
+                 end;
+              32:
+                 if SamplesPerPixel = 1 then
+                   DataFormat := ifGray32;
+            end;
+          end
+          else if SampleFormat = SAMPLEFORMAT_IEEEFP then
+          begin
+            case BitsPerSample of
+              16:
+                 if SamplesPerPixel = 1 then
+                   DataFormat := ifR16F;
+              32:
+                 if SamplesPerPixel = 1 then
+                   DataFormat := ifR32F;
+            end;
+          end;
+        end
+        else if Photometric = PHOTOMETRIC_RGB then
+        begin
+          if SampleFormat = SAMPLEFORMAT_UINT then
+          begin
+            case BitsPerSample of
+               8:
+                 case SamplesPerPixel of
+                   3: DataFormat := ifR8G8B8;
+                   4: DataFormat := ifA8R8G8B8;
+                 end;
+              16:
+                 case SamplesPerPixel of
+                   3: DataFormat := ifR16G16B16;
+                   4: DataFormat := ifA16R16G16B16;
+                 end;
+            end;
+          end
+          else if SampleFormat = SAMPLEFORMAT_IEEEFP then
+          begin
+            case BitsPerSample of
+              16:
+                 if SamplesPerPixel = 4 then
+                   DataFormat := ifA16R16G16B16F;
+              32:
+                 if SamplesPerPixel = 4 then
+                   DataFormat := ifA32R32G32B32F;
+            end;
+          end;
+        end
+        else if Photometric = PHOTOMETRIC_PALETTE then
+        begin
+          if (SamplesPerPixel = 1) and (SampleFormat = SAMPLEFORMAT_UINT) and (BitsPerSample = 8) then
+            DataFormat := ifIndex8
         end;
       end;
 
-      // TIFF uses BGR order so we must swap it (but not images we got
-      // from TiffLib RGBA interface)
-      if Photometric = PHOTOMETRIC_RGB then
-        SwapChannels(Images[Idx], ChannelRed, ChannelBlue);
+      if DataFormat = ifUnknown then
+      begin
+        // Use RGBA interface to read A8R8G8B8 TIFFs and mainly TIFFs in various
+        // formats with no Imaging equivalent, exotic color spaces etc.
+        NewImage(Images[Idx].Width, Images[Idx].Height, ifA8R8G8B8, Images[Idx]);
+        TiffResult := TIFFReadRGBAImageOriented(Tiff, Images[Idx].Width, Images[Idx].Height,
+          Images[Idx].Bits, Orientation, 0);
+        if TiffResult = 0 then
+          RaiseImaging(LastError, []);
+        // Swap Red and Blue, if YCbCr.
+        if Photometric = PHOTOMETRIC_YCBCR then
+          SwapChannels(Images[Idx], ChannelRed, ChannelBlue);
+      end
+      else
+      begin
+        // Create new image in given format and read scanlines from TIFF,
+        // read palette too if needed
+        NewImage(Images[Idx].Width, Images[Idx].Height, DataFormat, Images[Idx]);
+        ScanLineSize := TIFFScanlineSize(Tiff);
 
-      // We need to negate 'MinIsWhite' formats to get common grayscale
-      // formats where min sample value is black
-      if Photometric = PHOTOMETRIC_MINISWHITE then
         for I := 0 to Images[Idx].Height - 1 do
+          TIFFReadScanline(Tiff, @PByteArray(Images[Idx].Bits)[I * ScanLineSize], I, 0);
+
+        if DataFormat = ifIndex8 then
         begin
-          Ptr := @PByteArray(Images[Idx].Bits)[I * ScanLineSize];
-          for X := 0 to ScanLineSize - 1 do
+          TIFFGetField(Tiff, TIFFTAG_COLORMAP, @Red, @Green, @Blue);
+          for I := 0 to 255 do
+          with Images[Idx].Palette[I] do
           begin
-            Ptr^ := not Ptr^;
-            Inc(Ptr);
+            A := 255;
+            R := Red[I].High;
+            G := Green[I].High;
+            B := Blue[I].High;
           end;
         end;
+
+        // TIFF uses BGR order so we must swap it (but not images we got
+        // from TiffLib RGBA interface)
+        if Photometric = PHOTOMETRIC_RGB then
+          SwapChannels(Images[Idx], ChannelRed, ChannelBlue);
+
+        // We need to negate 'MinIsWhite' formats to get common grayscale
+        // formats where min sample value is black
+        if Photometric = PHOTOMETRIC_MINISWHITE then
+          for I := 0 to Images[Idx].Height - 1 do
+          begin
+            Ptr := @PByteArray(Images[Idx].Bits)[I * ScanLineSize];
+            for X := 0 to ScanLineSize - 1 do
+            begin
+              Ptr^ := not Ptr^;
+              Inc(Ptr);
+            end;
+          end;
+      end;
     end;
+  except
+    //TIFFClose(Tiff);
+    FreeMem(Tiff);
+    Tiff:=nil;
+    RaiseImaging('LibTIFF load error');
+    exit;
   end;
 
   TIFFClose(Tiff);

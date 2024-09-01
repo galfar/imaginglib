@@ -785,55 +785,57 @@ begin
   if num<2 then exit;
 
   m:=AllocMem(num*width);
-
-  if compare(base,Pointer(Ptruint(base)+width))<=0 then
-    Move(base^,m^,(width shl 1))
-  else
-  begin
-    Move(Pointer(Ptruint(base)+width)^,m^,width);
-    Move(base^,Pointer(Ptruint(m)+width)^,width);
-  end;
-  n:=2;
-  while Ptruint(n)<num do
-  begin
-    o:=Pointer(Ptruint(base)+Ptruint(n)*width);
-    if compare(m,o)>=0 then
-      ob:=0
+  try
+    if compare(base,Pointer(Ptruint(base)+width))<=0 then
+      Move(base^,m^,(width shl 1))
     else
     begin
-      oa:=0;
-      ob:=n;
-      while oa+1<ob do
+      Move(Pointer(Ptruint(base)+width)^,m^,width);
+      Move(base^,Pointer(Ptruint(m)+width)^,width);
+    end;
+    n:=2;
+    while Ptruint(n)<num do
+    begin
+      o:=Pointer(Ptruint(base)+Ptruint(n)*width);
+      if compare(m,o)>=0 then
+        ob:=0
+      else
       begin
-        oc:=((oa+ob) shr 1);
-        p:=compare(Pointer(Ptruint(m)+Ptruint(oc)*width),o);
-        if p<0 then
-          oa:=oc
-        else if p=0 then
+        oa:=0;
+        ob:=n;
+        while oa+1<ob do
         begin
-          ob:=oc;
-          break;
-        end
-        else
-          ob:=oc;
+          oc:=((oa+ob) shr 1);
+          p:=compare(Pointer(Ptruint(m)+Ptruint(oc)*width),o);
+          if p<0 then
+            oa:=oc
+          else if p=0 then
+          begin
+            ob:=oc;
+            break;
+          end
+          else
+            ob:=oc;
+        end;
       end;
+      if ob=0 then
+      begin
+        Move(m^,Pointer(Ptruint(m)+width)^,Ptruint(n)*width);
+        Move(o^,m^,width);
+      end
+      else if ob=n then
+        Move(o^,Pointer(Ptruint(m)+Ptruint(n)*width)^,width)
+      else
+      begin
+        Move(Pointer(Ptruint(m)+Ptruint(ob)*width)^,Pointer(Ptruint(m)+Ptruint(ob+1)*width)^,Ptruint(n-ob)*width);
+        Move(o^,Pointer(Ptruint(m)+Ptruint(ob)*width)^,width);
+      end;
+      Inc(n);
     end;
-    if ob=0 then
-    begin
-      Move(m^,Pointer(Ptruint(m)+width)^,Ptruint(n)*width);
-      Move(o^,m^,width);
-    end
-    else if ob=n then
-      Move(o^,Pointer(Ptruint(m)+Ptruint(n)*width)^,width)
-    else
-    begin
-      Move(Pointer(Ptruint(m)+Ptruint(ob)*width)^,Pointer(Ptruint(m)+Ptruint(ob+1)*width)^,Ptruint(n-ob)*width);
-      Move(o^,Pointer(Ptruint(m)+Ptruint(ob)*width)^,width);
-    end;
-    Inc(n);
+    system.Move(m^,base^,num*width);
+  finally
+    FreeMem(m,num*width);
   end;
-  system.Move(m^,base^,num*width);
-  FreeMem(m,num*width);
 end;
 
 function _TIFFrealloc(p: Pointer; s: tmsize_t): Pointer; cdecl;

@@ -663,7 +663,7 @@ begin
       FillFileList(Counter)
   else
     Files.AddStrings(Folders);
-  Folders.Free;
+  FreeAndNil(Folders);
   Result := True;
 end;
 
