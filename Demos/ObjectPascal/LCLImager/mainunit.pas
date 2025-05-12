@@ -40,6 +40,7 @@ uses
   ImagingComponents,
   ImagingCanvases,
   ImagingBinary,
+  ImagingColors,
   ImagingUtility;
 
 type

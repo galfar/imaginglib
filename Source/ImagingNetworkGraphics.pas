@@ -153,6 +153,7 @@ uses
 {$IFNDEF DONT_LINK_JNG}
   ImagingJpeg, ImagingIO,
 {$ENDIF}
+  ImagingColors,
   ImagingCanvases;
 
 const

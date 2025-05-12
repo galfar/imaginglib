@@ -45,6 +45,7 @@ uses
   Imaging,
   ImagingClasses,
   ImagingComponents,
+  ImagingColors,
   ImagingCanvases,
   ImagingFormats,
   ImagingUtility;

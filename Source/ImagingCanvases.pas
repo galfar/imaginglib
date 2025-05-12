@@ -21,27 +21,6 @@ uses
   ImagingFormats, ImagingUtility;
 
 const
-  { Color constants in ifA8R8G8B8 format.}
-  pcClear   = $00000000;
-  pcBlack   = $FF000000;
-  pcWhite   = $FFFFFFFF;
-  pcMaroon  = $FF800000;
-  pcGreen   = $FF008000;
-  pcOlive   = $FF808000;
-  pcNavy    = $FF000080;
-  pcPurple  = $FF800080;
-  pcTeal    = $FF008080;
-  pcGray    = $FF808080;
-  pcSilver  = $FFC0C0C0;
-  pcRed     = $FFFF0000;
-  pcLime    = $FF00FF00;
-  pcYellow  = $FFFFFF00;
-  pcBlue    = $FF0000FF;
-  pcFuchsia = $FFFF00FF;
-  pcAqua    = $FF00FFFF;
-  pcLtGray  = $FFC0C0C0;
-  pcDkGray  = $FF808080;
-
   MaxPenWidth = 256;
 
 type
@@ -550,6 +529,9 @@ function FindBestCanvasForImage(const ImageData: TImageData): TImagingCanvasClas
 function FindBestCanvasForImage(Image: TBaseImage): TImagingCanvasClass; overload;
 
 implementation
+
+uses
+  ImagingColors;
 
 resourcestring
   SConstructorInvalidPointer = 'Invalid pointer (%p) to TImageData passed to TImagingCanvas constructor.';

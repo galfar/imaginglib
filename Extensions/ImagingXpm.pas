@@ -17,7 +17,7 @@ interface
 
 uses
   SysUtils, Classes, Contnrs, ImagingTypes, Imaging, ImagingUtility,
-  ImagingFormats, ImagingIO, ImagingCanvases;
+  ImagingFormats, ImagingIO;
 
 type
   { Class for loading X Window Pixmap images known as XPM.
@@ -38,6 +38,9 @@ type
   end;
 
 implementation
+
+uses
+  ImagingColors;
 
 const
   SXPMFormatName = 'X Window Pixmap';

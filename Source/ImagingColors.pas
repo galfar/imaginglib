@@ -19,6 +19,28 @@ interface
 uses
   SysUtils, ImagingTypes, ImagingUtility;
 
+const
+  { Color constants in ifA8R8G8B8 format.}
+  pcClear   = $00000000;
+  pcBlack   = $FF000000;
+  pcWhite   = $FFFFFFFF;
+  pcMaroon  = $FF800000;
+  pcGreen   = $FF008000;
+  pcOlive   = $FF808000;
+  pcNavy    = $FF000080;
+  pcPurple  = $FF800080;
+  pcTeal    = $FF008080;
+  pcGray    = $FF808080;
+  pcSilver  = $FFC0C0C0;
+  pcRed     = $FFFF0000;
+  pcLime    = $FF00FF00;
+  pcYellow  = $FFFFFF00;
+  pcBlue    = $FF0000FF;
+  pcFuchsia = $FFFF00FF;
+  pcAqua    = $FF00FFFF;
+  pcLtGray  = $FFC0C0C0;
+  pcDkGray  = $FF808080;
+
 { Converts RGB color to YUV.}
 procedure RGBToYUV(R, G, B: Byte; var Y, U, V: Byte);
 { Converts YIV to RGB color.}
