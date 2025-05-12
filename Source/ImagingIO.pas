@@ -53,12 +53,36 @@ type
     class function CreateFromIOHandle(const IOFunctions: TIOFunctions; Handle: TImagingHandle): TReadMemoryStream;
   end;
 
+  { A TStream descendant that wraps an existing TIOFunctions record and TImagingHandle.
+    It translates TStream methods (Read, Write, Seek) into calls to the
+    corresponding functions in the TIOFunctions record.
+    Note: This stream does not own or manage the lifetime of the TImagingHandle.
+          Closing the handle must be done externally using the appropriate TCloseProc.
+    Note: Resizing the stream is not supported. }
   TImagingIOStream = class(TStream)
   private
     FIO: TIOFunctions;
     FHandle: TImagingHandle;
+    FSize: Int64;
+  protected
+    function GetSize: Int64; override;
+    procedure SetSize(const NewSize: Int64); override;
   public
-    constructor Create(const IOFunctions: TIOFunctions; Handle: TImagingHandle);
+    { Creates a stream wrapper around existing IO functions and handle.
+      The handle must already be opened. The stream does NOT close the handle
+      when destroyed. }
+    constructor Create(const AIOFunctions: TIOFunctions; AHandle: TImagingHandle);
+
+    function Read(var Buffer; Count: LongInt): LongInt; override;
+    function Write(const Buffer; Count: LongInt): LongInt; override;
+    function Seek(const Offset: Int64; Origin: TSeekOrigin): Int64; override;
+
+{$IFNDEF FPC}
+    function ReadByte: Byte; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{$ENDIF}
+
+    property Handle: TImagingHandle read FHandle;
+    property IOFunctions: TIOFunctions read FIO;
   end;
 
 implementation
@@ -340,6 +364,65 @@ begin
   end;
 end;
 
+{ TImagingIOStream }
+
+constructor TImagingIOStream.Create(const AIOFunctions: TIOFunctions; AHandle: TImagingHandle);
+begin
+  inherited Create;
+  if (AHandle = nil) or
+    not Assigned(AIOFunctions.Read) or
+    not Assigned(AIOFunctions.Write) or
+    not Assigned(AIOFunctions.Seek) or
+    not Assigned(AIOFunctions.Tell) then
+  begin
+    raise EStreamError.Create('Invalid TIOFunctions or TImagingHandle provided');
+  end;
+
+  FIO := AIOFunctions;
+  FHandle := AHandle;
+  FSize := GetInputSize(FIO, FHandle);
+end;
+
+function TImagingIOStream.GetSize: Int64;
+begin
+  Result := FSize;
+end;
+
+procedure TImagingIOStream.SetSize(const NewSize: Int64);
+begin
+  raise EStreamError.CreateFmt('%s does not support SetSize', [ClassName]);
+end;
+
+function TImagingIOStream.Read(var Buffer; Count: LongInt): LongInt;
+begin
+  Result := 0;
+  if Count < 0 then raise EStreamError.Create('Read count cannot be negative');
+  if Count = 0 then Exit;
+
+  Result := FIO.Read(FHandle, @Buffer, Count);
+end;
+
+function TImagingIOStream.Write(const Buffer; Count: LongInt): LongInt;
+begin
+  Result := 0;
+  if Count < 0 then raise EStreamError.Create('Write count cannot be negative');
+  if Count = 0 then Exit;
+
+  Result := FIO.Write(FHandle, @Buffer, Count);
+end;
+
+function TImagingIOStream.Seek(const Offset: Int64; Origin: TSeekOrigin): Int64;
+begin
+  Result := FIO.Seek(FHandle, Offset, TSeekMode(Origin));
+end;
+
+{$IFNDEF FPC}
+function TImagingIOStream.ReadByte: Byte;
+begin
+  ReadBuffer(Result, 1);
+end;
+{$ENDIF}
+
 { File IO functions }
 
 function FileOpen(FileName: PChar; Mode: TOpenMode): TImagingHandle; cdecl;
@@ -595,13 +678,6 @@ begin
   Result := TReadMemoryStream.Create(Data, Size);
 end;
 
-{ TImagingIOStream }
-
-constructor TImagingIOStream.Create(const IOFunctions: TIOFunctions;
-  Handle: TImagingHandle);
-begin
-
-end;
 
 initialization
   OriginalFileIO.Open := FileOpen;
