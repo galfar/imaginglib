@@ -456,10 +456,6 @@ type
                                       // as source/target
   end;
 
-  { Handle to list of image data records.}
-  TImageDataList = Pointer;
-  PImageDataList = ^TImageDataList;
-
   { Handle to input/output.}
   TImagingHandle = Pointer;
 

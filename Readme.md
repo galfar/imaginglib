@@ -29,6 +29,7 @@ Status
 Imaging started almost 20 years ago and since 2009 it is more or less in maintenance mode without big new features being added.
 Anyway, it is still alive, updated to work with current compilers and platforms, and here and there a new feature gets in. Documentation can be pretty outdated though.
 
+**Still compiles with Delphi 7**, and also with the latest Delphi and FPC.
 
 Features
 --------------------------
