@@ -5,11 +5,11 @@ Vampyre Imaging Library
 
 Object Pascal image loading, saving, and manipulation library.
 
-<https://github.com/galfar/imaginglib>  
+<https://github.com/galfar/imaginglib>
 
-Homepage: <https://imaginglib.sourceforge.io>  
-Issues: <https://github.com/galfar/imaginglib/issues>  
-Discuss: <https://github.com/galfar/imaginglib/discussions>  
+Homepage: <https://imaginglib.sourceforge.io>
+Issues: <https://github.com/galfar/imaginglib/issues>
+Discuss: <https://github.com/galfar/imaginglib/discussions>
 
 Overview
 --------------------------
@@ -38,9 +38,9 @@ Loading and saving of these image file formats:
 - PNG/APNG, MNG, JNG
 - JPEG
 - GIF
-- DDS, HDR
-- TGA, BMP 
-- PCX, XPM, PNM/PPM
+- DDS, QOI, HDR
+- TGA, BMP
+- PCX, XPM, PNM/PPM, PSD
 - TIFF, JPEG2000 (not native Pascal, depends on platform)
 - and more
 

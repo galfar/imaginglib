@@ -36,6 +36,7 @@
 {.$DEFINE DONT_LINK_JNG}         // link support for JNG images
 {.$DEFINE DONT_LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
 {.$DEFINE DONT_LINK_RADHDR}      // link support for Radiance HDR/RGBE file format
+{.$DEFINE DONT_LINK_QOI}         // link support for Quite OK Image Format
 
 {.$DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
                              // Extensions package. Exactly which formats will be
@@ -70,7 +71,7 @@
   {$DEFINE DELPHI}
   {$IF (Defined(DCC) and (CompilerVersion >= 25.0))}
     {$LEGACYIFEND ON}
-  {$IFEND}  
+  {$IFEND}
 {$ENDIF}
 
 {$IF (Defined(DCC) and (CompilerVersion >= 18.5))}
@@ -80,6 +81,10 @@
                    // is currently set we undef DEBUG mode
   {$ENDIF}
 {$IFEND}
+
+{$IFDEF DEBUG}
+  {$DEFINE IMAGING_DEBUG}
+{$ENDIF}
 
 {$IF Defined(IMAGING_DEBUG)}
   {$ASSERTIONS ON}

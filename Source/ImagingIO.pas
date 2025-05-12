@@ -79,6 +79,7 @@ type
 
 {$IFNDEF FPC}
     function ReadByte: Byte; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    procedure WriteByte(Value: Byte); {$IFDEF USE_INLINE}inline;{$ENDIF}
 {$ENDIF}
 
     property Handle: TImagingHandle read FHandle;
@@ -420,6 +421,11 @@ end;
 function TImagingIOStream.ReadByte: Byte;
 begin
   ReadBuffer(Result, 1);
+end;
+
+procedure TImagingIOStream.WriteByte(Value: Byte);
+begin
+  WriteBuffer(Value, 1);
 end;
 {$ENDIF}
 

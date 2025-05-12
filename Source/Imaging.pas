@@ -698,6 +698,9 @@ uses
 {$IFNDEF DONT_LINK_DDS}
   ImagingDds,
 {$ENDIF}
+{$IFNDEF DONT_LINK_QOI}
+  ImagingQoi,
+{$ENDIF}
 {$IFNDEF DONT_LINK_TARGA}
   ImagingTarga,
 {$ENDIF}
