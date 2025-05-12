@@ -191,11 +191,16 @@ type
   {$IF CompilerVersion <= 18.5}
     PtrUInt = Cardinal;
     PtrInt = Integer;
-    { Some new Delphi platforms have 64bit LongInt/LongWord so rather use
-      Int32/UInt32 where you really want 32bits. }
+    { Some new Delphi platforms (64bit POSIX) have 64bit LongInt/LongWord so rather use
+      Int32/UInt32 where you really want 32bits.
+      FPC has LongInt always 32 bit. }
     Int32 = Integer;
     UInt32 = Cardinal;
     Int16 = SmallInt;
+    { In Delphi 7-2007 NativeInt is incorrectly defined to have size of 8 bytes,
+      redeclare it correctly. }
+    NativeInt = Integer;
+    NativeUInt = Cardinal;
   {$ELSE}
     PtrUInt = NativeUInt;
     PtrInt = NativeInt;
@@ -255,7 +260,7 @@ type
     ifATI2N          = 205,
     ifBinary         = 206,
     { Passthrough formats }
-    {ifETC1           = 220,
+    {ifETC1          = 220,
     ifETC2RGB        = 221,
     ifETC2RGBA       = 222,
     ifETC2PA         = 223,
@@ -275,7 +280,7 @@ type
   { Color record for 24 bit images, which allows access to individual color
     channels.}
   TColor24Rec = packed record
-    case LongInt of
+    case Byte of
       0: (B, G, R: Byte);
       1: (Channels: array[0..2] of Byte);
   end;
@@ -286,7 +291,7 @@ type
   { Color record for 32 bit images, which allows access to individual color
     channels.}
   TColor32Rec = packed record
-    case LongInt of
+    case Byte of
       0: (Color: TColor32);
       1: (B, G, R, A: Byte);
       2: (Channels: array[0..3] of Byte);
@@ -299,7 +304,7 @@ type
   { Color record for 48 bit images, which allows access to individual color
     channels.}
   TColor48Rec = packed record
-    case LongInt of
+    case Byte of
       0: (B, G, R: Word);
       1: (Channels: array[0..2] of Word);
   end;
@@ -310,7 +315,7 @@ type
   { Color record for 64 bit images, which allows access to individual color
     channels.}
   TColor64Rec = packed record
-    case LongInt of
+    case Byte of
       0: (Color: TColor64);
       1: (B, G, R, A: Word);
       2: (Channels: array[0..3] of Word);
@@ -323,7 +328,7 @@ type
   { Color record for 96 bit floating point images, which allows access to
     individual color channels.}
   TColor96FPRec = packed record
-    case Integer of
+    case Byte of
       0: (B, G, R: Single);
       1: (Channels: array[0..2] of Single);
   end;
@@ -334,7 +339,7 @@ type
   { Color record for 128 bit floating point images, which allows access to
     individual color channels.}
   TColorFPRec = packed record
-    case LongInt of
+    case Byte of
       0: (B, G, R, A: Single);
       1: (Channels: array[0..3] of Single);
       2: (Color96Rec: TColor96FPRec);
@@ -351,7 +356,7 @@ type
   { Color record for 64 bit floating point images, which allows access to
     individual color channels.}
   TColorHFRec = packed record
-    case LongInt of
+    case Byte of
       0: (B, G, R, A: THalfFloat);
       1: (Channels: array[0..3] of THalfFloat);
   end;
@@ -369,12 +374,25 @@ type
   TPalette24Size256 = array[0..255] of TColor24Rec;
   PPalette24 = ^TPalette24;
 
-  { Record that stores single image data and information describing it.}
+  { Record that stores single image data and information describing it.
+    Width and Height are 32 bit integers, the image size in bytes is Int64
+    (for older Delphi without UInt64) but total number of pixels
+    should still fit into 32 bits for safety - not all code (e.g. iterating over NumPixels)
+    has been updated yet.
+    The types used should be:
+      - width and height: Integer (32 bit always)
+      - size in bytes: Int64
+      - num pixels: NativeInt (so older Delphi can use it in for loops)
+
+    Remember, that in Pascal when multiplying integers you need to cast (one or all operands,
+    not the result!) to 64 bit even when the receiveng variable is 64 bit:
+      Size64 := Int64(Width) * Height * Bpp;
+    }
   TImageData = packed record
-    Width: LongInt;       // Width of image in pixels
-    Height: LongInt;      // Height of image in pixels
+    Width: Integer;       // Width of image in pixels
+    Height: Integer;      // Height of image in pixels
     Format: TImageFormat; // Data format of image
-    Size: LongInt;        // Size of image bits in Bytes
+    Size: Int64;          // Size of image bits in Bytes
     Bits: Pointer;        // Pointer to memory containing image bits
     Palette: PPalette32;  // Image palette for indexed images
     Tag: Pointer;         // User data
@@ -395,10 +413,10 @@ type
 
   { Look at TImageFormatInfo.GetPixelsSize for details.}
   TFormatGetPixelsSizeFunc = function(Format: TImageFormat; Width,
-    Height: LongInt): LongInt;
+    Height: Integer): Int64;
   { Look at TImageFormatInfo.CheckDimensions for details.}
   TFormatCheckDimensionsProc = procedure(Format: TImageFormat; var Width,
-    Height: LongInt);
+    Height: Integer);
   { Function for getting pixel colors. Native pixel is read from Image and
     then translated to 32 bit ARGB.}
   TGetPixel32Func = function(Bits: Pointer; Info: PImageFormatInfo;
@@ -420,12 +438,12 @@ type
   TImageFormatInfo = packed record
     Format: TImageFormat;             // Format described by this record
     Name: array[0..15] of Char;       // Symbolic name of format
-    BytesPerPixel: LongInt;           // Number of bytes per pixel (note: it is
+    BytesPerPixel: Byte;              // Number of bytes per pixel (note: it is
                                       // 0 for formats where BitsPerPixel < 8 (e.g. DXT).
                                       // Use GetPixelsSize function to get size of
                                       // image data.
-    ChannelCount: LongInt;            // Number of image channels (R, G, B, A, Gray)
-    PaletteEntries: LongInt;          // Number of palette entries
+    ChannelCount: Byte;               // Number of image channels (R, G, B, A, Gray)
+    PaletteEntries: Word;             // Number of palette entries
     HasGrayChannel: Boolean;          // True if image has grayscale channel
     HasAlphaChannel: Boolean;         // True if image has alpha channel
     IsFloatingPoint: Boolean;         // True if image has floating point pixels

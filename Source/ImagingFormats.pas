@@ -176,7 +176,7 @@ procedure VisualizePalette(Pal: PPalette32; Entries: Integer; out PalImage: TIma
 
 type
   TPointRec = record
-    Pos: LongInt;
+    Pos: Integer;
     Weight: Single;
   end;
   TCluster = array of TPointRec;
@@ -323,21 +323,21 @@ implementation
 
 { Returns size in bytes of image in given standard format where
   Size = Width * Height * Bpp.}
-function GetStdPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
+function GetStdPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64; forward;
 { Checks if Width and Height are valid for given standard format.}
-procedure CheckStdDimensions(Format: TImageFormat; var Width, Height: LongInt); forward;
+procedure CheckStdDimensions(Format: TImageFormat; var Width, Height: Integer); forward;
 { Returns size in bytes of image in given DXT format.}
-function GetDXTPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
+function GetDXTPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64; forward;
 { Checks if Width and Height are valid for given DXT format. If they are
   not valid, they are changed to pass the check.}
-procedure CheckDXTDimensions(Format: TImageFormat; var Width, Height: LongInt); forward;
+procedure CheckDXTDimensions(Format: TImageFormat; var Width, Height: Integer); forward;
 { Returns size in bytes of image in BTC format.}
-function GetBTCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
+function GetBTCPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64; forward;
 { Returns size in bytes of image in binary format (1bit image).}
-function GetBinaryPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
+function GetBinaryPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64; forward;
 
-function GetBCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt; forward;
-procedure CheckBCDimensions(Format: TImageFormat; var Width, Height: LongInt); forward;
+function GetBCPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64; forward;
+procedure CheckBCDimensions(Format: TImageFormat; var Width, Height: Integer); forward;
 
 
 { Optimized pixel readers/writers for 32bit and FP colors to be stored in TImageFormatInfo }
@@ -1094,7 +1094,7 @@ type
   PColorBin = ^TColorBin;
   TColorBin = record
     Color: TColor32Rec;
-    Number: LongInt;
+    Number: Integer;
     Next: PColorBin;
   end;
 
@@ -1104,8 +1104,8 @@ type
     AMin, AMax,
     RMin, RMax,
     GMin, GMax,
-    BMin, BMax: LongInt;
-    Total: LongInt;
+    BMin, BMax: Integer;
+    Total: Integer;
     Represented: TColor32Rec;
     List: PColorBin;
   end;
@@ -1113,7 +1113,7 @@ type
 var
   Table: THashTable;
   Box: array[0..MaxPossibleColors - 1] of TColorBox;
-  Boxes: LongInt;
+  Boxes: Integer;
 
 procedure ReduceColorsMedianCut(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; MaxColors: LongInt; ChannelMask: Byte;
@@ -4118,57 +4118,57 @@ begin
   end;
 end;
 
-function GetStdPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+function GetStdPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64;
 begin
   if FInfos[Format] <> nil then
-    Result := Width * Height * FInfos[Format].BytesPerPixel
+    Result := Int64(Width) * Height * FInfos[Format].BytesPerPixel
   else
     Result := 0;
 end;
 
-procedure CheckStdDimensions(Format: TImageFormat; var Width, Height: LongInt);
+procedure CheckStdDimensions(Format: TImageFormat; var Width, Height: Integer);
 begin
 end;
 
-function GetDXTPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+function GetDXTPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64;
 begin
   // DXT can be used only for images with dimensions that are
   // multiples of four
   CheckDXTDimensions(Format, Width, Height);
-  Result := Width * Height;
+  Result := Int64(Width) * Height;
   if Format in [ifDXT1, ifATI1N] then
     Result := Result div 2;
 end;
 
-procedure CheckDXTDimensions(Format: TImageFormat; var Width, Height: LongInt);
+procedure CheckDXTDimensions(Format: TImageFormat; var Width, Height: Integer);
 begin
   // DXT image dimensions must be multiples of four
   Width := (Width + 3) and not 3; // div 4 * 4;
   Height := (Height + 3) and not 3; // div 4 * 4;
 end;
 
-function GetBTCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+function GetBTCPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64;
 begin
   // BTC can be used only for images with dimensions that are
   // multiples of four
   CheckDXTDimensions(Format, Width, Height);
-  Result := Width * Height div 4; // 2bits/pixel
+  Result := Int64(Width) * Height div 4; // 2bits/pixel
 end;
 
-function GetBCPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+function GetBCPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64;
 begin
   raise ENotImplemented.Create();
 end;
 
-procedure CheckBCDimensions(Format: TImageFormat; var Width, Height: LongInt);
+procedure CheckBCDimensions(Format: TImageFormat; var Width, Height: Integer);
 begin
   raise ENotImplemented.Create();
 end;
 
-function GetBinaryPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+function GetBinaryPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64;
 begin
   // Binary images are aligned on BYTE boundary
-  Result := ((Width + 7) div 8) * Height; // 1bit/pixel
+  Result := ((Width + 7) div 8) * Int64(Height); // 1bit/pixel
 end;
 
 { Optimized pixel readers/writers for 32bit and FP colors to be stored in TImageFormatInfo }
@@ -4348,9 +4348,6 @@ initialization
 
 {
   File Notes:
-
-  -- TODOS ----------------------------------------------------
-    - nothing now
 
   -- 0.80 -------------------------------------------------------
     - Added PaletteIsGrayScale and Color32ToGray functions.

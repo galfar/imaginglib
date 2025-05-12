@@ -24,7 +24,7 @@ type
   TMemoryIORec = record
     Data: ImagingUtility.PByteArray;
     Position: LongInt;
-    Size: LongInt;
+    Size: Int64;
   end;
   PMemoryIORec = ^TMemoryIORec;
 
@@ -38,7 +38,7 @@ var
   represented by Handle (and opened and operated on by members of IOFunctions).}
 function GetInputSize(const IOFunctions: TIOFunctions; Handle: TImagingHandle): Int64;
 { Helper function that initializes TMemoryIORec with given params.}
-function PrepareMemIO(Data: Pointer; Size: LongInt): TMemoryIORec;
+function PrepareMemIO(Data: Pointer; const Size: Int64): TMemoryIORec;
 { Reads one text line from input (CR+LF, CR, or LF as line delimiter).}
 function ReadLine(const IOFunctions: TIOFunctions; Handle: TImagingHandle;
   out Line: AnsiString; FailOnControlChars: Boolean = False): Boolean;
@@ -594,7 +594,7 @@ begin
   IOFunctions.Seek(Handle, OldPos, smFromBeginning);
 end;
 
-function PrepareMemIO(Data: Pointer; Size: LongInt): TMemoryIORec;
+function PrepareMemIO(Data: Pointer; const Size: Int64): TMemoryIORec;
 begin
   Result.Data := Data;
   Result.Position := 0;

@@ -123,7 +123,7 @@ function TQoiFileFormat.LoadData(Handle: TImagingHandle;
 var
   Header: TQoiHeader;
   Stream: TImagingIOStream;
-  PixelsTotal, PixelIndex: Int64;
+  NumPixels, PixelIndex: NativeInt;
   RunLength: Integer;
   Index: array[0..63] of TColor32Rec; // Running index of recently seen colors
   Pixel, PrevPixel: TColor32Rec;
@@ -165,11 +165,11 @@ begin
     Pixel := PrevPixel;
 
     DestPtr := Bits;
-    PixelsTotal := Int64(Header.Width) * Header.Height;
+    NumPixels := NativeInt(Header.Width) * Header.Height;
     PixelIndex := 0;
     RunLength := 0;
 
-    while PixelIndex < PixelsTotal do
+    while PixelIndex < NumPixels do
     begin
       if RunLength > 0 then // Handle pending run
       begin
@@ -253,7 +253,7 @@ begin
 
     Stream.Seek(QoiPaddingSize, soFromCurrent);
 
-    Result := (PixelIndex = PixelsTotal); // Check if all pixels were decoded
+    Result := (PixelIndex = NumPixels); // Check if all pixels were decoded
   finally
     Stream.Free;
   end;
@@ -267,7 +267,7 @@ var
   MustBeFreed: Boolean;
   Header: TQoiHeader;
   RunLength: Integer;
-  PixelsTotal, PixelIndex: Int64;
+  NumPixels, PixelIndex: NativeInt;
   ColorsIndex: array[0..63] of TColor32Rec; // Running index of colors
   Pixel, PrevPixel: TColor32Rec;
   SrcPtr: PByte;
@@ -308,9 +308,9 @@ begin
     RunLength := 0;
 
     SrcPtr := ImageToSave.Bits;
-    PixelsTotal := Int64(ImageToSave.Width) * ImageToSave.Height;
+    NumPixels := NativeInt(ImageToSave.Width) * ImageToSave.Height;
 
-    for PixelIndex := 0 to PixelsTotal - 1 do
+    for PixelIndex := 0 to NumPixels - 1 do
     begin
       // Read pixel from source TImageData
       if Header.Channels = 4 then
@@ -331,7 +331,7 @@ begin
       begin
         Inc(RunLength);
 
-        if (RunLength = 62) or (PixelIndex = (PixelsTotal - 1)) then
+        if (RunLength = 62) or (PixelIndex = (NumPixels - 1)) then
         begin
           // Max run length or EOF, write QOI_OP_RUN
           B1 := QOI_OP_RUN or (RunLength - 1);

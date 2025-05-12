@@ -31,7 +31,7 @@ type
     FOnPixelsChanged: TNotifyEvent;
     function GetFormat: TImageFormat; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetHeight: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
-    function GetSize: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetSize: Int64; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetWidth: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetBits: Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetPalette: PPalette32; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -122,7 +122,7 @@ type
     { Image data format of current image.}
     property Format: TImageFormat read GetFormat write SetFormat;
     { Size in bytes of current image's data.}
-    property Size: Integer read GetSize;
+    property Size: Int64 read GetSize;
     { Pointer to memory containing image bits.}
     property Bits: Pointer read GetBits;
     { Pointer to palette for indexed format images. It is nil for others.
@@ -368,7 +368,7 @@ begin
     Result := nil;
 end;
 
-function TBaseImage.GetSize: Integer;
+function TBaseImage.GetSize: Int64;
 begin
   if Valid then
     Result := FPData.Size

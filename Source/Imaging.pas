@@ -294,7 +294,7 @@ function PopOptions: Boolean;
 { Returns short information about given image format.}
 function GetImageFormatInfo(Format: TImageFormat; out Info: TImageFormatInfo): Boolean;
 { Returns size in bytes of Width x Height area of pixels. Works for all formats.}
-function GetPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+function GetPixelsSize(Format: TImageFormat; Width, Height: LongInt): Int64;
 
 { IO Functions }
 
@@ -308,22 +308,22 @@ procedure ResetFileIO;
 { Raw Image IO Functions }
 
 procedure ReadRawImageFromFile(const FileName: string; Width, Height: Integer;
-  Format: TImageFormat; var Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
+  Format: TImageFormat; var Image: TImageData; const Offset: Int64 = 0; RowLength: Integer = 0);
 procedure ReadRawImageFromStream(Stream: TStream; Width, Height: Integer;
-  Format: TImageFormat; var Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
-procedure ReadRawImageFromMemory(Data: Pointer; DataSize: Integer; Width, Height: Integer;
-  Format: TImageFormat; var Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
+  Format: TImageFormat; var Image: TImageData; const Offset: Int64 = 0; RowLength: Integer = 0);
+procedure ReadRawImageFromMemory(Data: Pointer; const DataSize: Int64; Width, Height: Integer;
+  Format: TImageFormat; var Image: TImageData; const Offset: Int64 = 0; RowLength: Integer = 0);
 procedure ReadRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
-  var Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
+  var Image: TImageData; const Offset: Int64 = 0; RowLength: Integer = 0);
 
 procedure WriteRawImageToFile(const FileName: string; const Image: TImageData;
-  Offset: Integer = 0; RowLength: Integer = 0);
+  const Offset: Int64 = 0; RowLength: Integer = 0);
 procedure WriteRawImageToStream(Stream: TStream; const Image: TImageData;
-  Offset: Integer = 0; RowLength: Integer = 0);
-procedure WriteRawImageToMemory(Data: Pointer; DataSize: Integer; const Image: TImageData;
-  Offset: Integer = 0; RowLength: Integer = 0);
+  const Offset: Int64 = 0; RowLength: Integer = 0);
+procedure WriteRawImageToMemory(Data: Pointer; const DataSize: Int64; const Image: TImageData;
+  const Offset: Int64 = 0; RowLength: Integer = 0);
 procedure WriteRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
-  const Image: TImageData; Offset: Integer = 0; RowLength: Integer = 0);
+  const Image: TImageData; const Offset: Int64 = 0; RowLength: Integer = 0);
 
 { Convenience/helper Functions }
 
@@ -871,6 +871,7 @@ begin
   Assert(IsImageFormatValid(Format));
   Result := False;
   FreeImage(Image);
+
   try
     Image.Width := Width;
     Image.Height := Height;
@@ -879,6 +880,7 @@ begin
       Image.Format := DefaultImageFormat
     else
       Image.Format := Format;
+
     // Get extended format info
     FInfo := ImageFormatInfos[Image.Format];
     if FInfo = nil then
@@ -886,23 +888,23 @@ begin
       InitImage(Image);
       Exit;
     end;
+
     // Check image dimensions and calculate its size in bytes
     FInfo.CheckDimensions(FInfo.Format, Image.Width, Image.Height);
     Image.Size := FInfo.GetPixelsSize(FInfo.Format, Image.Width, Image.Height);
-    if Image.Size = 0 then
+
+    if Image.Size <= 0 then
     begin
       InitImage(Image);
       Exit;
     end;
+
     // Image bits are allocated and set to zeroes
-    GetMem(Image.Bits, Image.Size);
-    FillChar(Image.Bits^, Image.Size, 0);
+    Image.Bits := AllocMem(Image.Size);
     // Palette is allocated and set to zeroes
     if FInfo.PaletteEntries > 0 then
-    begin
-      GetMem(Image.Palette, FInfo.PaletteEntries * SizeOf(TColor32Rec));
-      FillChar(Image.Palette^, FInfo.PaletteEntries * SizeOf(TColor32Rec), 0);
-    end;
+      Image.Palette := AllocMem(FInfo.PaletteEntries * SizeOf(TColor32Rec));
+
     Result := TestImage(Image);
   except
     on E: Exception do
@@ -1346,7 +1348,7 @@ function ConvertImage(var Image: TImageData; DestFormat: TImageFormat): Boolean;
 var
   NewData: Pointer;
   NewPal: PPalette32;
-  NewSize, NumPixels: LongInt;
+  NewSize, NumPixels: Int64;
   SrcInfo, DstInfo: PImageFormatInfo;
 begin
   Assert(IsImageFormatValid(DestFormat));
@@ -1359,14 +1361,17 @@ begin
       DestFormat := DefaultImageFormat;
     SrcInfo := ImageFormatInfos[Format];
     DstInfo := ImageFormatInfos[DestFormat];
+
     if SrcInfo = DstInfo then
     begin
       // There is nothing to convert - src is already in dest format
       Result := True;
       Exit;
     end;
-    // Exit Src or Dest format is invalid 
+
+    // Exit Src or Dest format is invalid
     if (SrcInfo = nil) or (DstInfo = nil) then Exit;
+
     // If dest format is just src with swapped channels we call
     // SwapChannels instead
     if (SrcInfo.RBSwapFormat = DestFormat) and
@@ -1379,12 +1384,10 @@ begin
 
     if (not SrcInfo.IsSpecial) and (not DstInfo.IsSpecial) then
     begin
-      NumPixels := Width * Height;
+      NumPixels := Int64(Width) * Height;
       NewSize := NumPixels * DstInfo.BytesPerPixel;
-      GetMem(NewData, NewSize);
-      FillChar(NewData^, NewSize, 0);
-      GetMem(NewPal, DstInfo.PaletteEntries * SizeOf(TColor32Rec));
-      FillChar(NewPal^, DstInfo.PaletteEntries * SizeOf(TColor32Rec), 0);
+      NewData := AllocMem(NewSize);
+      NewPal := AllocMem(DstInfo.PaletteEntries * SizeOf(TColor32Rec));
 
       if SrcInfo.IsIndexed then
       begin
@@ -1510,6 +1513,7 @@ begin
     Bpp := ImageFormatInfos[Format].BytesPerPixel;
     WidthDiv2 := Width div 2;
     WidthBytes := Width * Bpp;
+
     // Mirror all pixels on each scanline of image
     for Y := 0 to Height - 1 do
     begin
@@ -1543,6 +1547,7 @@ var
 begin
   Assert((NewWidth > 0) and (NewHeight > 0), 'New width or height is zero.');
   Result := False;
+
   if TestImage(Image) and ((Image.Width <> NewWidth) or (Image.Height <> NewHeight)) then
   try
     InitImage(WorkImage);
@@ -1553,11 +1558,13 @@ begin
       WorkImage, 0, 0, WorkImage.Width, WorkImage.Height, Filter);
     // Free old image and assign new image to it
     FreeMemNil(Image.Bits);
+
     if Image.Palette <> nil then
     begin
       FreeMem(WorkImage.Palette);
       WorkImage.Palette := Image.Palette;
     end;
+
     Image := WorkImage;
     Result := True;
   except
@@ -1567,7 +1574,7 @@ end;
 
 function SwapChannels(var Image: TImageData; SrcChannel, DstChannel: LongInt): Boolean;
 var
-  I, NumPixels: LongInt;
+  I, NumPixels: NativeInt;
   Info: PImageFormatInfo;
   Swap, Alpha: Word;
   Data: PByte;
@@ -1580,7 +1587,7 @@ begin
   if TestImage(Image) and (SrcChannel <> DstChannel) then
   with Image do
   try
-    NumPixels := Width * Height;
+    NumPixels := NativeInt(Width) * Height;
     Info := ImageFormatInfos[Format];
     Data := Bits;
 
@@ -2819,7 +2826,7 @@ begin
     Result := False;
 end;
 
-function GetPixelsSize(Format: TImageFormat; Width, Height: LongInt): LongInt;
+function GetPixelsSize(Format: TImageFormat; Width, Height: LongInt): Int64;
 begin
   if ImageFormatInfos[Format] <> nil then
     Result := ImageFormatInfos[Format].GetPixelsSize(Format, Width, Height)
@@ -2850,7 +2857,7 @@ end;
 { Raw Image IO Functions }
 
 procedure ReadRawImage(Handle: TImagingHandle;  Width, Height: Integer;
-  Format: TImageFormat; var Image: TImageData; Offset, RowLength: Integer);
+  Format: TImageFormat; var Image: TImageData; const Offset: Int64; RowLength: Integer);
 var
   WidthBytes, I: Integer;
   Info: PImageFormatInfo;
@@ -2875,7 +2882,7 @@ begin
 end;
 
 procedure ReadRawImageFromFile(const FileName: string; Width, Height: Integer;
-  Format: TImageFormat; var Image: TImageData; Offset, RowLength: Integer);
+  Format: TImageFormat; var Image: TImageData; const Offset: Int64; RowLength: Integer);
 var
   Handle: TImagingHandle;
 begin
@@ -2891,7 +2898,7 @@ begin
 end;
 
 procedure ReadRawImageFromStream(Stream: TStream; Width, Height: Integer;
-  Format: TImageFormat; var Image: TImageData; Offset, RowLength: Integer);
+  Format: TImageFormat; var Image: TImageData; const Offset: Int64; RowLength: Integer);
 var
   Handle: TImagingHandle;
 begin
@@ -2908,8 +2915,8 @@ begin
   end;
 end;
 
-procedure ReadRawImageFromMemory(Data: Pointer; DataSize: Integer; Width, Height: Integer;
-  Format: TImageFormat; var Image: TImageData; Offset, RowLength: Integer);
+procedure ReadRawImageFromMemory(Data: Pointer; const DataSize: Int64; Width, Height: Integer;
+  Format: TImageFormat; var Image: TImageData; const Offset: Int64; RowLength: Integer);
 var
   Handle: TImagingHandle;
   MemRec: TMemoryIORec;
@@ -2927,7 +2934,7 @@ begin
 end;
 
 procedure ReadRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
-  var Image: TImageData; Offset, RowLength: Integer);
+  var Image: TImageData; const Offset: Int64; RowLength: Integer);
 var
   DestScanBytes, RectBytes, I: Integer;
   Info: PImageFormatInfo;
@@ -2958,7 +2965,7 @@ begin
 end;
 
 procedure WriteRawImage(Handle: TImagingHandle; const Image: TImageData;
-  Offset, RowLength: Integer);
+  const Offset: Int64; RowLength: Integer);
 var
   WidthBytes, I: Integer;
   Info: PImageFormatInfo;
@@ -2979,7 +2986,7 @@ begin
 end;
 
 procedure WriteRawImageToFile(const FileName: string; const Image: TImageData;
-  Offset, RowLength: Integer);
+  const Offset: Int64; RowLength: Integer);
 var
   Handle: TImagingHandle;
 begin
@@ -2995,7 +3002,7 @@ begin
 end;
 
 procedure WriteRawImageToStream(Stream: TStream; const Image: TImageData;
-  Offset, RowLength: Integer);
+  const Offset: Int64; RowLength: Integer);
 var
   Handle: TImagingHandle;
 begin
@@ -3010,8 +3017,8 @@ begin
   end;
 end;
 
-procedure WriteRawImageToMemory(Data: Pointer; DataSize: Integer; const Image: TImageData;
-  Offset, RowLength: Integer);
+procedure WriteRawImageToMemory(Data: Pointer; const DataSize: Int64; const Image: TImageData;
+  const Offset: Int64; RowLength: Integer);
 var
   Handle: TImagingHandle;
   MemRec: TMemoryIORec;
@@ -3029,7 +3036,7 @@ begin
 end;
 
 procedure WriteRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
-  const Image: TImageData; Offset, RowLength: Integer);
+  const Image: TImageData; const Offset: Int64; RowLength: Integer);
 var
   SrcScanBytes, RectBytes, I: Integer;
   Info: PImageFormatInfo;
