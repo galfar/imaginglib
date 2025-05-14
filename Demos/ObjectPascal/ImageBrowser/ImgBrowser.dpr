@@ -2,9 +2,9 @@ program ImgBrowser;
 
 uses
   Forms,
-  {$IFDEF LCL}
+{$IFDEF LCL}
   Interfaces,
-  {$ENDIF}
+{$ENDIF}
   Main in 'Main.pas',
   Imaging in '..\..\..\Source\Imaging.pas',
   ImagingCanvases in '..\..\..\Source\ImagingCanvases.pas',

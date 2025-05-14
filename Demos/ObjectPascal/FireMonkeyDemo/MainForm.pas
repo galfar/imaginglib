@@ -1,6 +1,6 @@
 {
   Vampyre Imaging Library Demo
-  FireMonkey Demo (class api, fmx interaction)
+  FireMonkey Demo (class api, FMX interaction)
 
   This demo is a simple image viewer. On the left of the window is a list box with
   information and thumbnail of images loaded from file. Selecting item in
@@ -14,7 +14,20 @@
   Image is loaded from the file in a background thread while the UI shows
   progress animation.
 
-  Note: tested only in Delphi 11
+  What more is there:
+  - multi-page images show all the pages (with thumbnaiol and details) in the listbox
+    and you can select whch one to display
+  - you can zoom in and out the image (mouse wheel & Ctrl with +/-)
+  - when zoomed in you can pan the image in the view with mouse drag or using scrollbars
+  - image file path can be passed as a parameter when starting the executable to
+    open it at start (to use as "Open with..." target)
+  - there's a drop zone on the form where you can drop image files from file explorers
+  - toolbar has zoom presets control
+
+  Tested in Delphi 11 & 12. Windows and x86 macOS targets work fine.
+  Android compiles and starts on the device fine but TOpenDialog etc. are not
+  implemented in FMX. iOS and macOS on ARM, and FMX Linux are not tested (can you do that?).
+
 }
 unit MainForm;
 
@@ -26,7 +39,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Filter.Effects, FMX.Graphics,
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.DialogService, FMX.Filter.Effects, FMX.Graphics,
   FMX.Layouts, FMX.ListBox, FMX.ExtCtrls, FMX.Objects, FMX.StdCtrls, FMX.Effects,
   FMX.Controls.Presentation, System.ImageList, FMX.ImgList, FMX.ComboEdit, FMX.Edit,
 
@@ -34,8 +47,7 @@ uses
   Imaging,
   ImagingClasses,
   ImagingUtility,
-  ImagingFmx, Data.Bind.EngExt, Fmx.Bind.DBEngExt, System.Rtti,
-  System.Bindings.Outputs, Fmx.Bind.Editors, Data.Bind.Components;
+  ImagingFmx;
 
 type
   TFormMain = class(TForm)
@@ -57,12 +69,7 @@ type
     LayoutCombo: TLayout;
     ComboScale: TComboEdit;
     LayoutSide: TLayout;
-    HueAdjustEffect: THueAdjustEffect;
     LineSep: TLine;
-    BindingsList: TBindingsList;
-    LinkControlToPropertyHue: TLinkControlToProperty;
-    LayoutTrack: TLayout;
-    HueTrackBar: TTrackBar;
     procedure BtnOpenImageClick(Sender: TObject);
     procedure BtnAboutClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -333,8 +340,7 @@ begin
     ImageViewer.BestFit;
 
     ComboScale.Enabled := True;
-    ImageViewer.DisableMouseWheel := False;
-    HueTrackBar.Enabled := True;
+    BtnSaveImage.Enabled := True;
   finally
     ImageViewer.EndUpdate;
   end;
@@ -355,7 +361,14 @@ begin
   if SaveDialog.Execute then
   begin
     FFileName := ChangeFileExt(SaveDialog.FileName, '.' + GetFilterIndexExtension(SaveDialog.FilterIndex, False));
-    FImage.SaveMultiToFile(FFileName);
+
+    if FileExists(FFileName) and (MessageDlg(Format('Image file "%s" already exists. Do you want to overwrite it?',
+      [FFileName]), TMsgDlgType.mtConfirmation, mbYesNo, 0, TMsgDlgBtn.mbNo) = mrNo) then
+    begin
+      Exit;
+    end;
+
+    FImage.SaveMultiToFile(FFileName)
   end;
 end;
 
@@ -385,9 +398,7 @@ procedure TFormMain.DropTargetDropped(Sender: TObject; const Data: TDragObject;
   const Point: TPointF);
 begin
   if Length(Data.Files) > 0 then
-  begin
     OpenFile(Data.Files[0]);
-  end;
 end;
 
 procedure TFormMain.BtnOpenImageClick(Sender: TObject);
@@ -401,8 +412,7 @@ procedure TFormMain.BtnAboutClick(Sender: TObject);
 var
   X, Y: Integer;
 begin
-  // Place it manually - poMainFormCenter etc. doesn't really work
-  // when main form has poScreenCenter
+  // Place it manually - poMainFormCenter etc. doesn't really work well
   X := Left + (Width - FormAbout.Width) div 2;
   Y := Top + (Height - FormAbout.Height) div 2;
   FormAbout.SetBounds(X, Y, FormAbout.Width, FormAbout.Height);

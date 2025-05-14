@@ -46,12 +46,8 @@ Doc/*.chw
 Doc/*.html
 
 Demos/**/*.res
+Demos/**/*.dres
 Demos/**/*.cfg
-
-Extras/DynamicLib/Demos/Cpp/*/*.bat
-Extras/DynamicLib/Demos/Cpp/*/*.sh
-Extras/DynamicLib/*.res
-Extras/DynamicLib/*.cfg
 
 Packages/*.res
 Packages/*.cfg
@@ -65,4 +61,6 @@ Demos/**/lclimager.ico
 !Demos/**/ImgBrowser.res
 !Demos/**/lclimager.res
 
+Demos/ObjectPascal/FireMonkeyDemo/AndroidManifest.template.xml
+Demos/ObjectPascal/FireMonkeyDemo/FireMonkeyDemoResource.rc
 

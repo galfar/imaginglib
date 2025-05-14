@@ -1,5 +1,7 @@
 program FireMonkeyDemo;
 
+{$R *.dres}
+
 uses
   FMX.Forms,
   FMX.Types,
