@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         # 
-        operating-system: [ubuntu-latest, windows-latest, macos-latest, ubuntu-24.04-arm, macos-13, windows-11-arm]
+        operating-system: [ubuntu-latest, windows-latest, macos-latest, macos-13, windows-11-arm]
          # currently stable="Lazarus 3.0 / FPC 3.2.2" with setup-lazarus@v3.2.17
         lazarus-versions: [stable]
     steps:
