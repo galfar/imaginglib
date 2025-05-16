@@ -497,13 +497,21 @@ type
   );
 
   { IO functions used for reading and writing images from/to input/output.}
+
+{$IFDEF DELPHI}
+  TIOReadWriteCount = NativeInt;
+{$ELSE}
+  // FPC 3.2.2 still has only TStream with Read/Write count as LongInt
+  TIOReadWriteCount = LongInt;
+{$ENDIF}
+
   TOpenProc = function(Source: PChar; Mode: TOpenMode): TImagingHandle; cdecl;
   TCloseProc = procedure(Handle: TImagingHandle); cdecl;
   TEofProc = function(Handle: TImagingHandle): Boolean; cdecl;
   TSeekProc = function(Handle: TImagingHandle; Offset: Int64; Mode: TSeekMode): Int64; cdecl;
   TTellProc = function(Handle: TImagingHandle): Int64; cdecl;
-  TReadProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
-  TWriteProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: LongInt): LongInt; cdecl;
+  TReadProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: TIOReadWriteCount): TIOReadWriteCount; cdecl;
+  TWriteProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: TIOReadWriteCount): TIOReadWriteCount; cdecl;
 
 
 implementation
@@ -511,8 +519,7 @@ implementation
 {
   File Notes:
 
-  -- TODOS ----------------------------------------------------
-    - add lookup tables to pixel formats for fast conversions
+  * More recent changes are in VCS history *
 
   -- 0.80 -----------------------------------------------------
     - Dropped "patch version".

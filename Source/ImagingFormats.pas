@@ -4349,6 +4349,9 @@ initialization
 {
   File Notes:
 
+  -- TODOS ----------------------------------------------------
+    - add lookup tables to pixel formats for fast conversions
+
   -- 0.80 -------------------------------------------------------
     - Added PaletteIsGrayScale and Color32ToGray functions.
 

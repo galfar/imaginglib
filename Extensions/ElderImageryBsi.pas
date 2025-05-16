@@ -171,7 +171,7 @@ var
 
   procedure ReadChunkData;
   var
-    ReadBytes: LongInt;
+    ReadBytes: NativeInt;
   begin
     FreeMemNil(ChunkData);
     GetMem(ChunkData, Chunk.DataSize);
