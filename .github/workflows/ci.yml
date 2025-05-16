@@ -12,7 +12,8 @@ jobs:
     runs-on: ${{ matrix.operating-system }}
     strategy:
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
+        # 
+        operating-system: [ubuntu-latest, windows-latest, macos-latest, ubuntu-24.04-arm, macos-13, windows-11-arm]
          # currently stable="Lazarus 3.0 / FPC 3.2.2" with setup-lazarus@v3.2.17
         lazarus-versions: [stable]
     steps:
