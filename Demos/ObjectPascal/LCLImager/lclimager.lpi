@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <ProjectOptions>
-    <Version Value="12"/>
+    <Version Value="13"/>
     <PathDelim Value="\"/>
     <General>
       <Flags>
@@ -62,8 +62,9 @@
           </Other>
         </CompilerOptions>
       </Item2>
-      <SharedMatrixOptions Count="1">
+      <SharedMatrixOptions Count="2">
         <Item1 ID="149315369584" Modes="Debug,Release" Value="-dFULL_FEATURE_SET"/>
+        <Item2 ID="999597452942" Modes="Debug" Value="-dDEBUG"/>
       </SharedMatrixOptions>
     </BuildModes>
     <PublishOptions>
