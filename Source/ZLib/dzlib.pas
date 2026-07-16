@@ -32,9 +32,9 @@ unit dzlib;
 interface
 
 {$DEFINE IMPASZLIB}
-{ $DEFINE ZLIBPAS}
 { $DEFINE FPCPASZLIB}
 { $DEFINE DELPHIZLIB}
+{ $DEFINE ZLIBPAS}
 
 { TODO:
     - dynamic link ZLib option (for zlib_ng etc.)
@@ -50,12 +50,13 @@ interface
   {.$DEFINE FPCPASZLIB}
 {$ENDIF}
 
-{$IFDEF DELPHI}
+{$IF Defined(DELPHI) and (CompilerVersion > 23)}
   { Automatically use Delphi's ZLib when compiling with Delphi (recent versions include
-    recentish ZLib compiled to objects, can be 2x faster than IMPASZLIB). }
+    recentish ZLib compiled to objects, can be 2x faster than IMPASZLIB).
+    Needs Delphi XE2+ for deflateInit2 etc.}
   {$UNDEF IMPASZLIB}
   {$DEFINE DELPHIZLIB}
-{$ENDIF}
+{$IFEND}
 
 uses
 {$IF Defined(IMPASZLIB)}
@@ -83,7 +84,6 @@ const
   DEF_MEM_LEVEL = 8;
   MAX_WBITS = 15;
 {$ENDIF}
-
 
 type
   { Abstract ancestor class }
