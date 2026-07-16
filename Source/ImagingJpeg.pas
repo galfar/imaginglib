@@ -14,19 +14,23 @@ unit ImagingJpeg;
 
 {$I ImagingOptions.inc}
 
-{ You can choose which Pascal JpegLib implementation will be used.
-  IMJPEGLIB is version bundled with Imaging which works with all supported
-  compilers and platforms.
-  PASJPEG is original JpegLib translation or version modified for FPC
-  (and shipped with it). You can use PASJPEG if this version is already
-  linked with another part of your program and you don't want to have
-  two quite large almost the same libraries linked to your exe.
-  This is the case with Lazarus applications for example.}
+{ You can choose which Pascal JpegLib translation will be used.
+
+  - IMJPEGLIB is version bundled with Imaging which works with all supported
+    compilers and platforms.
+
+  - FPCPASJPEG is modified for FPC and shipped with it. You can use FPCPASJPEG if
+    this version is already linked with another part of your program and you want to avoid
+    two quite large almost the same libraries linked to your binary.
+    This is the case with every Lazarus LCL applications for example.}
 
 {$DEFINE IMJPEGLIB}
 { $DEFINE FPCPASJPEG}
 
-{ Automatically use FPC's PasJpeg when compiling with Lazarus. }
+{ Automatically use FPC's PasJpeg when compiling with Lazarus.
+  Every LCL application has PasJpeg included in the binary, so we
+  want to avoid include it 2x.
+  For just FPC we just use IMJPEGLIB, it's really the same decades old translation from C.}
 {$IF Defined(LCL)}
   {$UNDEF IMJPEGLIB}
   {$DEFINE FPCPASJPEG}
