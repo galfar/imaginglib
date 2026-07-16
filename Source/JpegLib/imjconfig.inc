@@ -90,20 +90,7 @@
 {$undef FULL_MAIN_BUFFER_SUPPORTED}
 
 {$define PROGRESS_REPORT}
-{$define TWO_FILE_COMMANDLINE}
-{$undef BMP_SUPPORTED}
-{$undef PPM_SUPPORTED}
-{$undef GIF_SUPPORTED}
-{$undef RLE_SUPPORTED}
-{$undef TARGA_SUPPORTED}
 {$define EXT_SWITCH}
-
-{$ifndef BITS_IN_JSAMPLE_IS_8}  { for 12 bit samples }
-{$undef BMP_SUPPORTED}
-{$undef RLE_SUPPORTED}
-{$undef TARGA_SUPPORTED}
-{$endif}
-
 
 {!CHANGE: Allowed only for Delphi}
 {$undef BASM16}                  { for TP7 - use BASM for fast multiply }

@@ -62,7 +62,7 @@ type
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
-      Index: Integer): Boolean; override;
+      Index: LongInt): Boolean; override;
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); override;
   end;
@@ -416,7 +416,7 @@ begin
 end;
 
 function TTiffLibFileFormat.SaveData(Handle: TImagingHandle;
-  const Images: TDynImageDataArray; Index: Integer): Boolean;
+  const Images: TDynImageDataArray; Index: LongInt): Boolean;
 const
   Compressions: array[0..5] of Word = (COMPRESSION_NONE, COMPRESSION_LZW,
     COMPRESSION_PACKBITS, COMPRESSION_DEFLATE, COMPRESSION_JPEG, COMPRESSION_CCITTFAX4);
