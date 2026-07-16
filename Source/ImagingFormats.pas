@@ -1782,7 +1782,6 @@ begin
   GetImageFormatInfo(SrcImage.Format, Info);
   Assert(SrcImage.Format = DstImage.Format);
   Assert(not Info.IsSpecial and not Info.IsIndexed);
-  BytesPerChannel := Info.BytesPerPixel div Info.ChannelCount;
 
   // Create horizontal and vertical mapping tables
   MapX := BuildMappingTable(DstX, DstX + DstWidth, SrcX, SrcX + SrcWidth,
@@ -4067,7 +4066,7 @@ var
 
   procedure CheckSize(var Img: TImageData; Info: PImageFormatInfo);
   var
-    Width, Height: LongInt;
+    Width, Height: Integer;
   begin
     Width := Img.Width;
     Height := Img.Height;
