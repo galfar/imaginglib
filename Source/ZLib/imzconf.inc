@@ -16,10 +16,15 @@
   {$MODE DELPHI}
 {$ENDIF}
 
-{$UNDEF DEBUG} // for Delphi 2007 in DEBUG mode
+// Undef DEBUG mode for ImPasZLib. DEBUG is off by default, since it's ~5x slower
+// Comment this out if you want to debug ZLib.
+{$UNDEF DEBUG}
 
-{$RANGECHECKS OFF}
-{$OVERFLOWCHECKS OFF}
+{$IFNDEF DEBUG}
+  {$RANGECHECKS OFF}
+  {$OVERFLOWCHECKS OFF}
+{$ENDIF}
+
 { -------------------------------------------------------------------- }
 
 
