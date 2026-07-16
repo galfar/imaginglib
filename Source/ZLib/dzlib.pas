@@ -22,19 +22,7 @@
     Default implementation is IMPASZLIB because it can be compiled
   by all supported compilers and works on all supported platforms.
     FPCPASZLIB is useful for Lazarus applications. FPC's zlib is linked
-  to exe by default so there is no need to link additional (and almost identical)
-  IMPASZLIB.
-
-  There is a small speed comparison table of some of the
-  supported implementations (TGA image 28 311 570 bytes, compression level = 6,
-  Delphi 9, Win32, Athlon XP 1900).
-
-                 ZLib version Decompression  Compression   Comp. Size
-  IMPASZLIB     |   1.1.2   |    824 ms    |  4 280 ms  |  18 760 133 B
-  ZLIBEX        |   1.2.2   |    710 ms    |  1 590 ms* |  19 056 621 B
-  DELPHIZLIB    |   1.0.4   |    976 ms    |  9 190 ms  |  18 365 562 B
-  ZLIBPAS       |   1.2.3   |    680 ms    |  3 790  ms |  18 365 387 B
-    * obj files are compiled with compression level hardcoded to 1 (fastest)
+  to exe by default so there is no need to link additional (and almost identical) IMPASZLIB.
 }
 
 unit dzlib;
@@ -46,32 +34,42 @@ interface
 {$DEFINE IMPASZLIB}
 { $DEFINE ZLIBPAS}
 { $DEFINE FPCPASZLIB}
-{ $DEFINE ZLIBEX}
 { $DEFINE DELPHIZLIB}
 
-{ Automatically use FPC's PasZLib when compiling with FPC.}
+{ TODO:
+    - dynamic link ZLib option (for zlib_ng etc.)
+    - maybe for Linux use system libz.so by default (measure perf with 036.png vs fpc_zlib)
+    - cleanup & rename dzlib, maybe remove comp/decomp streams?
+    - update info on top
+}
 
 {$IFDEF FPC}
+  { Automatically use FPC's PasZLib when compiling with FPC.}
+  // TODO: re-enable after testing
+  {.$UNDEF IMPASZLIB}
+  {.$DEFINE FPCPASZLIB}
+{$ENDIF}
+
+{$IFDEF DELPHI}
+  { Automatically use Delphi's ZLib when compiling with Delphi (recent versions include
+    recentish ZLib compiled to objects, can be 2x faster than IMPASZLIB). }
   {$UNDEF IMPASZLIB}
-  {$DEFINE FPCPASZLIB}
+  {$DEFINE DELPHIZLIB}
 {$ENDIF}
 
 uses
 {$IF Defined(IMPASZLIB)}
-  { Use paszlib modified by me for Delphi and FPC }
-  imzdeflate, imzinflate, impaszlib,
+  { Use paszlib modified by me for Delphi and FPC. Fall-back solution. }
+  ImPasZLib,
 {$ELSEIF Defined(FPCPASZLIB)}
   { Use FPC's paszlib }
   zbase, paszlib,
-{$ELSEIF Defined(ZLIBPAS)}
-  { Pascal interface to ZLib shipped with ZLib C source }
-  zlibpas,
-{$ELSEIF Defined(ZLIBEX)}
-  { Use ZlibEx unit }
-  ZLibEx,
 {$ELSEIF Defined(DELPHIZLIB)}
   { Use ZLib unit shipped with Delphi }
   ZLib,
+{$ELSEIF Defined(ZLIBPAS)}
+  { Pascal interface to ZLib shipped with ZLib C source }
+  zlibpas,
 {$IFEND}
   ImagingTypes, SysUtils, Classes;
 
@@ -80,38 +78,12 @@ type
   TZStreamRec = z_stream;
 {$IFEND}
 
+{$IFDEF DELPHIZLIB}
 const
-  Z_NO_FLUSH      = 0;
-  Z_PARTIAL_FLUSH = 1;
-  Z_SYNC_FLUSH    = 2;
-  Z_FULL_FLUSH    = 3;
-  Z_FINISH        = 4;
+  DEF_MEM_LEVEL = 8;
+  MAX_WBITS = 15;
+{$ENDIF}
 
-  Z_OK            =  0;
-  Z_STREAM_END    =  1;
-  Z_NEED_DICT     =  2;
-  Z_ERRNO         = -1;
-  Z_STREAM_ERROR  = -2;
-  Z_DATA_ERROR    = -3;
-  Z_MEM_ERROR     = -4;
-  Z_BUF_ERROR     = -5;
-  Z_VERSION_ERROR = -6;
-
-  Z_NO_COMPRESSION       =  0;
-  Z_BEST_SPEED           =  1;
-  Z_BEST_COMPRESSION     =  9;
-  Z_DEFAULT_COMPRESSION  = -1;
-
-  Z_FILTERED            = 1;
-  Z_HUFFMAN_ONLY        = 2;
-  Z_RLE                 = 3;
-  Z_DEFAULT_STRATEGY    = 0;
-
-  Z_BINARY   = 0;
-  Z_ASCII    = 1;
-  Z_UNKNOWN  = 2;
-
-  Z_DEFLATED = 8;
 
 type
   { Abstract ancestor class }
@@ -125,6 +97,7 @@ type
   protected
     procedure Progress(Sender: TObject); dynamic;
     property OnProgress: TNotifyEvent read FOnProgress write FOnProgress;
+  public
     constructor Create(Strm: TStream);
   end;
 
