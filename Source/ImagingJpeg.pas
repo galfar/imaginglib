@@ -24,12 +24,16 @@ unit ImagingJpeg;
   This is the case with Lazarus applications for example.}
 
 {$DEFINE IMJPEGLIB}
-{ $DEFINE PASJPEG}
+{ $DEFINE FPCPASJPEG}
 
 { Automatically use FPC's PasJpeg when compiling with Lazarus. }
 {$IF Defined(LCL)}
   {$UNDEF IMJPEGLIB}
-  {$DEFINE PASJPEG}
+  {$DEFINE FPCPASJPEG}
+{$IFEND}
+
+{$IF Defined(FPCPASJPEG)}
+  {$UNDEF IMJPEGLIB}
 {$IFEND}
 
 { We usually want to skip the rest of the corrupted file when loading JPEG files
@@ -49,13 +53,13 @@ uses
 {$IF Defined(IMJPEGLIB)}
   imjpeglib, imjmorecfg, imjcomapi, imjdapimin, imjdeferr, imjerror,
   imjdapistd, imjcapimin, imjcapistd, imjdmarker, imjcparam,
-{$ELSEIF Defined(PASJPEG)}
+{$ELSEIF Defined(FPCPASJPEG)}
   jpeglib, jmorecfg, jcomapi, jdapimin, jdeferr, jerror,
   jdapistd, jcapimin, jcapistd, jdmarker, jcparam,
 {$IFEND}
   ImagingUtility;
 
-{$IF Defined(FPC) and Defined(PASJPEG)}
+{$IF Defined(FPC) and Defined(FPCPASJPEG)}
   { When using FPC's pasjpeg the channel order is BGR instead of RGB.
     See RGB_RED_IS_0 in jconfig.inc. }
   {$DEFINE RGBSWAPPED}
@@ -208,18 +212,14 @@ procedure JpegError(CInfo: j_common_ptr);
 
   procedure RaiseError;
   var
-    Buffer: AnsiString;
+    // Current FPC trunk 3.3.x switched PasJpeg for some reason to ShortStrings
+    Buffer: {$IF Defined(FPCPASJPEG) and (FPC_FULLVERSION >= 30300)}shortstring
+            {$ELSE}AnsiString
+            {$IFEND};
   begin
     // Create the message and raise exception
     CInfo.err.format_message(CInfo, Buffer);
-    // Warning: you can get "Invalid argument index in format" exception when
-    // using FPC (see http://bugs.freepascal.org/view.php?id=21229).
-    // Fixed in FPC 2.7.1
-  {$IF Defined(FPC) and (FPC_FULLVERSION <= 20701)}
-    raise EImagingError.CreateFmt(SJPEGError + ' %d', [CInfo.err.msg_code]);
-  {$ELSE}
-    raise EImagingError.CreateFmt(SJPEGError + ' %d: ' + string(Buffer), [CInfo.err.msg_code]);
-  {$IFEND}
+    raise EImagingError.CreateFmt(SJPEGError + ' %d: ' + Buffer, [CInfo.err.msg_code]);
   end;
 
 begin
