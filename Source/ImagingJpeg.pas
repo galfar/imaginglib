@@ -219,7 +219,7 @@ procedure JpegError(CInfo: j_common_ptr);
   begin
     // Create the message and raise exception
     CInfo.err.format_message(CInfo, Buffer);
-    raise EImagingError.CreateFmt(SJPEGError + ' %d: ' + Buffer, [CInfo.err.msg_code]);
+    raise EImagingError.CreateFmt(SJPEGError + ' %d: ' + string(Buffer), [CInfo.err.msg_code]);
   end;
 
 begin

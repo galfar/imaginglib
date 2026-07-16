@@ -65,7 +65,7 @@ var
   MapData: TBitmapData;
   SourceData: PAlphaColorRec;
   TargetData: PByte;
-  X, Y, Bpp, SrcWidthBytes: Integer;
+  X, Y, Bpp: Integer;
   TargetInfo: TImageFormatInfo;
 begin
   Assert(TestImage(Image) and not Bitmap.IsEmpty);
@@ -74,7 +74,6 @@ begin
   GetImageFormatInfo(Image.Format, TargetInfo);
 
   Bpp := TargetInfo.BytesPerPixel;
-  SrcWidthBytes := Image.Width * Bpp;
   TargetData := @PByteArray(Image.Bits)[0];
 
   for Y := 0 to Bitmap.Height - 1 do
@@ -155,8 +154,6 @@ end;
 
 procedure ConvertToAlphaColorRec(SrcPix: PByte; DestPix: PAlphaColorRec;
   const SrcInfo: TImageFormatInfo; SrcPalette: PPalette32);
-var
-  Color32: TColor32Rec;
 begin
   case SrcInfo.Format of
     ifIndex8:
