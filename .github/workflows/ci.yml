@@ -7,13 +7,19 @@ on:
     paths-ignore: [ "**/Readme.md" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ${{ matrix.operating-system }}
+    timeout-minutes: 30
     strategy:
+      fail-fast: false
       matrix:
-        operating-system: [ubuntu-latest, windows-latest, macos-latest]
-         # currently stable="Lazarus 3.0 / FPC 3.2.2" with setup-lazarus@v3.2.17
+        # need to stay on macOS-14 for now, as macOS-15+ has issues with FPC DMG/PKG installer
+        operating-system: [ubuntu-latest, windows-latest, macos-14]
+        # currently stable="Lazarus 4.4 / FPC 3.2.2" with setup-lazarus@v3.4.1
         lazarus-versions: [stable]
     steps:
       - uses: actions/checkout@v4
@@ -21,6 +27,7 @@ jobs:
         uses: gcarreno/setup-lazarus@v3
         with:
           lazarus-version: ${{ matrix.lazarus-versions }}
+          with-cache: ${{ matrix.with-cache }}
       - name: Print Lazarus version
         run: lazbuild --version
       - name: Setup Linux
@@ -29,16 +36,16 @@ jobs:
         run:  |
           # needed for SDL and GL demos
           sudo apt install libsdl1.2-dev -y
-          
+
           # to build LCL demos with Qt5 backend
           # sudo apt install libqt5pas-dev -y
 
           # With current Lazarus + Ubuntu versions we need to get newer libqt5pas release
           # (https://forum.lazarus.freepascal.org/index.php/topic,65619.msg500216.html#msg500216)
           wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas1_2.15-1_amd64.deb
-          sudo apt install ./libqt5pas1_2.15-1_amd64.deb -y           
+          sudo apt install ./libqt5pas1_2.15-1_amd64.deb -y
           wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas-dev_2.15-1_amd64.deb
-          sudo apt install ./libqt5pas-dev_2.15-1_amd64.deb -y 
+          sudo apt install ./libqt5pas-dev_2.15-1_amd64.deb -y
       - name: Build demos with FPC (Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -63,8 +70,8 @@ jobs:
           # Built for all platforms
           lazbuild --bm="Release" "Benchmark/Bench.lpi"
           lazbuild --bm="Release" "VampConvert/VampConvert.lpi"
-          
-          if [ "$RUNNER_OS" == "Linux" ]; then                             
+
+          if [ "$RUNNER_OS" == "Linux" ]; then
               # For Linux build LCL demos also with Qt5 (just to test that it builds)
               lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
               lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
@@ -73,7 +80,7 @@ jobs:
           if [ "$RUNNER_OS" != "macOS" ]; then
               # Build these for non macOS platforms
               lazbuild --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"              
+              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"
               lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
               lazbuild --bm="Release" "SDLDemo/SDLDemo.lpi"
           fi
@@ -84,7 +91,7 @@ jobs:
           fi
 
           if [ "$RUNNER_OS" == "macOS" ]; then
-              # For macOS we need to build LCL demos with Cocoa 
+              # For macOS we need to build LCL demos with Cocoa
               lazbuild --ws=cocoa --bm="Release" "LCLImager/lclimager.lpi"
               lazbuild --ws=cocoa --bm="Release" "ImageBrowser/ImgBrowser.lpi"
           fi
