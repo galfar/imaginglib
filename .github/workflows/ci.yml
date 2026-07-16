@@ -75,6 +75,8 @@ jobs:
               # For Linux build LCL demos also with Qt5 (just to test that it builds)
               lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
               lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+              lazbuild --ws=gtk2 --opt="-oLCLImager-GTK2" --bm="Release" "LCLImager/lclimager.lpi"
+              lazbuild --ws=gtk2 --opt="-oLCLImager-GTK2-Debug" --bm="Debug" "LCLImager/lclimager.lpi"
           fi
 
           if [ "$RUNNER_OS" != "macOS" ]; then
