@@ -261,7 +261,7 @@ type
     FImage: TMultiImage;
     FImageCanvas: TImagingCanvas;
     FFileName: string;
-    FFileSize: Integer;
+    FFileSize: Int64;
     FParam1, FParam2, FParam3: Integer;
     procedure OpenFile(const FileName: string);
     procedure SaveFile(const FileName: string);

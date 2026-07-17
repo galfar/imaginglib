@@ -162,7 +162,7 @@ end;
 
 procedure TBufferedStream.ReadBuffer;
 var
-  SeekResult: Integer;
+  SeekResult: Int64;
 begin
   SeekResult := FStream.Seek(FBufStart, soBeginning);
   if SeekResult = -1 then
@@ -174,7 +174,7 @@ end;
 
 procedure TBufferedStream.WriteBuffer;
 var
-  SeekResult: Integer;
+  SeekResult: Int64;
   BytesWritten: Integer;
 begin
   SeekResult := FStream.Seek(FBufStart, soBeginning);
