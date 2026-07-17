@@ -9,9 +9,11 @@
 unit LibTiffDelphi;
 
 {$IFDEF FPC}
+  // libtiff 4.0.3 (BigTIFF support)
   {$MODE OBJFPC}
-  {$DEFINE VER403} // libtiff 4.0.3
+  {$DEFINE VER403}
 {$ELSE}
+  // libtiff 3.9.4
   {$DEFINE DCC}
   {$ALIGN 8}
   {$MINENUMSIZE 1}
@@ -32,6 +34,7 @@ type
     UInt32 = Cardinal;
   {$IFEND}
 {$IFEND}
+
   tmsize_t = SizeInt;
   tsize_t = SizeInt;
   toff_t = {$ifdef VER403}Int64{$else}Integer{$endif};

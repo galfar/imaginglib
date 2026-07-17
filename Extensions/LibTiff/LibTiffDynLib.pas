@@ -4,6 +4,8 @@ unit LibTiffDynLib;
   {$MODE DELPHI}
 {$ENDIF}
 
+// For LibTiff 4.0+ (we want BigTIFF support) with 64bit offsets.
+
 // We prefer dynamic loading of the library (GetProcAddress/dlsym way)
 // so that we don't get a crash with "libtiff not found!" message on startup
 // if libtiff is not found in user's system.
@@ -43,7 +45,6 @@ type
   tstrip_t = UInt32;
 
 const
-  // LibTiff 4.0+
   // Note: Linux SONAME (and packages) for libtiff v4.0 is actually named libtiff5 (and libtiff6 for v4.5+ since 2023)
 {$IF Defined(MSWINDOWS)}
   SLibName = 'libtiff.dll'; // make sure you have DLL with the same bitness as your app!
@@ -491,7 +492,7 @@ type
     FieldBit: Word;                  { bit in fieldsset bit vector }
     FieldOkToChange: Byte;           { if true, can change while writing }
     FieldPassCount: Byte;            { if true, pass dir count on set }
-    FieldName: PAnsiChar;                { ASCII name }
+    FieldName: PAnsiChar;            { ASCII name }
   end;
 
   PTIFFTagValue = ^TIFFTagValue;

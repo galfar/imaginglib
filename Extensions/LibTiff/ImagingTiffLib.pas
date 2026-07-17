@@ -190,6 +190,7 @@ var
   CanAccessScanlines: Boolean;
   Ptr: PByte;
   Red, Green, Blue: PWordRecArray;
+  ScanLinePtr: PByteArray;
 
   procedure LoadMetadata(Tiff: PTiff; PageIndex: Integer);
   var
@@ -375,8 +376,13 @@ begin
       NewImage(Images[Idx].Width, Images[Idx].Height, DataFormat, Images[Idx]);
       ScanLineSize := TIFFScanlineSize(Tiff);
 
+      // We need to be able to read >4 GB BigTIFF here
+      ScanLinePtr := Images[Idx].Bits;
       for I := 0 to Images[Idx].Height - 1 do
-        TIFFReadScanline(Tiff, @PByteArray(Images[Idx].Bits)[I * ScanLineSize], I, 0);
+      begin
+        TIFFReadScanline(Tiff, ScanLinePtr, I, 0);
+        Inc(ScanLinePtr, ScanLineSize);
+      end;
 
       if DataFormat = ifIndex8 then
       begin
