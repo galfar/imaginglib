@@ -190,7 +190,7 @@ var
   CanAccessScanlines: Boolean;
   Ptr: PByte;
   Red, Green, Blue: PWordRecArray;
-  ScanLinePtr: PByteArray;
+  ScanLinePtr: PByte;
 
   procedure LoadMetadata(Tiff: PTiff; PageIndex: Integer);
   var

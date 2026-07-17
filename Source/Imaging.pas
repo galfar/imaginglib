@@ -3172,7 +3172,7 @@ end;
 
 function ImageToStr(const Image: TImageData): string;
 var
-  ImgSize: Integer;
+  ImgSize: Int64;
 begin
   if TestImage(Image) then
   with Image do
