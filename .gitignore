@@ -40,6 +40,7 @@ Dcu/*
 *.tvsconfig
 *.otares
 *.vlb
+*.dsv
 
 Doc/*.chm
 Doc/*.chw
@@ -63,4 +64,4 @@ Demos/**/lclimager.ico
 
 Demos/ObjectPascal/FireMonkeyDemo/AndroidManifest.template.xml
 Demos/ObjectPascal/FireMonkeyDemo/FireMonkeyDemoResource.rc
-
+Demos/ObjectPascal/FireMonkeyDemo/Deploy

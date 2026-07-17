@@ -96,8 +96,12 @@ const
   TiffDefaultJpegQuality = 90;
 
 const
-  TiffBEMagic: TChar4 = 'MM'#0#42;
-  TiffLEMagic: TChar4 = 'II'#42#0;
+  // Classic TIFF
+  TiffBEMagic:   TChar4 = 'MM'#0#42;
+  TiffLEMagic:   TChar4 = 'II'#42#0;
+  // BigTIFF with 64bit offsets
+  TiffBEMagic64: TChar4 = 'MM'#0#43;
+  TiffLEMagic64: TChar4 = 'II'#43#0;
 
 {
   TBaseTiffFileFormat implementation
@@ -126,8 +130,10 @@ begin
   begin
     ReadCount := GetIO.Read(Handle, @Magic, SizeOf(Magic));
     GetIO.Seek(Handle, -ReadCount, smFromCurrent);
-    Result := (ReadCount >= SizeOf(Magic)) and
-      ((Magic = TiffBEMagic) or (Magic = TiffLEMagic));
+    Result := (ReadCount >= SizeOf(Magic)) and (
+      (Magic = TiffBEMagic) or (Magic = TiffLEMagic) or
+      (Magic = TiffBEMagic64) or (Magic = TiffLEMagic64)
+    );
   end;
 end;
 
