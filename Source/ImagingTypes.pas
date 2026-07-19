@@ -212,6 +212,37 @@ type
   {$IFEND}
 {$ENDIF}
 
+{ Address type for indexed byte-buffer access.
+  Usual PByteArray[Index] is capped at ~2GB
+  (even in Delphi 64, not limited in FPC).
+
+  Aliases to PByte with "$POINTERMATH ON" in
+  Delphi 2009+ and FPC, falls back to PAnsiChar (which has always
+  supported pointer arithmetic) on Delphi 2007 and earlier.
+
+  Usages:
+    ScanLinePtr := @PBuffer(Bits)[Y * Width * Bpp];
+    ScanLinePtr := PBuffer(Bits) + Y * Width * Bpp;
+
+  Remember:
+    When calculating the offset with all 32 bit operands one of them needs
+    to be cast to 64 bit - Pascal won't promote result to 64 bits by itself
+    even if the target variable is 64 bit. }
+{$IFDEF FPC}
+  {$POINTERMATH ON}
+  type
+    PBuffer = PByte;
+{$ELSE}
+  {$IF CompilerVersion >= 20.0} // Delphi 2009+
+    {$POINTERMATH ON}
+    type
+      PBuffer = PByte;
+  {$ELSE} // Delphi 2007 and earlier - no POINTERMATH support
+    type
+      PBuffer = PAnsiChar;
+  {$IFEND}
+{$ENDIF}
+
   { Enum defining image data format. In formats with more channels,
     first channel after "if" is stored in the most significant bits and channel
     before end is stored in the least significant.}
@@ -387,7 +418,7 @@ type
     Remember, that in Pascal when multiplying integers you need to cast (one or all operands,
     not the result!) to 64 bit even when the receiveng variable is 64 bit:
       Size64 := Int64(Width) * Height * Bpp;
-    }
+  }
   TImageData = packed record
     Width: Integer;       // Width of image in pixels
     Height: Integer;      // Height of image in pixels
