@@ -164,6 +164,66 @@ var
 procedure TIFFErrorHandler(const Module, Message: AnsiString);
 begin
   LastError := string(Module + ': ' + Message);
+  // Raise erorr?
+end;
+
+function DecideOpenMode(const Images: TDynImageDataArray;
+  FirstIndex, LastIndex: Integer; Compression, BigTiffWriteMode: Integer): PAnsiChar;
+const
+  { BigTIFF/ClassicTIFF split: 32-bit offset field, this is
+    the exact byte count beyond which libtiff cannot represent an
+    offset in classic mode.
+    However, the classicTIFF total file can still be much bigger - think 2 GB strip
+    starting at the last possible offset. }
+  ClassicTiffMaxFileSize: Int64 = Int64(4) * 1024 * 1024 * 1024; // 4 GiB
+
+  function AddTiffOverhead(const Size: Int64): Int64;
+  begin
+    // Allowance for IFD/tag/header overhead - 8K is enough for a lot of metadata per page.
+    Result := Size + Length(Images) * 8192;
+  end;
+
+var
+  I: Integer;
+  RawTotal, EstimatedTotal: Int64;
+begin
+  if BigTiffWriteMode = TiffBigTiffWriteModeAlways then
+  begin
+    Result := 'w8';   // BigTIFF
+    Exit;
+  end;
+
+  // Accumulate raw page sizes
+  RawTotal := 0;
+  for I := FirstIndex to LastIndex do
+    Inc(RawTotal, Images[I].Size);
+
+  EstimatedTotal := AddTiffOverhead(RawTotal);                                           
+  if (Compression = TiffCompressionOptionNone) and (EstimatedTotal > ClassicTiffMaxFileSize) then
+  begin
+    // For both IfNeeded and IfSafer modes:
+    // We know for sure we'll get a file >4GB. 
+    Result := 'w8';   // BigTIFF
+    Exit;
+  end;
+
+  if BigTiffWriteMode = TiffBigTiffWriteModeIfSafer then   
+  begin
+    // Conservative estimates for compression: For JPEG assume 3x reduction in data size,
+    // for others assume worst case of imcompressible data.
+    if (Compression = TiffCompressionOptionJpeg) then 
+      EstimatedTotal := Trunc(RawTotal / 3.0)
+    else   
+      EstimatedTotal := Trunc(RawTotal * 1.1);
+
+    if EstimatedTotal > ClassicTiffMaxFileSize then
+    begin      
+      Result := 'w8';   // BigTIFF
+      Exit;
+    end;    
+  end;
+  
+  Result := 'w';  // Classic TIFF
 end;
 
 {
@@ -229,6 +289,9 @@ var
       CompressionName := 'Unknown';
     end;
 
+    // TODO: Add orientation to metadata, we read it anyway. Just reset it
+    // if data is read from TIFF using TIFFReadRGBAImageOriented interface.
+
     FMetadata.SetMetaItem(SMetaTiffCompressionName, CompressionName, PageIndex);
   end;
 
@@ -247,10 +310,11 @@ begin
     @TIFFWriteProc, @TIFFSeekProc, @TIFFCloseProc,
     @TIFFSizeProc, @TIFFNoMapProc, @TIFFNoUnmapProc);
 
-  if Tiff <> nil then
-    TIFFSetFileNo(Tiff, THandle(@IOWrapper))
-  else
+  if Tiff = nil then
+  begin
+    // Raise Error?
     Exit;
+  end;
 
   NumDirectories := TIFFNumberOfDirectories(Tiff);
   if OnlyFirstLevel then
@@ -438,6 +502,7 @@ var
   RowsPerStrip: UInt32;
   Red, Green, Blue: array[Byte] of TWordRec;
   CompressionMismatch: Boolean;
+  ScanLinePtr: PBuffer;
   OpenMode: PAnsiChar;
 
   procedure SaveMetadata(Tiff: PTiff; PageIndex: Integer);
@@ -492,17 +557,17 @@ begin
 {$IFDEF HANDLE_NOT_POINTER_SIZED}
   TiffIOWrapper := IOWrapper;
 {$ENDIF}
-
-  OpenMode := 'w';
+  OpenMode := DecideOpenMode(Images, FFirstIdx, FLastIdx, FCompression, FBigTiffWriteMode);
 
   Tiff := TIFFClientOpen('LibTIFF', OpenMode, THandle(@IOWrapper), @TIFFReadProc,
     @TIFFWriteProc, @TIFFSeekProc, @TIFFCloseProc,
     @TIFFSizeProc, @TIFFNoMapProc, @TIFFNoUnmapProc);
 
-  if Tiff <> nil then
-    TIFFSetFileNo(Tiff, THandle(@IOWrapper))
-  else
+  if Tiff = nil then
+  begin
+    // Raise Error?
     Exit;
+  end;
 
   for I := FFirstIdx to FLastIdx do
   begin
@@ -572,9 +637,15 @@ begin
 
       if Photometric = PHOTOMETRIC_RGB then
         SwapChannels(ImageToSave, ChannelRed, ChannelBlue);
+
       // Write image scanlines and then directory for current image
+      ScanLinePtr := ImageToSave.Bits;
       for J := 0 to Height - 1 do
-        TIFFWriteScanline(Tiff, @PByteArray(Bits)[J * ScanLineSize], J, 0);
+      begin
+        TIFFWriteScanline(Tiff, ScanLinePtr, J, 0);
+        Inc(ScanLinePtr, ScanLineSize);
+      end;
+
       if Info.ChannelCount > 1 then
         SwapChannels(ImageToSave, ChannelRed, ChannelBlue);
 

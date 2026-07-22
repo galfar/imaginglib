@@ -187,6 +187,7 @@ const
   ChannelAlpha = 3;
 
 type
+
 {$IFDEF DCC}
   {$IF CompilerVersion <= 18.5}
     PtrUInt = Cardinal;
@@ -230,16 +231,13 @@ type
     even if the target variable is 64 bit. }
 {$IFDEF FPC}
   {$POINTERMATH ON}
-  type
-    PBuffer = PByte;
+  PBuffer = PByte;
 {$ELSE}
   {$IF CompilerVersion >= 20.0} // Delphi 2009+
     {$POINTERMATH ON}
-    type
-      PBuffer = PByte;
+    PBuffer = PByte;
   {$ELSE} // Delphi 2007 and earlier - no POINTERMATH support
-    type
-      PBuffer = PAnsiChar;
+    PBuffer = PAnsiChar;
   {$IFEND}
 {$ENDIF}
 

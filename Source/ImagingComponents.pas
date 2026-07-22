@@ -380,6 +380,7 @@ resourcestring
   SBadFormatDataToBitmap = 'Cannot find compatible bitmap format for image %s';
   SBadFormatBitmapToData = 'Cannot find compatible data format for bitmap %p';
   SBadFormatDisplay = 'Unsupported image format passed';
+  SFailedBitmapFromData = 'Failed to create TBitmap from TImageData';
   SUnsupportedLCLWidgetSet = 'This function is not implemented for current LCL widget set';
   SImagingGraphicName = 'Imaging Graphic AllInOne';
 
@@ -597,7 +598,7 @@ begin
   end;
 
   // Copy scanlines
-    LineBytes := WorkData.Width * Info.BytesPerPixel;
+  LineBytes := WorkData.Width * Info.BytesPerPixel;
   for I := 0 to WorkData.Height - 1 do
     Move(PByteArray(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
 
@@ -634,6 +635,7 @@ begin
   RawImage.Data := WorkData.Bits;
   RawImage.DataSize := WorkData.Size;
 
+  Bitmap.Clear;
   // Create bitmap from raw image
   if RawImage_CreateBitmaps(RawImage, ImgHandle, ImgMaskHandle) then
   begin
@@ -641,8 +643,12 @@ begin
     Bitmap.MaskHandle := ImgMaskHandle;
   end;
 {$ENDIF}
+
   if WorkData.Bits <> Data.Bits then
     Imaging.FreeImage(WorkData);
+
+  if Bitmap.Empty then
+    RaiseImaging(SFailedBitmapFromData, []);
 end;
 
 procedure ConvertBitmapToData(Bitmap: TBitmap; var Data: TImageData);

@@ -217,7 +217,8 @@ end;
 procedure TFormMain.FillListBox(Image: TMultiImage);
 var
   Item: TListBoxItem;
-  I, ImgSize: Integer;
+  I: Integer;
+  ImgSize : Int64;
   Data: TImageData;
   Bmp: TBitmap;
 begin

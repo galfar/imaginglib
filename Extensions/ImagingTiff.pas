@@ -24,6 +24,7 @@ type
   protected
     FCompression: Integer;
     FJpegQuality: Integer;
+    FBigTiffWriteMode: Integer;
     procedure Define; override;
   public
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -38,6 +39,12 @@ type
       It is number in range 1..100. 1 means small/ugly file,
       100 means large/nice file. Accessible trough ImagingTiffJpegQuality option.}
     property JpegQuality: Integer read FJpegQuality write FJpegQuality;
+    { Controls writing of BigTIFF files:
+      - IfNeeded(0) writes BigTIFF only when the file size for sure exceeds
+        the classic TIFF 4 GiB limit (can only assure for uncompressed TIFFs).
+      - IfSafer(1) also uses BigTIFF when compression makes the final file size uncertain.
+      - Always(2) always writes BigTIFF files. }
+    property BigTiffWriteMode: Integer read FBigTiffWriteMode write FBigTiffWriteMode;
   end;
 
 const
@@ -47,6 +54,10 @@ const
   TiffCompressionOptionDeflate     = 3;
   TiffCompressionOptionJpeg        = 4;
   TiffCompressionOptionGroup4      = 5;
+
+  TiffBigTiffWriteModeIfNeeded = 0;
+  TiffBigTiffWriteModeIfSafer  = 1;
+  TiffBigTiffWriteModeAlways   = 2;
 
   { Read only metadata info - name of compression scheme (LZW, none, JPEG, G4, ...)
     used in last loaded TIFF. }
@@ -98,10 +109,10 @@ const
 const
   // Classic TIFF
   TiffBEMagic:   TChar4 = 'MM'#0#42;
-  TiffLEMagic:   TChar4 = 'II'#42#0;
+  TiffLEMagic:   TChar4 = 'II'#42#0;  // II*
   // BigTIFF with 64bit offsets
   TiffBEMagic64: TChar4 = 'MM'#0#43;
-  TiffLEMagic64: TChar4 = 'II'#43#0;
+  TiffLEMagic64: TChar4 = 'II'#43#0;  // II+
 
 {
   TBaseTiffFileFormat implementation
@@ -114,10 +125,12 @@ begin
   FFeatures := [ffLoad, ffSave, ffMultiImage];
   FCompression := TiffDefaultCompression;
   FJpegQuality := TiffDefaultJpegQuality;
+  FBigTiffWriteMode := TiffBigTiffWriteModeIfNeeded;
 
   AddMasks(STiffMasks);
   RegisterOption(ImagingTiffCompression, @FCompression);
   RegisterOption(ImagingTiffJpegQuality, @FJpegQuality);
+  RegisterOption(ImagingTiffBigTiffWriteMode, @FBigTiffWriteMode);
 end;
 
 function TBaseTiffFileFormat.TestFormat(Handle: TImagingHandle): Boolean;

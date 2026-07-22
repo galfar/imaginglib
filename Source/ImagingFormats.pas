@@ -1779,7 +1779,6 @@ var
   DstLine: PByte;
   SrcFloat: TColorFPRec;
   Info: TImageFormatInfo;
-  BytesPerChannel: Integer;
 begin
   GetImageFormatInfo(SrcImage.Format, Info);
   Assert(SrcImage.Format = DstImage.Format);

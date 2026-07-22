@@ -102,7 +102,7 @@ type
     FFileName: string;
     FLastTime: LongInt;
     FOriginalFormats: array of TImageFormat;
-    FOriginalSizes: array of Integer;
+    FOriginalSizes: array of Int64;
     FSupported: Boolean;
  {$IFDEF FPC}
     procedure TreeGetImageIndex(Sender: TObject; Node: TTreeNode);
@@ -211,7 +211,7 @@ end;
 procedure TMainForm.SetSupported;
 var
   XRes, YRes: Double;
-  ImgSize: Integer;
+  ImgSize: Int64;
 begin
   // Update image info and enable previous/next buttons
   ImgSize := FOriginalSizes[FImage.ActiveImage];

@@ -1224,7 +1224,12 @@ end;
 
 procedure TMainForm.UpdateView(RebuildTree: Boolean);
 begin
-  Image.Picture.Graphic.Assign(FImage);
+  try
+    Image.Picture.Graphic.Assign(FImage);
+  except
+    Image.Picture.Graphic.Clear;
+    raise;
+  end;
   if RebuildTree then
     BuildImageTree;
 end;
