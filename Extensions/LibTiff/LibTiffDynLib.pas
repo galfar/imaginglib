@@ -724,7 +724,7 @@ procedure CheckVersion;
 begin
 {$IFDEF UNIX}
   if not IsVersion4 then
-    WriteLn('Warning: installed libtiff seems to be version 3.x. TIFF functions will probably fail. Install libtiff5 package to get libtiff 4.x.');
+    WriteLn('Warning: installed libtiff seems to be version 3.x. TIFF functions will probably fail. Install libtiff5/6 package to get libtiff 4.x.');
 {$ENDIF}
 end;
 
@@ -735,7 +735,7 @@ var
 function GetProcAddr(const AProcName: PChar): Pointer;
 begin
   Result := GetProcAddress(TiffLibHandle, AProcName);
-  if Addr(Result) = nil then begin
+  if Result = nil then begin
     RaiseLastOSError;
   end;
 end;
@@ -774,10 +774,15 @@ begin
       TIFFSetErrorHandler := GetProcAddr('TIFFSetErrorHandler');
       TIFFSetWarningHandler := GetProcAddr('TIFFSetWarningHandler');
 
-      SetInternalMessageHandlers(@InternallTIFFError, @InternalTIFFWarning);
-      CheckVersion;
+      Result := Assigned(TIFFGetVersion) and Assigned(TIFFClientOpen) and
+        Assigned(TIFFReadScanline) and Assigned(TIFFReadRGBAImageOriented) and
+        Assigned(TIFFWriteDirectory);
 
-      Result := True;
+      if Result then
+      begin
+        SetInternalMessageHandlers(@InternallTIFFError, @InternalTIFFWarning);
+        CheckVersion;
+      end;
     end;
   end;
 end;
@@ -802,4 +807,3 @@ finalization
   FreeTiffLibrary;
 {$ENDIF}
 end.
-
