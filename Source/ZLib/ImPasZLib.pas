@@ -1,6 +1,33 @@
 unit ImPasZLib;
 
-{$I imzconf.inc}
+{ -------------------------------------------------------------------- }
+
+{$DEFINE MAX_MATCH_IS_258}
+
+{ Compile with -DMAXSEG_64K if the alloc function cannot allocate more
+  than 64k bytes at a time (needed on systems with 16-bit int). }
+
+{$UNDEF MAXSEG_64K}
+{$DEFINE UNALIGNED_OK}    { requires SizeOf(ush) = 2 ! }
+{$UNDEF DYNAMIC_CRC_TABLE}
+{$UNDEF FASTEST}
+{$DEFINE Use32}
+{$DEFINE patch112}        { apply patch from the zlib home page }
+
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
+// Undef DEBUG mode for ImPasZLib. DEBUG is off by default, since it's much slower
+// Comment this out if you want to debug ZLib.
+{$UNDEF DEBUG}
+
+{$IFNDEF DEBUG}
+  {$RANGECHECKS OFF}
+  {$OVERFLOWCHECKS OFF}
+{$ENDIF}
+
+{ -------------------------------------------------------------------- }
 
 interface
 
@@ -15,6 +42,9 @@ uses
   For conditions of distribution and use, see copyright notice in readme.txt
 }
 
+const
+  ZLIB_VERSION : string[10] = '1.1.2';
+
 { Type declarations }
 
 type
@@ -22,9 +52,9 @@ type
   Bytef  = byte;
   charf  = byte;
 
-  int    = longint;
+  int    = integer;
   intf   = int;
-  uInt   = cardinal;     { 16 bits or more }
+  uInt   = cardinal;
   uIntf  = uInt;
 
   Long   = longint;
@@ -471,9 +501,6 @@ procedure ZFREE (var strm : z_stream; ptr : voidpf);
 procedure TRY_FREE (var strm : z_stream; ptr : voidpf);
 
 const
-  ZLIB_VERSION : string[10] = '1.1.2';
-
-const
   z_errbase = Z_NEED_DICT;
   z_errmsg : Array[0..9] of string[21] = { indexed by 2-zlib_error }
            ('need dictionary',     { Z_NEED_DICT       2  }
@@ -715,6 +742,15 @@ function deflateInit2 (var strm : z_stream;
    an invalid method). msg is set to null if there is no error message.
    deflateInit2 does not perform any compression: this will be done by
    deflate(). }
+
+function deflateInit2_(var strm : z_stream;
+                       level : int;
+                       method : int;
+                       windowBits : int;
+                       memLevel : int;
+                       strategy : int;
+                       const version : AnsiString;
+                       stream_size : int) : int;
 
 function deflateSetDictionary (var strm : z_stream;
                                dictionary : pBytef; {const bytes}
@@ -3184,10 +3220,10 @@ begin
         {UPDATE_HASH(s, s.ins_h, s.window[s.strstart+1]);}
         s.ins_h := (( s.ins_h shl s.hash_shift) xor
                      s.window^[s.strstart+1]) and s.hash_mask;
-if MIN_MATCH <> 3 then   { the linker removes this }
-begin
-          {Call UPDATE_HASH() MIN_MATCH-3 more times}
-end;
+//if MIN_MATCH <> 3 then   { the linker removes this }
+//begin
+//          {Call UPDATE_HASH() MIN_MATCH-3 more times}
+//end;
 
         { If lookahead < MIN_MATCH, ins_h is garbage, but it does not
           matter since it will be recomputed at next deflate call. }

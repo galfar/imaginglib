@@ -25,37 +25,37 @@
   to exe by default so there is no need to link additional (and almost identical) IMPASZLIB.
 }
 
-unit dzlib;
+unit ImagingZLib;
 
 {$I ImagingOptions.inc}
 
 interface
 
-{$DEFINE IMPASZLIB}
+{ $DEFINE IMPASZLIB}
+{ $DEFINE ZLIB_DYNLIB}
+
 { $DEFINE FPCPASZLIB}
 { $DEFINE DELPHIZLIB}
-{ $DEFINE ZLIBPAS}
 
-{ TODO:
-    - dynamic link ZLib option (for zlib_ng etc.)
-    - maybe for Linux use system libz.so by default (measure perf with 036.png vs fpc_zlib)
-    - cleanup & rename dzlib, maybe remove comp/decomp streams?
-    - update info on top
-}
+{$IF not Defined(IMPASZLIB) and not Defined(ZLIB_DYNLIB)}
+  {$DEFINE NO_USER_ZLIB}
+{$IFEND}
 
-{$IFDEF FPC}
+
+{$IF Defined(FPC) and Defined(NO_USER_ZLIB)}
   { Automatically use FPC's PasZLib when compiling with FPC.}
-  // TODO: re-enable after testing
-  {.$UNDEF IMPASZLIB}
-  {.$DEFINE FPCPASZLIB}
-{$ENDIF}
+  {$DEFINE FPCPASZLIB}
+{$IFEND}
 
-{$IF Defined(DELPHI) and (CompilerVersion > 23)}
+{$IF Defined(DELPHI) and (CompilerVersion > 23) and Defined(NO_USER_ZLIB)}
   { Automatically use Delphi's ZLib when compiling with Delphi (recent versions include
     recentish ZLib compiled to objects, can be 2x faster than IMPASZLIB).
     Needs Delphi XE2+ for deflateInit2 etc.}
-  {$UNDEF IMPASZLIB}
   {$DEFINE DELPHIZLIB}
+{$IFEND}
+
+{$IF not Defined(FPCPASZLIB) and not Defined(DELPHIZLIB) and not Defined(ZLIB_DYNLIB)}
+  {$DEFINE IMPASZLIB}  // Fallback
 {$IFEND}
 
 uses
@@ -68,13 +68,13 @@ uses
 {$ELSEIF Defined(DELPHIZLIB)}
   { Use ZLib unit shipped with Delphi }
   ZLib,
-{$ELSEIF Defined(ZLIBPAS)}
-  { Pascal interface to ZLib shipped with ZLib C source }
-  zlibpas,
+{$ELSEIF Defined(ZLIB_DYNLIB)}
+  { Use zlib dll/so/dylib. Can also use zlib-ng compat. }
+  ZLibDynLib,
 {$IFEND}
   ImagingTypes, SysUtils, Classes;
 
-{$IF Defined(IMPASZLIB) or Defined(FPCPASZLIB) or Defined(ZLIBPAS)}
+{$IF not Defined(TZStreamRec)}
 type
   TZStreamRec = z_stream;
 {$IFEND}
@@ -188,16 +188,21 @@ type
 
 implementation
 
+const
+  // Version string used with the API calls. We use just very basic
+  // parts supported since forever.
+  MinZLibVersion = '1.1.2';
+
 {$IF not Defined(IMPASZLIB) and not Defined(FPCPASZLIB)}
-  // Use Pascal mem allocation when using clompiled C libs
+  // Use Pascal mem allocation when using compiled C libs
   {$DEFINE USE_PASCAL_ALLOC}
 {$IFEND}
 
-{$IFDEF DELPHIZLIB}
+{$IF Defined(DELPHIZLIB) or Defined(ZLIB_DYNLIB)}
 const
   DEF_MEM_LEVEL = 9;
   MAX_WBITS = 15;
-{$ENDIF}
+{$IFEND}
 
 const
   ZErrorMessages: array[0..9] of PAnsiChar = (
@@ -260,15 +265,15 @@ begin
     ZStream.next_out := OutBuf;
     ZStream.avail_out := OutBytes;
 
-    CCheck(deflateInit2(ZStream, CompressLevel, Z_DEFLATED, MAX_WBITS,
-      DEF_MEM_LEVEL, CompressStrategy));
+    CCheck(deflateInit2_(ZStream, CompressLevel, Z_DEFLATED, MAX_WBITS,
+      DEF_MEM_LEVEL, CompressStrategy, MinZLibVersion, SizeOf(z_stream)));
 
     try
       while CCheck(deflate(ZStream, Z_FINISH)) <> Z_STREAM_END do
       begin
         Inc(OutBytes, 256);
         ReallocMem(OutBuf, OutBytes);
-        ZStream.next_out := PByte(PtrUInt(OutBuf) + ZStream.total_out);
+        ZStream.next_out := Pointer(PtrUInt(OutBuf) + ZStream.total_out);
         ZStream.avail_out := 256;
       end;
     finally
@@ -308,13 +313,13 @@ begin
     ZStream.next_out := OutBuf;
     ZStream.avail_out := OutBytes;
 
-    DCheck(inflateInit_(ZStream, zlib_version, sizeof(ZStream)));
+    DCheck(inflateInit_(ZStream, MinZLibVersion, sizeof(ZStream)));
     try
       while DCheck(inflate(ZStream, Z_NO_FLUSH)) <> Z_STREAM_END do
       begin
         Inc(OutBytes, BufInc);
         ReallocMem(OutBuf, OutBytes);
-        ZStream.next_out := PByte(PtrUInt(OutBuf) + ZStream.total_out);
+        ZStream.next_out := Pointer(PtrUInt(OutBuf) + ZStream.total_out);
         ZStream.avail_out := BufInc;
       end;
     finally
@@ -361,7 +366,7 @@ begin
   inherited Create(Dest);
   FZRec.next_out := @FBuffer;
   FZRec.avail_out := sizeof(FBuffer);
-  CCheck(deflateInit_(FZRec, Levels[CompressionLevel], zlib_version, sizeof(FZRec)));
+  CCheck(deflateInit_(FZRec, Levels[CompressionLevel], MinZLibVersion, sizeof(FZRec)));
 end;
 
 destructor TCompressionStream.Destroy;
@@ -434,7 +439,7 @@ begin
   inherited Create(Source);
   FZRec.next_in := @FBuffer;
   FZRec.avail_in := 0;
-  DCheck(inflateInit_(FZRec, zlib_version, sizeof(FZRec)));
+  DCheck(inflateInit_(FZRec, MinZLibVersion, sizeof(FZRec)));
 end;
 
 destructor TDecompressionStream.Destroy;
@@ -486,8 +491,8 @@ begin
     FStrm.Position := 0;
     FStrmPos := 0;
   end
-  else if ( (Offset >= 0) and (Origin = soFromCurrent)) or
-          ( ((Offset - Integer(FZRec.total_out)) > 0) and (Origin = soFromBeginning)) then
+  else if ((Offset >= 0) and (Origin = soFromCurrent)) or
+          (((Offset - Integer(FZRec.total_out)) > 0) and (Origin = soFromBeginning)) then
   begin
     if Origin = soFromBeginning then Dec(Offset, FZRec.total_out);
     if Offset > 0 then
