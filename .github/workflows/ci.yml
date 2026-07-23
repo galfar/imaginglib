@@ -1,121 +1,44 @@
-name: CI
-
-on:
-  # on each push and manual trigger
-  push:
-    branches: [ master ]
-    paths-ignore: [ "**/Readme.md" ]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-
+on: [workflow_dispatch]
 jobs:
-  build:
-    runs-on: ${{ matrix.operating-system }}
-    timeout-minutes: 30
+  test:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
-        # need to stay on macOS-14 for now, as macOS-15+ has issues with FPC DMG/PKG installer
-        operating-system: [ubuntu-latest, windows-latest, macos-14]
-        # currently stable="Lazarus 4.4 / FPC 3.2.2" with setup-lazarus@v3.4.1
-        lazarus-versions: [stable]
+        config:
+          - os: windows-latest
+            name: Windows 32
+            args: "--cpu=i386"
+            fpclazup-url: https://github.com/LongDirtyAnimAlf/Reiniero-fpcup/releases/download/v2.4.0g/fpclazup-x86_64-win64.exe
+            fpclazup-lazcommit: 98f9c7a7a102139e43b39050ebbb5c48d805f59f # 4.4
+            fpclazup-fpccommit: de30ac10d4f228c5d4915c49d48715063ea55787 # trunk (~3.3)
+
+          - os: ubuntu-24.04-arm
+            name: Linux ARM64
+            args: ""
+            fpclazup-url: https://github.com/LongDirtyAnimAlf/Reiniero-fpcup/releases/download/v2.4.0g/fpclazup-aarch64-linux
+            fpclazup-lazcommit: 98f9c7a7a102139e43b39050ebbb5c48d805f59f # 4.4
+            fpclazup-fpccommit: de30ac10d4f228c5d4915c49d48715063ea55787 # trunk (~3.3)
+
+          - os: macos-latest
+            name: MacOS arm64
+            args: ""
+            fpclazup-url: https://github.com/LongDirtyAnimAlf/Reiniero-fpcup/releases/download/v2.4.0g/fpclazup-aarch64-darwin
+            fpclazup-lazcommit: 98f9c7a7a102139e43b39050ebbb5c48d805f59f # 4.4
+            fpclazup-fpccommit: de30ac10d4f228c5d4915c49d48715063ea55787 # trunk (~3.3)
+        
     steps:
-      - uses: actions/checkout@v4
       - name: Install Lazarus
-        uses: gcarreno/setup-lazarus@v3
+        uses: ollydev/setup-lazarus@v4
         with:
-          lazarus-version: ${{ matrix.lazarus-versions }}
-          with-cache: ${{ matrix.with-cache }}
-      - name: Print Lazarus version
-        run: lazbuild --version
-      - name: Setup Linux
-        if: runner.os == 'Linux'
-        shell: bash
-        run:  |
-          # needed for SDL and GL demos
-          sudo apt install libsdl1.2-dev -y
-
-          # to build LCL demos with Qt5 backend
-          # sudo apt install libqt5pas-dev -y
-
-          # With current Lazarus + Ubuntu versions we need to get newer libqt5pas release
-          # (https://forum.lazarus.freepascal.org/index.php/topic,65619.msg500216.html#msg500216)
-          wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas1_2.15-1_amd64.deb
-          sudo apt install ./libqt5pas1_2.15-1_amd64.deb -y
-          wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas-dev_2.15-1_amd64.deb
-          sudo apt install ./libqt5pas-dev_2.15-1_amd64.deb -y
-      - name: Build demos with FPC (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run:  |
-          cd Scripts
-          ./BuildDemosFPC.sh
-          ./BuildExtDemosFPC.sh
-          ./Clean.sh --clean-also-bin-dirs
-      - name: Build demos with FPC (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run:  |
-          cd Scripts
-          ./BuildDemosFPC.bat
-          ./BuildExtDemosFPC.bat
-          ./Clean.sh --clean-also-bin-dirs
-      - name: Build demos with Lazarus
-        shell: bash
-        run:  |
-          cd Demos/ObjectPascal
-
-          # Built for all platforms
-          lazbuild --bm="Release" "Benchmark/Bench.lpi"
-          lazbuild --bm="Release" "VampConvert/VampConvert.lpi"
-
-          if [ "$RUNNER_OS" == "Linux" ]; then
-              # For Linux build LCL demos also with Qt5 (just to test that it builds)
-              lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
-              lazbuild --ws=gtk2 --opt="-oLCLImager-GTK2" --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --ws=gtk2 --opt="-oLCLImager-GTK2-Debug" --bm="Debug" "LCLImager/lclimager.lpi"
-          fi
-
-          if [ "$RUNNER_OS" != "macOS" ]; then
-              # Build these for non macOS platforms
-              lazbuild --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"
-              lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
-              lazbuild --bm="Release" "SDLDemo/SDLDemo.lpi"
-          fi
-
-          if [ "$RUNNER_OS" == "Windows" ]; then
-              # Build D3D demo just for Windows
-              lazbuild --bm="Release" "D3DDemo/D3DDemo.lpi"
-          fi
-
-          if [ "$RUNNER_OS" == "macOS" ]; then
-              # For macOS we need to build LCL demos with Cocoa
-              lazbuild --ws=cocoa --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --ws=cocoa --bm="Release" "ImageBrowser/ImgBrowser.lpi"
-          fi
-      - name: List Demos Bin directory
-        shell: bash
-        run:  ls Demos/Bin
-      - name:  Run demos
-        shell: bash
-        run:   |
-          cd Demos/Bin
-          ./Bench
-          ./VampConvert -h
-      - name: Compile Lazarus Packages
-        shell: bash
-        run:  |
-          lazbuild "Packages/VampyreImagingPackage.lpk"
-          lazbuild "Packages/VampyreImagingPackageExt.lpk"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ci-artifacts-${{ matrix.operating-system }}-laz-${{ matrix.lazarus-versions }}
-          # exclude compiled units etc.
-          path: |
-            Demos/Bin
-            !Demos/Bin/Dcu
-          if-no-files-found: error
+          fpclazup-url: ${{ matrix.config.fpclazup-url }}
+          fpclazup-lazcommit: ${{ matrix.config.fpclazup-lazcommit }}
+          fpclazup-fpccommit: ${{ matrix.config.fpclazup-fpccommit }}
+      
+      - name: Test Installation
+        run: |
+          lazbuild --version
