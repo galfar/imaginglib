@@ -42,3 +42,69 @@ jobs:
       - name: Test Installation
         run: |
           lazbuild --version
+
+      - name: Build demos with FPC (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run:  |
+          cd Scripts
+          ./BuildDemosFPC.sh
+          ./BuildExtDemosFPC.sh
+          ./Clean.sh --clean-also-bin-dirs
+     
+      - name: Build demos with FPC (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run:  |
+          cd Scripts
+          ./BuildDemosFPC.bat
+          ./BuildExtDemosFPC.bat
+          ./Clean.sh --clean-also-bin-dirs
+     
+      - name: Build demos with Lazarus
+        shell: bash
+        run:  |
+          cd Demos/ObjectPascal
+          # Built for all platforms
+          lazbuild --bm="Release" "Benchmark/Bench.lpi"
+          lazbuild --bm="Release" "VampConvert/VampConvert.lpi"
+          if [ "$RUNNER_OS" == "Linux" ]; then
+              # For Linux build LCL demos also with Qt5 (just to test that it builds)
+              lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
+              lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+              lazbuild --ws=gtk2 --opt="-oLCLImager-GTK2" --bm="Release" "LCLImager/lclimager.lpi"
+              lazbuild --ws=gtk2 --opt="-oLCLImager-GTK2-Debug" --bm="Debug" "LCLImager/lclimager.lpi"
+          fi
+          if [ "$RUNNER_OS" != "macOS" ]; then
+              # Build these for non macOS platforms
+              lazbuild --bm="Release" "LCLImager/lclimager.lpi"
+              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+              lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
+              lazbuild --bm="Release" "SDLDemo/SDLDemo.lpi"
+          fi
+          if [ "$RUNNER_OS" == "Windows" ]; then
+              # Build D3D demo just for Windows
+              lazbuild --bm="Release" "D3DDemo/D3DDemo.lpi"
+          fi
+          if [ "$RUNNER_OS" == "macOS" ]; then
+              # For macOS we need to build LCL demos with Cocoa
+              lazbuild --ws=cocoa --bm="Release" "LCLImager/lclimager.lpi"
+              lazbuild --ws=cocoa --bm="Release" "ImageBrowser/ImgBrowser.lpi"
+          fi
+  
+      - name: List Demos Bin directory
+        shell: bash
+        run:  ls Demos/Bin
+    
+      - name:  Run demos
+        shell: bash
+        run:   |
+          cd Demos/Bin
+          ./Bench
+          ./VampConvert -h
+     
+      - name: Compile Lazarus Packages
+        shell: bash
+        run:  |
+          lazbuild "Packages/VampyreImagingPackage.lpk"
+          lazbuild "Packages/VampyreImagingPackageExt.lpk"    
