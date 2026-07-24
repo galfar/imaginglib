@@ -32,6 +32,9 @@ jobs:
             fpclazup-fpccommit: de30ac10d4f228c5d4915c49d48715063ea55787 # trunk (~3.3)
         
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        
       - name: Install Lazarus
         uses: ollydev/setup-lazarus@v4
         with:
