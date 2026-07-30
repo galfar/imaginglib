@@ -5,14 +5,14 @@
 echo "Building Extended Demos using Free Pascal"
 echo
 
-source ./Common.sh
+source ./DemosCommonFPC.sh
 
 DEFINES="-dDONT_LINK_EXTRAS"
-UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib -Fu$ROOTDIR/Extensions -Fu$DEMOPATH/Common"  
+UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib -Fu$ROOTDIR/Extensions -Fu$DEMOPATH/Common"
 
 DEMOCOUNT=2
 
-buildDemo "SDLDemo/SDLDemo.dpr" 
-buildDemo "OpenGLDemo/OpenGLDemo.dpr" 
+buildDemo "SDLDemo/SDLDemo.dpr"
+buildDemo "OpenGLDemo/OpenGLDemo.dpr"
 
 printResult

@@ -12,110 +12,148 @@ permissions:
 
 jobs:
   build:
+    name: build (${{ matrix.operating-system }}, ${{ matrix.arch }})
     runs-on: ${{ matrix.operating-system }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        # need to stay on macOS-14 for now, as macOS-15+ has issues with FPC DMG/PKG installer
-        operating-system: [ubuntu-latest, windows-latest, macos-14]
-        # currently stable="Lazarus 4.4 / FPC 3.2.2" with setup-lazarus@v3.4.1
-        lazarus-versions: [stable]
+        include:
+          # Windows x86_64
+          - operating-system: windows-latest
+            arch: x86_64
+            laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Windows%2064%20bits/Lazarus%204.8/lazarus-4.8-fpc-3.2.2-win64.exe
+            fpc-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Windows%2064%20bits/Lazarus%204.8/lazarus-4.8-fpc-3.2.2-cross-i386-win32-win64.exe
+
+          # Ubuntu x86_64
+          - operating-system: ubuntu-latest
+            arch: x86_64
+            laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%204.8/lazarus-project_4.8.0-0_amd64.deb
+            fpc-url: |
+              https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%204.8/fpc-laz_3.2.2-210709_amd64.deb
+              https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20amd64%20DEB/Lazarus%204.8/fpc-src_3.2.2-210709_amd64.deb
+
+          # Ubuntu ARM64
+          - operating-system: ubuntu-24.04-arm
+            arch: arm64
+            laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20arm64%20DEB/Lazarus%204.8/lazarus-project_4.8.0-0_arm64.deb
+            fpc-url: |
+              https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20arm64%20DEB/Lazarus%204.8/fpc-laz_3.2.3-240813_arm64.deb
+              https://sourceforge.net/projects/lazarus/files/Lazarus%20Linux%20arm64%20DEB/Lazarus%204.8/fpc-src_3.2.3-240813_arm64.deb
+
+          # macOS ARM64
+          - operating-system: macos-latest
+            arch: arm64
+            laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20aarch64/Lazarus%204.8/lazarus-darwin-aarch64-4.8.zip
+            fpc-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20aarch64/Lazarus%204.8/fpc-3.2.4rc1a.intelarm64-macosx.dmg
+
+          # macOS x86_64
+          - operating-system: macos-15-intel
+            arch: x86_64
+            laz-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%204.8/lazarus-darwin-x86_64-4.8.zip
+            fpc-url: https://sourceforge.net/projects/lazarus/files/Lazarus%20macOS%20x86-64/Lazarus%204.8/fpc-3.2.4rc1a.intelarm64-macosx.dmg
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Lazarus
-        uses: gcarreno/setup-lazarus@v3
+      - uses: actions/checkout@v7
+
+      - name: Install FPC & Lazarus
+        uses: ollydev/setup-lazarus@v4.1
         with:
-          lazarus-version: ${{ matrix.lazarus-versions }}
-          with-cache: ${{ matrix.with-cache }}
-      - name: Print Lazarus version
-        run: lazbuild --version
+          laz-url: ${{ matrix.laz-url }}
+          fpc-url: ${{ matrix.fpc-url }}
+
+      - name: Setup Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          # Add FPC to PATH
+          LAZ_DIR="$RUNNER_TEMP/lazarus"
+          FPC_BIN=$(find "$LAZ_DIR/" -name "fpc.exe" | head -1)
+          FPC_DIR=$(dirname "$FPC_BIN")
+          echo "Found FPC: $FPC_BIN"
+          echo "$FPC_DIR" >> $GITHUB_PATH
+
+          # Check Win32 cross compiler is available
+          FPC_CROSS_WIN32_BIN=$(find "$LAZ_DIR/" -name "ppc386.exe" | head -1)
+          if [ ! -f "$FPC_CROSS_WIN32_BIN" ]; then
+              echo "Error: Win32 cross compiler not found!"
+              exit 1
+          fi
+
       - name: Setup Linux
         if: runner.os == 'Linux'
         shell: bash
         run:  |
-          # needed for SDL and GL demos
+          # Needed for SDL and GL demos
           sudo apt install libsdl1.2-dev -y
 
-          # to build LCL demos with Qt5 backend
-          # sudo apt install libqt5pas-dev -y
+          # To build LCL demos with GTK3 backend.
+          sudo apt install libgtk-3-dev
 
-          # With current Lazarus + Ubuntu versions we need to get newer libqt5pas release
-          # (https://forum.lazarus.freepascal.org/index.php/topic,65619.msg500216.html#msg500216)
-          wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas1_2.15-1_amd64.deb
-          sudo apt install ./libqt5pas1_2.15-1_amd64.deb -y
-          wget https://github.com/davidbannon/libqt5pas/releases/download/v1.2.15/libqt5pas-dev_2.15-1_amd64.deb
-          sudo apt install ./libqt5pas-dev_2.15-1_amd64.deb -y
-      - name: Build demos with FPC (Linux)
-        if: runner.os == 'Linux'
+          # To build LCL demos with Qt5 backend. If you see any linking problems, rather
+          # install the latest libqt5pas release from https://github.com/davidbannon/libqt5pas/releases
+          sudo apt install libqt5pas-dev -y
+
+          # With current Lazarus + Ubuntu versions we need to get newer libqt6pas release
+          BASE_URL=https://github.com/davidbannon/libqt6pas/releases/download/v6.2.10
+          if [[ "$RUNNER_ARCH" == "X64" ]]; then
+            wget $BASE_URL/libqt6pas6_6.2.10-1_amd64.deb
+            sudo apt install ./libqt6pas6_6.2.10-1_amd64.deb -y
+            wget $BASE_URL/libqt6pas6-dev_6.2.10-1_amd64.deb
+            sudo apt install ./libqt6pas6-dev_6.2.10-1_amd64.deb -y
+          else
+            wget $BASE_URL/libqt6pas6_6.2.10-1_arm64.deb
+            sudo apt install ./libqt6pas6_6.2.10-1_arm64.deb -y
+            wget $BASE_URL/libqt6pas6-dev_6.2.10-1_arm64.deb
+            sudo apt install ./libqt6pas6-dev_6.2.10-1_arm64.deb -y
+          fi
+
+      - name: Setup macOS
+        if: runner.os == 'macOS'
         shell: bash
-        run:  |
-          cd Scripts
-          ./BuildDemosFPC.sh
-          ./BuildExtDemosFPC.sh
-          ./Clean.sh --clean-also-bin-dirs
-      - name: Build demos with FPC (Windows)
-        if: runner.os == 'Windows'
+        run: |
+          brew untap aws/tap 2>/dev/null || true  # Silence the warnings on macOS runners, we don't need AWS stuff
+          brew install bash  # We need bash 4+
+          brew install sdl2 sdl12-compat
+
+      - name: Print info
         shell: bash
-        run:  |
-          cd Scripts
-          ./BuildDemosFPC.bat
-          ./BuildExtDemosFPC.bat
-          ./Clean.sh --clean-also-bin-dirs
+        run: |
+          echo "Lazarus:" $(lazbuild --version)
+          echo "FPC:" $(fpc -iWTPTO)
+          echo "OS: "$RUNNER_OS", ARCH:" $RUNNER_ARCH
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            echo "    "$(lsb_release -d)
+          fi
+
+      - name: Build demos with FPC
+        shell: bash
+        run: bash -e ./Scripts/CI.BuildDemosFPC.sh
+
       - name: Build demos with Lazarus
         shell: bash
-        run:  |
-          cd Demos/ObjectPascal
+        run: bash -e ./Scripts/CI.BuildDemosLazarus.sh
 
-          # Built for all platforms
-          lazbuild --bm="Release" "Benchmark/Bench.lpi"
-          lazbuild --bm="Release" "VampConvert/VampConvert.lpi"
-
-          if [ "$RUNNER_OS" == "Linux" ]; then
-              # For Linux build LCL demos also with Qt5 (just to test that it builds)
-              lazbuild --ws=qt5 --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --ws=qt5 --bm="Release" "ImageBrowser/ImgBrowser.lpi"
-              lazbuild --ws=gtk2 --opt="-oLCLImager-GTK2" --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --ws=gtk2 --opt="-oLCLImager-GTK2-Debug" --bm="Debug" "LCLImager/lclimager.lpi"
-          fi
-
-          if [ "$RUNNER_OS" != "macOS" ]; then
-              # Build these for non macOS platforms
-              lazbuild --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --bm="Release" "ImageBrowser/ImgBrowser.lpi"
-              lazbuild --bm="Release" "OpenGLDemo/OpenGLDemo.lpi"
-              lazbuild --bm="Release" "SDLDemo/SDLDemo.lpi"
-          fi
-
-          if [ "$RUNNER_OS" == "Windows" ]; then
-              # Build D3D demo just for Windows
-              lazbuild --bm="Release" "D3DDemo/D3DDemo.lpi"
-          fi
-
-          if [ "$RUNNER_OS" == "macOS" ]; then
-              # For macOS we need to build LCL demos with Cocoa
-              lazbuild --ws=cocoa --bm="Release" "LCLImager/lclimager.lpi"
-              lazbuild --ws=cocoa --bm="Release" "ImageBrowser/ImgBrowser.lpi"
-          fi
-      - name: List Demos Bin directory
-        shell: bash
-        run:  ls Demos/Bin
-      - name:  Run demos
-        shell: bash
-        run:   |
-          cd Demos/Bin
-          ./Bench
-          ./VampConvert -h
-      - name: Compile Lazarus Packages
+      - name: Build Lazarus packages
         shell: bash
         run:  |
           lazbuild "Packages/VampyreImagingPackage.lpk"
           lazbuild "Packages/VampyreImagingPackageExt.lpk"
-      - uses: actions/upload-artifact@v4
+
+      - name:  Run demos
+        shell: bash
+        run: bash -e ./Scripts/CI.RunDemos.sh
+
+      - name: List Demos Bin directory
+        shell: bash
+        run:  ls Demos/Bin
+
+      - uses: actions/upload-artifact@v7
         with:
-          name: ci-artifacts-${{ matrix.operating-system }}-laz-${{ matrix.lazarus-versions }}
-          # exclude compiled units etc.
+          name: ci-artifacts-${{ runner.os }}-${{ runner.arch }}
           path: |
             Demos/Bin
+            Demos/Data
             !Demos/Bin/Dcu
           if-no-files-found: error
+
