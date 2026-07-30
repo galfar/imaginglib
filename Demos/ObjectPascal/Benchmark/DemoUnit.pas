@@ -419,6 +419,7 @@ begin
       begin
         WriteLn('Exception Raised!');
         WriteLn(E.Message);
+        Halt(1);
       end;
     end;
   finally

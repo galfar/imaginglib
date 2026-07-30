@@ -353,7 +353,7 @@ uses
   {$ELSEIF Defined(LCLqt5)}
     Qt5, qtobjects,
   {$ELSEIF Defined(LCLcocoa)}
-    CocoaGDIObjects, CocoaUtils,
+    CocoaAll, CocoaGDIObjects, CocoaUtils,
   {$IFEND}
 {$IFEND}
 {$IFNDEF DONT_LINK_BITMAP}
@@ -928,13 +928,13 @@ begin
     if not (ImageData.Format in [ifA8R8G8B8, ifX8R8G8B8]) then
       raise EImagingError.Create(SBadFormatDisplay);
 
-    Context := CheckDC(DstCanvas.Handle);
+    Context := TCocoaGDIUtil.CheckDC(DstCanvas.Handle);
 
     // We copy the data since it needs R/B swap and potentially alpha pre-multiply
     CocoaBmp := TCocoaBitmap.Create(ImageData.Width, ImageData.Height, 32, 32,
       cbaDWord, cbtBGRA, ImageData.Bits, True);
     try
-      Context.DrawImageRep(RectToNSRect(DstRect), RectToNSRect(SrcRect), CocoaBmp.ImageRep);
+      Context.DrawImageRep(TCocoaTypeUtil.toRect(DstRect), TCocoaTypeUtil.toRect(SrcRect), CocoaBmp.ImageRep);
     finally
       CocoaBmp.Free;
     end;

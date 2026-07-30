@@ -114,6 +114,7 @@ begin
     if Imaging.GetImageFormatInfo(FmtIter, Info) then
       Write(Info.Name, ' ');
   end;
+  WriteLn;
 end;
 
 procedure PrintErrorAndExit(const Msg: string; const Args: array of const);
@@ -396,7 +397,7 @@ begin
   try
     ProcessOperations;
   except
-    PrintErrorAndExit('Exception raised during processing oprations: %s',
+    PrintErrorAndExit('Exception raised during processing operations: %s',
       [ImagingUtility.GetExceptObject.Message]);
   end;
   Operations.Free;
