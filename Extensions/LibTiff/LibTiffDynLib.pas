@@ -30,19 +30,17 @@ type
 {$ENDIF}
 
 type
-  tmsize_t = SizeInt;
-  tsize_t = SizeInt;
-  // typedef uint64 toff_t;          /* file offset */
-  toff_t = Int64;
-  poff_t = ^toff_t;
+  tmsize_t  = SizeInt;
+  tsize_t   = tmsize_t;
+  toff_t    = UInt64;   // Was UInt32 until libtiff 4
+  poff_t    = ^toff_t;
   tsample_t = Word;
-  // Beware: THandle is 32bit in size even on 64bit Linux - this may cause
-  // problems as pointers to client data are passed in thandle_t vars.
-  thandle_t = THandle;
-  tdata_t = Pointer;
-  ttag_t = UInt32;
-  tdir_t = Word;
-  tstrip_t = UInt32;
+  thandle_t = Pointer;
+  tdata_t   = Pointer;
+  ttag_t    = UInt32;
+  tdir_t    = Word;     // Watch out, it's Int32 since libtiff v4.5.0
+  tstrip_t  = UInt32;
+  ttile_t   = UInt32;
 
 const
   // Note: Linux SONAME (and packages) for libtiff v4.0 is actually named libtiff5 (and libtiff6 for v4.5+ since 2023)
@@ -466,14 +464,14 @@ type
   PTIFF = Pointer;
   PTIFFRGBAImage = Pointer;
 
-  TIFFReadWriteProc = function(fd: thandle_t; buf: tdata_t; size: tsize_t): tsize_t; cdecl;
-  TIFFSeekProc = function(fd: thandle_t; off: toff_t; whence: Integer): toff_t; cdecl;
-  TIFFCloseProc = function(fd: thandle_t): Integer; cdecl;
-  TIFFSizeProc = function(fd: thandle_t): toff_t; cdecl;
-  TIFFMapFileProc = function(fd: thandle_t; var pbase: tdata_t; var psize: toff_t): Integer; cdecl;
-  TIFFUnmapFileProc = procedure(fd: thandle_t; base: tdata_t; size: toff_t); cdecl;
+  TIFFReadWriteProc = function(handle: thandle_t; buf: tdata_t; size: tmsize_t): tmsize_t; cdecl;
+  TIFFSeekProc = function(handle: thandle_t; off: toff_t; whence: Integer): toff_t; cdecl;
+  TIFFCloseProc = function(handle: thandle_t): Integer; cdecl;
+  TIFFSizeProc = function(handle: thandle_t): toff_t; cdecl;
+  TIFFMapFileProc = function(handle: thandle_t; var pbase: tdata_t; var psize: toff_t): Integer; cdecl;
+  TIFFUnmapFileProc = procedure(handle: thandle_t; base: tdata_t; size: toff_t); cdecl;
   TIFFExtendProc = procedure(Handle: PTIFF); cdecl;
-  TIFFErrorHandler = procedure(Module: PAnsiChar; const Format: PAnsiChar; Params: va_list); cdecl;
+  TIFFErrorHandler = procedure(Module: PAnsiChar; Format: PAnsiChar; Params: va_list); cdecl;
   TIFFInitMethod = function(Handle: PTIFF; Scheme: Integer): Integer; cdecl;
 
   PTIFFCodec = ^TIFFCodec;
@@ -729,8 +727,10 @@ begin
 end;
 
 {$IFDEF DYNAMIC_DLL_LOADING}
+type
+  TTiffLibHandle = {$IFDEF FPC}TLibHandle{$ELSE}THandle{$ENDIF};
 var
-  TiffLibHandle: {$IFDEF FPC}TLibHandle{$ELSE}THandle{$ENDIF} = 0;
+  TiffLibHandle: TTiffLibHandle = 0;
 
 function GetProcAddr(const AProcName: PChar): Pointer;
 begin
@@ -740,6 +740,19 @@ begin
   end;
 end;
 
+{$IFDEF DARWIN}
+function TryLoadLibTiffInMacOS: TTiffLibHandle;
+begin
+  Result := LoadLibrary('@executable_path/' + SLibName);                  // next to the executable
+  if Result = 0 then
+    Result := LoadLibrary('@executable_path/../Frameworks/' + SLibName);  // in MyApp.app/Contents/Frameworks
+  if Result = 0 then
+    Result := LoadLibrary('/opt/homebrew/opt/libtiff/lib/' + SLibName);   // Homebrew on ARM
+  if Result = 0 then
+    Result := LoadLibrary('/usr/local/opt/libtiff/lib/' + SLibName);      // Homebrew on Intel
+end;
+{$ENDIF}
+
 function LoadTiffLibrary: Boolean;
 begin
   Result := False;
@@ -747,10 +760,10 @@ begin
   if TiffLibHandle = 0 then
   begin
     TiffLibHandle := LoadLibrary(SLibName);
-  {$IF Defined(DARWIN)}
+  {$IFDEF DARWIN}
     if TiffLibHandle = 0 then
-      TiffLibHandle := LoadLibrary('@executable_path/' + SLibName);
-  {$IFEND}
+      TiffLibHandle := TryLoadLibTiffInMacOS;
+  {$ENDIF}
 
     if TiffLibHandle <> 0 then
     begin
@@ -778,9 +791,9 @@ begin
         Assigned(TIFFReadScanline) and Assigned(TIFFReadRGBAImageOriented) and
         Assigned(TIFFWriteDirectory);
 
-      if Result then
-      begin
-        SetInternalMessageHandlers(@InternallTIFFError, @InternalTIFFWarning);
+      if Result then
+      begin
+        SetInternalMessageHandlers(@InternallTIFFError, @InternalTIFFWarning);
         CheckVersion;
       end;
     end;
