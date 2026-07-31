@@ -34,12 +34,6 @@ unit ImagingTiffLib;
   {$DEFINE USE_DYN_LIB}
 {$IFEND}
 
-{$IF Defined(POSIX) and Defined(CPUX64)}
-  // Workaround for problem on 64bit Linux where thandle_t in libtiff is
-  // still 32bit so it cannot be used to pass pointers (for IO functions).
-  {$DEFINE HANDLE_NOT_POINTER_SIZED}
-{$IFEND}
-
 {.$DEFINE USE_DYN_LIB}
 
 interface
@@ -81,45 +75,31 @@ type
   end;
   PTiffIOWrapper = ^TTiffIOWrapper;
 
-{$IFDEF HANDLE_NOT_POINTER_SIZED}
-var
-  TiffIOWrapper: TTiffIOWrapper;
-{$ENDIF}
-
-function GetTiffIOWrapper(Fd: THandle): PTiffIOWrapper;
-begin
-{$IFDEF HANDLE_NOT_POINTER_SIZED}
-  Result := @TiffIOWrapper;
-{$ELSE}
-  Result := PTiffIOWrapper(Fd);
-{$ENDIF}
-end;
-
-function TIFFReadProc(Fd: THandle; Buffer: Pointer; Size: Integer): Integer; cdecl;
+function TIFFReadProc(Handle: thandle_t; Buffer: Pointer; Size: tmsize_t): tmsize_t; cdecl;
 var
   Wrapper: PTiffIOWrapper;
 begin
-  Wrapper := GetTiffIOWrapper(Fd);
+  Wrapper := PTiffIOWrapper(Handle);
   Result := Wrapper.IO.Read(Wrapper.Handle, Buffer, Size);
 end;
 
-function TIFFWriteProc(Fd: THandle; Buffer: Pointer; Size: Integer): Integer; cdecl;
+function TIFFWriteProc(Handle: thandle_t; Buffer: Pointer; Size: tmsize_t): tmsize_t; cdecl;
 var
   Wrapper: PTiffIOWrapper;
 begin
-  Wrapper := GetTiffIOWrapper(Fd);
+  Wrapper := PTiffIOWrapper(Handle);
   Result := Wrapper.IO.Write(Wrapper.Handle, Buffer, Size);
 end;
 
-function TIFFSizeProc(Fd: THandle): toff_t; cdecl;
+function TIFFSizeProc(Handle: thandle_t): toff_t; cdecl;
 var
   Wrapper: PTiffIOWrapper;
 begin
-  Wrapper := GetTiffIOWrapper(Fd);
+  Wrapper := PTiffIOWrapper(Handle);
   Result := ImagingIO.GetInputSize(Wrapper.IO, Wrapper.Handle);
 end;
 
-function TIFFSeekProc(Fd: THandle; Offset: toff_t; Where: Integer): toff_t; cdecl;
+function TIFFSeekProc(Handle: thandle_t; Offset: toff_t; Where: Integer): toff_t; cdecl;
 const
   SEEK_SET = 0;
   SEEK_CUR = 1;
@@ -128,7 +108,7 @@ var
   Mode: TSeekMode;
   Wrapper: PTiffIOWrapper;
 begin
-  Wrapper := GetTiffIOWrapper(Fd);
+  Wrapper := PTiffIOWrapper(Handle);
   if Offset = $FFFFFFFF then
   begin
     Result := $FFFFFFFF;
@@ -144,17 +124,17 @@ begin
   Result := Wrapper.IO.Seek(Wrapper.Handle, Offset, Mode);
 end;
 
-function TIFFCloseProc(Fd: THandle): Integer; cdecl;
+function TIFFCloseProc(Handle: thandle_t): Integer; cdecl;
 begin
   Result := 0;
 end;
 
-function TIFFNoMapProc(Fd: THandle; Base: PPointer; Size: PCardinal): Integer; cdecl;
+function TIFFNoMapProc(Handle: thandle_t; Base: PPointer; Size: poff_t): Integer; cdecl;
 begin
   Result := 0;
 end;
 
-procedure TIFFNoUnmapProc(Fd: THandle; Base: Pointer; Size: Cardinal); cdecl;
+procedure TIFFNoUnmapProc(Handle: thandle_t; Base: Pointer; Size: toff_t); cdecl;
 begin
 end;
 
@@ -302,11 +282,8 @@ begin
   // Set up IO wrapper and open TIFF
   IOWrapper.IO := GetIO;
   IOWrapper.Handle := Handle;
-{$IFDEF HANDLE_NOT_POINTER_SIZED}
-  TiffIOWrapper := IOWrapper;
-{$ENDIF}
 
-  Tiff := TIFFClientOpen('LibTIFF', 'r', THandle(@IOWrapper), @TIFFReadProc,
+  Tiff := TIFFClientOpen('LibTIFF', 'r', thandle_t(@IOWrapper), @TIFFReadProc,
     @TIFFWriteProc, @TIFFSeekProc, @TIFFCloseProc,
     @TIFFSizeProc, @TIFFNoMapProc, @TIFFNoUnmapProc);
 
@@ -554,12 +531,10 @@ begin
   // Set up IO wrapper and open TIFF
   IOWrapper.IO := GetIO;
   IOWrapper.Handle := Handle;
-{$IFDEF HANDLE_NOT_POINTER_SIZED}
-  TiffIOWrapper := IOWrapper;
-{$ENDIF}
+
   OpenMode := DecideOpenMode(Images, FFirstIdx, FLastIdx, FCompression, FBigTiffWriteMode);
 
-  Tiff := TIFFClientOpen('LibTIFF', OpenMode, THandle(@IOWrapper), @TIFFReadProc,
+  Tiff := TIFFClientOpen('LibTIFF', OpenMode, thandle_t(@IOWrapper), @TIFFReadProc,
     @TIFFWriteProc, @TIFFSeekProc, @TIFFCloseProc,
     @TIFFSizeProc, @TIFFNoMapProc, @TIFFNoUnmapProc);
 
