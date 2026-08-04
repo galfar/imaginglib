@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Mark with /usr/bin/env so new bash version (Homebrew etc.) is picked up for this script in macOS
-set -e
+set -eo pipefail
 
 # enable /** globbing, needs Bash 4.0 or later (macOS has Bash 3.2 by default)
 shopt -s globstar

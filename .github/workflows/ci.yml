@@ -62,13 +62,27 @@ jobs:
           laz-url: ${{ matrix.laz-url }}
           fpc-url: ${{ matrix.fpc-url }}
 
+      - name: Verify script executable bits (Git tree)
+        shell: bash
+        run: |
+          # Check that CI and other scripts are executable. Git on Windows can break the exec flag if you edit the file there and commit.
+          FAIL=0
+          for FILE in Scripts/*.sh; do
+            MODE="$(git ls-files -s "$FILE" | awk '{print $1}')"
+            if [ "$MODE" != "100755" ]; then
+              echo "::error file=$FILE::Missing executable bit in Git tree (mode $MODE)"
+              FAIL=1
+            fi
+          done
+          exit $FAIL
+
       - name: Setup Windows
         if: runner.os == 'Windows'
         shell: bash
         run: |
           # Add FPC to PATH
           LAZ_DIR="$RUNNER_TEMP/lazarus"
-          FPC_BIN=$(find "$LAZ_DIR/" -name "fpc.exe" | head -1)
+          FPC_BIN=$(find "$LAZ_DIR/" -type f -executable -name "fpc.exe" | head -1)
           FPC_DIR=$(dirname "$FPC_BIN")
           echo "Found FPC: $FPC_BIN"
           echo "$FPC_DIR" >> $GITHUB_PATH
@@ -83,30 +97,7 @@ jobs:
       - name: Setup Linux
         if: runner.os == 'Linux'
         shell: bash
-        run:  |
-          # Needed for SDL and GL demos
-          sudo apt install libsdl1.2-dev -y
-
-          # To build LCL demos with GTK3 backend.
-          sudo apt install libgtk-3-dev
-
-          # To build LCL demos with Qt5 backend. If you see any linking problems, rather
-          # install the latest libqt5pas release from https://github.com/davidbannon/libqt5pas/releases
-          sudo apt install libqt5pas-dev -y
-
-          # With current Lazarus + Ubuntu versions we need to get newer libqt6pas release
-          BASE_URL=https://github.com/davidbannon/libqt6pas/releases/download/v6.2.10
-          if [[ "$RUNNER_ARCH" == "X64" ]]; then
-            wget $BASE_URL/libqt6pas6_6.2.10-1_amd64.deb
-            sudo apt install ./libqt6pas6_6.2.10-1_amd64.deb -y
-            wget $BASE_URL/libqt6pas6-dev_6.2.10-1_amd64.deb
-            sudo apt install ./libqt6pas6-dev_6.2.10-1_amd64.deb -y
-          else
-            wget $BASE_URL/libqt6pas6_6.2.10-1_arm64.deb
-            sudo apt install ./libqt6pas6_6.2.10-1_arm64.deb -y
-            wget $BASE_URL/libqt6pas6-dev_6.2.10-1_arm64.deb
-            sudo apt install ./libqt6pas6-dev_6.2.10-1_arm64.deb -y
-          fi
+        run: ./Scripts/CI.SetupLinux.sh
 
       - name: Setup macOS
         if: runner.os == 'macOS'
@@ -118,21 +109,15 @@ jobs:
 
       - name: Print info
         shell: bash
-        run: |
-          echo "Lazarus:" $(lazbuild --version)
-          echo "FPC:" $(fpc -iWTPTO)
-          echo "OS: "$RUNNER_OS", ARCH:" $RUNNER_ARCH
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            echo "    "$(lsb_release -d)
-          fi
+        run: ./Scripts/CI.PrintInfo.sh
 
       - name: Build demos with FPC
         shell: bash
-        run: bash -e ./Scripts/CI.BuildDemosFPC.sh
+        run: ./Scripts/CI.BuildDemosFPC.sh
 
       - name: Build demos with Lazarus
         shell: bash
-        run: bash -e ./Scripts/CI.BuildDemosLazarus.sh
+        run: ./Scripts/CI.BuildDemosLazarus.sh
 
       - name: Build Lazarus packages
         shell: bash
@@ -142,7 +127,7 @@ jobs:
 
       - name:  Run demos
         shell: bash
-        run: bash -e ./Scripts/CI.RunDemos.sh
+        run: ./Scripts/CI.RunDemos.sh
 
       - name: List Demos Bin directory
         shell: bash
@@ -152,8 +137,57 @@ jobs:
         with:
           name: ci-artifacts-${{ runner.os }}-${{ runner.arch }}
           path: |
-            Demos/Bin
-            Demos/Data
+            Demos
+            !Demos/ObjectPascal
             !Demos/Bin/Dcu
           if-no-files-found: error
+
+  # Extra non-critical job: test FPC trunk compiler via fpclazup on Ubuntu
+  build-fpc-trunk:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Lazarus + FPC trunk (fpclazup)
+        uses: ollydev/setup-lazarus@v4.1
+        with:
+          fpclazup-url: https://github.com/LongDirtyAnimAlf/Reiniero-fpcup/releases/download/v2.4.0i/fpclazup-x86_64-linux
+          fpclazup-lazcommit: a3e4c43c3d # Lazarus 4.99-5622 2026-07-16
+          fpclazup-fpccommit: ad4da509ba # FPC trunk 3.3.1-20578 2026-07-16
+
+      - name: Setup Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run:  ./Scripts/CI.SetupLinux.sh
+
+      - name: Print info
+        shell: bash
+        run: ./Scripts/CI.PrintInfo.sh
+
+      - name: Build demos with Lazarus
+        shell: bash
+        run: ./Scripts/CI.BuildDemosLazarus.sh
+
+      - name:  Run demos
+        shell: bash
+        run: ./Scripts/CI.RunDemos.sh
+
+      - name: Report trunk build outcome
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "failure" ]; then
+            echo "::warning::Build with FPC + Lazarus trunk failed."
+          fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ci-artifacts-trunk-build-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            Demos
+            !Demos/ObjectPascal
+            !Demos/Bin/Dcu
+          if-no-files-found: error
+
 

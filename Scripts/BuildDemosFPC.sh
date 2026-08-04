@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 echo "Building Demos using Free Pascal"
 echo

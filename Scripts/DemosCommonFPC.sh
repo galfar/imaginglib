@@ -16,7 +16,7 @@ FPCOS=$($FPC -iTO | tr -d '\r')
 FPCTARGET=$FPCCPU-$FPCOS
 
 ROOTDIR=".."
-DEMOPATH="$ROOTDIR/Demos/ObjectPascal" 
+DEMOPATH="$ROOTDIR/Demos/ObjectPascal"
 BINPATH="$ROOTDIR/Demos/Bin"
 UNITPATH="$ROOTDIR/Demos/Bin/Dcu/$FPCTARGET"
 # FPC does not like creating any new directories passed by -FE -FU
@@ -28,18 +28,18 @@ OUTPUT="-FE$BINPATH -FU$UNITPATH"
 # This is how you suppress -vn set in fpc.cfg
 OPTIONS="-B -O3 -Xs -vn-"
 INCLUDE="-Fi$ROOTDIR/Source"
-LIBS="-Fl$ROOTDIR/Extensions/J2KObjects -Fl$ROOTDIR/Extensions/LibTiff/Compiled"  
+LIBS="-Fl$ROOTDIR/Extensions/J2KObjects -Fl$ROOTDIR/Extensions/LibTiff/Compiled"
 
 DEMOSBUILD=0
 DEMOCOUNT=0
 
 function buildDemo {
   $FPC $OPTIONS $OUTPUT $TARGET $DEFINES $UNITS $INCLUDE $LIBS $DEMOPATH/$1
-  if [ $? = 0 ]; then 
+  if [ $? = 0 ]; then
     ((DEMOSBUILD++))
-  fi   
+  fi
   echo
-} 
+}
 
 function printResult {
   SWITCH="\033["
