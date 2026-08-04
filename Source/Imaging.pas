@@ -29,10 +29,6 @@ type
     constructor Create;
   end;
 
-  { Dynamic array of TImageData records }
-  TDynImageDataArray = array of TImageData;
-
-
 { ------------------------------------------------------------------------
                        Low Level Interface Functions
   ------------------------------------------------------------------------}

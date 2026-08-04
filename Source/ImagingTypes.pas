@@ -20,7 +20,7 @@ const
   { Current Major version of Imaging.}
   ImagingVersionMajor = 0;
   { Current Minor version of Imaging.}
-  ImagingVersionMinor = 82;
+  ImagingVersionMinor = 85;
 
   { Imaging Option Ids whose values can be set/get by SetOption/
     GetOption functions.}
@@ -427,6 +427,9 @@ type
     Tag: Pointer;         // User data
   end;
   PImageData = ^TImageData;
+
+  { Dynamic array of TImageData records }
+  TDynImageDataArray = array of TImageData;
 
   { Pixel format information used in conversions to/from 16 and 8 bit ARGB
     image formats.}
