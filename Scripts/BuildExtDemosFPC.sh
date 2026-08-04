@@ -1,4 +1,5 @@
 #!/bin/bash
+set -eo pipefail
 
 # Ext. demos have some build and/or runtime dependencies like SDL or GL.
 # libsdl1.2-dev package should take care of both.
