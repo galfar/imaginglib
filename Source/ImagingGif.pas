@@ -1106,8 +1106,8 @@ var
 
     for I := FFirstIdx + 1 to FLastIdx do
     begin
-      MaxWidth := Iff(Images[I].Width > MaxWidth, Images[I].Width, MaxWidth);
-      MaxHeight := Iff(Images[I].Height > MaxWidth, Images[I].Height, MaxHeight);
+      MaxWidth := Max(MaxWidth, Images[I].Width);
+      MaxHeight := Max(MaxHeight, Images[I].Height);
     end;
   end;
 
