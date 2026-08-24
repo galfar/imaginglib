@@ -1689,7 +1689,7 @@ begin
     FillChar(TmpInfo, SizeOf(TmpInfo), 0);
     TmpInfo.PaletteEntries := MaxColors;
     TmpInfo.BytesPerPixel := 2;
-    NumPixels := Width * Height;
+    NumPixels := Int64(Width) * Height;
     Data := AllocMem(NumPixels * TmpInfo.BytesPerPixel);
     Pal := AllocMem(MaxColors * SizeOf(TColor32Rec));
     ConvertImage(Image, ifA8R8G8B8);

@@ -981,7 +981,9 @@ procedure TMultiImage.ReverseImages;
 var
   I: Integer;
 begin
-  for I := 0 to GetImageCount div 2 do
+  { (Count - 1) div 2, not Count div 2: for an even count the latter
+    reaches the middle pair a second time and swaps it back. }
+  for I := 0 to (GetImageCount - 1) div 2 do
     ExchangeImages(I, GetImageCount - 1 - I);
 end;
 
