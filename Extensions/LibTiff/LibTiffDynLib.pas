@@ -685,7 +685,11 @@ const
   SRuntimeLib = 'libc.so';
 {$ENDIF}
 
-function snprintf(S: PAnsiChar; N: Integer; const Format: PAnsiChar): Integer; cdecl; varargs; external SRuntimeLib name {$IFDEF MSWINDOWS}'_snprintf'{$ELSE}'snprintf'{$ENDIF};
+{ libtiff hands its message handler a format string and a va_list.
+  vsnprintf is the entry point that takes a va_list, do not use snprintf, which is variadic. }
+function vsnprintf(S: PAnsiChar; N: Integer; const Format: PAnsiChar;
+  Args: va_list): Integer; cdecl;
+  external SRuntimeLib name {$IFDEF MSWINDOWS}'_vsnprintf'{$ELSE}'vsnprintf'{$ENDIF};
 
 procedure FormatAndCallHandler(Handler: TUserTiffErrorHandler; Module: PAnsiChar; Format: PAnsiChar; Params: va_list);
 var
@@ -693,7 +697,14 @@ var
   Buffer: array[0..511] of AnsiChar;
   Msg: AnsiString;
 begin
-  Len := snprintf(@Buffer, 512, Format, Params);
+  Len := vsnprintf(@Buffer, SizeOf(Buffer), Format, Params);
+  { msvcrt's _vsnprintf returns -1 when the text did not fit and does not
+    terminate the buffer; the C99 version returns the length it WANTED. Both
+    have to be clamped before SetString is handed a count. }
+  if Len < 0 then
+    Len := StrLen(PAnsiChar(@Buffer))
+  else if Len > SizeOf(Buffer) - 1 then
+    Len := SizeOf(Buffer) - 1;
   SetString(Msg, Buffer, Len);
   Handler(Module, Msg);
 end;
