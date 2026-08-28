@@ -7,7 +7,7 @@
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at https://mozilla.org/MPL/2.0.
-} 
+}
 
 { This unit contains image format loader for ZSoft Paintbrush images known as PCX.}
 unit ImagingPcx;
@@ -54,7 +54,7 @@ type
     Reserved1: Byte;
     Planes: Byte;        // 1, 3, 4
     BytesPerLine: Word;
-    PaletteType: Word;   // 1: color or s/w   2: grayscale
+    PaletteType: Word;   // 1: color or s/w, 2: grayscale, 0: unassigned
     Reserved2: array [0..57] of Byte;
   end;
 
@@ -133,7 +133,9 @@ begin
       1:
         case Hdr.Planes of
           1: FileDataFormat := ifMono;
-          4: FileDataFormat := ifIndex4;
+          // 3x 1-bit plane is 8 color image. Rare, but we can handle it together
+          // with 4-plane images.
+          3, 4: FileDataFormat := ifIndex4;
         end;
       2: FileDataFormat := ifIndex2;
       4: FileDataFormat := ifIndex4;
@@ -153,6 +155,15 @@ begin
     // like ifMono are converted later to ifIndex8)
     Width := Hdr.X1 - Hdr.X0 + 1;
     Height := Hdr.Y1 - Hdr.Y0 + 1;
+
+    // A corrupt window gives X1 < X0 and therefore a NEGATIVE width
+    if (Width <= 0) or (Height <= 0) then
+      Exit;
+
+    // BytesPerLine must be able to hold one row at the declared depth
+    if Hdr.BytesPerLine * 8 < Width * Hdr.BitsPerPixel then
+      Exit;
+
     if FileDataFormat in [ifIndex8, ifR8G8B8] then
       Format := FileDataFormat
     else
@@ -162,7 +173,7 @@ begin
 
     if not (FileDataFormat in [ifIndex8, ifR8G8B8]) then
     begin
-      // other formats use palette embedded to file header
+      // Other formats use palette embedded to file header
       for I := Low(Hdr.Palette16) to High(Hdr.Palette16) do
       begin
         Palette[I].A := $FF;
@@ -192,7 +203,7 @@ begin
       if FileDataFormat in [ifR8G8B8, ifA8R8G8B8] then
       begin
         // RGB and ARGB images are stored in layout different from
-        // Imaging's (and most other file formats'). First there is
+        // Imaging's (and most other file formats'): as separate planes. First there is
         // Width red values then there is Width green values and so on
         RowPointer := UncompData;
 
@@ -257,8 +268,8 @@ begin
       else if FileDataFormat = ifIndex4 then
       begin
         // 4bit images can be stored similar to RGB images (in four one bit planes)
-        // or like array of nibbles (which is more common)
-        if (Hdr.BitsPerPixel = 1) and (Hdr.Planes = 4) then
+        // or like array of nibbles (which is more common).
+        if (Hdr.BitsPerPixel = 1) and (Hdr.Planes in [3, 4]) then
         begin
           RowPointer := UncompData;
           PixelIdx := Bits;
@@ -267,7 +278,11 @@ begin
             Plane1 := PByteArray(RowPointer);
             Plane2 := @Plane1[Hdr.BytesPerLine];
             Plane3 := @Plane1[Hdr.BytesPerLine * 2];
-            Plane4 := @Plane1[Hdr.BytesPerLine * 3];
+            // Only dereferenced when there IS a fourth plane
+            if Hdr.Planes = 4 then
+              Plane4 := @Plane1[Hdr.BytesPerLine * 3]
+            else
+              Plane4 := nil;
 
             for J := 0 to Width - 1 do
             begin
@@ -277,7 +292,7 @@ begin
               if (Plane1[ByteNum] shr BitNum) and $1 <> 0 then B := B or $01;
               if (Plane2[ByteNum] shr BitNum) and $1 <> 0 then B := B or $02;
               if (Plane3[ByteNum] shr BitNum) and $1 <> 0 then B := B or $04;
-              if (Plane4[ByteNum] shr BitNum) and $1 <> 0 then B := B or $08;
+              if (Plane4 <> nil) and ((Plane4[ByteNum] shr BitNum) and $1 <> 0) then B := B or $08;
               PixelIdx^ := B;
               Inc(PixelIdx);
             end;
@@ -286,7 +301,7 @@ begin
         end
         else if (Hdr.BitsPerPixel = 4) and (Hdr.Planes = 1) then
         begin
-          // Convert 4bit images to ifIndex8 
+          // Convert 4bit images to ifIndex8
           Convert4To8(UncompData, Bits, Width, Height, Hdr.BytesPerLine, False);
         end
       end;
@@ -335,7 +350,11 @@ begin
       (Hdr.Encoding in [0..1]) and
       (Hdr.BitsPerPixel in [1, 2, 4, 8]) and
       (Hdr.Planes in [1, 3, 4]) and
-      (Hdr.PaletteType in [1..2]);
+      // 0 is accepted as well as 1 and 2. The field was a late addition and a
+      // great many writers leave it zero.
+      (Hdr.PaletteType in [0..2]) and
+      // The window must be non-empty
+      (Hdr.X1 >= Hdr.X0) and (Hdr.Y1 >= Hdr.Y0);
   end;
 
 end;
