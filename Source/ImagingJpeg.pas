@@ -55,8 +55,7 @@ interface
 uses
   SysUtils, ImagingTypes, Imaging, ImagingColors,
 {$IF Defined(IMJPEGLIB)}
-  imjpeglib, imjmorecfg, imjcomapi, imjdapimin, imjdeferr, imjerror,
-  imjdapistd, imjcapimin, imjcapistd, imjdmarker, imjcparam,
+  ImPasJpeg,
 {$ELSEIF Defined(FPCPASJPEG)}
   jpeglib, jmorecfg, jcomapi, jdapimin, jdeferr, jerror,
   jdapistd, jcapimin, jcapistd, jdmarker, jcparam,
