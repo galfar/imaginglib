@@ -7,7 +7,7 @@
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at https://mozilla.org/MPL/2.0.
-} 
+}
 
 { This unit contains canvas classes for drawing and applying effects.}
 unit ImagingCanvases;
@@ -183,7 +183,7 @@ type
       neighbors with the same color as pixel [X, Y]. With BoundaryFillMode
       set to True neighbors are recolored regardless of their old color,
       but area which will be recolored has boundary (specified by current pen color).}
-    procedure FloodFill(X, Y: Integer; BoundaryFillMode: Boolean = False);         
+    procedure FloodFill(X, Y: Integer; BoundaryFillMode: Boolean = False);
 
     { Draws contents of this canvas onto another canvas with pixel blending.
       Blending factors are chosen using TBlendingFactor parameters.
@@ -1910,6 +1910,9 @@ begin
   // Clip src and dst rects
   ClipStretchBounds(SrcX, SrcY, SrcWidth, SrcHeight, DestX, DestY, DestWidth, DestHeight,
       FPData.Width, FPData.Height, DestCanvas.ClipRect);
+  // Nothing left to draw after clipping
+  if (SrcWidth <= 0) or (SrcHeight <= 0) or (DestWidth <= 0) or (DestHeight <= 0) then
+    Exit;
   ScaleX := (SrcWidth shl 16) div DestWidth;
   ScaleY := (SrcHeight shl 16) div DestHeight;
 
@@ -2082,7 +2085,7 @@ finalization
     - Added FrameRect, Rectangle, Ellipse, and Line methods.
     - Removed HorzLine and VertLine from TFastARGB32Canvas - new versions
       in general canvas is now as fast as those in TFastARGB32Canvas
-      (only in case of A8R8G8B8 images of course). 
+      (only in case of A8R8G8B8 images of course).
     - Added PenWidth property, updated HorzLine and VertLine to use it.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
