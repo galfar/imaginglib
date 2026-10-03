@@ -7,8 +7,8 @@
     <CompilerOptions>
       <Version Value="11"/>
       <SearchPaths>
-        <IncludeFiles Value="../Source;../Source/JpegLib;../Source/ZLib"/>
-        <OtherUnitFiles Value="../Source;../Source/JpegLib;../Source/ZLib"/>
+        <IncludeFiles Value="../Source;../Source/Libs"/>
+        <OtherUnitFiles Value="../Source;../Source/Libs"/>
         <UnitOutputDirectory Value="../Bin/Dcu/$(TargetCPU)-$(TargetOS)/pkg"/>
       </SearchPaths>
       <Parsing>

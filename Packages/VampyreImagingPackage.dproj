@@ -45,7 +45,7 @@
         <DCC_DcuOutput>..\Bin\Dcu\$(Platform)\$(Config)\pkg</DCC_DcuOutput>
         <DCC_ExeOutput>..\Bin</DCC_ExeOutput>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=;CFBundleDisplayName=;CFBundleIdentifier=;CFBundleVersion=;CFBundlePackageType=;CFBundleSignature=;CFBundleAllowMixedLocalizations=;CFBundleExecutable=</VerInfo_Keys>
-        <DCC_UnitSearchPath>..\Source;..\Source\JpegLib;..\Source\ZLib;..\Extensions;..\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\Source;..\Source\Libs;..\Extensions;..\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_K>false</DCC_K>
         <GenDll>true</GenDll>
         <DCC_S>false</DCC_S>
@@ -102,10 +102,10 @@
         <DCCReference Include="..\Extensions\ImagingPsd.pas"/>
         <DCCReference Include="..\Extensions\ImagingTiff.pas"/>
         <DCCReference Include="..\Extensions\ImagingXpm.pas"/>
-        <DCCReference Include="..\Source\ZLib\ImagingZLib.pas"/>
-        <DCCReference Include="..\Source\ZLib\ImPasZLib.pas"/>
-        <DCCReference Include="..\Source\JpegLib\ImagingJpegLib.pas"/>
-        <DCCReference Include="..\Source\JpegLib\ImPasJpeg.pas"/>
+        <DCCReference Include="..\Source\Libs\ImagingZLib.pas"/>
+        <DCCReference Include="..\Source\Libs\ImPasZLib.pas"/>
+        <DCCReference Include="..\Source\Libs\ImagingJpegLib.pas"/>
+        <DCCReference Include="..\Source\Libs\ImPasJpeg.pas"/>
         <DCCReference Include="..\Extensions\LibTiff\ImagingTiffLib.pas"/>
         <DCCReference Include="..\Extensions\ElderImagery.pas"/>
         <DCCReference Include="..\Extensions\ElderImageryBsi.pas"/>
