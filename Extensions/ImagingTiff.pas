@@ -75,20 +75,13 @@ implementation
 // So far we have only one TIFF support implementation - libtiff
 {$DEFINE USE_LIBTIFF}
 
-// libtiff for FPC ARM is disabled by default due to potential hardfp/softfp
-// ABI problems (without linking to any lib FPC generated binary does not call "ld"
-// and hardfp exe can run on softfp target). If you know what you're doing enable it.
-{$IF Defined(FPC) and Defined(CPUARM)}
-  {$UNDEF USE_LIBTIFF}
-{$IFEND}
+// ARM target considerations:
+// - On 32-bit ARM, build with the same float ABI as the target's libtiff (armhf on current distros)
+// - With Delphi you may want to disable it for mobile targets
 
 // Not even dynamic linking works at the moment
+// NOTE: re-check, may be outdated concern
 {$IF Defined(DELPHI) and Defined(MACOS))}
-  {$UNDEF USE_LIBTIFF}
-{$IFEND}
-
-// Also disable for Delphi ARM targets
-{$IF Defined(DELPHI) and Defined(CPUARM))}
   {$UNDEF USE_LIBTIFF}
 {$IFEND}
 
