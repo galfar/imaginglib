@@ -104,7 +104,8 @@
         <DCCReference Include="..\Extensions\ImagingXpm.pas"/>
         <DCCReference Include="..\Source\ZLib\ImagingZLib.pas"/>
         <DCCReference Include="..\Source\ZLib\ImPasZLib.pas"/>
-        <DCCReference Include="..\Source\JpegLib\ImJpegLib.pas"/>
+        <DCCReference Include="..\Source\JpegLib\ImagingJpegLib.pas"/>
+        <DCCReference Include="..\Source\JpegLib\ImPasJpeg.pas"/>
         <DCCReference Include="..\Extensions\LibTiff\ImagingTiffLib.pas"/>
         <DCCReference Include="..\Extensions\ElderImagery.pas"/>
         <DCCReference Include="..\Extensions\ElderImageryBsi.pas"/>
