@@ -45,6 +45,13 @@
 
 {.$DEFINE DONT_LINK_FILE_FORMATS} // no auto link support of any file format
 
+// Application-specific options: define IMAGING_USER_OPTIONS and put your own
+// ImagingUserOptions.inc on the include path (outside the Imaging folders).
+// It can (un)define anything from the User Options section above.
+{$IFDEF IMAGING_USER_OPTIONS}
+  {$I ImagingUserOptions.inc}
+{$ENDIF}
+
 {
   Auto Options
   Following options and defines are set automatically and some
