@@ -133,7 +133,7 @@
         <VerInfo_Locale>1033</VerInfo_Locale>
         <Manifest_File>None</Manifest_File>
         <DCC_Define>FULL_FEATURE_SET;$(DCC_Define)</DCC_Define>
-        <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\JpegLib;..\..\..\Source\ZLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\..\..\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <Icon_MainIcon>$(BDS)\bin\delphi_PROJECTICON.ico</Icon_MainIcon>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>
         <DCC_DcuOutput>..\..\Bin\Dcu\$(Platform)\$(MSBuildProjectName)\$(Config)</DCC_DcuOutput>

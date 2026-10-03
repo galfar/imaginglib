@@ -9,7 +9,7 @@ echo
 source ./DemosCommonFPC.sh
 
 DEFINES="-dDONT_LINK_EXTRAS"
-UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib -Fu$ROOTDIR/Extensions -Fu$DEMOPATH/Common"
+UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/Libs -Fu$ROOTDIR/Extensions -Fu$DEMOPATH/Common"
 
 DEMOCOUNT=2
 

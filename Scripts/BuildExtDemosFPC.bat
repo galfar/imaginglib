@@ -16,7 +16,7 @@ rem FPC does not like creating any new directories passed by -FE -FU
 mkdir %BINPATH%\ %UNITPATH%\  2>nul
 
 set DEFINES=-dDONT_LINK_EXTRAS
-set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\JpegLib -Fu%ROOTDIR%\Source\ZLib -Fu%ROOTDIR%\Extensions -Fu%DEMOPATH%\Common
+set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\Libs -Fu%ROOTDIR%\Extensions -Fu%DEMOPATH%\Common
 set INCLUDE=-Fi%ROOTDIR%\Source 
 
 set DEMOSBUILD=0
