@@ -71,6 +71,16 @@
         quickly from the first scan, then gradually improve the displayed quality as
         more scans are received. Default value is <b>0 (False)</b>. </td>
       </row>
+      <row>
+        <td><ref>ImagingJpegChromaSubsampling</ref></td>
+        <td><b>0 (4:2:0)</b>, <b>1 (4:2:2)</b>, or <b>2 (4:4:4)</b></td>
+        <td>Chroma subsampling used when saving color JPEG images.
+        Color (chroma) components are stored with half horizontal and vertical
+        resolution (4:2:0), half horizontal resolution (4:2:2), or full resolution (4:4:4)
+        compared to luminance. Less subsampling preserves sharp color edges
+        better but gives larger files. Ignored for grayscale images.
+        Default value is <b>0 (4:2:0)</b>.</td>
+      </row>
     </table>
 
   </chapter>

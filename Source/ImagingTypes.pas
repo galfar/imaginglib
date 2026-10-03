@@ -31,6 +31,12 @@ const
   { Specifies whether Jpeg images are saved in progressive format,
     can be 0 or 1. Default value is 0.}
   ImagingJpegProgressive       = 11;
+  { Specifies chroma subsampling used when saving color Jpeg images
+    (resolution of color components relative to luminance). Allowed values
+    are: 0 (4:2:0 - half horizontal and vertical resolution), 1 (4:2:2 - half
+    horizontal resolution), 2 (4:4:4 - full resolution, no subsampling).
+    Ignored for grayscale images. Default value is 0.}
+  ImagingJpegChromaSubsampling = 22;
 
   { Specifies whether Windows Bitmaps are saved using RLE compression
     (only for 1/4/8 bit images), can be 0 or 1. Default value is 1.}
