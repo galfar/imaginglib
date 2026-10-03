@@ -225,7 +225,7 @@ procedure IndexSetDstPixel(Dst: PByte; DstInfo: PImageFormatInfo;
   Index: UInt32);
 
 
-{ Pixel readers/writers for 32bit and FP colors}
+{ Pixel readers/writers for 32bit, 64bit and FP colors}
 
 { Function for getting pixel colors. Native pixel is read from Image and
   then translated to 32 bit ARGB.}
@@ -235,6 +235,14 @@ function GetPixel32Generic(Bits: Pointer; Info: PImageFormatInfo;
     native format and then written to Image.}
 procedure SetPixel32Generic(Bits: Pointer; Info: PImageFormatInfo;
   Palette: PPalette32; const Color: TColor32Rec);
+{ Function for getting pixel colors. Native pixel is read from Image and
+  then translated to 64 bit ARGB (16 bits per channel).}
+function GetPixel64Generic(Bits: Pointer; Info: PImageFormatInfo;
+  Palette: PPalette32): TColor64Rec;
+{ Procedure for setting pixel colors. Input 64 bit ARGB color (16 bits per
+    channel) is translated to native format and then written to Image.}
+procedure SetPixel64Generic(Bits: Pointer; Info: PImageFormatInfo;
+  Palette: PPalette32; const Color: TColor64Rec);
 { Function for getting pixel colors. Native pixel is read from Image and
   then translated to FP ARGB.}
 function GetPixelFPGeneric(Bits: Pointer; Info: PImageFormatInfo;
@@ -2679,7 +2687,7 @@ begin
 end;
 
 
-{ Pixel readers/writers for 32bit and FP colors}
+{ Pixel readers/writers for 32bit, 64bit and FP colors}
 
 function GetPixel32Generic(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32): TColor32Rec;
 var
@@ -2771,6 +2779,90 @@ begin
     Pix64.G := MulDiv(Color.G, 65535, 255);
     Pix64.B := MulDiv(Color.B, 65535, 255);
     ChannelSetDstPixel(Bits, Info, Pix64);
+  end;
+end;
+
+function GetPixel64Generic(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32): TColor64Rec;
+var
+  Pix32: TColor32Rec;
+  Pix64: TColor64Rec;
+  PixF: TColorFPRec;
+  Alpha: Word;
+  Index: UInt32;
+begin
+  if Info.Format = ifA16R16G16B16 then
+  begin
+    Result := PColor64Rec(Bits)^
+  end
+  else if Info.IsFloatingPoint then
+  begin
+    FloatGetSrcPixel(Bits, Info, PixF);
+    Result.A := ClampToWord(Round(PixF.A * 65535.0));
+    Result.R := ClampToWord(Round(PixF.R * 65535.0));
+    Result.G := ClampToWord(Round(PixF.G * 65535.0));
+    Result.B := ClampToWord(Round(PixF.B * 65535.0));
+  end
+  else if Info.HasGrayChannel then
+  begin
+    GrayGetSrcPixel(Bits, Info, Pix64, Alpha);
+    Result.A := Alpha;
+    Result.R := Pix64.A;
+    Result.G := Pix64.A;
+    Result.B := Pix64.A;
+  end
+  else if Info.IsIndexed then
+  begin
+    IndexGetSrcPixel(Bits, Info, Index);
+    Pix32 := Palette[Index];
+    Result.A := Pix32.A * 257;
+    Result.R := Pix32.R * 257;
+    Result.G := Pix32.G * 257;
+    Result.B := Pix32.B * 257;
+  end
+  else
+  begin
+    ChannelGetSrcPixel(Bits, Info, Result);
+  end;
+end;
+
+procedure SetPixel64Generic(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32; const Color: TColor64Rec);
+var
+  Pix32: TColor32Rec;
+  Pix64: TColor64Rec;
+  PixF: TColorFPRec;
+  Index: UInt32;
+begin
+  if Info.Format = ifA16R16G16B16 then
+  begin
+    PColor64Rec(Bits)^ := Color
+  end
+  else if Info.IsFloatingPoint then
+  begin
+    PixF.A := Color.A * OneDiv16Bit;
+    PixF.R := Color.R * OneDiv16Bit;
+    PixF.G := Color.G * OneDiv16Bit;
+    PixF.B := Color.B * OneDiv16Bit;
+    FloatSetDstPixel(Bits, Info, PixF);
+  end
+  else if Info.HasGrayChannel then
+  begin
+    Pix64.Color := 0;
+    Pix64.A := ClampToWord(Round(GrayConv.R * Color.R + GrayConv.G * Color.G +
+      GrayConv.B * Color.B));
+    GraySetDstPixel(Bits, Info, Pix64, Color.A);
+  end
+  else if Info.IsIndexed then
+  begin
+    Pix32.A := Color.A shr 8;
+    Pix32.R := Color.R shr 8;
+    Pix32.G := Color.G shr 8;
+    Pix32.B := Color.B shr 8;
+    Index := FindColor(Palette, Info.PaletteEntries, Pix32.Color);
+    IndexSetDstPixel(Bits, Info, Index);
+  end
+  else
+  begin
+    ChannelSetDstPixel(Bits, Info, Color);
   end;
 end;
 

@@ -239,6 +239,14 @@ function GetPixelFP(const Image: TImageData; X, Y: LongInt): TColorFPRec;
   native format and then written to Image. Works for all image formats (except special)
   so it is not very fast.}
 procedure SetPixelFP(const Image: TImageData; X, Y: LongInt; const Color: TColorFPRec); 
+{ Function for getting pixel colors. Native pixel is read from Image and
+  then translated to 64 bit ARGB (16 bits per channel). Works for all image
+  formats (except special) so it is not very fast.}
+function GetPixel64(const Image: TImageData; X, Y: LongInt): TColor64Rec;
+{ Procedure for setting pixel colors. Input 64 bit ARGB color (16 bits per
+  channel) is translated to native format and then written to Image.
+  Works for all image formats (except special) so it is not very fast.}
+procedure SetPixel64(const Image: TImageData; X, Y: LongInt; const Color: TColor64Rec);
 
 { Palette Functions }
 
@@ -2637,6 +2645,26 @@ begin
   Info := ImageFormatInfos[Image.Format];
   Data := @PBuffer(Image.Bits)[(Y * PtrInt(Image.Width) + X) * Info.BytesPerPixel];
   SetPixelFPGeneric(Data, Info, Image.Palette, Color);
+end;
+
+function GetPixel64(const Image: TImageData; X, Y: LongInt): TColor64Rec;
+var
+  Info: PImageFormatInfo;
+  Data: PByte;
+begin
+  Info := ImageFormatInfos[Image.Format];
+  Data := @PBuffer(Image.Bits)[(Y * PtrInt(Image.Width) + X) * Info.BytesPerPixel];
+  Result := GetPixel64Generic(Data, Info, Image.Palette);
+end;
+
+procedure SetPixel64(const Image: TImageData; X, Y: LongInt; const Color: TColor64Rec);
+var
+  Info: PImageFormatInfo;
+  Data: PByte;
+begin
+  Info := ImageFormatInfos[Image.Format];
+  Data := @PBuffer(Image.Bits)[(Y * PtrInt(Image.Width) + X) * Info.BytesPerPixel];
+  SetPixel64Generic(Data, Info, Image.Palette, Color);
 end;
 
 { Palette Functions }
