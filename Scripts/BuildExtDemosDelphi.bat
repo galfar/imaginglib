@@ -10,7 +10,7 @@ rem -NS Unit scopes are needed for newer Delphi and argument is happily ignored 
 set OPTIONS=-B -$D- -$L- -$Y- -Q -DRELEASE -NSSystem;Winapi
 
 set DEFINES=-DDONT_LINK_EXTRAS
-set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\JpegLib -U%ROOTDIR%\Source\ZLib -U%ROOTDIR%\Extensions -U%DEMOPATH%\Common 
+set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\Libs -U%ROOTDIR%\Extensions -U%DEMOPATH%\Common 
 
 set DEMOSBUILD=0
 set DEMOCOUNT=3

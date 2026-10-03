@@ -7,7 +7,7 @@ echo
 source ./DemosCommonFPC.sh
 
 DEFINES="-dFULL_FEATURE_SET"
-UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/JpegLib -Fu$ROOTDIR/Source/ZLib
+UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/Libs
   -Fu$ROOTDIR/Extensions -Fu$ROOTDIR/Extensions/LibTiff -Fu$DEMOPATH/Common"
 
 DEMOCOUNT=2

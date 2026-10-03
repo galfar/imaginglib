@@ -11,7 +11,7 @@ rem -NS Unit scopes are needed for newer Delphi and argument is happily ignored 
 set OPTIONS=-B -$D- -$L- -$Y- -Q -DRELEASE -NSSystem;Winapi;Vcl;Vcl.Shell
 
 set DEFINES=-DFULL_FEATURE_SET
-set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\JpegLib -U%ROOTDIR%\Source\ZLib -U%ROOTDIR%\Extensions -U%ROOTDIR%\Extensions\LibTiff
+set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\Libs -U%ROOTDIR%\Extensions -U%ROOTDIR%\Extensions\LibTiff
 set UNITS=%UNITS% -U%ROOTDIR%\Extensions\LibTiff -U%DEMOPATH%\Common
 
 set DEMOSBUILD=0
