@@ -792,6 +792,14 @@ begin
   Result := Copy(S, IdxStart, IdxEnd - IdxStart);
 end;
 
+{$IF Defined(DCC) and (CompilerVersion < 20.0)}
+{ CharInSet is in SysUtils only since Delphi 2009.}
+function CharInSet(C: AnsiChar; const CharSet: TSysCharSet): Boolean;
+begin
+  Result := C in CharSet;
+end;
+{$IFEND}
+
 function TrimSet(const S: string; const CharSet: TSysCharSet): string;
 var
   I, L: Integer;

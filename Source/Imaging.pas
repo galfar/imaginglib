@@ -1,4 +1,4 @@
-﻿{
+{
   Vampyre Imaging Library
   by Marek Mauder
   https://github.com/galfar/imaginglib
@@ -144,7 +144,7 @@ function ConvertImage(var Image: TImageData; DestFormat: TImageFormat): Boolean;
 { Flips given image. Reverses the image along its horizontal axis - the top
   becomes the bottom and vice versa.}
 function FlipImage(var Image: TImageData): Boolean;
-{ Mirrors given image. Reverses the image along its vertical axis � the left
+{ Mirrors given image. Reverses the image along its vertical axis - the left
   side becomes the right and vice versa.}
 function MirrorImage(var Image: TImageData): Boolean;
 { Resizes given image to new dimensions. Nearest, bilinear, or bicubic filtering
@@ -1482,8 +1482,8 @@ begin
       // Swap all scanlines of image
       for I := 0 to Height div 2 - 1 do
       begin
-        P1 := PBuffer(Bits) + I * WidthBytes;
-        P2 := PBuffer(Bits) + (Height - I - 1) * WidthBytes;
+        P1 := @PBuffer(Bits)[I * WidthBytes];
+        P2 := @PBuffer(Bits)[(Height - I - 1) * WidthBytes];
         Move(P1^, Buff^, WidthBytes);
         Move(P2^, P1^, WidthBytes);
         Move(Buff^, P2^, WidthBytes);

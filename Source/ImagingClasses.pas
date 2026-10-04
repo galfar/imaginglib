@@ -363,7 +363,7 @@ end;
 function TBaseImage.GetPixelPointer(X, Y: Integer): Pointer;
 begin
   if Valid then
-    Result := @PByteArray(FPData.Bits)[(Y * FPData.Width + X) * GetFormatInfo.BytesPerPixel]
+    Result := @PBuffer(FPData.Bits)[(Y * PtrInt(FPData.Width) + X) * GetFormatInfo.BytesPerPixel]
   else
     Result := nil;
 end;

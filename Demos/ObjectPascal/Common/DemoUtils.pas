@@ -20,7 +20,7 @@ function ExpandFileTo(const FileName, BasePath: string): string;
 function SwapPathDelims(const FileName: string; const NewDelim: string = PathDelim): string;
 
 function GetDataDir: string;
-function FileNameInDataDir(const BaseFileName: string): string; inline;
+function FileNameInDataDir(const BaseFileName: string): string; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 function GetRootDir: string;
 
