@@ -1454,8 +1454,8 @@ begin
   for Y := 0 to DstHeight - 1 do
   begin
     Xp := 0;
-    SrcLine :=  PBuffer(SrcImage.Bits) + ((SrcY + Yp shr 16) * PtrInt(SrcImage.Width) + SrcX) * Info.BytesPerPixel;
-    DstPixel := PBuffer(DstImage.Bits) + ((DstY + Y)         * PtrInt(DstImage.Width) + DstX) * Info.BytesPerPixel;
+    SrcLine :=  @PBuffer(SrcImage.Bits)[((SrcY + Yp shr 16) * PtrInt(SrcImage.Width) + SrcX) * Info.BytesPerPixel];
+    DstPixel := @PBuffer(DstImage.Bits)[((DstY + Y)         * PtrInt(DstImage.Width) + DstX) * Info.BytesPerPixel];
 
     for X := 0 to DstWidth - 1 do
     begin
@@ -2065,7 +2065,7 @@ var
 begin
   W := Width * Bpp;
   for I := 0 to Height - 1 do
-    Move(PBuffer(DataIn)[I * W], PBuffer(DataOut)[I * WidthBytes], W);
+    Move(PBuffer(DataIn)[PtrInt(I) * W], PBuffer(DataOut)[PtrInt(I) * WidthBytes], W);
 end;
 
 procedure RemovePadBytes(DataIn: Pointer; DataOut: Pointer; Width, Height,
@@ -2075,7 +2075,7 @@ var
 begin
   W := Width * Bpp;
   for I := 0 to Height - 1 do
-    Move(PBuffer(DataIn)[I * WidthBytes], PBuffer(DataOut)[I * W], W);
+    Move(PBuffer(DataIn)[PtrInt(I) * WidthBytes], PBuffer(DataOut)[PtrInt(I) * W], W);
 end;
 
 procedure Convert1To8(DataIn, DataOut: PByte; Width, Height,
@@ -2091,7 +2091,7 @@ begin
   for Y := 0 to Height - 1 do
     for X := 0 to Width - 1 do
     begin
-      DataOut^ := (InArray[Y * WidthBytes + X shr 3] and Mask1[X and 7]) shr Shift1[X and 7];
+      DataOut^ := (InArray[PtrInt(Y) * WidthBytes + X shr 3] and Mask1[X and 7]) shr Shift1[X and 7];
       if ScaleTo8Bits then
         DataOut^ := DataOut^ * Scaling;
       Inc(DataOut);
@@ -2111,7 +2111,7 @@ begin
   for Y := 0 to Height - 1 do
     for X := 0 to Width - 1 do
     begin
-      DataOut^ := (InArray[Y * WidthBytes + X shr 2] and Mask2[X and 3]) shr Shift2[X and 3];
+      DataOut^ := (InArray[PtrInt(Y) * WidthBytes + X shr 2] and Mask2[X and 3]) shr Shift2[X and 3];
       if ScaleTo8Bits then
         DataOut^ := DataOut^ * Scaling;
       Inc(DataOut);
@@ -2131,7 +2131,7 @@ begin
   for Y := 0 to Height - 1 do
     for X := 0 to Width - 1 do
     begin
-      DataOut^ := (InArray[Y * WidthBytes + X shr 1] and  Mask4[X and 1]) shr Shift4[X and 1];
+      DataOut^ := (InArray[PtrInt(Y) * WidthBytes + X shr 1] and  Mask4[X and 1]) shr Shift4[X and 1];
       if ScaleTo8Bits then
         DataOut^ := DataOut^ * Scaling;
       Inc(DataOut);
@@ -2207,7 +2207,7 @@ var
 begin
   Assert(not FormatInfo.IsSpecial);
   LineBytes := FormatInfo.GetPixelsSize(FormatInfo.Format, LineWidth, 1);
-  Result := @PBuffer(ImageBits)[Index * LineBytes];
+  Result := @PBuffer(ImageBits)[PtrInt(Index) * LineBytes];
 end;
 
 function IsImageFormatValid(Format: TImageFormat): Boolean;
@@ -3895,7 +3895,7 @@ begin
       for I := 0 to 3 do
         for J := 0 to 3 do
         begin
-          Pixels[K] := PBuffer(SrcBits)[(Y shl 2 + I) * Width + X shl 2 + J];
+          Pixels[K] := PBuffer(SrcBits)[PtrInt(Y shl 2 + I) * Width + X shl 2 + J];
           Inc(M, Pixels[K]);
           Inc(K);
         end;
@@ -3942,7 +3942,7 @@ begin
   for Y := 0 to 3 do
     for X := 0 to 3 do
     begin
-      Src := @PBuffer(SrcBits)[(YPos * 4 + Y) * Width * BytesPP +
+      Src := @PBuffer(SrcBits)[PtrInt(YPos * 4 + Y) * Width * BytesPP +
         (XPos * 4 + X) * BytesPP + ChannelIdx];
       Block[I].Alpha := Src^;
       Inc(I);
@@ -4012,7 +4012,7 @@ begin
       else
         PixelThresholded := 0;
 
-      Bitmap[Y * WidthBytes + X div 8] := Bitmap[Y * WidthBytes + X div 8] or // OR current value of byte with following:
+      Bitmap[PtrInt(Y) * WidthBytes + X div 8] := Bitmap[PtrInt(Y) * WidthBytes + X div 8] or // OR current value of byte with following:
         (PixelThresholded and 1)  // To make 1 from 255, 0 remains 0
         shl (7 - (X mod 8));  // Put current bit to proper place in byte
 
@@ -4038,7 +4038,7 @@ begin
       for I := 0 to 3 do
         for J := 0 to 3 do
         begin
-          Dest := @PBuffer(DestBits)[(Y shl 2 + I) * Width + X shl 2 + J];
+          Dest := @PBuffer(DestBits)[PtrInt(Y shl 2 + I) * Width + X shl 2 + J];
           if Block.BitField and (1 shl K) <> 0 then
             Dest^ := Block.MUpper
           else
@@ -4071,7 +4071,7 @@ begin
       for J := 0 to 3 do
        for I := 0 to 3 do
        begin
-         PBuffer(DestBits)[(Y shl 2 + J) * Width + (X shl 2 + I)] :=
+         PBuffer(DestBits)[PtrInt(Y shl 2 + J) * Width + (X shl 2 + I)] :=
            AlphaBlock.Alphas[AMask[J shr 1] and 7];
          AMask[J shr 1] := AMask[J shr 1] shr 3;
        end;

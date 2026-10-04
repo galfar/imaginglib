@@ -909,7 +909,7 @@ end;
 
 function TImagingCanvas.GetPixelPointer(X, Y: LongInt): Pointer;
 begin
-  Result := @PByteArray(FPData.Bits)[(Y * FPData.Width + X) * FFormatInfo.BytesPerPixel]
+  Result := @PBuffer(FPData.Bits)[(Y * PtrInt(FPData.Width) + X) * FFormatInfo.BytesPerPixel]
 end;
 
 procedure TImagingCanvas.TranslateFPToNative(const Color: TColorFPRec);

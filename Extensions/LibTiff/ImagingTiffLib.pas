@@ -479,7 +479,7 @@ var
   RowsPerStrip: UInt32;
   Red, Green, Blue: array[Byte] of TWordRec;
   CompressionMismatch: Boolean;
-  ScanLinePtr: PBuffer;
+  ScanLinePtr: PByte;
   OpenMode: PAnsiChar;
 
   procedure SaveMetadata(Tiff: PTiff; PageIndex: Integer);

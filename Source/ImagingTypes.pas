@@ -223,15 +223,20 @@ type
   Usual PByteArray[Index] is capped at ~2GB
   (even in Delphi 64, not limited in FPC).
 
-  Aliases to PByte with "$POINTERMATH ON" in
-  Delphi 2009+ and FPC, falls back to PAnsiChar (which has always
-  supported pointer arithmetic) on Delphi 2007 and earlier.
+  Aliases to PByte with "$POINTERMATH ON" in Delphi 2009+ and FPC.
+  Delphi 2007 and earlier have no POINTERMATH so there it falls back to
+  a pointer to byte array (these are 32 bit only compilers so the array
+  index limit is no restriction).
 
-  Usages:
+  Usage:
     ScanLinePtr := @PBuffer(Bits)[Y * Width * Bpp];
-    ScanLinePtr := PBuffer(Bits) + Y * Width * Bpp;
+    PBuffer(Bits)[Index] := 255;
 
   Remember:
+    Use only the indexed access shown above. Pointer arithmetic
+    (PBuffer(Bits) + Offset, Inc(BufferVar, Offset)) does not work
+    with the array fallback of old Delphi - use PByte variables for that.
+
     When calculating the offset with all 32 bit operands one of them needs
     to be cast to 64 bit - Pascal won't promote result to 64 bits by itself
     even if the target variable is 64 bit. }
@@ -243,7 +248,8 @@ type
     {$POINTERMATH ON}
     PBuffer = PByte;
   {$ELSE} // Delphi 2007 and earlier - no POINTERMATH support
-    PBuffer = PAnsiChar;
+    TBufferArray = array[0..MaxInt - 1] of Byte;
+    PBuffer = ^TBufferArray;
   {$IFEND}
 {$ENDIF}
 
