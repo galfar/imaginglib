@@ -697,14 +697,14 @@ var
   Buffer: array[0..511] of AnsiChar;
   Msg: AnsiString;
 begin
-  Len := vsnprintf(@Buffer, SizeOf(Buffer), Format, Params);
   { msvcrt's _vsnprintf returns -1 when the text did not fit and does not
-    terminate the buffer; the C99 version returns the length it WANTED. Both
-    have to be clamped before SetString is handed a count. }
-  if Len < 0 then
-    Len := StrLen(PAnsiChar(@Buffer))
-  else if Len > SizeOf(Buffer) - 1 then
-    Len := SizeOf(Buffer) - 1;
+    terminate the buffer; the C99 version returns the length it WANTED.
+    The last char is kept out of its reach as a terminator and the result
+    is clamped before SetString is handed a count. }
+  FillChar(Buffer, SizeOf(Buffer), 0);
+  Len := vsnprintf(@Buffer, SizeOf(Buffer) - 1, Format, Params);
+  if (Len < 0) or (Len > SizeOf(Buffer) - 1) then
+    Len := StrLen(PAnsiChar(@Buffer));
   SetString(Msg, Buffer, Len);
   Handler(Module, Msg);
 end;

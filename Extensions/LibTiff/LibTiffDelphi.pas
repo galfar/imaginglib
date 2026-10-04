@@ -953,13 +953,26 @@ begin
   UserTiffWarningHandler := WarningHandler;
 end;
 
+{ libtiff hands its message handler a format string and a va_list.
+  vsnprintf is the entry point that takes a va_list, do not use snprintf, which is variadic. }
+function vsnprintf(S: PAnsiChar; N: Integer; const Format: PAnsiChar;
+  Args: va_list): Integer; cdecl;
+  external SRuntimeLib name {$IFDEF MSWINDOWS}'_vsnprintf'{$ELSE}'vsnprintf'{$ENDIF};
+
 procedure FormatAndCallHandler(Handler: TUserTiffErrorHandler; Module: PAnsiChar; Format: PAnsiChar; Params: va_list);
 var
   Len: Integer;
   Buffer: array[0..511] of AnsiChar;
   Msg: AnsiString;
 begin
-  Len := snprintf(@Buffer, 512, Format, Params);
+  { msvcrt's _vsnprintf returns -1 when the text did not fit and does not
+    terminate the buffer; the C99 version returns the length it WANTED.
+    The last char is kept out of its reach as a terminator and the result
+    is clamped before SetString is handed a count. }
+  FillChar(Buffer, SizeOf(Buffer), 0);
+  Len := vsnprintf(@Buffer, SizeOf(Buffer) - 1, Format, Params);
+  if (Len < 0) or (Len > SizeOf(Buffer) - 1) then
+    Len := strlen(@Buffer);
   SetString(Msg, Buffer, Len);
   Handler(Module, Msg);
 end;
