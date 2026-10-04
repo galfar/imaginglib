@@ -85,6 +85,11 @@ implementation
   {$UNDEF USE_LIBTIFF}
 {$IFEND}
 
+// No dynamic libraries on WebAssembly (WASM/WASI)
+{$IFDEF WASI}
+  {$UNDEF USE_LIBTIFF}
+{$ENDIF}
+
 uses
 {$IFDEF USE_LIBTIFF}
   ImagingTiffLib,

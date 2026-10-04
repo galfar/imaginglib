@@ -367,13 +367,15 @@ procedure DebugMsg(const Msg: string; const Args: array of const);
 
 implementation
 
-uses
 {$IF Defined(MSWINDOWS)}
-  Windows;
-{$ELSEIF Defined(FPC)}
-  Dos, BaseUnix, Unix;
+uses
+   Windows;
+{$ELSEIF Defined(FPC) and Defined(UNIX)}
+uses
+   Dos, BaseUnix, Unix;
 {$ELSEIF Defined(DELPHI)}
-  Posix.SysTime;
+uses
+   Posix.SysTime;
 {$IFEND}
 
 var
@@ -430,13 +432,19 @@ begin
   Posix.SysTime.GetTimeOfDay(Time, nil);
   Result := Int64(Time.tv_sec) * 1000000 + Time.tv_usec;
 end;
-{$ELSEIF Defined(FPC)}
+{$ELSEIF Defined(FPC) and Defined(UNIX)}
 function GetTimeMicroseconds: Int64;
 var
   TimeVal: TTimeVal;
 begin
   fpGetTimeOfDay(@TimeVal, nil);
   Result := Int64(TimeVal.tv_sec) * 1000000 + TimeVal.tv_usec;
+end;
+{$ELSE}
+// Other FPC targets (e.g. WebAssembly), millisecond resolution only
+function GetTimeMicroseconds: Int64;
+begin
+  Result := Int64(GetTickCount64) * 1000;
 end;
 {$IFEND}
 
