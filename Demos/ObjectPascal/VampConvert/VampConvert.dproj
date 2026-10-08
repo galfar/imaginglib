@@ -40,7 +40,7 @@
         <DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
         <DCC_K>false</DCC_K>
         <DCC_E>false</DCC_E>
-        <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\Common;..\..\..\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\Common;..\..\..\Extensions\Libs;..\..\..\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_SymbolReferenceInfo>1</DCC_SymbolReferenceInfo>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;CFBundleName=;CFBundleDisplayName=;CFBundleIdentifier=;CFBundleVersion=;CFBundlePackageType=;CFBundleSignature=;CFBundleAllowMixedLocalizations=;CFBundleExecutable=</VerInfo_Keys>
         <DCC_Define>FULL_FEATURE_SET;$(DCC_Define)</DCC_Define>

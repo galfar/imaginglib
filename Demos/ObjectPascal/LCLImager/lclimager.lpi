@@ -33,7 +33,7 @@
           <SearchPaths>
             <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
             <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
-            <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>
+            <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\..\..\Extensions\Libs;..\..\..\Extensions\LibTiff;..\Common"/>
             <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
           </SearchPaths>
           <CodeGeneration>
@@ -155,8 +155,8 @@
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
       <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
-      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>
-      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\..\..\Extensions\LibTiff;..\Common"/>
+      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\Libs;..\..\..\Extensions\LibTiff;..\Common"/>
+      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\..\..\Extensions\Libs;..\..\..\Extensions\LibTiff;..\Common"/>
       <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
     </SearchPaths>
     <Parsing>

@@ -15,7 +15,7 @@ rem FPC does not like creating any new directories passed by -FE -FU
 mkdir %BINPATH%\ %UNITPATH%\  2>nul
 
 set DEFINES=-dFULL_FEATURE_SET
-set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\Libs -Fu%ROOTDIR%\Extensions -Fu%ROOTDIR%\Extensions\LibTiff -Fu%DEMOPATH%\Common
+set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\Libs -Fu%ROOTDIR%\Extensions -Fu%ROOTDIR%\Extensions\Libs -Fu%ROOTDIR%\Extensions\LibTiff -Fu%DEMOPATH%\Common
 set INCLUDE=-Fi%ROOTDIR%\Source 
 set LIBS=-Fl%ROOTDIR%\Extensions\J2KObjects -Fl%ROOTDIR%\Extensions\LibTiff\Compiled
 
