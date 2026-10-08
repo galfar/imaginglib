@@ -11,7 +11,7 @@
       <SearchPaths>
         <IncludeFiles Value="..\Source"/>
         <Libraries Value="..\Extensions\J2KObjects;..\Extensions\LibTiff\Compiled"/>
-        <OtherUnitFiles Value="..\Extensions;..\Extensions\LibTiff"/>
+        <OtherUnitFiles Value="..\Extensions;..\Extensions\Libs;..\Extensions\LibTiff"/>
         <UnitOutputDirectory Value="..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\pkg-ext"/>
       </SearchPaths>
       <CodeGeneration>
@@ -33,7 +33,7 @@
     <Description Value="Vampyre Imaging Library Package for Lazarus - Extensions. Imaging is image loading, saving, and manipulation library."/>
     <License Value="MPL 2.0 (GPL compatible) "/>
     <Version Minor="82"/>
-    <Files Count="20">
+    <Files Count="24">
       <Item1>
         <Filename Value="..\Extensions\ElderImagery.pas"/>
         <UnitName Value="ElderImagery"/>
@@ -120,6 +120,25 @@
         <HasRegisterProc Value="True"/>
         <UnitName Value="VampyreImagingPackageExtRegister"/>
       </Item20>
+      <Item21>
+        <Filename Value="..\Extensions\ImagingWebP.pas"/>
+        <UnitName Value="ImagingWebP"/>
+      </Item21>
+      <Item22>
+        <Filename Value="..\Extensions\Libs\ImagingLibWebP.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="ImagingLibWebP"/>
+      </Item22>
+      <Item23>
+        <Filename Value="..\Extensions\Libs\LibWebPDynLib.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="LibWebPDynLib"/>
+      </Item23>
+      <Item24>
+        <Filename Value="..\Extensions\Libs\WebPDec.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="WebPDec"/>
+      </Item24>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

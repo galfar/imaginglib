@@ -11,7 +11,7 @@ uses
   ElderImagery, ElderImageryBsi, ElderImageryCif, ElderImageryImg, 
   ElderImagerySky, ElderImageryTexture, ImagingBinary, ImagingCompare, 
   ImagingExtFileFormats, ImagingJpeg2000, ImagingPcx, ImagingPsd, ImagingTiff, 
-  ImagingXpm, VampyreImagingPackageExtRegister, LazarusPackageIntf;
+  ImagingWebP, ImagingXpm, VampyreImagingPackageExtRegister, LazarusPackageIntf;
 
 implementation
 

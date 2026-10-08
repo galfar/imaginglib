@@ -167,6 +167,12 @@
   {$DEFINE HAS_GENERICS}
 {$IFEND}
 
+// Dynamic libraries (DLL/SO/dylib) can be loaded at run time.
+{$DEFINE HAS_DYNLIBS}
+{$IFDEF WASI}
+  {$UNDEF HAS_DYNLIBS} // No dynamic libraries on WebAssembly (WASM/WASI)
+{$ENDIF}
+
 { Compiler pecularities }
 
 // Delphi 64bit POSIX targets

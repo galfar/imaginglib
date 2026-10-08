@@ -23,6 +23,7 @@ unit ImagingExtFileFormats;
 {.$DEFINE DONT_LINK_PSD}         // link support for PSD images
 {.$DEFINE DONT_LINK_PCX}         // link support for PCX images
 {.$DEFINE DONT_LINK_XPM}         // link support for XPM images
+{.$DEFINE DONT_LINK_WEBP}        // link support for WebP images
 
 {$IFNDEF FULL_FEATURE_SET}
   {$DEFINE DONT_LINK_ELDER}     // link support for Elder Imagery images
@@ -75,6 +76,14 @@ const
     Default value is True (1). }
   ImagingPSDSaveAsLayer              = 70;
 
+  { Quality of lossy compression used when saving WebP images. It is number
+    in range 0..100, higher value means larger file with better quality.
+    Default value is 80. }
+  ImagingWebPQuality                 = 75;
+  { Specifies whether WebP images are saved using lossless compression,
+    can be 0 or 1. Default value is 0. }
+  ImagingWebPLossless                = 76;
+
 implementation
 
 uses
@@ -93,6 +102,9 @@ uses
 {$ENDIF}
 {$IFNDEF DONT_LINK_XPM}
   ImagingXpm,
+{$ENDIF}
+{$IFNDEF DONT_LINK_WEBP}
+  ImagingWebP,
 {$ENDIF}
 {$IFNDEF DONT_LINK_ELDER}
   ElderImagery,

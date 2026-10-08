@@ -43,12 +43,14 @@ Loading and saving of these image file formats:
 - TGA, BMP
 - PCX, XPM, PNM/PPM, PSD
 - TIFF, JPEG2000 (not native Pascal, depends on platform)
+- WebP (loading by native Pascal decoder in FPC and Delphi 2009+, saving needs libwebp library)
 - and more
 
 Supported platforms are:
 
-- Delphi: Windows, macOS
-- FPC: Windows, Linux x86/ARM, Android, macOS
+- Delphi: Windows, macOS, Linux
+- FPC: Windows, Linux, Android, macOS
+- Architectures: x86 and ARM, both 32 and 64 bit (also compiles for WASM, PowerPC64LE, and RISCV-64)
 
 Many internal image data formats and conversions:
 

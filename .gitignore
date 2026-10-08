@@ -12,6 +12,7 @@ Bin/
 Demos/Bin/
 Tests/*
 Dcu/*
+Temp
 
 **/__history/**
 **/__recovery**
