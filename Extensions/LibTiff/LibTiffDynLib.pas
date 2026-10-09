@@ -1,7 +1,9 @@
 unit LibTiffDynLib;
 
-{$IFDEF FPC}
-  {$MODE DELPHI}
+{$I ImagingOptions.inc}
+
+{$IFNDEF HAS_DYNLIBS}
+  {$MESSAGE FATAL 'dynamic libraries are not supported on this target'}
 {$ENDIF}
 
 // For LibTiff 4.0+ (we want BigTIFF support) with 64bit offsets.

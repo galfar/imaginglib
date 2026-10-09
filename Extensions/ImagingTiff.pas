@@ -86,7 +86,7 @@ implementation
 {$IFEND}
 
 // No dynamic libraries on WebAssembly (WASM/WASI)
-{$IFDEF WASI}
+{$IFNDEF HAS_DYNLIBS}
   {$UNDEF USE_LIBTIFF}
 {$ENDIF}
 
