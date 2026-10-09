@@ -86,7 +86,7 @@ var
 procedure TJpegFileFormat.Define;
 begin
   FName := SJpegFormatName;
-  FFeatures := [ffLoad, ffSave];
+  FFeatures := [ffLoad, ffSave, ffHugeImages];
   FSupportedFormats := JpegSupportedFormats;
 
   FQuality := JpegDefaultQuality;

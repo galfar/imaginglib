@@ -26,7 +26,8 @@ type
     without alpha channel).
     Loading works when libwebp shared library is found or when the Pascal
     decoder is compiled in (FPC, Delphi 2009+). Saving needs libwebp.
-    Only the first frame of animated WebP files is loaded. }
+    Only the first frame of animated WebP files is loaded.
+    Note that WebP has a maximum size of 16383 x 16383 pixel.}
   TWebPFileFormat = class(TImageFileFormat)
   protected
     FQuality: LongInt;
