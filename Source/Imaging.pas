@@ -385,9 +385,11 @@ type
   TFileFormatFeature = (
     ffLoad,
     ffSave,
-    ffMultiImage,
-    ffProgress,
-    ffReadScanlines);
+    ffMultiImage,    // multiple images can be in the file
+    ffHugeImages,    // handles >4GB images, exact limits depend on file format
+    ffProgress,      // reports progress, unsupported now
+    ffReadScanlines  // return individual scanlines, unsupported now
+  );
 
   TFileFormatFeatures = set of TFileFormatFeature;
 

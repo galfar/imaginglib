@@ -99,7 +99,7 @@ procedure TQoiFileFormat.Define;
 begin
   inherited Define;
   FName := SQOIFormatName;
-  FFeatures := [ffLoad, ffSave];
+  FFeatures := [ffLoad, ffSave, ffHugeImages];
   FSupportedFormats := QOISupportedFormats;
   AddMasks(SQOIMasks);
 end;

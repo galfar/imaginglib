@@ -120,7 +120,7 @@ procedure TBaseTiffFileFormat.Define;
 begin
   inherited;
   FName := STiffFormatName;
-  FFeatures := [ffLoad, ffSave, ffMultiImage];
+  FFeatures := [ffLoad, ffSave, ffMultiImage, ffHugeImages];
   FCompression := TiffDefaultCompression;
   FJpegQuality := TiffDefaultJpegQuality;
   FBigTiffWriteMode := TiffBigTiffWriteModeIfNeeded;
