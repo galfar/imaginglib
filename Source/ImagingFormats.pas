@@ -7,7 +7,7 @@
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at https://mozilla.org/MPL/2.0.
-} 
+}
 
 { This unit manages information about all image data formats and contains
   low level format conversion, manipulation, and other related functions.}
@@ -43,7 +43,7 @@ const
   when creating color histogram. If $FF is used all 8bits of color channels
   are used which can be slow for large images with many colors so you can
   use  lower masks to speed it up.}
-procedure ReduceColorsMedianCut(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ReduceColorsMedianCut(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; MaxColors: LongInt; ChannelMask: Byte;
   DstPal: PPalette32; Actions: TReduceColorsActions = AllReduceColorsActions);
 { Stretches rectangle in source image to rectangle in destination image
@@ -1102,7 +1102,7 @@ type
   PColorBin = ^TColorBin;
   TColorBin = record
     Color: TColor32Rec;
-    Number: Integer;
+    Number: NativeInt;
     Next: PColorBin;
   end;
 
@@ -1113,7 +1113,7 @@ type
     RMin, RMax,
     GMin, GMax,
     BMin, BMax: Integer;
-    Total: Integer;
+    Total: NativeInt;
     Represented: TColor32Rec;
     List: PColorBin;
   end;
@@ -1123,7 +1123,7 @@ var
   Box: array[0..MaxPossibleColors - 1] of TColorBox;
   Boxes: Integer;
 
-procedure ReduceColorsMedianCut(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ReduceColorsMedianCut(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; MaxColors: LongInt; ChannelMask: Byte;
   DstPal: PPalette32; Actions: TReduceColorsActions);
 
@@ -1131,7 +1131,8 @@ procedure ReduceColorsMedianCut(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
     ChannelMask: Byte);
   var
     A, R, G, B: Byte;
-    I, Addr: LongInt;
+    I: NativeInt;
+    Addr: LongInt;
     PC: PColorBin;
     Col: TColor32Rec;
   begin
@@ -1201,9 +1202,12 @@ procedure ReduceColorsMedianCut(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
   var
     I, J: LongInt;
     CP, Pom: PColorBin;
-    Cut, LargestIdx, Largest, Size, S: LongInt;
+    Cut, LargestIdx, Size, S: LongInt;
+    Largest: NativeInt;
     CutA, CutR, CutG, CutB: Boolean;
-    SumA, SumR, SumG, SumB: LongInt;
+    // Channel values multiplied by pixel counts, 32 bits would overflow already
+    // with about 8 MPix of one color
+    SumA, SumR, SumG, SumB: Int64;
     Temp: TColorBox;
   begin
     I := 0;
@@ -1316,10 +1320,10 @@ procedure ReduceColorsMedianCut(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
         SumA := 0;
         repeat
           CP := Box[I].List;
-          Inc(SumR, CP.Color.R * CP.Number);
-          Inc(SumG, CP.Color.G * CP.Number);
-          Inc(SumB, CP.Color.B * CP.Number);
-          Inc(SumA, CP.Color.A * CP.Number);
+          Inc(SumR, Int64(CP.Number) * CP.Color.R);
+          Inc(SumG, Int64(CP.Number) * CP.Color.G);
+          Inc(SumB, Int64(CP.Number) * CP.Color.B);
+          Inc(SumA, Int64(CP.Number) * CP.Color.A);
           Box[I].List := CP.Next;
           Dispose(CP);
         until Box[I].List = nil;
@@ -1397,7 +1401,7 @@ procedure ReduceColorsMedianCut(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
 
   procedure MapImage(Src, Dst: PByte; SrcInfo, DstInfo: PImageFormatInfo);
   var
-    I: LongInt;
+    I: NativeInt;
     Col: TColor32Rec;
   begin
     for I := 0 to NumPixels - 1 do
@@ -1686,7 +1690,7 @@ begin
   end
   else if Scale < 1.0 then
   begin
-    // Sub-sampling - scales from bigger to smaller 
+    // Sub-sampling - scales from bigger to smaller
     Radius := Radius / Scale;
     for I := 0 to DstWidth - 1 do
     begin
@@ -2428,7 +2432,7 @@ begin
   begin
     Pix^ := Pal[I].Color;
     Inc(Pix);
-  end;       
+  end;
 end;
 
 
@@ -3666,7 +3670,7 @@ begin
   end;
 end;
 
-procedure FixEndpoints(var Ep0, Ep1: Word; HasAlpha: Boolean); 
+procedure FixEndpoints(var Ep0, Ep1: Word; HasAlpha: Boolean);
 var
   Temp: Word;
 begin
@@ -4107,7 +4111,7 @@ begin
       Color.B := 0;
 
       // Distribute alpha block values across 4x4 pixel block,
-      // first alpha block represents Red channel, second is Green. 
+      // first alpha block represents Red channel, second is Green.
       for J := 0 to 3 do
        for I := 0 to 3 do
        begin
@@ -4483,7 +4487,7 @@ initialization
     - FillMipMapLevel now works well with indexed and special formats too.
     - Moved Convert1To8 and Convert4To8 functions from ImagingBitmaps here
      and created new Convert2To8 function. They are now used by more than one
-     file format loader. 
+     file format loader.
 
   -- 0.19 Changes/Bug Fixes -----------------------------------
     - StretchResample now uses pixel get/set functions stored in

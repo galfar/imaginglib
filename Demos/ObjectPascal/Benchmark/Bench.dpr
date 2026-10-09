@@ -10,7 +10,9 @@ program Bench;
 
 uses
   DemoUnit in 'DemoUnit.pas',
-  Imaging in '..\..\..\Source\Imaging.pas';
+  ImagingTypes in '..\..\..\Source\ImagingTypes.pas',
+  Imaging in '..\..\..\Source\Imaging.pas',
+  ImagingFormats in '..\..\..\Source\ImagingFormats.pas';
 
 begin
   RunDemo;

@@ -312,6 +312,7 @@ begin
     OutBytes := ZStream.total_out;
   except
     zlibFreeMem(nil, OutBuf);
+    OutBuf := nil;
     raise
   end;
 end;
@@ -362,6 +363,7 @@ begin
     end;
   except
     zlibFreeMem(nil, OutBuf);
+    OutBuf := nil;
     raise
   end;
 end;
