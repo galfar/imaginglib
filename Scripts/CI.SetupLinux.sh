@@ -4,6 +4,11 @@ set -eo pipefail
 # Setup for GitHub Actions Ubuntu runners.
 # 2026-08-04: ubuntu-latest is Ubuntu 24.04
 
+# Just get the -dev packages for file formats, they don't have funny version suffixes
+# like libtiff5 vs libtiff6 in different distro versions
+sudo apt install libtiff-dev -y
+sudo apt install libwebp-dev -y
+
 # Needed for SDL and GL demos
 sudo apt install libsdl1.2-dev -y
 

@@ -9,20 +9,45 @@
 {*******************************************************}
 
 {
-  Modified for 
+  Modified for
   Vampyre Imaging Library
-  by Marek Mauder 
-  http://imaginglib.sourceforge.net
+  by Marek Mauder
+  https://github.com/galfar/imaginglib
+  https://imaginglib.sourceforge.io
+}
 
-  You can choose which pascal zlib implementation will be
-  used. IMPASZLIB and FPCPASZLIB are translations of zlib
-  to pascal so they don't need any *.obj files.
-  The others are interfaces to *.obj files (Windows) or
-  *.so libraries (Linux).
-    Default implementation is IMPASZLIB because it can be compiled
-  by all supported compilers and works on all supported platforms.
-    FPCPASZLIB is useful for Lazarus applications. FPC's zlib is linked
-  to exe by default so there is no need to link additional (and almost identical) IMPASZLIB.
+{ All zlib (de)compression in Imaging goes through this unit. It selects
+  the zlib implementation (backend) at compile time and provides buffer to
+  buffer functions and compression streams, so the rest of
+  the library doesn't depend on which zlib is in use.
+
+  Backends:
+
+  IMPASZLIB   - ImPasZLib unit, Pascal translation of zlib 1.1.2 bundled with
+                Imaging. Compiles everywhere (Delphi 7+, FPC) and needs no
+                external files, but it is the slowest one.
+  FPCPASZLIB  - paszlib package of Free Pascal (Pascal translation as well).
+                It is usually linked to FPC and Lazarus programs anyway so
+                there is no need to add another, almost identical, copy.
+  DELPHIZLIB  - ZLib unit of Delphi RTL: recent zlib compiled from C sources
+                and linked statically, can be 2x faster than IMPASZLIB.
+  ZLIB_DYNLIB - zlib shared library bound by ZLibDynLib unit: zlib1.dll,
+                libz.so.1, or libz.1.dylib (zlib-ng in compat mode works too).
+                The library is loaded at program start and it must be
+                present, there is no fallback to another backend at run time.
+
+  Selection:
+
+  By default the backend is chosen automatically:
+    - Free Pascal: FPCPASZLIB
+    - Delphi XE3 and newer: DELPHIZLIB
+    - older Delphi: IMPASZLIB
+
+  Define IMPASZLIB or ZLIB_DYNLIB to override the automatic choice (IMPASZLIB
+  wins when both are defined). Do it in project options, in
+  ImagingUserOptions.inc, or by enabling the defines below.
+  FPCPASZLIB and DELPHIZLIB are set by the automatic choice and are not
+  meant to be defined by hand.
 }
 
 unit ImagingZLib;
@@ -36,6 +61,10 @@ interface
 
 { $DEFINE FPCPASZLIB}
 { $DEFINE DELPHIZLIB}
+
+{$IFNDEF HAS_DYNLIBS}
+  {$UNDEF ZLIB_DYNLIB}
+{$ENDIF}
 
 {$IF not Defined(IMPASZLIB) and not Defined(ZLIB_DYNLIB)}
   {$DEFINE NO_USER_ZLIB}
