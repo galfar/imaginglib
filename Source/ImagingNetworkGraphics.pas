@@ -812,9 +812,10 @@ procedure TNGFileLoader.LoadImageFromPNGFrame(FrameWidth, FrameHeight: LongInt; 
 type
   TGetPixelFunc = function(Line: PByteArray; X: LongInt): Byte;
 var
-  LineBuffer: array[Boolean] of PByteArray;
+  LineBuffer: array[Boolean] of TDynByteArray;
+  ZeroLine: TDynByteArray;
   ActLine: Boolean;
-  Data, TotalBuffer, ZeroLine, PrevLine: Pointer;
+  Data, TotalBuffer, PrevLine: Pointer;
   BitCount, TotalPos, BytesPerPixel, I, Pass,
   SrcDataSize, BytesPerLine, InterlaceLineBytes, InterlaceWidth: LongInt;
   TotalSize: Integer;
@@ -989,10 +990,8 @@ begin
   GetImageFormatInfo(Image.Format, Info);
   BytesPerPixel := (BitCount + 7) div 8;
 
-  LineBuffer[True] := nil;
-  LineBuffer[False] := nil;
   TotalBuffer := nil;
-  ZeroLine := nil;
+  Data := nil;
   ActLine := True;
 
   // Start decoding
@@ -1002,8 +1001,7 @@ begin
     SrcDataSize := Height * BytesPerLine;
     GetMem(Data, SrcDataSize);
     FillChar(Data^, SrcDataSize, 0);
-    GetMem(ZeroLine, BytesPerLine);
-    FillChar(ZeroLine^, BytesPerLine, 0);
+    SetLength(ZeroLine, BytesPerLine);
 
     if IHDR.Interlacing = 1 then
     begin
@@ -1011,8 +1009,8 @@ begin
       TotalPos := 0;
       DecompressBuf(IDATStream.Memory, IDATStream.Size, 0,
         Pointer(TotalBuffer), TotalSize);
-      GetMem(LineBuffer[True], BytesPerLine + 1);
-      GetMem(LineBuffer[False], BytesPerLine + 1);
+      SetLength(LineBuffer[True], BytesPerLine + 1);
+      SetLength(LineBuffer[False], BytesPerLine + 1);
       for Pass := 0 to 6 do
       begin
         // Prepare next interlace run
@@ -1048,7 +1046,7 @@ begin
     else
     begin
       // Decode non-interlaced images
-      PrevLine := ZeroLine;
+      PrevLine := Pointer(ZeroLine);
       DecompressBuf(IDATStream.Memory, IDATStream.Size, SrcDataSize + Height,
         Pointer(TotalBuffer), TotalSize);
       for I := 0 to Height - 1 do
@@ -1082,13 +1080,14 @@ begin
         2: Convert2To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
         4: Convert4To8(Data, Bits, Width, Height, BytesPerLine, IHDR.ColorType = 0);
       end;
-      FreeMem(Data);
+      FreeMemNil(Data);
     end
     else
     begin
       // If source data size is the same as size of
       // image Bits in assigned format we simply copy pointer reference
       Bits := Data;
+      Data := nil;
     end;
 
     // LOCO transformation was used too (only for color types 2 and 6)
@@ -1099,10 +1098,8 @@ begin
     if IHDR.BitDepth = 16 then
       SwapEndianWord(Bits, Width * Height * BytesPerPixel div SizeOf(Word));
   finally
-    FreeMem(LineBuffer[True]);
-    FreeMem(LineBuffer[False]);
     FreeMem(TotalBuffer);
-    FreeMem(ZeroLine);
+    FreeMem(Data);
   end;
 end;
 
@@ -1218,7 +1215,7 @@ var
   FmtInfo: TImageFormatInfo;
   BackGroundColor: TColor64Rec;
   ColorKey: TColor64Rec;
-  Alphas: PByteArray;
+  Alphas: TDynByteArray;
   AlphasSize: LongInt;
   IsColorKeyPresent: Boolean;
   IsBackGroundPresent: Boolean;
@@ -1230,8 +1227,8 @@ var
     begin
       if Alphas = nil then
       begin
-        GetMem(Alphas, Frame.TransparencySize);
-        Move(Frame.Transparency^, Alphas^, Frame.TransparencySize);
+        SetLength(Alphas, Frame.TransparencySize);
+        Move(Frame.Transparency^, Pointer(Alphas)^, Frame.TransparencySize);
         AlphasSize := Frame.TransparencySize;
       end;
     end
@@ -1355,7 +1352,6 @@ var
   end;
 
 begin
-  Alphas := nil;
   IsColorKeyPresent := False;
   IsBackGroundPresent := False;
   GetImageFormatInfo(Image.Format, FmtInfo);
@@ -1376,8 +1372,6 @@ begin
   // Apply color keying
   if IsColorKeyPresent and not FmtInfo.HasAlphaChannel then
     ApplyColorKey;
-
-  FreeMemNil(Alphas);
 end;
 
 { TNGFileSaver class implementation }
@@ -1385,8 +1379,9 @@ end;
 procedure TNGFileSaver.StoreImageToPNGFrame(const IHDR: TIHDR; Bits: Pointer;
   FmtInfo: TImageFormatInfo; IDATStream: TMemoryStream);
 var
-  TotalBuffer, CompBuffer, ZeroLine, PrevLine: Pointer;
-  FilterLines: array[0..4] of PByteArray;
+  TotalBuffer, CompBuffer, PrevLine: Pointer;
+  ZeroLine: TDynByteArray;
+  FilterLines: array[0..4] of TDynByteArray;
   TotalSize, CompSize, I, BytesPerLine, BytesPerPixel: Integer;
   Filter: Byte;
   Adaptive: Boolean;
@@ -1445,7 +1440,7 @@ var
     BestTest := MaxInt;
     for I := 0 to 4 do
     begin
-      FilterScanline(I, BytesPerPixel, Line, PrevLine, FilterLines[I]);
+      FilterScanline(I, BytesPerPixel, Line, PrevLine, Pointer(FilterLines[I]));
       for J := 0 to BytesPerLine - 1 do
         Sums[I] := Sums[I] + Abs(ShortInt(FilterLines[I][J]));
       if Sums[I] < BestTest then
@@ -1454,7 +1449,7 @@ var
         BestTest := Sums[I];
       end;
     end;
-    Move(FilterLines[Filter]^, Target^, BytesPerLine);
+    Move(FilterLines[Filter][0], Target^, BytesPerLine);
   end;
   
 begin
@@ -1473,22 +1468,22 @@ begin
 
   // Prepare data for compression
   CompBuffer := nil;
-  FillChar(FilterLines, SizeOf(FilterLines), 0);
+  TotalBuffer := nil;
   BytesPerPixel := Max(1, FmtInfo.BytesPerPixel);
   BytesPerLine := FmtInfo.GetPixelsSize(FmtInfo.Format, LongInt(IHDR.Width), 1);
   TotalSize := (BytesPerLine + 1) * LongInt(IHDR.Height);
-  GetMem(TotalBuffer, TotalSize);
-  GetMem(ZeroLine, BytesPerLine);
-  FillChar(ZeroLine^, BytesPerLine, 0);
-  PrevLine := ZeroLine;
+  SetLength(ZeroLine, BytesPerLine);
+  PrevLine := Pointer(ZeroLine);
 
   if Adaptive then
   begin
     for I := 0 to 4 do
-      GetMem(FilterLines[I], BytesPerLine);
+      SetLength(FilterLines[I], BytesPerLine);
   end;
 
   try
+    GetMem(TotalBuffer, TotalSize);
+
     // Process next scanlines
     for I := 0 to IHDR.Height - 1 do
     begin
@@ -1527,10 +1522,6 @@ begin
   finally
     FreeMem(TotalBuffer);
     FreeMem(CompBuffer);
-    FreeMem(ZeroLine);
-    if Adaptive then
-      for I := 0 to 4 do
-        FreeMem(FilterLines[I]);
   end;
 end;
 

@@ -534,7 +534,7 @@ begin
 
     // If Jpeg's colorspace is RGB and not YCbCr we need to swap
     // R and B to get Imaging's native order
-    NeedsRedBlueSwap := jc.d.jpeg_color_space = JCS_RGB;
+    NeedsRedBlueSwap := (jc.d.jpeg_color_space = JCS_RGB);
   {$IFDEF RGBSWAPPED}
     // Force R-B swap for FPC's PasJpeg
     NeedsRedBlueSwap := True;
@@ -585,13 +585,10 @@ var
 {$IFDEF RGBSWAPPED}
   I: LongInt;
   Pix: PColor24Rec;
-  SwapBuffer: PByte;
+  SwapBuffer: TDynByteArray;
 {$ENDIF}
 begin
   Result := False;
-{$IFDEF RGBSWAPPED}
-  SwapBuffer := nil;
-{$ENDIF}
 
   with Image do
   try
@@ -618,7 +615,7 @@ begin
     Src := Bits;
 
   {$IFDEF RGBSWAPPED}
-    GetMem(SwapBuffer, PtrInc);
+    SetLength(SwapBuffer, PtrInc);
   {$ENDIF}
 
     if Params.DensityUnit > 0 then
@@ -635,14 +632,14 @@ begin
     {$IFDEF RGBSWAPPED}
       if Format = ifR8G8B8 then
       begin
-        Move(Src^, SwapBuffer^, PtrInc);
+        Move(Src^, SwapBuffer[0], PtrInc);
         Pix := PColor24Rec(SwapBuffer);
         for I := 0 to Width - 1 do
         begin
           SwapValues(Pix.R, Pix.B);
           Inc(Pix, 1);
         end;
-        Line := SwapBuffer;
+        Line := Pointer(SwapBuffer);
       end;
     {$ENDIF}
 
@@ -654,9 +651,6 @@ begin
     Result := True;
   finally
     ReleaseContext(jc);
-  {$IFDEF RGBSWAPPED}
-    FreeMem(SwapBuffer);
-  {$ENDIF}
   end;
 end;
 

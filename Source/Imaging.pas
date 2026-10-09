@@ -1465,7 +1465,8 @@ end;
 
 function FlipImage(var Image: TImageData): Boolean;
 var
-  P1, P2, Buff: Pointer;
+  P1, P2: Pointer;
+  Buff: TDynByteArray;
   I: LongInt;
   WidthBytes: PtrInt;
   OldFmt: TImageFormat;
@@ -1480,19 +1481,16 @@ begin
       ConvertImage(Image, ifDefault);
 
     WidthBytes := Width * ImageFormatInfos[Format].BytesPerPixel;
-    GetMem(Buff, WidthBytes);
-    try
-      // Swap all scanlines of image
-      for I := 0 to Height div 2 - 1 do
-      begin
-        P1 := @PBuffer(Bits)[I * WidthBytes];
-        P2 := @PBuffer(Bits)[(Height - I - 1) * WidthBytes];
-        Move(P1^, Buff^, WidthBytes);
-        Move(P2^, P1^, WidthBytes);
-        Move(Buff^, P2^, WidthBytes);
-      end;
-    finally
-      FreeMemNil(Buff);
+    SetLength(Buff, WidthBytes);
+
+    // Swap all scanlines of image
+    for I := 0 to Height div 2 - 1 do
+    begin
+      P1 := @PBuffer(Bits)[I * WidthBytes];
+      P2 := @PBuffer(Bits)[(Height - I - 1) * WidthBytes];
+      Move(P1^, Buff[0], WidthBytes);
+      Move(P2^, P1^, WidthBytes);
+      Move(Buff[0], P2^, WidthBytes);
     end;
 
     if OldFmt <> Format then
@@ -1684,13 +1682,16 @@ function ReduceColors(var Image: TImageData; MaxColors: LongInt): Boolean;
 var
   TmpInfo: TImageFormatInfo;
   Data, Index: PWord;
-  I: LongInt;
+  I: NativeInt;
   NumPixels: Int64;
   Pal: PPalette32;
   Col:PColor32Rec;
   OldFmt: TImageFormat;
 begin
   Result := False;
+  Data := nil;
+  Pal := nil;
+
   if TestImage(Image) then
   with Image do
   try
@@ -1725,6 +1726,9 @@ begin
     ConvertImage(Image, OldFmt);
     Result := True;
   except
+    // Still allocated when the reduction itself has failed
+    FreeMem(Data);
+    FreeMem(Pal);
     RaiseImaging(SErrorReduceColors, [MaxColors, ImageToStr(Image)]);
   end;
 end;

@@ -7,7 +7,7 @@
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at https://mozilla.org/MPL/2.0.
-} 
+}
 
 { This unit contains image format loader/saver for Targa images.}
 unit ImagingTarga;
@@ -48,7 +48,7 @@ const
   STargaMasks      = '*.tga';
   TargaSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA1R5G5B5,
     ifR8G8B8, ifA8R8G8B8];
-  TargaDefaultRLE = False;  
+  TargaDefaultRLE = False;
 
 const
   STargaSignature = 'TRUEVISION-XFILE';
@@ -102,7 +102,7 @@ var
   Foo: TTargaFooter;
   FooterFound, ExtFound: Boolean;
   I, PSize, PalSize: Integer;
-  Pal: Pointer;
+  Pal: TDynByteArray;
   FmtInfo: TImageFormatInfo;
   WordValue: Word;
 
@@ -221,43 +221,39 @@ begin
     begin
       // Read palette
       PSize := Hdr.ColorMapLength * (Hdr.ColorEntrySize shr 3);
-      GetMem(Pal, PSize);
-      try
-        Read(Handle, Pal, PSize);
-        // Process palette
-        PalSize := Iff(Hdr.ColorMapLength > FmtInfo.PaletteEntries,
-          FmtInfo.PaletteEntries, Hdr.ColorMapLength);
-        for I := 0 to PalSize - 1 do
-          case Hdr.ColorEntrySize of
-            24:
-              with Palette[I] do
-              begin
-                A := $FF;
-                R := PPalette24(Pal)[I].R;
-                G := PPalette24(Pal)[I].G;
-                B := PPalette24(Pal)[I].B;
-              end;
-            // I've never seen tga with these palettes so they are untested
-            16:
-              with Palette[I] do
-              begin
-                A := (PWordArray(Pal)[I] and $8000) shr 12;
-                R := (PWordArray(Pal)[I] and $FC00) shr 7;
-                G := (PWordArray(Pal)[I] and $03E0) shr 2;
-                B := (PWordArray(Pal)[I] and $001F) shl 3;
-              end;
-            32:
-              with Palette[I] do
-              begin
-                A := PPalette32(Pal)[I].A;
-                R := PPalette32(Pal)[I].R;
-                G := PPalette32(Pal)[I].G;
-                B := PPalette32(Pal)[I].B;
-              end;
-          end;
-      finally
-        FreeMemNil(Pal);
-      end;
+      SetLength(Pal, PSize);
+      Read(Handle, Pointer(Pal), PSize);
+      // Process palette
+      PalSize := Iff(Hdr.ColorMapLength > FmtInfo.PaletteEntries,
+        FmtInfo.PaletteEntries, Hdr.ColorMapLength);
+      for I := 0 to PalSize - 1 do
+        case Hdr.ColorEntrySize of
+          24:
+            with Palette[I] do
+            begin
+              A := $FF;
+              R := PPalette24(Pal)[I].R;
+              G := PPalette24(Pal)[I].G;
+              B := PPalette24(Pal)[I].B;
+            end;
+          // I've never seen tga with these palettes so they are untested
+          16:
+            with Palette[I] do
+            begin
+              A := (PWordArray(Pal)[I] and $8000) shr 12;
+              R := (PWordArray(Pal)[I] and $FC00) shr 7;
+              G := (PWordArray(Pal)[I] and $03E0) shr 2;
+              B := (PWordArray(Pal)[I] and $001F) shl 3;
+            end;
+          32:
+            with Palette[I] do
+            begin
+              A := PPalette32(Pal)[I].A;
+              R := PPalette32(Pal)[I].R;
+              G := PPalette32(Pal)[I].G;
+              B := PPalette32(Pal)[I].B;
+            end;
+        end;
     end;
 
     case Hdr.ImageType of

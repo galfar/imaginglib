@@ -146,7 +146,7 @@ var
   procedure LoadRGB;
   var
     I: LongInt;
-    LineBuffer: PByte;
+    LineBuffer: TDynByteArray;
   begin
     with Images[0], GetIO do
     begin
@@ -164,29 +164,26 @@ var
           Read(Handle, Data, AlignedSize)
         else
           for I := Height - 1 downto 0 do
-            Read(Handle, @PByteArray(Data)[I * AlignedWidthBytes], AlignedWidthBytes);
+            Read(Handle, @PBuffer(Data)[PtrInt(I) * AlignedWidthBytes], AlignedWidthBytes);
       end
       else
       begin
         // Images with pixels of size >= 1 Byte are read line by line and
         // copied to image bits without padding bytes
-        GetMem(LineBuffer, AlignedWidthBytes);
-        try
-          if BI.Height < 0 then
-            for I := 0 to Height - 1 do
-            begin
-              Read(Handle, LineBuffer, AlignedWidthBytes);
-              Move(LineBuffer^, PByteArray(Bits)[I * WidthBytes], WidthBytes);
-            end
-          else
-            for I := Height - 1 downto 0 do
-            begin
-              Read(Handle, LineBuffer, AlignedWidthBytes);
-              Move(LineBuffer^, PByteArray(Bits)[I * WidthBytes], WidthBytes);
-            end;
-        finally
-          FreeMemNil(LineBuffer);
-        end;
+        SetLength(LineBuffer, AlignedWidthBytes);
+
+        if BI.Height < 0 then
+          for I := 0 to Height - 1 do
+          begin
+            Read(Handle, Pointer(LineBuffer), AlignedWidthBytes);
+            Move(LineBuffer[0], PBuffer(Bits)[PtrInt(I) * WidthBytes], WidthBytes);
+          end
+        else
+          for I := Height - 1 downto 0 do
+          begin
+            Read(Handle, Pointer(LineBuffer), AlignedWidthBytes);
+            Move(LineBuffer[0], PBuffer(Bits)[PtrInt(I) * WidthBytes], WidthBytes);
+          end;
       end;
     end;
   end;
