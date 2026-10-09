@@ -137,7 +137,7 @@ begin
     if Img.DataArray[I].Tag <> nil then
       TObject(Img.DataArray[I].Tag).Free;
   end;
-  Img.ClearAll;
+  Img.DeleteAllImages;
 end;
 
 { TImgLoaderThread }
@@ -323,7 +323,7 @@ begin
   else
   begin
     MessageDlg('Error loading image: ' + ErrorMsg, TMsgDlgType.mtError, [TMsgDlgBtn.mbOK], 0);
-    FImage.ClearAll;
+    FImage.DeleteAllImages;
   end;
 
   AniIndicator.Visible := False;

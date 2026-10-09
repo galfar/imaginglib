@@ -331,7 +331,8 @@ procedure WriteRawImageRect(Data: Pointer; Left, Top, Width, Height: Integer;
 
 { Convenience/helper Functions }
 
-{ Resizes image proportionally to fit the given width and height. }
+{ Resizes image proportionally to fit the given width and height.
+  SrcImage and DestImage can be the same image.}
 procedure ResizeImageToFit(const SrcImage: TImageData; FitWidth, FitHeight: Integer;
   Filter: TResizeFilter; var DestImage: TImageData);
 
@@ -3108,6 +3109,7 @@ procedure ResizeImageToFit(const SrcImage: TImageData; FitWidth, FitHeight: Inte
   Filter: TResizeFilter; var DestImage: TImageData);
 var
   CurSize, FitSize, DestSize: TSize;
+  WorkImage: TImageData;
 begin
   if not TestImage(SrcImage) then
     raise EImagingError.Create(SErrorInvalidInputImage);
@@ -3118,12 +3120,23 @@ begin
   CurSize.CY := SrcImage.Height;
   DestSize := ImagingUtility.ScaleSizeToFit(CurSize, FitSize);
 
-  NewImage(Max(DestSize.CX, 1), Max(DestSize.CY, 1), SrcImage.Format, DestImage);
-  if SrcImage.Palette <> nil then
-    CopyPalette(SrcImage.Palette, DestImage.Palette, 0, 0, ImageFormatInfos[SrcImage.Format].PaletteEntries);
+  // Resized to a work image as the source and destination can be the same image
+  InitImage(WorkImage);
 
-  StretchRect(SrcImage, 0, 0, CurSize.CX, CurSize.CY, DestImage, 0, 0,
-    DestSize.CX, DestSize.CY, Filter);
+  try
+    NewImage(Max(DestSize.CX, 1), Max(DestSize.CY, 1), SrcImage.Format, WorkImage);
+    if SrcImage.Palette <> nil then
+      CopyPalette(SrcImage.Palette, WorkImage.Palette, 0, 0, ImageFormatInfos[SrcImage.Format].PaletteEntries);
+
+    StretchRect(SrcImage, 0, 0, CurSize.CX, CurSize.CY, WorkImage, 0, 0,
+      DestSize.CX, DestSize.CY, Filter);
+  except
+    FreeImage(WorkImage);
+    raise;
+  end;
+
+  FreeImage(DestImage);
+  DestImage := WorkImage;
 end;
 
 { Color constructor functions }
