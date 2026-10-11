@@ -1359,14 +1359,15 @@ asm
 end;
 {$ELSE}
 var
-  I, V: UInt32;
+  I: LongInt;
+  V: UInt32;
 begin
-  V := Value * $10000 + Value;
+  V := UInt32(Value) shl 16 or Value;
   for I := 0 to Size div 4 - 1 do
     PUInt32Array(Data)[I] := V;
   case Size mod 4 of
     1: PByteArray(Data)[Size - 1] := Lo(Value);
-    2: PWordArray(Data)[Size div 2] := Value;
+    2: PWordArray(Data)[Size div 2 - 1] := Value;
     3:
       begin
         PWordArray(Data)[Size  div 2 - 1] := Value;
@@ -1411,7 +1412,7 @@ begin
     PUInt32Array(Data)[I] := Value;
   case Size mod 4 of
     1: PByteArray(Data)[Size - 1] := TUInt32Rec(Value).Bytes[0];
-    2: PWordArray(Data)[Size div 2] := TUInt32Rec(Value).Words[0];
+    2: PWordArray(Data)[Size div 2 - 1] := TUInt32Rec(Value).Words[0];
     3:
       begin
         PWordArray(Data)[Size div 2 - 1] := TUInt32Rec(Value).Words[0];

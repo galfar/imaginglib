@@ -129,6 +129,14 @@ jobs:
         shell: bash
         run: ./Scripts/CI.RunDemos.sh
 
+      - name: Build unit tests
+        shell: bash
+        run: ./Scripts/CI.BuildTests.sh
+
+      - name: Run unit tests
+        shell: bash
+        run: ./Scripts/CI.RunTests.sh
+
       - name: List Demos Bin directory
         shell: bash
         run:  ls Demos/Bin
@@ -140,6 +148,8 @@ jobs:
             Demos
             !Demos/ObjectPascal
             !Demos/Bin/Dcu
+            Bin
+            !Bin/Dcu
           if-no-files-found: error
 
   # Extra non-critical job: test FPC trunk compiler via fpclazup on Ubuntu
@@ -173,6 +183,14 @@ jobs:
       - name:  Run demos
         shell: bash
         run: ./Scripts/CI.RunDemos.sh
+
+      - name: Build unit tests
+        shell: bash
+        run: ./Scripts/CI.BuildTests.sh
+
+      - name: Run unit tests
+        shell: bash
+        run: ./Scripts/CI.RunTests.sh
 
       - name: Report trunk build outcome
         if: always()

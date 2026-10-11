@@ -4265,7 +4265,7 @@ end;
 function GetBinaryPixelsSize(Format: TImageFormat; Width, Height: Integer): Int64;
 begin
   // Binary images are aligned on BYTE boundary
-  Result := ((Width + 7) div 8) * Int64(Height); // 1bit/pixel
+  Result := ((Int64(Width) + 7) div 8) * Height; // 1bit/pixel
 end;
 
 { Optimized pixel readers/writers for 32bit and FP colors to be stored in TImageFormatInfo }

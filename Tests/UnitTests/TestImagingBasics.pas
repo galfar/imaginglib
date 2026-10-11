@@ -1,0 +1,378 @@
+{
+  Vampyre Imaging Library
+  by Marek Mauder
+  https://github.com/galfar/imaginglib
+  https://imaginglib.sourceforge.io
+  - - - - -
+  This Source Code Form is subject to the terms of the Mozilla Public
+  License, v. 2.0. If a copy of the MPL was not distributed with this
+  file, You can obtain one at https://mozilla.org/MPL/2.0.
+}
+
+{ Tests of basic functions of the low level interface: creating, testing,
+  cloning, and freeing images, direct access to pixels.}
+unit TestImagingBasics;
+
+{$I ImagingOptions.inc}
+
+interface
+
+uses
+  SysUtils, Classes, ImagingTypes, Imaging, ImagingUtility, ImagingTestCase;
+
+type
+  TTestImageLifetime = class(TImagingTestCase)
+  private
+    FImage: TImageData;
+    procedure CheckBitsAreZero(const Image: TImageData; const Msg: string);
+  protected
+    procedure SetUp; override;
+    procedure TearDown; override;
+  published
+    procedure TestInitImage;
+    procedure TestTestImage;
+    procedure TestNewImage;
+    procedure TestNewImageIndexed;
+    procedure TestNewImageDefaultFormat;
+    procedure TestNewImageBlockCompressed;
+    procedure TestNewImageReplacesOldOne;
+    procedure TestFreeImage;
+    procedure TestCloneImage;
+    procedure TestCloneImageIndexed;
+  end;
+
+  TTestPixelAccess = class(TImagingTestCase)
+  private
+    FImage: TImageData;
+  protected
+    procedure SetUp; override;
+    procedure TearDown; override;
+  published
+    procedure TestPixel32InARGB;
+    procedure TestPixel32InRGB24;
+    procedure TestPixel32InGray8;
+  end;
+
+  TTestImageFiles = class(TImagingTestCase)
+  published
+    procedure TestLoadFromTestData;
+  end;
+
+implementation
+
+{ TTestImageLifetime }
+
+procedure TTestImageLifetime.SetUp;
+begin
+  InitImage(FImage);
+end;
+
+procedure TTestImageLifetime.TearDown;
+begin
+  FreeImage(FImage);
+end;
+
+procedure TTestImageLifetime.CheckBitsAreZero(const Image: TImageData; const Msg: string);
+var
+  I: NativeInt;
+begin
+  for I := 0 to Image.Size - 1 do
+  begin
+    if PBuffer(Image.Bits)[I] <> 0 then
+      Fail(Format('%s: byte at %d is not zero', [Msg, Int64(I)]));
+  end;
+end;
+
+procedure TTestImageLifetime.TestInitImage;
+var
+  Image: TImageData;
+begin
+  FillChar(Image, SizeOf(Image), $FF);
+  InitImage(Image);
+
+  CheckEquals(0, Image.Width, 'Width');
+  CheckEquals(0, Image.Height, 'Height');
+  CheckEquals(Ord(ifUnknown), Ord(Image.Format), 'Format');
+  CheckEquals(Int64(0), Image.Size, 'Size');
+  CheckTrue(Image.Bits = nil, 'Bits');
+  CheckTrue(Image.Palette = nil, 'Palette');
+  CheckTrue(Image.Tag = nil, 'Tag');
+end;
+
+procedure TTestImageLifetime.TestTestImage;
+begin
+  CheckFalse(TestImage(FImage), 'Initialized record is not a valid image');
+
+  CheckTrue(NewImage(10, 20, ifR8G8B8, FImage), 'NewImage');
+  CheckTrue(TestImage(FImage), 'New image is valid');
+
+  // Size must match dimensions and format
+  Inc(FImage.Size);
+  CheckFalse(TestImage(FImage), 'Wrong size');
+  Dec(FImage.Size);
+
+  Inc(FImage.Width);
+  CheckFalse(TestImage(FImage), 'Wrong width');
+  Dec(FImage.Width);
+
+  FImage.Format := ifA8R8G8B8;
+  CheckFalse(TestImage(FImage), 'Wrong format');
+  FImage.Format := ifUnknown;
+  CheckFalse(TestImage(FImage), 'Unknown format');
+  FImage.Format := ifR8G8B8;
+
+  CheckTrue(TestImage(FImage), 'Valid again');
+end;
+
+procedure TTestImageLifetime.TestNewImage;
+begin
+  CheckTrue(NewImage(7, 5, ifA8R8G8B8, FImage), 'NewImage');
+
+  CheckEquals(7, FImage.Width, 'Width');
+  CheckEquals(5, FImage.Height, 'Height');
+  CheckEquals(Ord(ifA8R8G8B8), Ord(FImage.Format), 'Format');
+  CheckEquals(Int64(7 * 5 * 4), FImage.Size, 'Size');
+  CheckTrue(FImage.Bits <> nil, 'Bits allocated');
+  CheckTrue(FImage.Palette = nil, 'No palette');
+  CheckBitsAreZero(FImage, 'New image');
+end;
+
+procedure TTestImageLifetime.TestNewImageIndexed;
+var
+  Info: TImageFormatInfo;
+  I: Integer;
+begin
+  CheckTrue(NewImage(7, 5, ifIndex8, FImage), 'NewImage');
+  CheckTrue(GetImageFormatInfo(ifIndex8, Info), 'Format info');
+
+  CheckEquals(Int64(7 * 5), FImage.Size, 'Size');
+  CheckEquals(256, Info.PaletteEntries, 'Palette entries');
+  CheckTrue(FImage.Palette <> nil, 'Palette allocated');
+  CheckBitsAreZero(FImage, 'New indexed image');
+
+  for I := 0 to Info.PaletteEntries - 1 do
+    CheckEqualsColor32(0, FImage.Palette[I].Color, 'Palette entry ' + IntToStr(I));
+end;
+
+procedure TTestImageLifetime.TestNewImageDefaultFormat;
+begin
+  CheckTrue(NewImage(4, 4, ifDefault, FImage), 'NewImage');
+  CheckEquals(Ord(ifA8R8G8B8), Ord(FImage.Format), 'Default format');
+end;
+
+procedure TTestImageLifetime.TestNewImageBlockCompressed;
+begin
+  // Dimensions are rounded up to whole 4x4 blocks
+  CheckTrue(NewImage(5, 9, ifDXT1, FImage), 'NewImage');
+  CheckEquals(8, FImage.Width, 'Width');
+  CheckEquals(12, FImage.Height, 'Height');
+  CheckEquals(Int64(2 * 3 * 8), FImage.Size, 'Size');
+end;
+
+procedure TTestImageLifetime.TestNewImageReplacesOldOne;
+begin
+  CheckTrue(NewImage(16, 16, ifIndex8, FImage), 'First image');
+  CheckTrue(NewImage(3, 2, ifGray16, FImage), 'Second image');
+
+  CheckEquals(3, FImage.Width, 'Width');
+  CheckEquals(2, FImage.Height, 'Height');
+  CheckEquals(Ord(ifGray16), Ord(FImage.Format), 'Format');
+  CheckEquals(Int64(3 * 2 * 2), FImage.Size, 'Size');
+  CheckTrue(FImage.Palette = nil, 'Palette of the first image is gone');
+end;
+
+procedure TTestImageLifetime.TestFreeImage;
+begin
+  CheckTrue(NewImage(16, 16, ifIndex8, FImage), 'NewImage');
+  FreeImage(FImage);
+
+  CheckEquals(0, FImage.Width, 'Width');
+  CheckEquals(0, FImage.Height, 'Height');
+  CheckEquals(Ord(ifUnknown), Ord(FImage.Format), 'Format');
+  CheckEquals(Int64(0), FImage.Size, 'Size');
+  CheckTrue(FImage.Bits = nil, 'Bits');
+  CheckTrue(FImage.Palette = nil, 'Palette');
+
+  // Freeing image that's not allocated is fine
+  FreeImage(FImage);
+  CheckFalse(TestImage(FImage), 'Freed image is not valid');
+end;
+
+procedure TTestImageLifetime.TestCloneImage;
+var
+  Clone: TImageData;
+  I: NativeInt;
+begin
+  CheckTrue(NewImage(9, 6, ifR8G8B8, FImage), 'NewImage');
+  for I := 0 to FImage.Size - 1 do
+    PBuffer(FImage.Bits)[I] := Byte(I * 7 + 1);
+
+  InitImage(Clone);
+  try
+    CheckTrue(CloneImage(FImage, Clone), 'CloneImage');
+    CheckImagesEqual(FImage, Clone, 'Clone');
+    CheckTrue(FImage.Bits <> Clone.Bits, 'Clone has its own bits');
+
+    // Change of clone must not change the original
+    PBuffer(Clone.Bits)[0] := 255;
+    CheckEquals(1, PBuffer(FImage.Bits)[0], 'Original after change of clone');
+
+    // Clone into existing image replaces it
+    CheckTrue(NewImage(2, 2, ifGray8, Clone), 'NewImage for clone');
+    CheckTrue(CloneImage(FImage, Clone), 'CloneImage over existing image');
+    CheckImagesEqual(FImage, Clone, 'Clone over existing image');
+  finally
+    FreeImage(Clone);
+  end;
+end;
+
+procedure TTestImageLifetime.TestCloneImageIndexed;
+var
+  Clone: TImageData;
+  I: Integer;
+begin
+  CheckTrue(NewImage(4, 4, ifIndex8, FImage), 'NewImage');
+  for I := 0 to 255 do
+    FImage.Palette[I].Color := $FF000000 or UInt32(I shl 16) or UInt32(I);
+  for I := 0 to FImage.Size - 1 do
+    PBuffer(FImage.Bits)[I] := I * 16;
+
+  InitImage(Clone);
+  try
+    CheckTrue(CloneImage(FImage, Clone), 'CloneImage');
+    CheckImagesEqual(FImage, Clone, 'Indexed clone');
+    CheckTrue(Pointer(FImage.Palette) <> Pointer(Clone.Palette), 'Clone has its own palette');
+
+    Clone.Palette[1].Color := 0;
+    CheckEqualsColor32($FF010001, FImage.Palette[1].Color, 'Original palette after change of clone');
+  finally
+    FreeImage(Clone);
+  end;
+
+  // Source that is not a valid image is refused
+  FreeImage(FImage);
+  InitImage(Clone);
+  CheckFalse(CloneImage(FImage, Clone), 'CloneImage of invalid image');
+end;
+
+{ TTestPixelAccess }
+
+procedure TTestPixelAccess.SetUp;
+begin
+  InitImage(FImage);
+end;
+
+procedure TTestPixelAccess.TearDown;
+begin
+  FreeImage(FImage);
+end;
+
+procedure TTestPixelAccess.TestPixel32InARGB;
+const
+  Width = 7;
+  Height = 5;
+  X = 3;
+  Y = 2;
+var
+  Color: TColor32Rec;
+  Pixels: PUInt32Array;
+  I: Integer;
+begin
+  CheckTrue(NewImage(Width, Height, ifA8R8G8B8, FImage), 'NewImage');
+  Pixels := FImage.Bits;
+
+  Color.Color := $80FF4020;
+  SetPixel32(FImage, X, Y, Color);
+  CheckEqualsColor32($80FF4020, GetPixel32(FImage, X, Y).Color, 'Pixel read back');
+  CheckEqualsColor32($80FF4020, Pixels[Y * Width + X], 'Pixel in memory');
+
+  // Channels in memory are in B, G, R, A order
+  CheckEquals($20, Color.B, 'Blue channel');
+  CheckEquals($40, Color.G, 'Green channel');
+  CheckEquals($FF, Color.R, 'Red channel');
+  CheckEquals($80, Color.A, 'Alpha channel');
+
+  for I := 0 to Width * Height - 1 do
+  begin
+    if I <> Y * Width + X then
+      CheckEqualsColor32(0, Pixels[I], 'Other pixel ' + IntToStr(I));
+  end;
+
+  // Corners of the image
+  Color.Color := $FFFFFFFF;
+  SetPixel32(FImage, 0, 0, Color);
+  SetPixel32(FImage, Width - 1, Height - 1, Color);
+  CheckEqualsColor32($FFFFFFFF, Pixels[0], 'First pixel');
+  CheckEqualsColor32($FFFFFFFF, Pixels[Width * Height - 1], 'Last pixel');
+end;
+
+procedure TTestPixelAccess.TestPixel32InRGB24;
+const
+  Width = 5;
+  X = 4;
+  Y = 1;
+var
+  Color: TColor32Rec;
+  Pixel: PByteArray;
+begin
+  CheckTrue(NewImage(Width, 3, ifR8G8B8, FImage), 'NewImage');
+
+  Color.Color := $40AABBCC;
+  SetPixel32(FImage, X, Y, Color);
+
+  Pixel := @PBuffer(FImage.Bits)[(Y * Width + X) * 3];
+  CheckEquals($CC, Pixel[0], 'Blue in memory');
+  CheckEquals($BB, Pixel[1], 'Green in memory');
+  CheckEquals($AA, Pixel[2], 'Red in memory');
+  // Format without alpha is read as fully opaque
+  CheckEqualsColor32($FFAABBCC, GetPixel32(FImage, X, Y).Color, 'Pixel read back');
+  CheckEqualsColor32($FF000000, GetPixel32(FImage, 0, 0).Color, 'Untouched pixel');
+end;
+
+procedure TTestPixelAccess.TestPixel32InGray8;
+const
+  Width = 4;
+var
+  Color: TColor32Rec;
+begin
+  CheckTrue(NewImage(Width, 4, ifGray8, FImage), 'NewImage');
+
+  Color.Color := $FFFFFFFF;
+  SetPixel32(FImage, 1, 0, Color);
+  Color.Color := $FF808080;
+  SetPixel32(FImage, 2, 3, Color);
+
+  CheckEquals(255, PBuffer(FImage.Bits)[1], 'White in memory');
+  CheckEquals(128, PBuffer(FImage.Bits)[3 * Width + 2], 'Gray in memory');
+  CheckEqualsColor32($FFFFFFFF, GetPixel32(FImage, 1, 0).Color, 'White read back');
+  CheckEqualsColor32($FF808080, GetPixel32(FImage, 2, 3).Color, 'Gray read back');
+  CheckEqualsColor32($FF000000, GetPixel32(FImage, 0, 0).Color, 'Untouched pixel is black');
+end;
+
+{ TTestImageFiles }
+
+procedure TTestImageFiles.TestLoadFromTestData;
+var
+  FileName: string;
+  Image: TImageData;
+begin
+  FileName := GetTestDataFile('Tigers.bmp');
+  CheckTrue(FileExists(FileName), 'Test image exists: ' + FileName);
+  CheckEquals('bmp', DetermineFileFormat(FileName), 'File format');
+
+  InitImage(Image);
+  try
+    CheckTrue(LoadImageFromFile(FileName, Image), 'LoadImageFromFile');
+    CheckTrue(TestImage(Image), 'Loaded image is valid');
+    CheckEquals(513, Image.Width, 'Width');
+    CheckEquals(378, Image.Height, 'Height');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+initialization
+  RegisterImagingTest(TTestImageLifetime);
+  RegisterImagingTest(TTestPixelAccess);
+  RegisterImagingTest(TTestImageFiles);
+end.
