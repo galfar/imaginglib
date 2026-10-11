@@ -1,0 +1,56 @@
+{
+  Sample of user options file for Vampyre Imaging Library.
+
+  How to use it:
+    1. Copy this file as ImagingUserOptions.inc to a folder of your project
+       (outside of the Imaging folders, so it survives Imaging updates).
+    2. Add that folder to the include path of the project.
+    3. Define IMAGING_USER_OPTIONS in the project options.
+
+  The file is then included by ImagingOptions.inc in every Imaging unit.
+  It can (un)define anything from the User Options section of
+  ImagingOptions.inc, the most useful defines are listed here.
+  Remove the dot in front of $DEFINE to enable a line.
+}
+
+{ File formats: don't link support for formats you don't need }
+
+{.$DEFINE DONT_LINK_JPEG}
+{.$DEFINE DONT_LINK_PNG}
+{.$DEFINE DONT_LINK_TARGA}
+{.$DEFINE DONT_LINK_BITMAP}
+{.$DEFINE DONT_LINK_DDS}
+{.$DEFINE DONT_LINK_GIF}
+{.$DEFINE DONT_LINK_MNG}
+{.$DEFINE DONT_LINK_JNG}
+{.$DEFINE DONT_LINK_PNM}
+{.$DEFINE DONT_LINK_RADHDR}
+{.$DEFINE DONT_LINK_QOI}
+
+{.$DEFINE DONT_LINK_EXT_FILE_FORMATS} // none of the formats from Extensions folder below
+{.$DEFINE DONT_LINK_TIFF}
+{.$DEFINE DONT_LINK_WEBP}
+{.$DEFINE DONT_LINK_JPEG2000}
+{.$DEFINE DONT_LINK_PSD}
+{.$DEFINE DONT_LINK_PCX}
+{.$DEFINE DONT_LINK_XPM}
+
+
+{.$DEFINE LINK_ALL_FILE_FORMATS}   // link also less common formats left out by default
+
+{ Third party libraries: each one is chosen automatically when nothing
+  is defined here }
+
+// ZLib
+{.$DEFINE ZLIB_USE_BUNDLED}       // bundled Pascal ZLib instead of FPC's or Delphi's
+{.$DEFINE ZLIB_USE_DYNLIB}        // ZLib shared library (must be present at run time)
+
+// JPEG
+{.$DEFINE JPEG_USE_BUNDLED}       // bundled Pascal JpegLib (also in LCL applications)
+{.$DEFINE JPEG_USE_FPC}           // FPC's PasJpeg (also outside of LCL applications)
+{.$DEFINE JPEG_USE_TURBO_DYNLIB}  // TurboJPEG shared library (libjpeg-turbo 2.0+)
+                                  // when found at run time, Pascal codec otherwise
+
+// WebP
+{.$DEFINE WEBP_NO_DYNLIB}         // never look for libwebp shared library
+{.$DEFINE WEBP_NO_BUNDLED}        // leave out Pascal WebP decoder

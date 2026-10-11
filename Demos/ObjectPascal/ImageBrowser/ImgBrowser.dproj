@@ -44,7 +44,7 @@
         <DCC_K>false</DCC_K>
         <DCC_F>false</DCC_F>
         <DCC_SymbolReferenceInfo>1</DCC_SymbolReferenceInfo>
-        <DCC_Define>FULL_FEATURE_SET;$(DCC_Define)</DCC_Define>
+        <DCC_Define>LINK_ALL_FILE_FORMATS;$(DCC_Define)</DCC_Define>
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <Manifest_File>None</Manifest_File>
         <DCC_Namespace>Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>

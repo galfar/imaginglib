@@ -37,7 +37,7 @@ Features
 Loading and saving of these image file formats:
 
 - PNG/APNG, MNG, JNG
-- JPEG
+- JPEG (optionally using libjpeg-turbo shared library for much faster loading and saving)
 - GIF
 - DDS, QOI, HDR
 - TGA, BMP

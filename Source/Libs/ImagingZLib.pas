@@ -23,30 +23,31 @@
 
   Backends:
 
-  IMPASZLIB   - ImPasZLib unit, Pascal translation of zlib 1.1.2 bundled with
-                Imaging. Compiles everywhere (Delphi 7+, FPC) and needs no
-                external files, but it is the slowest one.
-  FPCPASZLIB  - paszlib package of Free Pascal (Pascal translation as well).
-                It is usually linked to FPC and Lazarus programs anyway so
-                there is no need to add another, almost identical, copy.
-  DELPHIZLIB  - ZLib unit of Delphi RTL: recent zlib compiled from C sources
-                and linked statically, can be 2x faster than IMPASZLIB.
-  ZLIB_DYNLIB - zlib shared library bound by ZLibDynLib unit: zlib1.dll,
-                libz.so.1, or libz.1.dylib (zlib-ng in compat mode works too).
-                The library is loaded at program start and it must be
-                present, there is no fallback to another backend at run time.
+  ZLIB_USE_BUNDLED - ImPasZLib unit, Pascal translation of zlib 1.1.2 bundled with
+                     Imaging. Compiles everywhere (Delphi 7+, FPC) and needs no
+                     external files, but it is the slowest one.
+  ZLIB_USE_FPC     - paszlib package of Free Pascal (Pascal translation as well).
+                     It is usually linked to FPC and Lazarus programs anyway so
+                     there is no need to add another, almost identical, copy.
+  ZLIB_USE_DELPHI  - ZLib unit of Delphi RTL: recent zlib compiled from C sources
+                     and linked statically, can be 2x faster than ZLIB_USE_BUNDLED.
+  ZLIB_USE_DYNLIB  - zlib shared library bound by ZLibDynLib unit: zlib1.dll,
+                     libz.so.1, or libz.1.dylib (zlib-ng in compat mode works too).
+                     The library is loaded at program start and it must be
+                     present, there is no fallback to another backend at run time.
 
   Selection:
 
   By default the backend is chosen automatically:
-    - Free Pascal: FPCPASZLIB
-    - Delphi XE3 and newer: DELPHIZLIB
-    - older Delphi: IMPASZLIB
+    - Free Pascal: ZLIB_USE_FPC
+    - Delphi XE3 and newer: ZLIB_USE_DELPHI
+    - older Delphi: ZLIB_USE_BUNDLED
 
-  Define IMPASZLIB or ZLIB_DYNLIB to override the automatic choice (IMPASZLIB
-  wins when both are defined). Do it in project options, in
-  ImagingUserOptions.inc, or by enabling the defines below.
-  FPCPASZLIB and DELPHIZLIB are set by the automatic choice and are not
+  Define ZLIB_USE_BUNDLED or ZLIB_USE_DYNLIB to override the automatic choice
+  (ZLIB_USE_BUNDLED wins when both are defined). The defines are listed in
+  ImagingOptions.inc, set them there, in project options, or in
+  ImagingUserOptions.inc.
+  ZLIB_USE_FPC and ZLIB_USE_DELPHI are set by the automatic choice and are not
   meant to be defined by hand.
 }
 
@@ -56,48 +57,42 @@ unit ImagingZLib;
 
 interface
 
-{ $DEFINE IMPASZLIB}
-{ $DEFINE ZLIB_DYNLIB}
-
-{ $DEFINE FPCPASZLIB}
-{ $DEFINE DELPHIZLIB}
-
 {$IFNDEF HAS_DYNLIBS}
-  {$UNDEF ZLIB_DYNLIB}
+  {$UNDEF ZLIB_USE_DYNLIB}
 {$ENDIF}
 
-{$IF not Defined(IMPASZLIB) and not Defined(ZLIB_DYNLIB)}
+{$IF not Defined(ZLIB_USE_BUNDLED) and not Defined(ZLIB_USE_DYNLIB)}
   {$DEFINE NO_USER_ZLIB}
 {$IFEND}
 
 
 {$IF Defined(FPC) and Defined(NO_USER_ZLIB)}
   { Automatically use FPC's PasZLib when compiling with FPC.}
-  {$DEFINE FPCPASZLIB}
+  {$DEFINE ZLIB_USE_FPC}
 {$IFEND}
 
 {$IF Defined(DELPHI) and (CompilerVersion > 23) and Defined(NO_USER_ZLIB)}
   { Automatically use Delphi's ZLib when compiling with Delphi (recent versions include
-    recentish ZLib compiled to objects, can be 2x faster than IMPASZLIB).
+    recentish ZLib compiled to objects, can be 2x faster than ZLIB_USE_BUNDLED).
     Needs Delphi XE2+ for deflateInit2 etc.}
-  {$DEFINE DELPHIZLIB}
+  {$DEFINE ZLIB_USE_DELPHI}
 {$IFEND}
 
-{$IF not Defined(FPCPASZLIB) and not Defined(DELPHIZLIB) and not Defined(ZLIB_DYNLIB)}
-  {$DEFINE IMPASZLIB}  // Fallback
+{$IF not Defined(ZLIB_USE_FPC) and not Defined(ZLIB_USE_DELPHI) and not Defined(ZLIB_USE_DYNLIB)}
+  {$DEFINE ZLIB_USE_BUNDLED}  // Fallback
 {$IFEND}
 
 uses
-{$IF Defined(IMPASZLIB)}
+{$IF Defined(ZLIB_USE_BUNDLED)}
   { Use paszlib modified by me for Delphi and FPC. Fall-back solution. }
   ImPasZLib,
-{$ELSEIF Defined(FPCPASZLIB)}
+{$ELSEIF Defined(ZLIB_USE_FPC)}
   { Use FPC's paszlib }
   zbase, paszlib,
-{$ELSEIF Defined(DELPHIZLIB)}
+{$ELSEIF Defined(ZLIB_USE_DELPHI)}
   { Use ZLib unit shipped with Delphi }
   ZLib,
-{$ELSEIF Defined(ZLIB_DYNLIB)}
+{$ELSEIF Defined(ZLIB_USE_DYNLIB)}
   { Use zlib dll/so/dylib. Can also use zlib-ng compat. }
   ZLibDynLib,
 {$IFEND}
@@ -222,12 +217,12 @@ const
   // parts supported since forever.
   MinZLibVersion = '1.1.2';
 
-{$IF not Defined(IMPASZLIB) and not Defined(FPCPASZLIB)}
+{$IF not Defined(ZLIB_USE_BUNDLED) and not Defined(ZLIB_USE_FPC)}
   // Use Pascal mem allocation when using compiled C libs
   {$DEFINE USE_PASCAL_ALLOC}
 {$IFEND}
 
-{$IF Defined(DELPHIZLIB) or Defined(ZLIB_DYNLIB)}
+{$IF Defined(ZLIB_USE_DELPHI) or Defined(ZLIB_USE_DYNLIB)}
 const
   DEF_MEM_LEVEL = 9;
   MAX_WBITS = 15;

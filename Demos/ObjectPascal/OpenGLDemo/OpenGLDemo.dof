@@ -95,7 +95,7 @@ UnitOutputDir=..\..\Bin\Dcu
 PackageDLLOutputDir=
 PackageDCPOutputDir=
 SearchPath=..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\Common
-Conditionals=DONT_LINK_EXTRAS
+Conditionals=DONT_LINK_EXT_FILE_FORMATS
 DebugSourceDirs=
 UsePackages=0
 [Parameters]

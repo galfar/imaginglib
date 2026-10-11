@@ -35,11 +35,11 @@
       All core file formats have corresponding symbols here and all
       are enabled by default in this include file.
       
-      There is also <icode>DONT_LINK_EXTRAS</icode> symbol that controls
-      automatic linking with file formats declared in Extras package
-      (individual <icode>DONT_LINK_*</icode> symbols for these file format can be turned 
-      on/off in <ref>ImagingExtras.pas</ref>
-      unit located in <keyword>Extras\Extensions</keyword> directory).
+      There is also <icode>DONT_LINK_EXT_FILE_FORMATS</icode> symbol that controls
+      automatic linking with file formats from <keyword>Extensions</keyword> directory
+      (individual <icode>DONT_LINK_*</icode> symbols for these file formats are
+      in <icode>ImagingOptions.inc</icode> too). This symbol was called
+      <icode>DONT_LINK_EXTRAS</icode> in older versions.
     </par>
     
     <warn>

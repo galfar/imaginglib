@@ -10,7 +10,7 @@ set UNITOUT=-N%ROOTDIR%\Demos\Bin\Dcu\
 rem -NS Unit scopes are needed for newer Delphi and argument is happily ignored by D7
 set OPTIONS=-B -$D- -$L- -$Y- -Q -DRELEASE -NSSystem;Winapi;Vcl;Vcl.Shell
 
-set DEFINES=-DFULL_FEATURE_SET
+set DEFINES=-DLINK_ALL_FILE_FORMATS
 set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\Libs -U%ROOTDIR%\Extensions -U%ROOTDIR%\Extensions\Libs -U%ROOTDIR%\Extensions\LibTiff
 set UNITS=%UNITS% -U%ROOTDIR%\Extensions\Libs -U%ROOTDIR%\Extensions\LibTiff -U%DEMOPATH%\Common
 

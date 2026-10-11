@@ -83,9 +83,9 @@
     <note>
       Since most people won't need support for these formats they are disabled
       by default (not compiled into your binary).    
-      If you want them go to <ref>ImagingExtras.pas</ref> unit
-      and comment out or delete <icode>{$DEFINE DONT_LINK_ELDER}</icode>
-      line.
+      If you want them define <icode>LINK_ALL_FILE_FORMATS</icode> symbol
+      (in project options or in <icode>ImagingOptions.inc</icode>).
+      This symbol was called <icode>FULL_FEATURE_SET</icode> in older versions.
     </note>
     
   </chapter>
