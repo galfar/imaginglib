@@ -54,9 +54,6 @@ Demos/**/*.cfg
 Packages/*.res
 Packages/*.cfg
 
-Source/**/*.hpp
-Extensions/**/*.hpp
-
 Demos/**/ImgBrowser.ico
 Demos/**/lclimager.ico
 
@@ -67,3 +64,5 @@ Demos/ObjectPascal/FireMonkeyDemo/*emplate*.xml
 Demos/ObjectPascal/FireMonkeyDemo/FireMonkeyDemoResource.rc
 Demos/ObjectPascal/FireMonkeyDemo/Deploy
 
+!Tests/UnitTests
+Tests/**/*.res
