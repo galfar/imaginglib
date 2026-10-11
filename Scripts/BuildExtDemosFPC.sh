@@ -8,7 +8,7 @@ echo
 
 source ./DemosCommonFPC.sh
 
-DEFINES="-dDONT_LINK_EXTRAS"
+DEFINES="-dDONT_LINK_EXT_FILE_FORMATS"
 UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/Libs -Fu$ROOTDIR/Extensions -Fu$DEMOPATH/Common"
 
 DEMOCOUNT=2

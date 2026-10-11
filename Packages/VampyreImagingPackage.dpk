@@ -23,7 +23,7 @@ package VampyreImagingPackage;
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $7A00000}
-{$DEFINE FULL_FEATURE_SET}
+{$DEFINE LINK_ALL_FILE_FORMATS}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'Vampyre Imaging Library Package'}
 {$IMPLICITBUILD OFF}
@@ -63,6 +63,7 @@ contains
   ImPasZLib in '..\Source\Libs\ImPasZLib.pas',
   ImagingJpegLib in '..\Source\Libs\ImagingJpegLib.pas',
   ImPasJpeg in '..\Source\Libs\ImPasJpeg.pas',
+  LibTurboJpegDynLib in '..\Source\Libs\LibTurboJpegDynLib.pas',
   ImagingTiffLib in '..\Extensions\LibTiff\ImagingTiffLib.pas',
   ElderImagery in '..\Extensions\ElderImagery.pas',
   ElderImageryBsi in '..\Extensions\ElderImageryBsi.pas',

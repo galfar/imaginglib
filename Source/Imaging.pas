@@ -690,38 +690,37 @@ implementation
 
 uses
 {$IFNDEF DONT_LINK_FILE_FORMATS}
-{$IFNDEF DONT_LINK_BITMAP}
-  ImagingBitmap,
+  {$IFNDEF DONT_LINK_BITMAP}
+    ImagingBitmap,
+  {$ENDIF}
+  {$IFNDEF DONT_LINK_JPEG}
+    ImagingJpeg,
+  {$ENDIF}
+  {$IF not Defined(DONT_LINK_PNG) or not Defined(DONT_LINK_MNG) or not Defined(DONT_LINK_JNG)}
+    ImagingNetworkGraphics,
+  {$IFEND}
+  {$IFNDEF DONT_LINK_GIF}
+    ImagingGif,
+  {$ENDIF}
+  {$IFNDEF DONT_LINK_DDS}
+    ImagingDds,
+  {$ENDIF}
+  {$IFNDEF DONT_LINK_QOI}
+    ImagingQoi,
+  {$ENDIF}
+  {$IFNDEF DONT_LINK_TARGA}
+    ImagingTarga,
+  {$ENDIF}
+  {$IFNDEF DONT_LINK_PNM}
+    ImagingPortableMaps,
+  {$ENDIF}
+  {$IFNDEF DONT_LINK_RADHDR}
+    ImagingRadiance,
+  {$ENDIF}
+  {$IFNDEF DONT_LINK_EXT_FILE_FORMATS}
+    ImagingExtFileFormats,
+  {$ENDIF}
 {$ENDIF}
-{$IFNDEF DONT_LINK_JPEG}
-  ImagingJpeg,
-{$ENDIF}
-{$IF not Defined(DONT_LINK_PNG) or not Defined(DONT_LINK_MNG) or not Defined(DONT_LINK_JNG)}
-  ImagingNetworkGraphics,
-{$IFEND}
-{$IFNDEF DONT_LINK_GIF}
-  ImagingGif,
-{$ENDIF}
-{$IFNDEF DONT_LINK_DDS}
-  ImagingDds,
-{$ENDIF}
-{$IFNDEF DONT_LINK_QOI}
-  ImagingQoi,
-{$ENDIF}
-{$IFNDEF DONT_LINK_TARGA}
-  ImagingTarga,
-{$ENDIF}
-{$IFNDEF DONT_LINK_PNM}
-  ImagingPortableMaps,
-{$ENDIF}
-{$IFNDEF DONT_LINK_RADHDR}
-  ImagingRadiance,
-{$ENDIF}
-{$IFNDEF DONT_LINK_EXTRAS}
-  ImagingExtFileFormats,
-{$ENDIF}
-{$ENDIF}
-  //ImagingDebug,
   ImagingFormats, ImagingUtility, ImagingIO, Variants;
 
 resourcestring

@@ -63,7 +63,7 @@
         </CompilerOptions>
       </Item2>
       <SharedMatrixOptions Count="2">
-        <Item1 ID="149315369584" Modes="Debug,Release" Value="-dFULL_FEATURE_SET"/>
+        <Item1 ID="149315369584" Modes="Debug,Release" Value="-dLINK_ALL_FILE_FORMATS"/>
         <Item2 ID="999597452942" Modes="Debug" Value="-dDEBUG"/>
       </SharedMatrixOptions>
     </BuildModes>
@@ -155,7 +155,6 @@
     <SearchPaths>
       <IncludeFiles Value="..\..\..\Source;$(ProjOutDir)"/>
       <Libraries Value="..\..\..\Extensions\J2KObjects;..\..\..\Extensions\LibTiff\Compiled"/>
-      <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\ZLib;..\..\..\Source\JpegLib;..\..\..\Extensions;..\..\..\Extensions\Libs;..\..\..\Extensions\LibTiff;..\Common"/>
       <OtherUnitFiles Value="..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\..\..\Extensions\Libs;..\..\..\Extensions\LibTiff;..\Common"/>
       <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
     </SearchPaths>

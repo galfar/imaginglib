@@ -20,26 +20,26 @@
 
   - WebPDec, pure Pascal decoder by Xelitan (port of libwebp decoder).
     Used when libwebp is not found, decoding only. Needs FPC or Delphi 2009+.
-    Define WEBP_NO_PASCAL_DECODER to leave it out.
+    Define WEBP_NO_BUNDLED to leave it out.
 
   In Delphi older than 2009, if libwebp is not found, there is no WebP support.
 
-  Only the first frame of animated WebP files is loaded. }
+  The defines are listed in ImagingOptions.inc, set them there, in project
+  options, or in ImagingUserOptions.inc.
+
+  Animated WebP: Only the first frame of animated WebP files is loaded. }
 unit ImagingLibWebP;
 
 {$I ImagingOptions.inc}
 
-{.$DEFINE WEBP_NO_DYNLIB}
-{.$DEFINE WEBP_NO_PASCAL_DECODER}
-
 // LibWebPDynLib unit can be used only on targets with dynamic libraries
 {$IF not Defined(WEBP_NO_DYNLIB) and Defined(HAS_DYNLIBS)}
-  {$DEFINE WEBP_DYNLIB}
+  {$DEFINE WEBP_USE_DYNLIB}
 {$IFEND}
 
-{$IF not Defined(WEBP_NO_PASCAL_DECODER) and
+{$IF not Defined(WEBP_NO_BUNDLED) and
   ((Defined(DCC) and (CompilerVersion >= 20)) or Defined(FPC))}
-  {$DEFINE WEBP_PASCAL_DECODER}
+  {$DEFINE WEBP_USE_BUNDLED}
 {$IFEND}
 
 interface
@@ -95,10 +95,10 @@ procedure WebPFreeData(Data: Pointer);
 implementation
 
 uses
-{$IFDEF WEBP_DYNLIB}
+{$IFDEF WEBP_USE_DYNLIB}
   LibWebPDynLib,
 {$ENDIF}
-{$IFDEF WEBP_PASCAL_DECODER}
+{$IFDEF WEBP_USE_BUNDLED}
   WebPDec,
 {$ENDIF}
   SysUtils, Imaging;
@@ -148,10 +148,10 @@ end;
 procedure SelectBackend;
 begin
   Backend := wbNone;
-{$IFDEF WEBP_PASCAL_DECODER}
+{$IFDEF WEBP_USE_BUNDLED}
   Backend := wbPascal;
 {$ENDIF}
-{$IFDEF WEBP_DYNLIB}
+{$IFDEF WEBP_USE_DYNLIB}
   if IsLibWebPLoaded then
     Backend := wbLibWebP;
 {$ENDIF}
@@ -162,7 +162,7 @@ function WebPBackend: TWebPBackend;
 begin
   if not BackendDetected then
   begin
-  {$IFDEF WEBP_DYNLIB}
+  {$IFDEF WEBP_USE_DYNLIB}
     LoadLibWebP;
   {$ENDIF}
     SelectBackend;
@@ -182,7 +182,7 @@ end;
 
 function TryLoadWebPLibrary(const FileName: string): Boolean;
 begin
-{$IFDEF WEBP_DYNLIB}
+{$IFDEF WEBP_USE_DYNLIB}
   Result := LoadLibWebPFromFile(FileName);
 {$ELSE}
   Result := False;
@@ -190,7 +190,7 @@ begin
   SelectBackend;
 end;
 
-{$IFDEF WEBP_PASCAL_DECODER}
+{$IFDEF WEBP_USE_BUNDLED}
 { Finds out what the Pascal decoder doesn't tell: presence of alpha channel
   and animation. Walks RIFF chunks up to the image data. }
 function ParseWebPContainer(Data: PBuffer; Size: Int64; out Info: TWebPImageInfo): Boolean;
@@ -302,7 +302,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF WEBP_DYNLIB}
+{$IFDEF WEBP_USE_DYNLIB}
 function LibGetImageInfo(Data: Pointer; Size: Int64; out Info: TWebPImageInfo): Boolean;
 var
   Features: TWebPBitstreamFeatures;
@@ -348,11 +348,11 @@ begin
   if (Data = nil) or (Size <= 0) then
     Exit;
 
-{$IFDEF WEBP_DYNLIB}
+{$IFDEF WEBP_USE_DYNLIB}
   if WebPBackend = wbLibWebP then
     Result := LibGetImageInfo(Data, Size, Info);
 {$ENDIF}
-{$IFDEF WEBP_PASCAL_DECODER}
+{$IFDEF WEBP_USE_BUNDLED}
   if WebPBackend = wbPascal then
     Result := PascalGetImageInfo(Data, Size, Info);
 {$ENDIF}
@@ -365,11 +365,11 @@ begin
   if Info.Animated or (Info.Width <= 0) or (Info.Height <= 0) then
     Exit;
 
-{$IFDEF WEBP_DYNLIB}
+{$IFDEF WEBP_USE_DYNLIB}
   if WebPBackend = wbLibWebP then
     Result := LibLoadImage(Data, Size, Image, Info);
 {$ENDIF}
-{$IFDEF WEBP_PASCAL_DECODER}
+{$IFDEF WEBP_USE_BUNDLED}
   if WebPBackend = wbPascal then
     Result := PascalLoadImage(Data, Size, Image, Info);
 {$ENDIF}
@@ -555,7 +555,7 @@ end;
 
 function WebPSaveImage(const Image: TImageData; const Params: TWebPSaveParams;
   out Data: Pointer; out Size: Int64): Boolean;
-{$IFDEF WEBP_DYNLIB}
+{$IFDEF WEBP_USE_DYNLIB}
 var
   Output: PByte;
 {$ENDIF}
@@ -563,7 +563,7 @@ begin
   Result := False;
   Data := nil;
   Size := 0;
-{$IFDEF WEBP_DYNLIB}
+{$IFDEF WEBP_USE_DYNLIB}
   if WebPBackend <> wbLibWebP then
     Exit;
 
@@ -607,7 +607,7 @@ end;
 
 procedure WebPFreeData(Data: Pointer);
 begin
-{$IFDEF WEBP_DYNLIB}
+{$IFDEF WEBP_USE_DYNLIB}
   if (Data <> nil) and IsLibWebPLoaded then
     LibWebPDynLib.WebPFree(Data);
 {$ENDIF}

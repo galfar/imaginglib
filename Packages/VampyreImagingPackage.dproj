@@ -40,7 +40,7 @@
         <DCC_ImageBase>07A00000</DCC_ImageBase>
         <VerInfo_DLL>true</VerInfo_DLL>
         <GenPackage>true</GenPackage>
-        <DCC_Define>FULL_FEATURE_SET;$(DCC_Define)</DCC_Define>
+        <DCC_Define>LINK_ALL_FILE_FORMATS;$(DCC_Define)</DCC_Define>
         <DCC_Description>Vampyre Imaging Library Package</DCC_Description>
         <DCC_DcuOutput>..\Bin\Dcu\$(Platform)\$(Config)\pkg</DCC_DcuOutput>
         <DCC_ExeOutput>..\Bin</DCC_ExeOutput>
@@ -109,6 +109,7 @@
         <DCCReference Include="..\Source\Libs\ImPasZLib.pas"/>
         <DCCReference Include="..\Source\Libs\ImagingJpegLib.pas"/>
         <DCCReference Include="..\Source\Libs\ImPasJpeg.pas"/>
+        <DCCReference Include="..\Source\Libs\LibTurboJpegDynLib.pas"/>
         <DCCReference Include="..\Extensions\LibTiff\ImagingTiffLib.pas"/>
         <DCCReference Include="..\Extensions\ElderImagery.pas"/>
         <DCCReference Include="..\Extensions\ElderImageryBsi.pas"/>

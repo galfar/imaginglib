@@ -15,7 +15,7 @@ rem set TARGET=-Twin32
 rem FPC does not like creating any new directories passed by -FE -FU
 mkdir %BINPATH%\ %UNITPATH%\  2>nul
 
-set DEFINES=-dDONT_LINK_EXTRAS
+set DEFINES=-dDONT_LINK_EXT_FILE_FORMATS
 set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\Libs -Fu%ROOTDIR%\Extensions -Fu%DEMOPATH%\Common
 set INCLUDE=-Fi%ROOTDIR%\Source 
 

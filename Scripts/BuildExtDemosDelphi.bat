@@ -9,7 +9,7 @@ set UNITOUT=-N%ROOTDIR%\Demos\Bin\Dcu\
 rem -NS Unit scopes are needed for newer Delphi and argument is happily ignored by D7
 set OPTIONS=-B -$D- -$L- -$Y- -Q -DRELEASE -NSSystem;Winapi
 
-set DEFINES=-DDONT_LINK_EXTRAS
+set DEFINES=-DDONT_LINK_EXT_FILE_FORMATS
 set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\Libs -U%ROOTDIR%\Extensions -U%DEMOPATH%\Common 
 
 set DEMOSBUILD=0

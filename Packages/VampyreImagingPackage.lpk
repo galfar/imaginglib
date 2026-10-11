@@ -28,9 +28,9 @@
           <ShowNotes Value="False"/>
           <ShowHints Value="False"/>
         </Verbosity>
-        <CustomOptions Value="-dDONT_LINK_EXTRAS"/>
+        <CustomOptions Value="-dDONT_LINK_EXT_FILE_FORMATS"/>
         <OtherDefines Count="1">
-          <Define0 Value="DONT_LINK_EXTRAS"/>
+          <Define0 Value="DONT_LINK_EXT_FILE_FORMATS"/>
         </OtherDefines>
       </Other>
     </CompilerOptions>

@@ -24,9 +24,9 @@
           <ShowNotes Value="False"/>
           <ShowHints Value="False"/>
         </Verbosity>
-        <CustomOptions Value="-dFULL_FEATURE_SET"/>
+        <CustomOptions Value="-dLINK_ALL_FILE_FORMATS"/>
         <OtherDefines Count="1">
-          <Define0 Value="FULL_FEATURE_SET"/>
+          <Define0 Value="LINK_ALL_FILE_FORMATS"/>
         </OtherDefines>
       </Other>
     </CompilerOptions>

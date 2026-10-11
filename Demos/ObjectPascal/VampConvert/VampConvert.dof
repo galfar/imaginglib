@@ -95,7 +95,7 @@ UnitOutputDir=..\..\Bin\Dcu
 PackageDLLOutputDir=
 PackageDCPOutputDir=
 SearchPath=..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\Common;..\..\..\Extensions\Libs;..\..\..\Extensions\LibTiff
-Conditionals=FULL_FEATURE_SET
+Conditionals=LINK_ALL_FILE_FORMATS
 DebugSourceDirs=
 UsePackages=0
 [Parameters]

@@ -1,9 +1,85 @@
 {
   User Options
+  =======================
+
   Following defines and options can be changed by user.
 }
 
-{ Source options }
+(*
+  File format support linking options
+  ------------------------------------
+
+  Define formats which you don't want to be registered automatically (by adding
+  Imaging.pas unit to your uses clause).
+  Default: most formats are registered = no symbols defined.
+  Example: If you want to disable JPEG support just uncomment //{$DEFINE DONT_LINK_JPEG} line
+*)
+
+{.$DEFINE DONT_LINK_JPEG}        // support for JPEG images
+{.$DEFINE DONT_LINK_PNG}         // support for PNG images
+{.$DEFINE DONT_LINK_TARGA}       // support for TGA images
+{.$DEFINE DONT_LINK_BITMAP}      // support for Windows Bitmap images
+{.$DEFINE DONT_LINK_DDS}         // support for DDS images
+{.$DEFINE DONT_LINK_GIF}         // support for GIF images
+{.$DEFINE DONT_LINK_MNG}         // support for MNG images
+{.$DEFINE DONT_LINK_JNG}         // support for JNG images
+{.$DEFINE DONT_LINK_PNM}         // support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
+{.$DEFINE DONT_LINK_RADHDR}      // support for Radiance HDR/RGBE file format
+{.$DEFINE DONT_LINK_QOI}         // support for Quite OK Image Format
+
+{.$DEFINE DONT_LINK_EXT_FILE_FORMATS} // support for file formats defined in
+                                 // Extensions folder (ImagingExtFileFormats unit).
+                                 // Exactly which formats will be registered
+                                 // depends on the defines below. The folder
+                                 // doesn't have to be in search path when this
+                                 // is defined. Was DONT_LINK_EXTRAS before 2026-10.
+
+{ File formats from Extensions folder }
+
+{.$DEFINE DONT_LINK_TIFF}        // support for TIFF images
+{.$DEFINE DONT_LINK_WEBP}        // support for WebP images
+{.$DEFINE DONT_LINK_JPEG2000}    // support for JPEG2000 images
+{.$DEFINE DONT_LINK_PSD}         // support for PSD images
+{.$DEFINE DONT_LINK_PCX}         // support for PCX images
+{.$DEFINE DONT_LINK_XPM}         // support for XPM images
+
+{.$DEFINE LINK_ALL_FILE_FORMATS} // opt-in support for less common formats that
+                                 // are left out by default.
+                                 // DONT_LINK_* defines still apply.
+                                 // Was FULL_FEATURE_SET before 2026-10.
+
+{.$DEFINE DONT_LINK_FILE_FORMATS} // no auto link support of any file format
+
+{ Third party libraries
+  ------------------------------
+
+  Each library is chosen automatically by its wrapper
+  unit when nothing is defined here, see the units for details. 
+
+  Names used before 2026-10 (not recognized anymore):
+    IMPASZLIB -> ZLIB_USE_BUNDLED, ZLIB_DYNLIB -> ZLIB_USE_DYNLIB,
+    IMPASJPEG -> JPEG_USE_BUNDLED, FPCPASJPEG -> JPEG_USE_FPC,
+    WEBP_NO_PASCAL_DECODER -> WEBP_NO_BUNDLED }
+
+// ZLib (Source/Libs/ImagingZLib.pas)
+{.$DEFINE ZLIB_USE_BUNDLED}       // use bundled Pascal ZLib (ImPasZLib) instead of
+                                  // the one shipped with FPC or Delphi
+{.$DEFINE ZLIB_USE_DYNLIB}        // use ZLib shared library (must be present at run time)
+
+// JPEG (Source/Libs/ImagingJpegLib.pas)
+{.$DEFINE JPEG_USE_BUNDLED}       // use bundled Pascal JpegLib (ImPasJpeg) (also in
+                                  // LCL applications)
+{.$DEFINE JPEG_USE_FPC}           // use PasJpeg shipped with FPC (also outside of
+                                  // LCL applications)
+{.$DEFINE JPEG_USE_TURBO_DYNLIB}  // use TurboJPEG shared library (libjpeg-turbo 2.0+)
+                                  // when it is found at run time, Pascal codec otherwise
+
+// WebP (Extensions/Libs/ImagingLibWebP.pas)
+{.$DEFINE WEBP_NO_DYNLIB}         // never look for libwebp shared library
+{.$DEFINE WEBP_NO_BUNDLED}        // leave out Pascal WebP decoder (WebPDec)
+
+{ Source options
+  ------------------------------ }
 
 {$DEFINE USE_INLINE}          // Use function inlining for some functions
                               // works in Free Pascal and Delphi 9+.
@@ -17,43 +93,23 @@
                             // checking, stack frames, assertions, and
                             // other debugging options will be turned on.
 
+{ Application-specific options
+  ------------------------------
 
-
-(* File format support linking options.
-  Define formats which you don't want to be registered automatically (by adding
-  Imaging.pas unit to your uses clause).
-  Default: most formats are registered = no symbols defined.
-  Example: If you want to disable JPEG support just uncomment //{$DEFINE DONT_LINK_JPEG} line
-*)
-
-{.$DEFINE DONT_LINK_JPEG}        // link support for Jpeg images
-{.$DEFINE DONT_LINK_PNG}         // link support for PNG images
-{.$DEFINE DONT_LINK_TARGA}       // link support for Targa images
-{.$DEFINE DONT_LINK_BITMAP}      // link support for Windows Bitmap images
-{.$DEFINE DONT_LINK_DDS}         // link support for DDS images
-{.$DEFINE DONT_LINK_GIF}         // link support for GIF images
-{.$DEFINE DONT_LINK_MNG}         // link support for MNG images
-{.$DEFINE DONT_LINK_JNG}         // link support for JNG images
-{.$DEFINE DONT_LINK_PNM}         // link support for PortableMap images (PBM, PGM, PPM, PAM, PFM)
-{.$DEFINE DONT_LINK_RADHDR}      // link support for Radiance HDR/RGBE file format
-{.$DEFINE DONT_LINK_QOI}         // link support for Quite OK Image Format
-
-{.$DEFINE DONT_LINK_EXTRAS}  // link support for file formats defined in
-                             // Extensions package. Exactly which formats will be
-                             // registered depends on settings in
-                             // ImagingExtFileFormats.pas unit.
-
-{.$DEFINE DONT_LINK_FILE_FORMATS} // no auto link support of any file format
-
-// Application-specific options: define IMAGING_USER_OPTIONS and put your own
-// ImagingUserOptions.inc on the include path (outside the Imaging folders).
-// It can (un)define anything from the User Options section above.
+  define IMAGING_USER_OPTIONS and put your own
+  ImagingUserOptions.inc on the include path (outside the Imaging folders).
+  It can (un)define anything from the User Options section above, including
+  the third party library selection (see ImagingUserOptions.inc.sample).
+  Useful when you cannot modify Imaging code directly.
+}
 {$IFDEF IMAGING_USER_OPTIONS}
   {$I ImagingUserOptions.inc}
 {$ENDIF}
 
 {
   Auto Options
+  =======================
+
   Following options and defines are set automatically and some
   are required for Imaging to compile successfully. Do not change
   anything here if you don't know what you are doing.
