@@ -101,8 +101,14 @@ var
   LibHandle: {$IFDEF FPC}TLibHandle{$ELSE}THandle{$ENDIF} = 0;
   SearchDone: Boolean = False;
 
-procedure ClearProcs;
+procedure UnloadLib;
 begin
+  if LibHandle <> 0 then
+  begin
+    FreeLibrary(LibHandle);
+    LibHandle := 0;
+  end;
+
   WebPGetDecoderVersion := nil;
   WebPGetFeaturesInternal := nil;
   WebPDecodeBGRAInto := nil;
@@ -112,17 +118,6 @@ begin
   WebPEncodeLosslessBGR := nil;
   WebPEncodeLosslessBGRA := nil;
   WebPFree := nil;
-end;
-
-procedure UnloadLib;
-begin
-  if LibHandle <> 0 then
-  begin
-    FreeLibrary(LibHandle);
-    LibHandle := 0;
-  end;
-
-  ClearProcs;
 end;
 
 function TryLoad(const FileName: string): Boolean;
