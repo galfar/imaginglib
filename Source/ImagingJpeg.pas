@@ -75,7 +75,8 @@ const
     (jss420, jss422, jss444);
 
 const
-  { Jpeg file identifiers.}
+  { Jpeg file identifiers. We don't check for JFIF header since valid files
+    can miss it (e.. with EXIF only by Adobe).}
   JpegMagic: TChar2 = #$FF#$D8;
 
 var

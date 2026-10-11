@@ -9,12 +9,10 @@
       is good choice for storing images with large number of colors
       and without sharp edges. It uses lossy compression which can greatly
       reduce size of image file. Imaging uses Independent JPEG Group's <b>jpeglib</b>
-      library to load and save JPEG files. It was translated to Pascal by
-      Jacques Nomssi Nzali. As stated in jpeglib's documentation this library
-      can read and write <b>JFIF</b> format which is most widely used JPEG
-      format. But there are also some proprietary and other JPEG formats
-      which can not be read/written by jpeglib thus Imaging can not
-      read/write them also.
+      library (version 6b) to load and save JPEG files. It was translated to Pascal by
+      Jacques Nomssi Nzali. Optionally, <b>libjpeg-turbo</b> shared library
+      can be used instead for much faster loading and saving
+      (see <keyword>JPEG Codecs</keyword> below).
     </par>
 
     <table>
@@ -37,7 +35,75 @@
         <td>Yes</td>
         <td>Yes</td>
       </row>
+      <row>
+        <td>32 bit CMYK/YCCK</td>
+        <td><icode>ifA8R8G8B8</icode> (converted to RGB, without color management)</td>
+        <td>Yes</td>
+        <td>No</td>
+      </row>
     </table>
+
+    <par>
+      What to expect from various kinds of JPEG files:
+    </par>
+
+    <blist>
+      <li><b>Baseline and progressive</b> files with any chroma subsampling
+        are loaded. Files are saved with 4:2:0, 4:2:2, or 4:4:4 subsampling,
+        baseline or progressive.</li>
+      <li><b>Files without JFIF header</b> (only with EXIF and/or Adobe marker,
+        as written by some cameras and Adobe products, or with no application
+        markers at all) are loaded like any other JPEG.</li>
+      <li><b>Resolution</b> (DPI) is read from and written to JFIF header only.
+        EXIF data is not interpreted, so files that have their resolution
+        only in EXIF are loaded without it. EXIF and other metadata are not
+        preserved when the image is saved again.</li>
+      <li><b>Damaged files</b>: when an error is found in the image data
+        the part decoded so far is returned where possible (always with
+        libjpeg-turbo; with Pascal codec in Free Pascal and 32 bit Delphi,
+        exception is raised in other Delphi targets). Files with damaged
+        headers raise exception.</li>
+      <li><b>Arithmetic coded</b> files can not be loaded by the Pascal codec
+        (jpeglib 6b does not have the decoder). They are rare, most
+        software including web browsers can not show them either.
+        libjpeg-turbo loads them (unless the library was built without
+        arithmetic coding support).</li>
+      <li><b>Lossless JPEG</b> and files with <b>12 bit</b> samples
+        are not supported.</li>
+      <li><b>Alpha channel</b> is not part of JPEG format. Images with alpha
+        are converted to 24 bit RGB when saved. Use
+        <link url="Jng.xml">JNG</link> format (JPEG compressed
+        colors with separate alpha channel) if you need both.</li>
+    </blist>
+
+    <par>
+      <b>JPEG Codecs</b>
+    </par>
+
+    <par>
+      Pascal translation of jpeglib is always compiled in (the one bundled with
+      Imaging, or the one shipped with Free Pascal in Lazarus LCL applications).
+      If you define <icode>JPEG_USE_TURBO_DYNLIB</icode> symbol (in project options
+      or in <icode>ImagingOptions.inc</icode>) Imaging also looks for
+      <b>libjpeg-turbo</b> shared library with TurboJPEG API when the first JPEG
+      image is loaded or saved: <icode>turbojpeg.dll</icode> in Windows,
+      <icode>libturbojpeg.so.0</icode> in Linux, and <icode>libturbojpeg.0.dylib</icode>
+      in macOS. Version 2.0 or newer is needed, older libraries are ignored.
+      When the library is found it is used for all JPEG loading and saving
+      (also for JPEG data inside <link url="Jng.xml">JNG</link> and MNG files),
+      otherwise the Pascal codec is used, so the application works without
+      the library too.
+    </par>
+
+    <par>
+      Both codecs give the same results: decoded pixels and saved files
+      are identical. libjpeg-turbo is several times faster though (about 3x when
+      loading and 10x when saving large images) and it is more tolerant
+      to damaged files. It needs the whole file in memory when loading.
+      Functions <icode>JpegBackend</icode> and <icode>TryLoadTurboJpegLibrary</icode>
+      (to load the library from specific location) in <icode>ImagingJpegLib</icode>
+      unit tell and control which codec is used.
+    </par>
 
     <par>
       When working with JPEG files you can find useful some options

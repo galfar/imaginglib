@@ -45,7 +45,9 @@ unit ImPasJpeg;
   Undefining some of these symbols will produce a smaller but less capable
   library. }
 
-{ Arithmetic coding is unsupported for legal reasons.  Complaints to IBM. }
+{ Arithmetic coding is not implemented: the original library (libjpeg 6b)
+  left it out for legal reasons (patents, expired since) and the coder
+  was never added to this translation. }
 
 { Capability options common to encoder and decoder: }
 
@@ -518,7 +520,7 @@ const
 
 { For maintenance convenience, list is alphabetical by message code name }
   { JERR_ARITH_NOTIMPL }
-	 'Sorry, there are legal restrictions on arithmetic coding',
+	 'Sorry, arithmetic coding is not implemented',
   { JERR_BAD_ALIGN_TYPE } 'ALIGN_TYPE is wrong, please fix',
   { JERR_BAD_ALLOC_CHUNK } 'MAX_ALLOC_CHUNK is wrong, please fix',
   { JERR_BAD_BUFFER_MODE } 'Bogus buffer control mode',

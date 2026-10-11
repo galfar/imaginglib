@@ -9,58 +9,83 @@
   file, You can obtain one at https://mozilla.org/MPL/2.0.
 }
 
-{ This unit selects the JPEG codec library used by Imaging and wraps it in
-  a small API working with Imaging's image data and IO functions.
-  The rest of Imaging (ImagingJpeg, JNG support in ImagingNetworkGraphics)
-  doesn't use any JPEG library types or functions directly.
+{ All JPEG coding in Imaging goes through this unit. It selects the JPEG
+  codec (backend) and wraps it in a small API working with Imaging's image
+  data and IO functions. The rest of Imaging (ImagingJpeg, JNG support in
+  ImagingNetworkGraphics) doesn't use any JPEG library types or functions
+  directly.
 
-  You can choose which JPEG library implementation will be used:
+  Backends:
 
-  - IMPASJPEG is ImPasJpeg, Pascal translation of IJG's libjpeg 6b bundled
-    with Imaging. Works with all supported compilers and platforms
-    and it is the default.
+  JPEG_USE_BUNDLED      - ImPasJpeg unit, Pascal translation of IJG's libjpeg 6b
+                          bundled with Imaging. Compiles everywhere (Delphi 7+, FPC)
+                          and needs no external files.
+  JPEG_USE_FPC          - pasjpeg package of Free Pascal (the same translation as
+                          ImPasJpeg). Every Lazarus LCL application already has it
+                          linked in, so using it avoids having two almost identical
+                          libraries in the binary.
+  JPEG_USE_TURBO_DYNLIB - TurboJPEG API of libjpeg-turbo shared library bound by
+                          LibTurboJpegDynLib unit: turbojpeg.dll, libturbojpeg.so.0,
+                          or libturbojpeg.0.dylib. Several times faster than the
+                          Pascal codecs. Needs libjpeg-turbo 2.0 or newer.
+                          Ignored on targets without dynamic libraries.
 
-  - FPCPASJPEG is PasJpeg modified for FPC and shipped with it (the same
-    translation as ImPasJpeg). Every Lazarus LCL application already has it
-    linked in so it is used automatically when LCL is defined to avoid having
-    two almost identical libraries in the binary. Define IMPASJPEG to use
-    the bundled library anyway.
+  Selection:
 
-  Planned, not implemented yet:
+  One of the Pascal codecs is always compiled in, chosen automatically:
+    - LCL is defined (Lazarus applications): JPEG_USE_FPC
+    - otherwise: JPEG_USE_BUNDLED
+  Define JPEG_USE_BUNDLED to use the bundled codec also with LCL.
 
-  - JPEGLIB_DYNLIB: libjpeg API of newer libjpeg/libjpeg-turbo versions
-    loaded from a shared library (DLL/SO/dylib).
+  JPEG_USE_TURBO_DYNLIB is an addition to the Pascal codec, not a replacement.
+  When it is defined the library is looked for when the first JPEG is loaded
+  or saved (or by TryLoadTurboJpegLibrary). If a usable library is found it
+  does all loading and saving from then on, otherwise the Pascal codec is
+  used, so the program works without the library too. JpegBackend tells
+  which one is active.
 
-  - TURBOJPEG: TurboJPEG API of libjpeg-turbo.
+  The defines are listed in ImagingOptions.inc, set them there, in project
+  options, or in ImagingUserOptions.inc.
+
+  Notes on TurboJPEG backend:
+    - The library works on whole files in memory: the rest of the input
+      (from the current position) is read to a buffer when loading.
+    - Images decode to the same pixels as with the Pascal codecs and
+      saved files are the same too.
+    - It is more tolerant to damaged files, e.g. missing Huffman tables.
+    - Arithmetic coded files can not be loaded by the Pascal codec
+      but libjpeg-turbo loads them (unless the library was built without
+      arithmetic coding support).
 }
 unit ImagingJpegLib;
 
 {$I ImagingOptions.inc}
 
-{ $DEFINE IMPASJPEG}
-{ $DEFINE FPCPASJPEG}
+{$IFNDEF HAS_DYNLIBS}
+  {$UNDEF JPEG_USE_TURBO_DYNLIB}
+{$ENDIF}
 
-{$IF Defined(FPCPASJPEG) and not Defined(FPC)}
-  {$UNDEF FPCPASJPEG}
+{$IF Defined(JPEG_USE_FPC) and not Defined(FPC)}
+  {$UNDEF JPEG_USE_FPC}
 {$IFEND}
 
-{$IF not Defined(IMPASJPEG) and not Defined(FPCPASJPEG)}
+{$IF not Defined(JPEG_USE_BUNDLED) and not Defined(JPEG_USE_FPC)}
   {$DEFINE NO_USER_JPEGLIB}
 {$IFEND}
 
 {$IF Defined(LCL) and Defined(NO_USER_JPEGLIB)}
   { Automatically use FPC's PasJpeg when compiling LCL applications.
-    For just FPC we use IMPASJPEG, it's really the same decades old translation from C. }
-  {$DEFINE FPCPASJPEG}
+    For just FPC we use JPEG_USE_BUNDLED, it's really the same decades old translation from C. }
+  {$DEFINE JPEG_USE_FPC}
 {$IFEND}
 
-{$IF Defined(IMPASJPEG)}
-  {$UNDEF FPCPASJPEG}
-{$ELSEIF not Defined(FPCPASJPEG)}
-  {$DEFINE IMPASJPEG} // Fallback
+{$IF Defined(JPEG_USE_BUNDLED)}
+  {$UNDEF JPEG_USE_FPC}
+{$ELSEIF not Defined(JPEG_USE_FPC)}
+  {$DEFINE JPEG_USE_BUNDLED} // Fallback
 {$IFEND}
 
-{$IF Defined(FPCPASJPEG)}
+{$IF Defined(JPEG_USE_FPC)}
   { When using FPC's PasJpeg the channel order is BGR instead of RGB.
     See RGB_RED_IS_0 in jconfig.inc. }
   {$DEFINE RGBSWAPPED}
@@ -129,6 +154,22 @@ type
     YDensity: Integer;
   end;
 
+  { JPEG codec implementation in use. }
+  TJpegBackend = (
+    jbPascal,     // Pascal codec compiled in (ImPasJpeg or FPC's PasJpeg)
+    jbTurboJpeg   // TurboJPEG shared library
+  );
+
+{ Returns JPEG implementation in use. In builds with JPEG_USE_TURBO_DYNLIB it looks
+  for the library (in default locations) when called for the first time. }
+function JpegBackend: TJpegBackend;
+
+{ Loads TurboJPEG library from the given file and uses it from now on (instead
+  of looking for it in the default locations). Returns False and falls back
+  to the Pascal codec when the library can't be loaded or is older than
+  libjpeg-turbo 2.0. Always False in builds without JPEG_USE_TURBO_DYNLIB. }
+function TryLoadTurboJpegLibrary(const FileName: string): Boolean;
+
 { Loads JPEG image from input represented by Handle and read using IO functions.
   New image is created in Image, its format depends on the color space
   of the file (see TJpegColorSpace). Returns False for unsupported
@@ -148,12 +189,15 @@ implementation
 
 uses
   SysUtils,
-{$IF Defined(IMPASJPEG)}
+{$IF Defined(JPEG_USE_BUNDLED)}
   ImPasJpeg,
-{$ELSEIF Defined(FPCPASJPEG)}
+{$ELSEIF Defined(JPEG_USE_FPC)}
   jpeglib, jmorecfg, jcomapi, jdapimin, jdeferr, jerror,
   jdapistd, jcapimin, jcapistd, jdmarker, jcparam,
 {$IFEND}
+{$IFDEF JPEG_USE_TURBO_DYNLIB}
+  LibTurboJpegDynLib, ImagingIO,
+{$ENDIF}
   ImagingUtility;
 
 const
@@ -256,7 +300,7 @@ procedure JpegError(CInfo: j_common_ptr);
   procedure RaiseError;
   var
     // Current FPC trunk 3.3.x switched PasJpeg for some reason to ShortStrings
-    Buffer: {$IF Defined(FPCPASJPEG) and (FPC_FULLVERSION >= 30300)}shortstring
+    Buffer: {$IF Defined(JPEG_USE_FPC) and (FPC_FULLVERSION >= 30300)}shortstring
             {$ELSE}AnsiString
             {$IFEND};
   begin
@@ -437,11 +481,6 @@ begin
   jc.d.scale_num := 1;
   jc.d.scale_denom := 1;
   jc.d.do_block_smoothing := True;
-  if jc.d.out_color_space = JCS_GRAYSCALE then
-  begin
-    jc.d.quantize_colors := True;
-    jc.d.desired_number_of_colors := 256;
-  end;
 end;
 
 procedure InitCompressor(const IO: TIOFunctions; Handle: TImagingHandle;
@@ -473,7 +512,7 @@ begin
     jpeg_simple_progression(@jc.c);
 end;
 
-function JpegLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
+function PasLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
   var Image: TImageData; out Info: TJpegImageInfo): Boolean;
 var
   PtrInc, LinesPerCall, LinesRead, I: Integer;
@@ -573,7 +612,7 @@ begin
   end;
 end;
 
-function JpegSaveImage(const IO: TIOFunctions; Handle: TImagingHandle;
+function PasSaveImage(const IO: TIOFunctions; Handle: TImagingHandle;
   const Image: TImageData; const Params: TJpegSaveParams): Boolean;
 var
   PtrInc, LinesWritten: LongInt;
@@ -652,6 +691,321 @@ begin
   finally
     ReleaseContext(jc);
   end;
+end;
+
+{$IFDEF JPEG_USE_TURBO_DYNLIB}
+
+{ TurboJPEG backend }
+
+const
+  JfifHeaderSize = 18; // SOI + APP0 marker up to the density fields
+
+type
+  { What the scan of markers in JPEG data found. }
+  TJpegScanInfo = record
+    DataSize: Int64;     // Size of JPEG data up to and including EOI marker
+    HasJFIF: Boolean;
+    DensityUnit: Integer;
+    XDensity: Integer;
+    YDensity: Integer;
+  end;
+
+procedure RaiseTurboError(TJ: TTJHandle);
+begin
+  raise EImagingError.Create(SJpegError + ': ' + string(AnsiString(tjGetErrorStr2(TJ))));
+end;
+
+{ TurboJPEG doesn't tell where JPEG data ends in the buffer and has no access
+  to JFIF density, so the markers are walked here. If the end (EOI marker)
+  is not found the whole buffer is taken as JPEG data. }
+procedure ScanJpegData(Data: PBuffer; Size: Int64; out Scan: TJpegScanInfo);
+var
+  Pos, DataEnd, SegSize: PtrInt;
+  Marker: Byte;
+begin
+  FillChar(Scan, SizeOf(Scan), 0);
+  Scan.DataSize := Size;
+  DataEnd := PtrInt(Size);
+
+  if (DataEnd < 4) or (Data[0] <> $FF) or (Data[1] <> $D8) then
+    Exit;
+
+  Pos := 2;
+
+  while Pos + 1 < DataEnd do
+  begin
+    if Data[Pos] <> $FF then
+    begin
+      // Entropy coded data
+      Inc(Pos);
+      Continue;
+    end;
+
+    Marker := Data[Pos + 1];
+
+    if Marker = $FF then
+    begin
+      // Fill byte before a marker
+      Inc(Pos);
+    end
+    else if (Marker <= $01) or ((Marker >= $D0) and (Marker <= $D8)) then
+    begin
+      // Stuffed zero in entropy coded data and markers without parameters
+      Inc(Pos, 2);
+    end
+    else if Marker = $D9 then
+    begin
+      Scan.DataSize := Pos + 2;
+      Exit;
+    end
+    else
+    begin
+      // Marker segment with size, entropy coded data can follow it
+      if Pos + 3 >= DataEnd then
+        Exit;
+
+      SegSize := (Data[Pos + 2] shl 8) or Data[Pos + 3];
+      if SegSize < 2 then
+        Exit;
+
+      if (Marker = $E0) and not Scan.HasJFIF and (SegSize >= 14) and
+         (Pos + 2 + SegSize <= DataEnd) and (Data[Pos + 4] = Ord('J')) and
+         (Data[Pos + 5] = Ord('F')) and (Data[Pos + 6] = Ord('I')) and
+         (Data[Pos + 7] = Ord('F')) and (Data[Pos + 8] = 0) then
+      begin
+        Scan.HasJFIF := True;
+        Scan.DensityUnit := Data[Pos + 11];
+        Scan.XDensity := (Data[Pos + 12] shl 8) or Data[Pos + 13];
+        Scan.YDensity := (Data[Pos + 14] shl 8) or Data[Pos + 15];
+      end;
+
+      Inc(Pos, 2 + SegSize);
+    end;
+  end;
+end;
+
+{ Reads the rest of the input, returns number of bytes read. }
+function ReadRestOfInput(const IO: TIOFunctions; Handle: TImagingHandle;
+  var Buffer: TDynByteArray): Int64;
+const
+  MaxChunkSize = 64 * 1024 * 1024;
+var
+  Size: Int64;
+  ToRead, WasRead: TIOReadWriteCount;
+begin
+  Result := 0;
+  Size := GetInputSize(IO, Handle) - IO.Tell(Handle);
+  if Size <= 0 then
+    Exit;
+
+  SetLength(Buffer, Size);
+
+  while Result < Size do
+  begin
+    if Size - Result > MaxChunkSize then
+      ToRead := MaxChunkSize
+    else
+      ToRead := Size - Result;
+
+    WasRead := IO.Read(Handle, @Buffer[PtrInt(Result)], ToRead);
+    if WasRead <= 0 then
+      Break;
+    Result := Result + WasRead;
+  end;
+end;
+
+function TurboLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
+  var Image: TImageData; out Info: TJpegImageInfo): Boolean;
+var
+  Buffer: TDynByteArray;
+  StartPos: Int64;
+  Scan: TJpegScanInfo;
+  TJHandle: TTJHandle;
+  Width, Height, Subsamp, ColorSpace, PixelFormat, Res: Int32;
+  Format: TImageFormat;
+begin
+  Result := False;
+  FillChar(Info, SizeOf(Info), 0);
+  Width := 0;
+  Height := 0;
+  Subsamp := 0;
+  ColorSpace := 0;
+
+  StartPos := IO.Tell(Handle);
+  ScanJpegData(Pointer(Buffer), ReadRestOfInput(IO, Handle, Buffer), Scan);
+
+  TJHandle := tjInitDecompress;
+  if TJHandle = nil then
+    raise EImagingError.Create(SJpegError);
+
+  try
+    // Warnings are reported as failures too, only fatal errors stop the loading
+    Res := tjDecompressHeader3(TJHandle, Pointer(Buffer), Scan.DataSize, Width, Height,
+                               Subsamp, ColorSpace);
+    if (Res <> 0) and ((tjGetErrorCode(TJHandle) <> TJERR_WARNING) or
+       (Width <= 0) or (Height <= 0)) then
+    begin
+      RaiseTurboError(TJHandle);
+    end;
+
+    case ColorSpace of
+      TJCS_GRAY:
+        begin
+          Info.ColorSpace := jcsGray;
+          Format := ifGray8;
+          PixelFormat := TJPF_GRAY;
+        end;
+      TJCS_CMYK, TJCS_YCCK:
+        begin
+          Info.ColorSpace := jcsCMYK;
+          Format := ifA8R8G8B8;
+          PixelFormat := TJPF_CMYK;
+        end;
+    else
+      Info.ColorSpace := jcsRGB;
+      Format := ifR8G8B8;
+      // BGR is Imaging's native channel order
+      PixelFormat := TJPF_BGR;
+    end;
+
+    if not NewImage(Width, Height, Format, Image) then
+      Exit;
+
+    Res := tjDecompress2(TJHandle, Pointer(Buffer), Scan.DataSize, Image.Bits, Width, 0,
+                         Height, PixelFormat, TJFLAG_ACCURATEDCT);
+
+    // After fatal error the image has only the part decoded so far
+    Info.Complete := (Res = 0) or (tjGetErrorCode(TJHandle) = TJERR_WARNING);
+
+    if Info.Complete then
+    begin
+      Info.HasJFIF := Scan.HasJFIF;
+      Info.DensityUnit := Scan.DensityUnit;
+      Info.XDensity := Scan.XDensity;
+      Info.YDensity := Scan.YDensity;
+    end;
+
+    Result := True;
+  finally
+    tjDestroy(TJHandle);
+  end;
+
+  // Move input position just after the JPEG data so that more than one
+  // JPEG image can be loaded from one input
+  IO.Seek(Handle, StartPos + Scan.DataSize, smFromBeginning);
+end;
+
+function TurboSaveImage(const IO: TIOFunctions; Handle: TImagingHandle;
+  const Image: TImageData; const Params: TJpegSaveParams): Boolean;
+const
+  Subsamplings: array[TJpegChromaSubsampling] of Int32 =
+    (TJSAMP_420, TJSAMP_422, TJSAMP_444);
+var
+  TJHandle: TTJHandle;
+  JpegData: PByte;
+  JpegSize: TTJULong;
+  PixelFormat, Subsamp, Flags, Res: Int32;
+  Header: PBuffer;
+begin
+  Result := False;
+
+  if Image.Format = ifGray8 then
+  begin
+    PixelFormat := TJPF_GRAY;
+    Subsamp := TJSAMP_GRAY;
+  end
+  else
+  begin
+    PixelFormat := TJPF_BGR;
+    Subsamp := Subsamplings[Params.ChromaSubsampling];
+  end;
+
+  Flags := TJFLAG_ACCURATEDCT;
+  if Params.Progressive then
+    Flags := Flags or TJFLAG_PROGRESSIVE;
+
+  TJHandle := tjInitCompress;
+  if TJHandle = nil then
+    raise EImagingError.Create(SJpegError);
+
+  JpegData := nil;
+  JpegSize := 0;
+
+  try
+    Res := tjCompress2(TJHandle, Image.Bits, Image.Width, 0, Image.Height, PixelFormat,
+                       @JpegData, JpegSize, Subsamp, ClampInt(Params.Quality, 1, 100),
+                       Flags);
+    if (Res <> 0) and ((tjGetErrorCode(TJHandle) <> TJERR_WARNING) or (JpegData = nil)) then
+      RaiseTurboError(TJHandle);
+
+    // TurboJPEG can't set the density so it's written to JFIF header
+    // (the first thing in the file) directly
+    Header := PBuffer(JpegData);
+
+    if (Params.DensityUnit > 0) and (JpegSize >= JfifHeaderSize) and
+       (Header[2] = $FF) and (Header[3] = $E0) and (Header[6] = Ord('J')) and
+       (Header[7] = Ord('F')) and (Header[8] = Ord('I')) and (Header[9] = Ord('F')) then
+    begin
+      Header[13] := Params.DensityUnit;
+      Header[14] := (Params.XDensity shr 8) and $FF;
+      Header[15] := Params.XDensity and $FF;
+      Header[16] := (Params.YDensity shr 8) and $FF;
+      Header[17] := Params.YDensity and $FF;
+    end;
+
+    Result := IO.Write(Handle, JpegData, JpegSize) = TIOReadWriteCount(JpegSize);
+  finally
+    if JpegData <> nil then
+      tjFree(JpegData);
+    tjDestroy(TJHandle);
+  end;
+end;
+
+{$ENDIF}
+
+function JpegBackend: TJpegBackend;
+begin
+  Result := jbPascal;
+{$IFDEF JPEG_USE_TURBO_DYNLIB}
+  // The library is searched for only by the first call
+  if LoadLibTurboJpeg then
+    Result := jbTurboJpeg;
+{$ENDIF}
+end;
+
+function TryLoadTurboJpegLibrary(const FileName: string): Boolean;
+begin
+{$IFDEF JPEG_USE_TURBO_DYNLIB}
+  Result := LoadLibTurboJpegFromFile(FileName);
+{$ELSE}
+  Result := False;
+{$ENDIF}
+end;
+
+function JpegLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
+  var Image: TImageData; out Info: TJpegImageInfo): Boolean;
+begin
+{$IFDEF JPEG_USE_TURBO_DYNLIB}
+  if JpegBackend = jbTurboJpeg then
+  begin
+    Result := TurboLoadImage(IO, Handle, Image, Info);
+    Exit;
+  end;
+{$ENDIF}
+  Result := PasLoadImage(IO, Handle, Image, Info);
+end;
+
+function JpegSaveImage(const IO: TIOFunctions; Handle: TImagingHandle;
+  const Image: TImageData; const Params: TJpegSaveParams): Boolean;
+begin
+{$IFDEF JPEG_USE_TURBO_DYNLIB}
+  if JpegBackend = jbTurboJpeg then
+  begin
+    Result := TurboSaveImage(IO, Handle, Image, Params);
+    Exit;
+  end;
+{$ENDIF}
+  Result := PasSaveImage(IO, Handle, Image, Params);
 end;
 
 end.
