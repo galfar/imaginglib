@@ -54,10 +54,12 @@ uses
   {$ENDIF}
 {$ENDIF}
   ImagingTestCase in 'ImagingTestCase.pas',
+  ImagingTestPixels in 'ImagingTestPixels.pas',
   TestImagingUtility in 'TestImagingUtility.pas',
   TestImagingFormats in 'TestImagingFormats.pas',
   TestImagingBasics in 'TestImagingBasics.pas',
-  TestImagingColors in 'TestImagingColors.pas';
+  TestImagingColors in 'TestImagingColors.pas',
+  TestImagingConversions in 'TestImagingConversions.pas';
 
 {$IFDEF FPC}
 type

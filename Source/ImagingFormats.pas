@@ -318,7 +318,8 @@ procedure ConvertSpecial(var Image: TImageData; SrcInfo,
 procedure InitImageFormats(var Infos: TImageFormatInfoArray);
 
 const
-  // Grayscale conversion channel weights
+  // Grayscale conversion channel weights:
+  // BT.601 luma coefficients
   GrayConv: TColorFPRec = (B: 0.114; G: 0.587; R: 0.299; A: 0.0);
 
   // Constants for converting integer colors to floating point
