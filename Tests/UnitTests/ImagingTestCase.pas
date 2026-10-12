@@ -52,6 +52,9 @@ procedure RegisterImagingTest(TestClass: TImagingTestCaseClass);
 function GetTestDataDir: string;
 { Returns full path to file in test images directory.}
 function GetTestDataFile(const FileName: string): string;
+{ Returns directory for files written by tests with trailing path delimiter
+  (TestOut next to the test executable). It is created when it does not exist.}
+function GetTestOutDir: string;
 
 implementation
 
@@ -91,6 +94,13 @@ end;
 function GetTestDataFile(const FileName: string): string;
 begin
   Result := GetTestDataDir + FileName;
+end;
+
+function GetTestOutDir: string;
+begin
+  Result := GetAppDir + PathDelim + 'TestOut' + PathDelim;
+  if not ForceDirectories(Result) then
+    raise Exception.Create('Cannot create test output directory ' + Result);
 end;
 
 { TImagingTestCase }
