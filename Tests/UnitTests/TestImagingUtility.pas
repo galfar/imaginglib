@@ -192,14 +192,9 @@ begin
 end;
 
 procedure TTestUtilityMemory.TestIsLittleEndian;
-var
-  Value: UInt32;
 begin
-  Value := $11223344;
-  CheckEquals(PByte(@Value)^ = $44, IsLittleEndian, 'IsLittleEndian');
-{$IFDEF ENDIAN_LITTLE}
-  CheckTrue(IsLittleEndian, 'IsLittleEndian on little endian target');
-{$ENDIF}
+  // Only little endian targets are supported
+  CheckTrue(IsLittleEndian, 'IsLittleEndian');
 end;
 
 procedure TTestUtilityMemory.TestCrc32;

@@ -228,11 +228,7 @@ begin
     8:
       begin
         Move(P^, D, SizeOf(D));
-      {$IFDEF ENDIAN_BIG}
-        Result := D[0] * TwoPow32 + D[1];
-      {$ELSE}
         Result := D[1] * TwoPow32 + D[0];
-      {$ENDIF}
       end;
   else
     raise Exception.CreateFmt('Unsupported element size: %d', [Size]);

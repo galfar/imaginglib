@@ -56,6 +56,7 @@ type
   published
     procedure TestGrayToIndexed;
     procedure TestFewColorsToIndexed;
+    procedure TestArbitraryColorsToIndexed;
     procedure TestManyColorsToIndexed;
   end;
 
@@ -1139,6 +1140,73 @@ begin
 
     if Failures.Count > 0 then
       Fail(JoinFailures(Failures, 'Images with few colors converted to indexed format differ'));
+  finally
+    Failures.Free;
+  end;
+end;
+
+procedure TTestConversionIndexed.TestArbitraryColorsToIndexed;
+const
+  // As many pixels as palette entries, so each color can have its own entry
+  Width = 16;
+  Height = 16;
+var
+  Failures: TStringList;
+  F, I: Integer;
+  Ch: TPixelChannel;
+  Src, Dst: TImageData;
+  IndexInfo: TImageFormatInfo;
+  SrcPixel, Expected, Actual: TIdealPixel;
+  PairFailed: Boolean;
+begin
+  // Arbitrary colors and alphas, not more of them than palette entries:
+  // all must be kept (with precision of 8-bit palette entries)
+  CollectFormats;
+  CheckTrue(GetImageFormatInfo(ifIndex8, IndexInfo), 'Index8 info');
+  CheckEquals(Width * Height, IndexInfo.PaletteEntries, 'Pixels of test image and palette entries');
+  CheckEquals($FF, GetOption(ImagingColorReductionMask), 'Color reduction uses all bits by default');
+  Failures := TStringList.Create;
+  try
+    for F := 0 to High(Formats) do
+    begin
+      if Infos[F].HasGrayChannel or Infos[F].IsIndexed then
+        Continue;
+
+      NewTestImage(Formats[F], Width, Height, Src);
+      InitImage(Dst);
+      try
+        CheckTrue(CloneImage(Src, Dst), 'CloneImage');
+        CheckTrue(ConvertImage(Dst, ifIndex8), PairName(Infos[F], IndexInfo) + ': ConvertImage');
+        CheckEquals('', CheckConvertedImage(Dst, IndexInfo, Width, Height),
+          PairName(Infos[F], IndexInfo) + ': converted image');
+
+        PairFailed := False;
+        for I := 0 to Width * Height - 1 do
+        begin
+          SrcPixel := ReadIdealPixel(Src, I);
+          Expected := ExpectedPixel(SrcPixel, Infos[F], IndexInfo);
+          Actual := ReadIdealPixel(Dst, I);
+
+          for Ch := Low(TPixelChannel) to High(TPixelChannel) do
+          begin
+            if not PairFailed and (Abs(Actual.Channels[Ch] - Expected.Channels[Ch]) >
+              GetTolerance(Infos[F], IndexInfo, Ch, SrcPixel, Expected)) then
+            begin
+              PairFailed := True;
+              Failures.Add(Fmt('%s: pixel %d channel %s: source %s expected %.6f but was %.6f',
+                [PairName(Infos[F], IndexInfo), I, ChannelNames[Ch], IdealPixelToStr(SrcPixel),
+                Expected.Channels[Ch], Actual.Channels[Ch]]));
+            end;
+          end;
+        end;
+      finally
+        FreeImage(Src);
+        FreeImage(Dst);
+      end;
+    end;
+
+    if Failures.Count > 0 then
+      Fail(JoinFailures(Failures, 'Images with up to 256 colors converted to indexed format differ'));
   finally
     Failures.Free;
   end;
