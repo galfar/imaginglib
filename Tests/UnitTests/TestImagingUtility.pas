@@ -25,6 +25,7 @@ type
     procedure TestClamp;
     procedure TestPowersOfTwo;
     procedure TestMulDiv;
+    procedure TestScaleValue;
     procedure TestIff;
     procedure TestMipMapLevels;
     procedure TestDpiConversion;
@@ -121,6 +122,52 @@ begin
   // Result is truncated, not rounded
   CheckEquals(127, MulDiv(1, 255, 2), 'MulDiv truncation');
   CheckEquals(127, MulDiv(32767, 255, 65535), 'MulDiv 16 to 8 bits truncation');
+end;
+
+procedure TTestUtilityMath.TestScaleValue;
+var
+  I: Integer;
+begin
+  CheckEquals(Int64(0), Int64(ScaleValue(0, 255, 65535)), 'Zero stays zero');
+  CheckEquals(Int64(65535), Int64(ScaleValue(255, 255, 65535)), 'Largest 8-bit value to 16 bits');
+  CheckEquals(Int64(255), Int64(ScaleValue(65535, 65535, 255)), 'Largest 16-bit value to 8 bits');
+  CheckEquals(Int64(77), Int64(ScaleValue(77, 255, 255)), 'The same range');
+  CheckEquals(Int64(255), Int64(ScaleValue(300, 255, 255)), 'Value over the source range');
+
+  // 8 to 16 bits is exact multiplication by 257, and it comes back
+  for I := 0 to 255 do
+  begin
+    CheckEquals(Int64(I * 257), Int64(ScaleValue(I, 255, 65535)), '8 to 16 bits: ' + IntToStr(I));
+    CheckEquals(Int64(I), Int64(ScaleValue(I * 257, 65535, 255)), '8 to 16 bits and back: ' + IntToStr(I));
+  end;
+
+  // 16 to 8 bits rounds to the nearest value
+  for I := 0 to 65535 do
+  begin
+    if Int64(ScaleValue(I, 65535, 255)) <> Round(I / 257) then
+      Fail(Format('16 to 8 bits: %d gives %d', [I, ScaleValue(I, 65535, 255)]));
+  end;
+  CheckEquals(Int64(0), Int64(ScaleValue(128, 65535, 255)), '16 to 8 bits, just below half');
+  CheckEquals(Int64(1), Int64(ScaleValue(129, 65535, 255)), '16 to 8 bits, just above half');
+
+  // Unusual sizes of samples
+  CheckEquals(Int64(255), Int64(ScaleValue(31, 31, 255)), 'Largest 5-bit value to 8 bits');
+  CheckEquals(Int64(132), Int64(ScaleValue(16, 31, 255)), '5 to 8 bits is rounded (131.6)');
+  CheckEquals(Int64(65535), Int64(ScaleValue(4095, 4095, 65535)), 'Largest 12-bit value to 16 bits');
+  CheckEquals(Int64(32776), Int64(ScaleValue(2048, 4095, 65535)), '12 to 16 bits (32775.99)');
+  CheckEquals(Int64(128), Int64(ScaleValue(2048, 4095, 255)), '12 to 8 bits (127.5 and a bit)');
+  CheckEquals(Int64(1), Int64(ScaleValue(1, 1, 1)), 'One bit');
+  CheckEquals(Int64(255), Int64(ScaleValue(1, 1, 255)), 'One bit to 8 bits');
+
+  // Whole 32-bit range
+  CheckEquals(Int64($FFFFFFFF), Int64(ScaleValue(65535, 65535, $FFFFFFFF)), 'Largest 16-bit value to 32 bits');
+  CheckEquals(Int64($00010001), Int64(ScaleValue(1, 65535, $FFFFFFFF)), '16 to 32 bits repeats the bits');
+  CheckEquals(Int64($12341234), Int64(ScaleValue($1234, 65535, $FFFFFFFF)), '16 to 32 bits repeats the bits');
+  CheckEquals(Int64(65535), Int64(ScaleValue($FFFFFFFF, $FFFFFFFF, 65535)), 'Largest 32-bit value to 16 bits');
+  CheckEquals(Int64(128), Int64(ScaleValue($80000000, $FFFFFFFF, 255)), '32 to 8 bits');
+  CheckEquals(Int64($12341234), Int64(ScaleValue($12341234, $FFFFFFFF, $FFFFFFFF)), 'The same 32-bit range');
+  CheckEquals(Int64($FFFFFFFF), Int64(ScaleValue($FFFFFFFF, $FFFFFFFF, $FFFFFFFF)), 'Largest 32-bit value');
+  CheckEquals(Int64(0), Int64(ScaleValue(0, $FFFFFFFF, $FFFFFFFF)), 'Zero in 32-bit range');
 end;
 
 procedure TTestUtilityMath.TestIff;

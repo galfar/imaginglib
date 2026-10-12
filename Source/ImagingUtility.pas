@@ -234,13 +234,38 @@ function Max(A, B: LongInt): LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
 function MaxFloat(A, B: Single): Single; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns greater of two float numbers.}
 function MaxFloat(const A, B: Double): Double; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
-{ Returns result from multiplying Number by Numerator and then dividing by Denominator.
-  Denominator must be greater than 0.}
-function MulDiv(Number, Numerator, Denominator: Word): Word; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns true if give floats are the equal within given delta.}
 function SameFloat(A, B: Single; Delta: Single = 0.001): Boolean; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns true if give floats are the equal within given delta.}
 function SameFloat(const A, B: Double; const Delta: Double = 0.000001): Boolean; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+
+{ Returns result from multiplying Number by Numerator and then dividing by Denominator.
+  Denominator must be greater than 0.
+  Mind the limits, this is not the MulDiv of Windows API:
+  - all parameters and the result are 16-bit, larger values are cut without
+    any error when passed in,
+  - the result is truncated, not rounded to the nearest value,
+  - the result must fit into 16 bits and Number * Numerator must be less
+    than 2^31, otherwise the result is wrong or an exception is raised
+    (depends on the compiler and its overflow checking).
+  So it is fine for things like scaling of 8-bit values by 8-bit factor.
+  For scaling of values between two ranges (channels of different bit depths,
+  samples of unusual precision) use ScaleValue. Mind the different order
+  of parameters:
+    MulDiv(Value, DstMax, SrcMax)  ->  ScaleValue(Value, SrcMax, DstMax)
+  for instance 12-bit sample to 16 bits:
+    MulDiv(Sample, 65535, 4095)    ->  ScaleValue(Sample, 4095, 65535)}
+function MulDiv(Number, Numerator, Denominator: Word): Word; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Scales Value from range 0..SrcMax to range 0..DstMax and rounds the result
+  to the nearest value. Zero stays zero and SrcMax becomes DstMax, so the
+  largest value is kept when bit depth of samples is changed: for instance
+  ScaleValue(V, 255, 65535) for 8 to 16 bits, ScaleValue(V, 4095, 255)
+  for 12 to 8 bits. Values larger than SrcMax give DstMax.
+  SrcMax must be greater than 0. Whole 32-bit range can be used for all
+  parameters; when Value * DstMax does not fit into 63 bits the result is
+  computed in floating point and can be off by one for values in the middle
+  of the range.}
+function ScaleValue(Value, SrcMax, DstMax: UInt32): UInt32;
 
 { Switches Boolean value.}
 procedure Switch(var Value: Boolean); {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -1154,6 +1179,16 @@ begin
     Result := B;
 end;
 
+function SameFloat(A, B: Single; Delta: Single): Boolean;
+begin
+  Result := Abs(A - B) <= Delta;
+end;
+
+function SameFloat(const A, B: Double; const Delta: Double): Boolean;
+begin
+  Result := Abs(A - B) <= Delta;
+end;
+
 function MulDiv(Number, Numerator, Denominator: Word): Word;
 {$IF Defined(USE_ASM) and (not Defined(USE_INLINE))}
 asm
@@ -1166,14 +1201,27 @@ begin
 end;
 {$IFEND}
 
-function SameFloat(A, B: Single; Delta: Single): Boolean;
+function ScaleValue(Value, SrcMax, DstMax: UInt32): UInt32;
+const
+  // Typed constant makes the expression below double precision. FPC gives
+  // floating point literals the smallest type that holds them exactly and
+  // computes expressions of integers and Single values in single precision
+  // on targets without x87 FPU (like x86_64), which would lose bits here.
+  // This is intended behavior of FPC and it is not going to change
+  // (FPC issues 36415 and 37935). It can be switched off by -CF64 option or
+  // $MINFPCONSTPREC 64 directive, but the library must not depend on
+  // compiler options of its users: typed Double constant or a cast to Double
+  // gives double precision with any settings.
+  One: Double = 1.0;
 begin
-  Result := Abs(A - B) <= Delta;
-end;
+  Assert(SrcMax > 0);
 
-function SameFloat(const A, B: Double; const Delta: Double): Boolean;
-begin
-  Result := Abs(A - B) <= Delta;
+  if Value >= SrcMax then
+    Result := DstMax
+  else if (Value <= $7FFFFFFF) and (DstMax <= $7FFFFFFF) then
+    Result := (Int64(Value) * DstMax + SrcMax shr 1) div SrcMax
+  else
+    Result := Round(One * Value / SrcMax * DstMax);
 end;
 
 function IsLittleEndian: Boolean;
