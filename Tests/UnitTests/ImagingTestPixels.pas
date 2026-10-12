@@ -72,7 +72,8 @@ function IdealPixelToStr(const Pixel: TIdealPixel): string;
   ExtremePixelCount pixels have all channels (or palette entries they point to)
   at the smallest or the largest value in all combinations: 0 or 1 in floating
   point formats. Other pixels have pseudo-random bits in integer formats
-  and values from a fixed list between 0 and 1 in floating point formats.}
+  and pseudo-random picks from a fixed list of values between 0 and 1
+  in floating point formats.}
 procedure FillTestImage(var Image: TImageData; Seed: UInt32);
 { Fills all channels of image in floating point format with the given values,
   each pixel gets a different combination.}
@@ -407,7 +408,13 @@ begin
   PixelCount := Image.Width * Image.Height;
 
   if Info.IsFloatingPoint then
-    FillFloatImage(Image, DefaultFloatValues)
+  begin
+    for I := 0 to PixelCount * ElemCount - 1 do
+    begin
+      WriteFloat(@PBuffer(Image.Bits)[PtrInt(I) * ElemSize], Kind,
+                 DefaultFloatValues[NextRandomByte(State) mod Length(DefaultFloatValues)]);
+    end;
+  end
   else
   begin
     for I := 0 to Image.Size - 1 do

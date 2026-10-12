@@ -60,6 +60,7 @@ uses
   TestImagingBasics in 'TestImagingBasics.pas',
   TestImagingColors in 'TestImagingColors.pas',
   TestImagingConversions in 'TestImagingConversions.pas',
+  TestImagingCompare in 'TestImagingCompare.pas',
   TestImagingFileFormats in 'TestImagingFileFormats.pas';
 
 {$IFDEF FPC}
