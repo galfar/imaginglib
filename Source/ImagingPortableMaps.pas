@@ -355,6 +355,11 @@ var
         MapInfo.BitCount := Iff(MapInfo.TupleType = ttRGBFP, 96, 32);
       end;
 
+      // Max value of 256 is written by programs that take it as the number
+      // of values: samples are bytes that need no scaling
+      if MapInfo.MaxVal = 256 then
+        MapInfo.MaxVal := 255;
+
       FixInputPos;
       MapInfo.Binary := (Id[1] in ['4', '5', '6', '7', 'F', 'f']);
 
@@ -369,6 +374,9 @@ var
       // Check if values found in header are valid
       Result := (MapInfo.Width > 0) and (MapInfo.Height > 0) and
         (MapInfo.BitCount in [1, 8, 16, 32, 96]) and (MapInfo.TupleType <> ttInvalid);
+      // Samples of integer images are scaled by max value later
+      if Result and not (MapInfo.TupleType in [ttGrayScaleFP, ttRGBFP]) then
+        Result := (MapInfo.MaxVal >= 1) and (MapInfo.MaxVal <= 65535);
       // Now check if image has proper number of channels (PAM)
       if Result then
         case MapInfo.TupleType of
@@ -510,9 +518,9 @@ begin
       for I := 0 to Width * Height * Info.BytesPerPixel div (MapInfo.BitCount shr 3) - 1 do
       begin
         if MapInfo.BitCount = 8 then
-          Dest^ := Dest^ * 255 div MapInfo.MaxVal
+          Dest^ := ScaleValue(Dest^, MapInfo.MaxVal, 255)
         else
-          PWord(Dest)^ := PWord(Dest)^ * 65535 div MapInfo.MaxVal;
+          PWord(Dest)^ := ScaleValue(PWord(Dest)^, MapInfo.MaxVal, 65535);
         Inc(Dest, MapInfo.BitCount shr 3);
       end;
     end;

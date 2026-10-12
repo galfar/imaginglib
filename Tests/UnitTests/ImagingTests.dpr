@@ -59,7 +59,8 @@ uses
   TestImagingFormats in 'TestImagingFormats.pas',
   TestImagingBasics in 'TestImagingBasics.pas',
   TestImagingColors in 'TestImagingColors.pas',
-  TestImagingConversions in 'TestImagingConversions.pas';
+  TestImagingConversions in 'TestImagingConversions.pas',
+  TestImagingFileFormats in 'TestImagingFileFormats.pas';
 
 {$IFDEF FPC}
 type
