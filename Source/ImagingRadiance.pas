@@ -184,10 +184,11 @@ var
   begin
     if Src.E > 0 then
     begin
-      Mult := Math.Ldexp(1, Src.E - 128);
-      Dest.R := Src.R / 255 * Mult;
-      Dest.G := Src.G / 255 * Mult;
-      Dest.B := Src.B / 255 * Mult;
+      // Mantissas are fractions of 256, the same as EncodeRgbe stores them
+      Mult := Math.Ldexp(1, Src.E - (128 + 8));
+      Dest.R := Src.R * Mult;
+      Dest.G := Src.G * Mult;
+      Dest.B := Src.B * Mult;
     end
     else
     begin
