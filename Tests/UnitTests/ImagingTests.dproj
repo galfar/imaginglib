@@ -86,6 +86,7 @@
         <DCCReference Include="TestImagingBasics.pas"/>
         <DCCReference Include="TestImagingColors.pas"/>
         <DCCReference Include="TestImagingConversions.pas"/>
+        <DCCReference Include="TestImagingCompare.pas"/>
         <DCCReference Include="TestImagingFileFormats.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>

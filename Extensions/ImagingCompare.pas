@@ -20,96 +20,215 @@ unit ImagingCompare;
 interface
 
 uses
-  SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility;
+  SysUtils, Classes, Math, ImagingTypes, Imaging, ImagingFormats, ImagingUtility;
 
-{ Computes various error metrics for two images. Images must have
-  the same size and format. Only formats with 1, 2, and 4 byte samples are
-  supported (no indexed, compressed, etc.).}
-procedure ComputeErrorMetrics(const Image1, Image2: TImageData;
-  var PSNR, MSE, RMSE, PAE, MAE: Single);
+{ Computes error metrics of two images with the same dimensions and data format:
+    MSE  - mean squared error,
+    RMSE - root of mean squared error,
+    MAE  - mean absolute error,
+    PAE  - peak absolute error (the largest difference of two samples),
+    PSNR - peak signal to noise ratio in dB, infinity for identical images.
+
+  Errors are in units of stored samples (0..255 for 8-bit channels, 0..65535
+  for 16-bit ones, the stored value for floating point channels) and are
+  computed over samples of all channels together, alpha has the same weight
+  as color channels. Unused bytes of pixels (X8R8G8B8) are skipped.
+
+  Peak of PSNR is the largest value sample of integer formats can hold,
+  for floating point formats it is given by FloatPeak. Floating point samples
+  must be finite numbers, unless they are stored identically in both images.
+
+  All formats with channels stored as whole 1, 2, 4, or 8 byte samples are
+  supported. Returns False and zero metrics for other formats (indexed,
+  special, and packed ones like R5G6B5), for invalid images, and for images
+  that differ in dimensions or format.}
+function ComputeErrorMetrics(const Image1, Image2: TImageData;
+  var PSNR, MSE, RMSE, PAE, MAE: Double; const FloatPeak: Double = 1.0): Boolean;
 
 implementation
 
-procedure ComputeErrorMetrics(const Image1, Image2: TImageData;
-  var PSNR, MSE, RMSE, PAE, MAE: Single);
-var
-  I: Integer;
-  Info: TImageFormatInfo;
-  Samples, Bps: Integer;
-  PixelPtr1, PixelPtr2: PByte;
-  Diff, MaxSample: Single;
-begin
-  GetImageFormatInfo(Image1.Format, Info);
-  Bps := Info.ChannelCount div Info.BytesPerPixel;
-  Assert((Image1.Width = Image2.Width) and (Image1.Height = Image2.Height) and
-    (Image1.Format = Image2.Format));
-  Assert(not Info.IsIndexed and not Info.IsSpecial and not Info.UsePixelFormat
-    and (Bps in [1, 2, 4]));
+type
+  TSampleKind = (skUInt8, skUInt16, skUInt32, skUInt64, skHalf, skSingle);
 
-  Diff := 0;
+const
+  // Typed so the math is done in double precision by all compilers
+  Ln10: Double = 2.302585092994046;
+  TwoPow32: Double = 4294967296.0;
+  PeakUInt8: Double = 255.0;
+  PeakUInt16: Double = 65535.0;
+  PeakUInt32: Double = 4294967295.0;
+  PeakUInt64: Double = 18446744073709551615.0;
+
+{ Finds out how channels of the format are stored. Returns False for formats
+  that are not made of whole samples of the same size.}
+function GetSampleKind(const Info: TImageFormatInfo; out Kind: TSampleKind;
+  out SampleSize: Integer): Boolean;
+begin
+  Result := False;
+  Kind := skUInt8;
+  SampleSize := 0;
+
+  if Info.IsIndexed or Info.IsSpecial or Info.UsePixelFormat or (Info.ChannelCount = 0) then
+    Exit;
+
+  // Pixels can have unused bytes after the channels (X8R8G8B8)
+  SampleSize := Info.BytesPerPixel div Info.ChannelCount;
+
+  if Info.IsFloatingPoint then
+  begin
+    case SampleSize of
+      2: Kind := skHalf;
+      4: Kind := skSingle;
+    else
+      Exit;
+    end;
+  end
+  else
+  begin
+    case SampleSize of
+      1: Kind := skUInt8;
+      2: Kind := skUInt16;
+      4: Kind := skUInt32;
+      8: Kind := skUInt64;
+    else
+      Exit;
+    end;
+  end;
+
+  Result := True;
+end;
+
+function ComputeErrorMetrics(const Image1, Image2: TImageData;
+  var PSNR, MSE, RMSE, PAE, MAE: Double; const FloatPeak: Double): Boolean;
+var
+  Info: TImageFormatInfo;
+  Kind: TSampleKind;
+  SampleSize, Padding, X, Y, Channel: Integer;
+  P1, P2: PByte;
+  V1, V2, Diff, Peak, SampleCount: Double;
+  RowAbs, RowSqr, SumAbs, SumSqr: Double;
+begin
+  Result := False;
   PSNR := 0;
   MSE  := 0;
   RMSE := 0;
   PAE  := 0;
   MAE  := 0;
-  PixelPtr1 := Image1.Bits;
-  PixelPtr2 := Image2.Bits;
-  Samples := Image1.Width * Image1.Height * Info.ChannelCount;
 
-  for I := 0 to Samples - 1 do
-  begin
-    // Compute difference between pixels
-    case Bps of
-      1: Diff := Abs(PixelPtr2^ - PixelPtr1^);
-      2:
-        begin
-          if Info.IsFloatingPoint then
-            Diff := Abs(HalfToFloat(PWord(PixelPtr2)^) - HalfToFloat(PWord(PixelPtr1)^))
-          else
-            Diff := Abs(PWord(PixelPtr2)^ - PWord(PixelPtr1)^);
-        end;
-      4:
-        begin
-          if Info.IsFloatingPoint then
-            Diff := Abs(PSingle(PixelPtr2)^ - PSingle(PixelPtr1)^)
-          else
-            Diff := Abs(PUInt32(PixelPtr2)^ - PUInt32(PixelPtr1)^);
-        end;
-    end;
+  if not TestImage(Image1) or not TestImage(Image2) then
+    Exit;
+  if (Image1.Width <> Image2.Width) or (Image1.Height <> Image2.Height) or
+    (Image1.Format <> Image2.Format) then
+    Exit;
+  if not GetImageFormatInfo(Image1.Format, Info) or not GetSampleKind(Info, Kind, SampleSize) then
+    Exit;
 
-    // Update metrics
-    MAE := MAE + Diff;
-    PAE := MaxFloat(PAE, Diff);
-    MSE := MSE + Diff * Diff;
-
-    Inc(PixelPtr1, Bps);
-    Inc(PixelPtr2, Bps);
+  case Kind of
+    skUInt8:  Peak := PeakUInt8;
+    skUInt16: Peak := PeakUInt16;
+    skUInt32: Peak := PeakUInt32;
+    skUInt64: Peak := PeakUInt64;
+  else
+    Peak := FloatPeak;
   end;
 
-  if Info.IsFloatingPoint then
-    MaxSample := 1.0
-  else
-    MaxSample := Pow2Int(Bps * 8) - 1;
+  if Peak <= 0 then
+    Exit;
 
-  // Final metrics calculations
-  MAE := MAE / Samples;
-  MSE := MSE / Samples;
+  P1 := Image1.Bits;
+  P2 := Image2.Bits;
+  Padding := Info.BytesPerPixel - Info.ChannelCount * SampleSize;
+  SumAbs := 0;
+  SumSqr := 0;
+  Diff := 0;
+
+  for Y := 0 to Image1.Height - 1 do
+  begin
+    // Rows are summed separately so small differences are not lost
+    // in the large sums of huge images
+    RowAbs := 0;
+    RowSqr := 0;
+
+    for X := 0 to Image1.Width - 1 do
+    begin
+      for Channel := 0 to Info.ChannelCount - 1 do
+      begin
+        case Kind of
+          skUInt8:
+            Diff := Abs(Integer(P2^) - Integer(P1^));
+          skUInt16:
+            Diff := Abs(Integer(PWord(P2)^) - Integer(PWord(P1)^));
+          skUInt32:
+            begin
+              V1 := PUInt32(P1)^;
+              V2 := PUInt32(P2)^;
+              Diff := Abs(V2 - V1);
+            end;
+          skUInt64:
+            begin
+              // Differences of low and high halves are exact
+              V1 := PUInt32(@PBuffer(P1)[4])^;
+              V2 := PUInt32(@PBuffer(P2)[4])^;
+              Diff := (V2 - V1) * TwoPow32;
+              V1 := PUInt32(P1)^;
+              V2 := PUInt32(P2)^;
+              Diff := Abs(Diff + (V2 - V1));
+            end;
+          skHalf:
+            begin
+              // Samples with the same bits are not subtracted,
+              // they can be infinite
+              if PWord(P1)^ = PWord(P2)^ then
+                Diff := 0
+              else
+              begin
+                V1 := HalfToFloat(PWord(P1)^);
+                V2 := HalfToFloat(PWord(P2)^);
+                Diff := Abs(V2 - V1);
+              end;
+            end;
+          skSingle:
+            begin
+              if PUInt32(P1)^ = PUInt32(P2)^ then
+                Diff := 0
+              else
+              begin
+                V1 := PSingle(P1)^;
+                V2 := PSingle(P2)^;
+                Diff := Abs(V2 - V1);
+              end;
+            end;
+        end;
+
+        RowAbs := RowAbs + Diff;
+        RowSqr := RowSqr + Diff * Diff;
+        if Diff > PAE then
+          PAE := Diff;
+
+        Inc(P1, SampleSize);
+        Inc(P2, SampleSize);
+      end;
+
+      Inc(P1, Padding);
+      Inc(P2, Padding);
+    end;
+
+    SumAbs := SumAbs + RowAbs;
+    SumSqr := SumSqr + RowSqr;
+  end;
+
+  SampleCount := Image1.Width;
+  SampleCount := SampleCount * Image1.Height * Info.ChannelCount;
+  MAE := SumAbs / SampleCount;
+  MSE := SumSqr / SampleCount;
   RMSE := Sqrt(MSE);
-  if RMSE < 0.0001 then
-    PSNR := 1e06
+
+  if MSE = 0 then
+    PSNR := Math.Infinity
   else
-    PSNR := 20 * Log10(MaxSample / RMSE);
+    PSNR := 20 * Ln(Peak / RMSE) / Ln10;
+
+  Result := True;
 end;
-
-{
-  File Notes:
-
-  -- TODOS ----------------------------------------------------
-    - none
-
-  -- 0.26.5 Changes/Bug Fixes -----------------------------------
-    - Added ComputeErrorMetrics.
-    - Unit created.
-}
 
 end.
