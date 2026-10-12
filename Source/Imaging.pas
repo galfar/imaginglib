@@ -1393,7 +1393,9 @@ begin
       NumPixels := Int64(Width) * Height;
       NewSize := NumPixels * DstInfo.BytesPerPixel;
       NewData := AllocMem(NewSize);
-      NewPal := AllocMem(DstInfo.PaletteEntries * SizeOf(TColor32Rec));
+      NewPal := nil;
+      if DstInfo.PaletteEntries > 0 then
+        NewPal := AllocMem(DstInfo.PaletteEntries * SizeOf(TColor32Rec));
 
       if SrcInfo.IsIndexed then
       begin

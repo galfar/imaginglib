@@ -107,102 +107,12 @@ begin
   Result := Format(S, Args, GetFormatSettingsForFloats);
 end;
 
-function IsPackedFormat(const Info: TImageFormatInfo): Boolean;
-begin
-  Result := Info.UsePixelFormat;
-end;
-
-{ Format with unpacked integer channels: 8 or 16 bits each.}
-function IsChannelFormat(const Info: TImageFormatInfo): Boolean;
-begin
-  Result := not (Info.IsIndexed or Info.HasGrayChannel or Info.IsFloatingPoint or
-    Info.UsePixelFormat);
-end;
-
-{ Grayscale format with more than 16 bits: Gray32, Gray64.}
-function IsWideGrayFormat(const Info: TImageFormatInfo): Boolean;
-begin
-  Result := Info.HasGrayChannel and (ChannelBits(Info, chRed) > 16);
-end;
-
-function IsSingleFloatFormat(const Info: TImageFormatInfo): Boolean;
-begin
-  Result := Info.IsFloatingPoint and (ChannelBits(Info, chRed) = SinglePrecisionBits);
-end;
-
-function IsHalfFloatFormat(const Info: TImageFormatInfo): Boolean;
-begin
-  Result := Info.IsFloatingPoint and (ChannelBits(Info, chRed) = HalfPrecisionBits);
-end;
-
 { Rules for conversions known to give imprecise results, see the unit header.
-  Names in comments are routines of ImagingFormats unit where it happens.}
+  kdSometimes is for deviations that do not show in every run (results that
+  depend on not initialized memory). There are no known deviations now.}
 function GetKnownDeviation(Check: TConversionCheck; const SrcInfo, DstInfo: TImageFormatInfo): TKnownDeviation;
 begin
   Result := kdNone;
-
-  case Check of
-    ccExtremes:
-      begin
-        // Channels of packed formats are widened to 16 bits by shl 8 so full
-        // channel is 65280 and not 65535: white gets darker, opaque gets
-        // slightly transparent (ChannelGetSrcPixel). Packed destinations
-        // take just the high bits back so they are not affected.
-        if IsPackedFormat(SrcInfo) and not IsPackedFormat(DstInfo) then
-          Result := kdAlways;
-
-        // The same widening of palette colors (IndexToChannel, only R8G8B8
-        // and A8R8G8B8 have own code) and of palette alpha (IndexToGray)
-        if SrcInfo.IsIndexed then
-        begin
-          if IsChannelFormat(DstInfo) and not (DstInfo.Format in [ifR8G8B8, ifA8R8G8B8]) then
-            Result := kdAlways;
-          if DstInfo.HasGrayChannel and DstInfo.HasAlphaChannel then
-            Result := kdAlways;
-        end;
-
-        // The same widening in special code for this pair (GrayToGray)
-        if (SrcInfo.Format = ifGray8) and (DstInfo.Format = ifGray16) then
-          Result := kdAlways;
-
-        // Gray32 and Gray64 get only the highest 16 bits of gray value,
-        // lower bits are zero when the source is grayscale...
-        if IsWideGrayFormat(DstInfo) and SrcInfo.HasGrayChannel and
-          (ChannelBits(SrcInfo, chRed) < ChannelBits(DstInfo, chRed)) then
-          Result := kdAlways;
-        // ... and not initialized when it is indexed or floating point
-        // (IndexToGray, FloatToGray), so the result differs from run to run.
-        // Lower bits from color formats are copies of color channels
-        // (ChannelToGray) which happens to be right for black and white.
-        if IsWideGrayFormat(DstInfo) and (SrcInfo.IsIndexed or SrcInfo.IsFloatingPoint) then
-          Result := kdSometimes;
-      end;
-    ccValues:
-      begin
-        // Gray32 and Gray64 are converted from and to floating point with
-        // 16 bits of precision only (GrayToFloat, FloatToGray). Visible
-        // just against 32-bit floats, half floats are less precise than that.
-        if (IsWideGrayFormat(SrcInfo) and IsSingleFloatFormat(DstInfo)) or
-          (IsSingleFloatFormat(SrcInfo) and IsWideGrayFormat(DstInfo)) then
-          Result := kdAlways;
-      end;
-    ccRoundTrip:
-      begin
-        // Narrowing from 16 to 8 bits truncates (MulDiv in ChannelSetDstPixel
-        // and GraySetDstPixel). Values rounded by half floats end up
-        // one lower on the way back.
-        if not (SrcInfo.IsFloatingPoint or IsPackedFormat(SrcInfo)) and
-          (ChannelBits(SrcInfo, chRed) = 8) and IsHalfFloatFormat(DstInfo) then
-          Result := kdAlways;
-
-        // Channels of 5 and 6 bits are scaled to 8 bits, widened by shl 8 and
-        // narrowed again with truncation: the 8-bit value is one lower
-        // than it should be and does not give the original bits back.
-        if IsPackedFormat(SrcInfo) and IsChannelFormat(DstInfo) and
-          (ChannelBits(DstInfo, chRed) = 8) and (ChannelBits(SrcInfo, chRed) >= 5) then
-          Result := kdAlways;
-      end;
-  end;
 end;
 
 procedure CollectFormats;
@@ -374,10 +284,8 @@ begin
     Result := 'TestImage failed'
   else if Image.Bits = nil then
     Result := 'no bits'
-  // Not checked the other way: ConvertImage allocates palette with zero
-  // entries for not indexed formats, which is not nil pointer in FPC
-  else if DstInfo.IsIndexed and (Image.Palette = nil) then
-    Result := 'no palette';
+  else if (Image.Palette <> nil) <> DstInfo.IsIndexed then
+    Result := 'palette must be allocated just for indexed formats';
 end;
 
 procedure AnalyzePair(const SrcInfo, DstInfo: TImageFormatInfo; Width, Height: Integer;

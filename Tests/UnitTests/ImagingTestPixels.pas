@@ -81,8 +81,10 @@ procedure FillFloatImage(var Image: TImageData; const Values: array of Single);
 implementation
 
 const
-  // Typed so divisions are done in double precision by all compilers
-  // (FPC computes with single precision when the constant fits it)
+  // Typed so divisions are done in double precision by all compilers.
+  // FPC computes with single precision when a literal fits Single: intended
+  // behavior, changed only by -CF64 option or $MINFPCONSTPREC directive
+  // (see the note in ImagingUtility.ScaleValue).
   ByteMax: Double = 255.0;
   TwoPow32: Double = 4294967296.0;
 

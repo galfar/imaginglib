@@ -2006,6 +2006,19 @@ begin
     PixF.B := 0.0;
 end;
 
+{ Scaling of channel values between 8 and 16 bits. The largest value stays
+  the largest one in both directions (255 <-> 65535).}
+function Scale8To16(Value: Byte): Word; {$IFDEF USE_INLINE}inline;{$ENDIF}
+begin
+  Result := Value * 257;
+end;
+
+{ Scales down to the nearest 8-bit value.}
+function Scale16To8(Value: Word): Byte; {$IFDEF USE_INLINE}inline;{$ENDIF}
+begin
+  Result := (Value * 255 + 32895) shr 16;
+end;
+
 procedure ConvertToPixel32(SrcPix: PByte; DestPix: PColor32Rec;
   const SrcInfo: TImageFormatInfo; SrcPalette: PPalette32);
 begin
@@ -2030,7 +2043,7 @@ begin
       end;
     ifGray16:
       begin
-        DestPix.R := PWord(SrcPix)^ shr 8;
+        DestPix.R := Scale16To8(PWord(SrcPix)^);
         DestPix.G := DestPix.R;
         DestPix.B := DestPix.R;
         DestPix.A := 255;
@@ -2046,17 +2059,17 @@ begin
       end;
     ifR16G16B16:
       begin
-        DestPix.R := PColor48Rec(SrcPix).R shr 8;
-        DestPix.G := PColor48Rec(SrcPix).G shr 8;
-        DestPix.B := PColor48Rec(SrcPix).B shr 8;
+        DestPix.R := Scale16To8(PColor48Rec(SrcPix).R);
+        DestPix.G := Scale16To8(PColor48Rec(SrcPix).G);
+        DestPix.B := Scale16To8(PColor48Rec(SrcPix).B);
         DestPix.A := 255;
       end;
     ifA16R16G16B16:
       begin
-        DestPix.R := PColor64Rec(SrcPix).R shr 8;
-        DestPix.G := PColor64Rec(SrcPix).G shr 8;
-        DestPix.B := PColor64Rec(SrcPix).B shr 8;
-        DestPix.A := PColor64Rec(SrcPix).A shr 8;
+        DestPix.R := Scale16To8(PColor64Rec(SrcPix).R);
+        DestPix.G := Scale16To8(PColor64Rec(SrcPix).G);
+        DestPix.B := Scale16To8(PColor64Rec(SrcPix).B);
+        DestPix.A := Scale16To8(PColor64Rec(SrcPix).A);
       end;
   else
     DestPix^ := SrcInfo.GetPixel32(SrcPix, @SrcInfo, SrcPalette);
@@ -2439,6 +2452,72 @@ end;
 
 { Pixel readers/writers for different image formats }
 
+{ Grayscale values are passed between conversion functions scaled to 64 bits
+  in TColor64Rec (A is the most significant word, B the least significant one).
+  Bits of less precise values are repeated in the lower words so the largest
+  value stays the largest one for all sizes of grayscale formats
+  (e.g. white remains white), zero-filled lower words would prevent this.}
+
+const
+  MaxGray32: Double = 4294967295.0;
+  TwoPow16: Double = 65536.0;
+  // Typed constants: FPC computes expressions with literals that fit Single
+  // in single precision. That is its intended behavior, changed only by
+  // -CF64 option or $MINFPCONSTPREC directive which we do not depend on
+  // (see the note in ImagingUtility.ScaleValue).
+  MaxChannel8: Double = 255.0;
+  MaxChannel16: Double = 65535.0;
+  // Weights of GrayConv in double precision: gray of pixels with equal
+  // channels must be exactly the value of the channels
+  GrayWeightR: Double = 0.299;
+  GrayWeightG: Double = 0.587;
+  GrayWeightB: Double = 0.114;
+
+procedure SetGray64From16(var Gray: TColor64Rec; Value: Word); {$IFDEF USE_INLINE}inline;{$ENDIF}
+begin
+  Gray.A := Value;
+  Gray.R := Value;
+  Gray.G := Value;
+  Gray.B := Value;
+end;
+
+{ Returns True for grayscale formats with more than 16 bits of gray.}
+function IsWideGray(Info: PImageFormatInfo): Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
+begin
+  Result := Info.BytesPerPixel div Info.ChannelCount > 2;
+end;
+
+{ Sets grayscale value given in range 0..1. Formats with more than 16 bits
+  of gray get 32 bits of precision, for others it is rounded to 16 bits.}
+procedure SetGray64(var Gray: TColor64Rec; const Value: Double; DstInfo: PImageFormatInfo);
+var
+  Clamped: Double;
+  Value32: UInt32;
+begin
+  Clamped := Value;
+  if Clamped < 0.0 then
+    Clamped := 0.0
+  else if Clamped > 1.0 then
+    Clamped := 1.0;
+
+  if IsWideGray(DstInfo) then
+  begin
+    Value32 := Round(Clamped * MaxGray32);
+    Gray.A := Value32 shr 16;
+    Gray.R := Value32 and $FFFF;
+    Gray.G := Gray.A;
+    Gray.B := Gray.R;
+  end
+  else
+    SetGray64From16(Gray, Round(Clamped * MaxChannel16));
+end;
+
+{ Returns grayscale value in range 0..1 with 32 bits of precision.}
+function Gray64ToFloat(const Gray: TColor64Rec): Double; {$IFDEF USE_INLINE}inline;{$ENDIF}
+begin
+  Result := (Gray.A * TwoPow16 + Gray.R) / MaxGray32;
+end;
+
 procedure ChannelGetSrcPixel(Src: PByte; SrcInfo: PImageFormatInfo;
   var Pix: TColor64Rec);
 var
@@ -2450,33 +2529,33 @@ begin
     1:
       begin
         PFGetARGB(SrcInfo.PixelFormat^, Src^, A, R, G, B);
-        Pix.A := A shl 8;
-        Pix.R := R shl 8;
-        Pix.G := G shl 8;
-        Pix.B := B shl 8;
+        Pix.A := Scale8To16(A);
+        Pix.R := Scale8To16(R);
+        Pix.G := Scale8To16(G);
+        Pix.B := Scale8To16(B);
       end;
     2:
       begin
         PFGetARGB(SrcInfo.PixelFormat^, PWord(Src)^, A, R, G, B);
-        Pix.A := A shl 8;
-        Pix.R := R shl 8;
-        Pix.G := G shl 8;
-        Pix.B := B shl 8;
+        Pix.A := Scale8To16(A);
+        Pix.R := Scale8To16(R);
+        Pix.G := Scale8To16(G);
+        Pix.B := Scale8To16(B);
       end;
     3:
       with Pix do
       begin
-        R := MulDiv(PColor24Rec(Src).R, 65535, 255);
-        G := MulDiv(PColor24Rec(Src).G, 65535, 255);
-        B := MulDiv(PColor24Rec(Src).B, 65535, 255);
+        R := Scale8To16(PColor24Rec(Src).R);
+        G := Scale8To16(PColor24Rec(Src).G);
+        B := Scale8To16(PColor24Rec(Src).B);
       end;
     4:
       with Pix do
       begin
-        A := MulDiv(PColor32Rec(Src).A, 65535, 255);
-        R := MulDiv(PColor32Rec(Src).R, 65535, 255);
-        G := MulDiv(PColor32Rec(Src).G, 65535, 255);
-        B := MulDiv(PColor32Rec(Src).B, 65535, 255);
+        A := Scale8To16(PColor32Rec(Src).A);
+        R := Scale8To16(PColor32Rec(Src).R);
+        G := Scale8To16(PColor32Rec(Src).G);
+        B := Scale8To16(PColor32Rec(Src).B);
       end;
     6:
       with Pix do
@@ -2506,24 +2585,24 @@ begin
     SwapValues(PixW.R, PixW.B);
   // Pix contains 64 bit color value with 16 bit for each channel
   case DstInfo.BytesPerPixel of
-    1: Dst^ := PFSetARGB(DstInfo.PixelFormat^, PixW.A shr 8,
-        PixW.R shr 8, PixW.G shr 8, PixW.B shr 8);
-    2: PWord(Dst)^ := PFSetARGB(DstInfo.PixelFormat^, PixW.A shr 8,
-        PixW.R shr 8, PixW.G shr 8, PixW.B shr 8);
+    1: Dst^ := PFSetARGB(DstInfo.PixelFormat^, Scale16To8(PixW.A),
+        Scale16To8(PixW.R), Scale16To8(PixW.G), Scale16To8(PixW.B));
+    2: PWord(Dst)^ := PFSetARGB(DstInfo.PixelFormat^, Scale16To8(PixW.A),
+        Scale16To8(PixW.R), Scale16To8(PixW.G), Scale16To8(PixW.B));
     3:
       with PColor24Rec(Dst)^ do
       begin
-        R := MulDiv(PixW.R, 255, 65535);
-        G := MulDiv(PixW.G, 255, 65535);
-        B := MulDiv(PixW.B, 255, 65535);
+        R := Scale16To8(PixW.R);
+        G := Scale16To8(PixW.G);
+        B := Scale16To8(PixW.B);
       end;
     4:
       with PColor32Rec(Dst)^ do
       begin
-        A := MulDiv(PixW.A, 255, 65535);
-        R := MulDiv(PixW.R, 255, 65535);
-        G := MulDiv(PixW.G, 255, 65535);
-        B := MulDiv(PixW.B, 255, 65535);
+        A := Scale16To8(PixW.A);
+        R := Scale16To8(PixW.R);
+        G := Scale16To8(PixW.G);
+        B := Scale16To8(PixW.B);
       end;
     6:
       with PColor48Rec(Dst)^ do
@@ -2543,28 +2622,30 @@ begin
   // Source alpha is scaled to 16 bits and stored in Alpha,
   // grayscale value is scaled to 64 bits and stored in Gray
   case SrcInfo.BytesPerPixel of
-    1: Gray.A := MulDiv(Src^, 65535, 255);
+    1: SetGray64From16(Gray, Scale8To16(Src^));
     2:
       if SrcInfo.HasAlphaChannel then
         with PWordRec(Src)^ do
         begin
-          Alpha := MulDiv(High, 65535, 255);
-          Gray.A := MulDiv(Low, 65535, 255);
+          Alpha := Scale8To16(High);
+          SetGray64From16(Gray, Scale8To16(Low));
         end
       else
-        Gray.A := PWord(Src)^;
+        SetGray64From16(Gray, PWord(Src)^);
     4:
       if SrcInfo.HasAlphaChannel then
         with PUInt32Rec(Src)^ do
         begin
           Alpha := High;
-          Gray.A := Low;
+          SetGray64From16(Gray, Low);
         end
       else
         with PUInt32Rec(Src)^ do
         begin
           Gray.A := High;
           Gray.R := Low;
+          Gray.G := High;
+          Gray.B := Low;
         end;
     8: Gray.Color := PColor64(Src)^;
   end;
@@ -2580,13 +2661,13 @@ begin
   // Gray contains grayscale value scaled to 64 bits, Alpha contains
   // alpha value scaled to 16 bits
   case DstInfo.BytesPerPixel of
-    1: Dst^ := MulDiv(Gray.A, 255, 65535);
+    1: Dst^ := Scale16To8(Gray.A);
     2:
       if DstInfo.HasAlphaChannel then
         with PWordRec(Dst)^ do
         begin
-          High := MulDiv(Alpha, 255, 65535);
-          Low := MulDiv(Gray.A, 255, 65535);
+          High := Scale16To8(Alpha);
+          Low := Scale16To8(Gray.A);
         end
       else
         PWord(Dst)^ := Gray.A;
@@ -2721,10 +2802,10 @@ begin
   else if Info.HasGrayChannel then
   begin
     GrayGetSrcPixel(Bits, Info, Pix64, Alpha);
-    Result.A := MulDiv(Alpha, 255, 65535);
-    Result.R := MulDiv(Pix64.A, 255, 65535);
-    Result.G := MulDiv(Pix64.A, 255, 65535);
-    Result.B := MulDiv(Pix64.A, 255, 65535);
+    Result.A := Scale16To8(Alpha);
+    Result.R := Scale16To8(Pix64.A);
+    Result.G := Result.R;
+    Result.B := Result.R;
   end
   else if Info.IsIndexed then
   begin
@@ -2734,10 +2815,10 @@ begin
   else
   begin
     ChannelGetSrcPixel(Bits, Info, Pix64);
-    Result.A := MulDiv(Pix64.A, 255, 65535);
-    Result.R := MulDiv(Pix64.R, 255, 65535);
-    Result.G := MulDiv(Pix64.G, 255, 65535);
-    Result.B := MulDiv(Pix64.B, 255, 65535);
+    Result.A := Scale16To8(Pix64.A);
+    Result.R := Scale16To8(Pix64.R);
+    Result.G := Scale16To8(Pix64.G);
+    Result.B := Scale16To8(Pix64.B);
   end;
 end;
 
@@ -2766,10 +2847,9 @@ begin
   end
   else if Info.HasGrayChannel then
   begin
-    Alpha := MulDiv(Color.A, 65535, 255);
-    Pix64.Color := 0;
-    Pix64.A := MulDiv(Round(GrayConv.R * Color.R + GrayConv.G * Color.G +
-      GrayConv.B * Color.B), 65535, 255);
+    Alpha := Scale8To16(Color.A);
+    SetGray64From16(Pix64, Scale8To16(Round(GrayConv.R * Color.R + GrayConv.G * Color.G +
+      GrayConv.B * Color.B)));
     GraySetDstPixel(Bits, Info, Pix64, Alpha);
   end
   else if Info.IsIndexed then
@@ -2779,10 +2859,10 @@ begin
   end
   else
   begin
-    Pix64.A := MulDiv(Color.A, 65535, 255);
-    Pix64.R := MulDiv(Color.R, 65535, 255);
-    Pix64.G := MulDiv(Color.G, 65535, 255);
-    Pix64.B := MulDiv(Color.B, 65535, 255);
+    Pix64.A := Scale8To16(Color.A);
+    Pix64.R := Scale8To16(Color.R);
+    Pix64.G := Scale8To16(Color.G);
+    Pix64.B := Scale8To16(Color.B);
     ChannelSetDstPixel(Bits, Info, Pix64);
   end;
 end;
@@ -2819,10 +2899,10 @@ begin
   begin
     IndexGetSrcPixel(Bits, Info, Index);
     Pix32 := Palette[Index];
-    Result.A := Pix32.A * 257;
-    Result.R := Pix32.R * 257;
-    Result.G := Pix32.G * 257;
-    Result.B := Pix32.B * 257;
+    Result.A := Scale8To16(Pix32.A);
+    Result.R := Scale8To16(Pix32.R);
+    Result.G := Scale8To16(Pix32.G);
+    Result.B := Scale8To16(Pix32.B);
   end
   else
   begin
@@ -2851,17 +2931,16 @@ begin
   end
   else if Info.HasGrayChannel then
   begin
-    Pix64.Color := 0;
-    Pix64.A := ClampToWord(Round(GrayConv.R * Color.R + GrayConv.G * Color.G +
-      GrayConv.B * Color.B));
+    SetGray64From16(Pix64, ClampToWord(Round(GrayConv.R * Color.R + GrayConv.G * Color.G +
+      GrayConv.B * Color.B)));
     GraySetDstPixel(Bits, Info, Pix64, Color.A);
   end
   else if Info.IsIndexed then
   begin
-    Pix32.A := Color.A shr 8;
-    Pix32.R := Color.R shr 8;
-    Pix32.G := Color.G shr 8;
-    Pix32.B := Color.B shr 8;
+    Pix32.A := Scale16To8(Color.A);
+    Pix32.R := Scale16To8(Color.R);
+    Pix32.G := Scale16To8(Color.G);
+    Pix32.B := Scale16To8(Color.B);
     Index := FindColor(Palette, Info.PaletteEntries, Pix32.Color);
     IndexSetDstPixel(Bits, Info, Index);
   end
@@ -2886,9 +2965,12 @@ begin
   begin
     GrayGetSrcPixel(Bits, Info, Pix64, Alpha);
     Result.A := Alpha * OneDiv16Bit;
-    Result.R := Pix64.A * OneDiv16Bit;
-    Result.G := Pix64.A * OneDiv16Bit;
-    Result.B := Pix64.A * OneDiv16Bit;
+    if IsWideGray(Info) then
+      Result.R := Gray64ToFloat(Pix64)
+    else
+      Result.R := Pix64.A * OneDiv16Bit;
+    Result.G := Result.R;
+    Result.B := Result.R;
   end
   else if Info.IsIndexed then
   begin
@@ -2923,9 +3005,7 @@ begin
   else if Info.HasGrayChannel then
   begin
     Alpha := ClampToWord(Round(Color.A * 65535.0));
-    Pix64.Color := 0;
-    Pix64.A := ClampToWord(Round((GrayConv.R * Color.R + GrayConv.G * Color.G +
-      GrayConv.B * Color.B) * 65535.0));
+    SetGray64(Pix64, GrayWeightR * Color.R + GrayWeightG * Color.G + GrayWeightB * Color.B, Info);
     GraySetDstPixel(Bits, Info, Pix64, Alpha);
   end
   else if Info.IsIndexed then
@@ -2991,9 +3071,10 @@ procedure ChannelToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
   I: LongInt;
-  Pix64: TColor64Rec;
-  Alpha: Word;
+  Pix64, Gray: TColor64Rec;
+  WideGray: Boolean;
 begin
+  WideGray := IsWideGray(DstInfo);
   // two most common conversions (R8G8B8->Gray8 nad A8R8G8B8->Gray8)
   // are made separately from general conversions to make them faster
   if (SrcInfo.BytesPerPixel in [3, 4]) and (DstInfo.Format = ifGray8) then
@@ -3009,14 +3090,21 @@ begin
     begin
       ChannelGetSrcPixel(Src, SrcInfo, Pix64);
 
-      // alpha is saved from source pixel to Alpha,
-      // Gray value is computed and set to highest word of Pix64 so
-      // Pix64.Color contains grayscale value scaled to 64 bits
-      Alpha := Pix64.A;
-      with GrayConv do
-        Pix64.A := Round(R * Pix64.R + G * Pix64.G + B * Pix64.B);
+      // Gray value is computed from 16-bit channels and scaled to 64 bits,
+      // alpha is taken from the source pixel. More precise and slower
+      // computation is needed only for formats with more than 16 bits of gray.
+      if WideGray then
+      begin
+        SetGray64(Gray, (GrayWeightR * Pix64.R + GrayWeightG * Pix64.G +
+                  GrayWeightB * Pix64.B) / MaxChannel16, DstInfo);
+      end
+      else
+      begin
+        SetGray64From16(Gray, Round(GrayConv.R * Pix64.R + GrayConv.G * Pix64.G +
+                        GrayConv.B * Pix64.B));
+      end;
 
-      GraySetDstPixel(Dst, DstInfo, Pix64, Alpha);
+      GraySetDstPixel(Dst, DstInfo, Gray, Pix64.A);
       Inc(Src, SrcInfo.BytesPerPixel);
       Inc(Dst, DstInfo.BytesPerPixel);
     end;
@@ -3064,14 +3152,14 @@ begin
   if (SrcInfo.Format = ifGray8) and (DstInfo.Format = ifGray16) then
   begin
     for I := 0 to NumPixels - 1 do
-      PWordArray(Dst)[I] := PBuffer(Src)[I] shl 8;
+      PWordArray(Dst)[I] := Scale8To16(PBuffer(Src)[I]);
   end
   else
   begin
     if (DstInfo.Format = ifGray8) and (SrcInfo.Format = ifGray16) then
     begin
       for I := 0 to NumPixels - 1 do
-        PBuffer(Dst)[I] := PWordArray(Src)[I] shr 8;
+        PBuffer(Dst)[I] := Scale16To8(PWordArray(Src)[I]);
     end
     else
       for I := 0 to NumPixels - 1 do
@@ -3130,16 +3218,22 @@ var
   Gray: TColor64Rec;
   PixF: TColorFPRec;
   Alpha: Word;
+  WideGray: Boolean;
 begin
+  WideGray := IsWideGray(SrcInfo);
+
   for I := 0 to NumPixels - 1 do
   begin
     GrayGetSrcPixel(Src, SrcInfo, Gray, Alpha);
-    // most significant word of grayscale value is used for
-    // each channel and alpha channel is set to Alpha
-    // then all is scaled to 0..1
-    PixF.R := Gray.A * OneDiv16Bit;
-    PixF.G := Gray.A * OneDiv16Bit;
-    PixF.B := Gray.A * OneDiv16Bit;
+    // grayscale value scaled to 0..1 is used for each channel
+    // and alpha channel is set to Alpha. More precise and slower
+    // computation is needed only for formats with more than 16 bits of gray.
+    if WideGray then
+      PixF.R := Gray64ToFloat(Gray)
+    else
+      PixF.R := Gray.A * OneDiv16Bit;
+    PixF.G := PixF.R;
+    PixF.B := PixF.R;
     PixF.A := Alpha * OneDiv16Bit;
 
     FloatSetDstPixel(Dst, DstInfo, PixF);
@@ -3230,18 +3324,26 @@ var
   PixF: TColorFPRec;
   Gray: TColor64Rec;
   Alpha: Word;
+  WideGray: Boolean;
 begin
+  WideGray := IsWideGray(DstInfo);
+
   for I := 0 to NumPixels - 1 do
   begin
     FloatGetSrcPixel(Src, SrcInfo, PixF);
     ClampFloatPixel(PixF);
 
     // alpha is saved from source pixel to Alpha,
-    // Gray value is computed and set to highest word of Pix64 so
-    // Pix64.Color contains grayscale value scaled to 64 bits
+    // Gray value is computed and scaled to 64 bits. More precise and slower
+    // computation is needed only for formats with more than 16 bits of gray.
     Alpha := ClampToWord(Round(PixF.A * 65535.0));
-    Gray.A := ClampToWord(Round((GrayConv.R * PixF.R + GrayConv.G * PixF.G +
-      GrayConv.B * PixF.B) * 65535.0));
+    if WideGray then
+      SetGray64(Gray, GrayWeightR * PixF.R + GrayWeightG * PixF.G + GrayWeightB * PixF.B, DstInfo)
+    else
+    begin
+      SetGray64From16(Gray, ClampToWord(Round((GrayConv.R * PixF.R + GrayConv.G * PixF.G +
+                      GrayConv.B * PixF.B) * 65535.0)));
+    end;
 
     GraySetDstPixel(Dst, DstInfo, Gray, Alpha);
     Inc(Src, SrcInfo.BytesPerPixel);
@@ -3304,10 +3406,10 @@ begin
       IndexGetSrcPixel(Src, SrcInfo, Idx);
       with Pix64 do
       begin
-        A := SrcPal[Idx].A shl 8;
-        R := SrcPal[Idx].R shl 8;
-        G := SrcPal[Idx].G shl 8;
-        B := SrcPal[Idx].B shl 8;
+        A := Scale8To16(SrcPal[Idx].A);
+        R := Scale8To16(SrcPal[Idx].R);
+        G := Scale8To16(SrcPal[Idx].G);
+        B := Scale8To16(SrcPal[Idx].B);
       end;
       ChannelSetDstPixel(Dst, DstInfo, Pix64);
       Inc(Src, SrcInfo.BytesPerPixel);
@@ -3340,12 +3442,11 @@ begin
     begin
       // index to palette is read from source and color
       // is retrieved from palette entry. Color is then
-      // transformed to grayscale and assigned to the highest
-      // byte of Gray value
+      // transformed to grayscale value scaled to 64 bits
       IndexGetSrcPixel(Src, SrcInfo, Idx);
-      Alpha := SrcPal[Idx].A shl 8;
-      Gray.A := MulDiv(Round(GrayConv.R * SrcPal[Idx].R + GrayConv.G * SrcPal[Idx].G +
-        GrayConv.B * SrcPal[Idx].B), 65535, 255);
+      Alpha := Scale8To16(SrcPal[Idx].A);
+      SetGray64(Gray, (GrayWeightR * SrcPal[Idx].R + GrayWeightG * SrcPal[Idx].G +
+                GrayWeightB * SrcPal[Idx].B) / MaxChannel8, DstInfo);
       GraySetDstPixel(Dst, DstInfo, Gray, Alpha);
       Inc(Src, SrcInfo.BytesPerPixel);
       Inc(Dst, DstInfo.BytesPerPixel);
