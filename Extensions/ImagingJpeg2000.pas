@@ -208,7 +208,7 @@ var
     begin
       // X and Y sample separation is 1 so just need to assign component values
       // to image pixels one by one
-      for Y := 0 to NativeInt(Image.Height) * Image.Width - 1 do
+      for Y := 0 to GetPixelCount(Image) - 1 do
       begin
         if DontScaleSamples then
           WriteSample(DestPtr, ChannelSize, Comp.data[SrcIdx] + Info.Shift)
@@ -416,7 +416,7 @@ begin
 
     // If we have YCbCr image we need to convert it to RGB
     if (image.color_space = CLRSPC_SYCC) and (Info.ChannelCount in [3, 4]) then
-      ConvertYCbCrToRGB(Bits, NativeInt(Width) * Height, Info.BytesPerPixel);
+      ConvertYCbCrToRGB(Bits, GetPixelCount(Images[0]), Info.BytesPerPixel);
 
     // Set the input position just after end of image
     Seek(Handle, StartPos + Cardinal(cio.bp) - Cardinal(cio.start), smFromBeginning);
@@ -548,7 +548,7 @@ begin
           InvZ := Info.ChannelCount - 2 - Z;
       end;
       Pix := @PByteArray(Bits)[InvZ * ChannelSize];
-      for I := 0 to NativeInt(Width) * Height - 1 do
+      for I := 0 to GetPixelCount(ImageToSave) - 1 do
       begin
         case ChannelSize of
           1: image.comps[Z].data[I] := Pix^;

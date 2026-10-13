@@ -93,7 +93,7 @@ begin
   Min := 255;
   Max := 0;
   Level := 0;
-  NumPixels := NativeInt(Image.Width) * Image.Height;
+  NumPixels := GetPixelCount(Image);
   Pix := Image.Bits;
 
   // Compute histogram and determine min and max pixel values

@@ -1465,8 +1465,8 @@ begin
   begin
     Xp := 0;
     SrcPos := Yp shr 16;
-    SrcLine :=  @PBuffer(SrcImage.Bits)[((SrcY + SrcPos) * PtrInt(SrcImage.Width) + SrcX) * Info.BytesPerPixel];
-    DstPixel := @PBuffer(DstImage.Bits)[((DstY + Y)      * PtrInt(DstImage.Width) + DstX) * Info.BytesPerPixel];
+    SrcLine := GetPixelPointer(SrcImage, SrcX, SrcY + SrcPos, Info.BytesPerPixel);
+    DstPixel := GetPixelPointer(DstImage, DstX, DstY + Y, Info.BytesPerPixel);
 
     for X := 0 to DstWidth - 1 do
     begin
@@ -1856,7 +1856,7 @@ begin
         end;
       end;
 
-      DstLine := @PBuffer(DstImage.Bits)[((J + DstY) * PtrInt(DstImage.Width) + DstX) * Info.BytesPerPixel];
+      DstLine := GetPixelPointer(DstImage, DstX, J + DstY, Info.BytesPerPixel);
       // Now compute final colors for target pixels in the current row
       // by sampling horizontally
       for I := 0 to DstWidth - 1 do

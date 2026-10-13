@@ -63,6 +63,7 @@ uses
   TestImagingUtility in 'TestImagingUtility.pas',
   TestImagingFormats in 'TestImagingFormats.pas',
   TestImagingBasics in 'TestImagingBasics.pas',
+  TestImagingClasses in 'TestImagingClasses.pas',
   TestImagingColors in 'TestImagingColors.pas',
   TestImagingConversions in 'TestImagingConversions.pas',
   TestImagingManipulation in 'TestImagingManipulation.pas',

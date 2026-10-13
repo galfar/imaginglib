@@ -132,7 +132,7 @@ begin
     begin
       Col32 := Bits;
       // Translate from CMYK to RGB
-      for I := 0 to NativeInt(Width) * Height - 1 do
+      for I := 0 to GetPixelCount(Images[0]) - 1 do
       begin
         CMYKToRGB(255 - Col32.B, 255 - Col32.G, 255 - Col32.R, 255 - Col32.A,
           Col32.R, Col32.G, Col32.B);

@@ -17,7 +17,7 @@ unit ImagingClasses;
 interface
 
 uses
-  Types, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility;
+  Types, Classes, ImagingTypes, Imaging;
 
 type
   { Base abstract high level class wrapper to low level Imaging structures and
@@ -37,7 +37,8 @@ type
     function GetPalette: PPalette32; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetPaletteEntries: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetScanline(Index: Integer): Pointer;
-    function GetPixelPointer(X, Y: Integer): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
+    function GetPixelPointer(X, Y: Integer): Pointer;
+    procedure RaiseNoPixelAccess;
     function GetScanlineSize: Integer; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetFormatInfo: TImageFormatInfo; {$IFDEF USE_INLINE}inline;{$ENDIF}
     function GetValid: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
@@ -333,6 +334,10 @@ type
 
 implementation
 
+uses
+  ImagingFormats,
+  ImagingUtility;
+
 const
   DefaultWidth = 16;
   DefaultHeight = 16;
@@ -340,6 +345,7 @@ const
 resourcestring
   SErrorLoadFile = 'Failed to load images from file "%s", unknown or unsupported file format.';
   SErrorLoadStream = 'Failed to load images from stream, unknown or unsupported file format.';
+  SErrorNoPixelAccess = 'Pixels and scanlines of image in special data format (%s) cannot be accessed.';
 
 function GetArrayFromImageData(const ImageData: TImageData): TDynImageDataArray;
 begin
@@ -396,10 +402,9 @@ begin
   if Valid then
   begin
     Info := GetFormatInfo;
-    if not Info.IsSpecial then
-      Result := ImagingFormats.GetScanLine(FPData.Bits, Info, FPData.Width, Index)
-    else
-      Result := FPData.Bits;
+    if Info.IsSpecial then
+      RaiseNoPixelAccess;
+    Result := GetScanlinePointer(FPData^, Index, Info.BytesPerPixel);
   end
   else
     Result := nil;
@@ -414,11 +419,24 @@ begin
 end;
 
 function TBaseImage.GetPixelPointer(X, Y: Integer): Pointer;
+var
+  Info: TImageFormatInfo;
 begin
   if Valid then
-    Result := @PBuffer(FPData.Bits)[(Y * PtrInt(FPData.Width) + X) * GetFormatInfo.BytesPerPixel]
+  begin
+    Info := GetFormatInfo;
+    if Info.IsSpecial then
+      RaiseNoPixelAccess;
+    Result := @PBuffer(FPData.Bits)[(Y * PtrInt(FPData.Width) + X) * Info.BytesPerPixel];
+  end
   else
     Result := nil;
+end;
+
+procedure TBaseImage.RaiseNoPixelAccess;
+begin
+  // Images in special formats (DXT, binary, ...) have no pixels or scanlines to point to
+  raise EImagingError.CreateFmt(SErrorNoPixelAccess, [GetFormatName(FPData.Format)]);
 end;
 
 function TBaseImage.GetSize: Int64;

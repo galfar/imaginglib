@@ -378,7 +378,7 @@ begin
       if ChannelPixelSize = 1 then
       begin
         PCol32 := Bits;
-        for X := 0 to NativeInt(Width) * Height - 1 do
+        for X := 0 to GetPixelCount(Images[0]) - 1 do
         begin
           Col32.A := 255 - PCol32.A;
           Col32.R := 255 - PCol32.R;
@@ -392,7 +392,7 @@ begin
       else
       begin
         PCol64 := Bits;
-        for X := 0 to NativeInt(Width) * Height - 1 do
+        for X := 0 to GetPixelCount(Images[0]) - 1 do
         begin
           Col64.A := 65535 - PCol64.A;
           Col64.R := 65535 - PCol64.R;

@@ -422,7 +422,7 @@ var
     I: NativeInt;
   begin
     Ptr := Img.Bits;
-    for I := 0 to NativeInt(Img.Width) * Img.Height - 1 do
+    for I := 0 to GetPixelCount(Img) - 1 do
     begin
       if not ColTable.Exists(Ptr.Color) then
         ColTable.Add(Ptr.Color, '');

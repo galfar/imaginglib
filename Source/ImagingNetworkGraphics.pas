@@ -1092,11 +1092,11 @@ begin
 
     // LOCO transformation was used too (only for color types 2 and 6)
     if (IHDR.Filter = 64) and (IHDR.ColorType in [2, 6]) then
-      TransformLOCOToRGB(Bits, NativeInt(Width) * Height, BytesPerPixel);
+      TransformLOCOToRGB(Bits, GetPixelCount(Image), BytesPerPixel);
 
     // Images with 16 bit channels must be swapped because of PNG's big endianity
     if IHDR.BitDepth = 16 then
-      SwapEndianWord(Bits, NativeInt(Width) * Height * BytesPerPixel div SizeOf(Word));
+      SwapEndianWord(Bits, GetPixelCount(Image) * BytesPerPixel div SizeOf(Word));
   finally
     FreeMem(TotalBuffer);
     FreeMem(Data);
@@ -1186,7 +1186,7 @@ begin
     if Image.Format = ifA8Gray8 then
     begin
       GrayPtr := Image.Bits;
-      for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
+      for I := 0 to GetPixelCount(Image) - 1 do
       begin
         GrayPtr.High := AlphaPtr^;
         Inc(GrayPtr);
@@ -1196,7 +1196,7 @@ begin
     else
     begin
       ColorPtr := Image.Bits;
-      for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
+      for I := 0 to GetPixelCount(Image) - 1 do
       begin
         ColorPtr.A := AlphaPtr^;
         Inc(ColorPtr);
@@ -1585,7 +1585,7 @@ begin
     if Image.Format = ifA8Gray8 then
     begin
       GrayPtr := Image.Bits;
-      for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
+      for I := 0 to GetPixelCount(Image) - 1 do
       begin
         AlphaPtr^ := GrayPtr.High;
         Inc(GrayPtr);
@@ -1595,7 +1595,7 @@ begin
     else
     begin
       ColorPtr := Image.Bits;
-      for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
+      for I := 0 to GetPixelCount(Image) - 1 do
       begin
         AlphaPtr^ := ColorPtr.A;
         Inc(ColorPtr);
