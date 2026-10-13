@@ -231,6 +231,7 @@ type
   Usage:
     ScanLinePtr := @PBuffer(Bits)[Y * Width * Bpp];
     PBuffer(Bits)[Index] := 255;
+    PWordBuffer(Bits)[PixelIndex] := 65535;
 
   Remember:
     Use only the indexed access shown above. Pointer arithmetic
@@ -243,13 +244,17 @@ type
 {$IFDEF FPC}
   {$POINTERMATH ON}
   PBuffer = PByte;
+  PWordBuffer = ^Word;
 {$ELSE}
   {$IF CompilerVersion >= 20.0} // Delphi 2009+
     {$POINTERMATH ON}
     PBuffer = PByte;
+    PWordBuffer = ^Word;
   {$ELSE} // Delphi 2007 and earlier - no POINTERMATH support
     TBufferArray = array[0..MaxInt - 1] of Byte;
     PBuffer = ^TBufferArray;
+    TWordBufferArray = array[0..MaxInt div 2 - 1] of Word;
+    PWordBuffer = ^TWordBufferArray;
   {$IFEND}
 {$ENDIF}
 
@@ -417,9 +422,10 @@ type
 
   { Record that stores single image data and information describing it.
     Width and Height are 32 bit integers, the image size in bytes is Int64
-    (for older Delphi without UInt64) but total number of pixels
-    should still fit into 32 bits for safety - not all code (e.g. iterating over NumPixels)
-    has been updated yet.
+    (for older Delphi without UInt64). Number of pixels can exceed 32 bits
+    on 64 bit targets: data format conversions and basic manipulation
+    functions handle that, but not all code has been updated yet (canvases,
+    block compressed formats, some file formats).
     The types used should be:
       - width and height: Integer (32 bit always)
       - size in bytes: Int64

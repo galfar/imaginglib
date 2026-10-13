@@ -905,9 +905,9 @@ var
     end;
   end;
 
-  procedure TransformLOCOToRGB(Data: PByte; NumPixels, BytesPerPixel: LongInt);
+  procedure TransformLOCOToRGB(Data: PByte; NumPixels: NativeInt; BytesPerPixel: LongInt);
   var
-    I: LongInt;
+    I: NativeInt;
   begin
     for I := 0 to NumPixels - 1 do
     begin
@@ -1092,11 +1092,11 @@ begin
 
     // LOCO transformation was used too (only for color types 2 and 6)
     if (IHDR.Filter = 64) and (IHDR.ColorType in [2, 6]) then
-      TransformLOCOToRGB(Bits, Width * Height, BytesPerPixel);
+      TransformLOCOToRGB(Bits, NativeInt(Width) * Height, BytesPerPixel);
 
     // Images with 16 bit channels must be swapped because of PNG's big endianity
     if IHDR.BitDepth = 16 then
-      SwapEndianWord(Bits, Width * Height * BytesPerPixel div SizeOf(Word));
+      SwapEndianWord(Bits, NativeInt(Width) * Height * BytesPerPixel div SizeOf(Word));
   finally
     FreeMem(TotalBuffer);
     FreeMem(Data);
@@ -1111,7 +1111,7 @@ var
   AlphaImage: TImageData;
   FakeIHDR: TIHDR;
   FmtInfo: TImageFormatInfo;
-  I: LongInt;
+  I: NativeInt;
   AlphaPtr: PByte;
   GrayPtr: PWordRec;
   ColorPtr: PColor32Rec;
@@ -1186,7 +1186,7 @@ begin
     if Image.Format = ifA8Gray8 then
     begin
       GrayPtr := Image.Bits;
-      for I := 0 to Image.Width * Image.Height - 1 do
+      for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
       begin
         GrayPtr.High := AlphaPtr^;
         Inc(GrayPtr);
@@ -1196,7 +1196,7 @@ begin
     else
     begin
       ColorPtr := Image.Bits;
-      for I := 0 to Image.Width * Image.Height - 1 do
+      for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
       begin
         ColorPtr.A := AlphaPtr^;
         Inc(ColorPtr);
@@ -1536,7 +1536,7 @@ var
   AlphaPtr: PByte;
   GrayPtr: PWordRec;
   ColorPtr: PColor32Rec;
-  I: LongInt;
+  I: NativeInt;
   FakeIHDR: TIHDR;
 
   procedure SaveJpegToStream(Stream: TStream; const Image: TImageData);
@@ -1585,7 +1585,7 @@ begin
     if Image.Format = ifA8Gray8 then
     begin
       GrayPtr := Image.Bits;
-      for I := 0 to Image.Width * Image.Height - 1 do
+      for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
       begin
         AlphaPtr^ := GrayPtr.High;
         Inc(GrayPtr);
@@ -1595,7 +1595,7 @@ begin
     else
     begin
       ColorPtr := Image.Bits;
-      for I := 0 to Image.Width * Image.Height - 1 do
+      for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
       begin
         AlphaPtr^ := ColorPtr.A;
         Inc(ColorPtr);

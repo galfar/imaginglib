@@ -65,7 +65,7 @@ function IsOneChannelFloat(const Info: TImageFormatInfo): Boolean;
 
 { Decodes pixel with given index (Y * Width + X) of image in regular
   (not special) data format.}
-function ReadIdealPixel(const Image: TImageData; Index: Integer): TIdealPixel;
+function ReadIdealPixel(const Image: TImageData; Index: NativeInt): TIdealPixel;
 function IdealPixelToStr(const Pixel: TIdealPixel): string;
 
 { Fills image in regular data format with test content given by Seed. The first
@@ -255,7 +255,7 @@ begin
   end;
 end;
 
-function ReadIdealPixel(const Image: TImageData; Index: Integer): TIdealPixel;
+function ReadIdealPixel(const Image: TImageData; Index: NativeInt): TIdealPixel;
 var
   Info: TImageFormatInfo;
   Kind: TElementKind;
@@ -269,7 +269,7 @@ begin
   if not GetImageFormatInfo(Image.Format, Info) or Info.IsSpecial then
     raise Exception.Create('ReadIdealPixel: image is not in regular data format');
 
-  P := @PBuffer(Image.Bits)[PtrInt(Index) * Info.BytesPerPixel];
+  P := @PBuffer(Image.Bits)[Index * Info.BytesPerPixel];
   Kind := GetElementKind(Info);
   ElemSize := GetElementSize(Info);
   Result.A := 1.0;

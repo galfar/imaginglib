@@ -30,6 +30,11 @@ type
     function LoadFromData(const Data: AnsiString): Boolean;
     procedure CheckLoaded(const Data: AnsiString; Width, Height: Integer;
       Format: TImageFormat; const Msg: string);
+    { Saves test image in the given data format to file format given by Ext,
+      loads it to FImage and compares channels of all pixels. Only alpha is
+      compared when ColorTolerance is negative.}
+    procedure CheckRoundTrip(const Ext: string; Format: TImageFormat;
+      Width, Height: Integer; const ColorTolerance: Double);
   end;
 
   { Portable maps (PGM, PPM, PAM) with samples scaled by max value from
@@ -47,6 +52,18 @@ type
     procedure TestFullRangeIsNotScaled;
     procedure TestMaxVal256IsNotScaled;
     procedure TestInvalidMaxValIsRefused;
+    procedure TestBinaryBitmap;
+    procedure TestPAMBlackAndWhite;
+    procedure TestSavedBinaryFiles;
+    procedure TestSavedTextFiles;
+  end;
+
+  { Formats where all pixels of the image are processed after loading or
+    before saving.}
+  TTestPixelLoops = class(TImagingFileFormatTestCase)
+  published
+    procedure TestJNGAlpha;
+    procedure TestXPM;
   end;
 
   { Radiance HDR: RGBE pixels to floating point values and back.}
@@ -96,6 +113,55 @@ begin
   CheckEquals(Width, FImage.Width, Msg + ': width');
   CheckEquals(Height, FImage.Height, Msg + ': height');
   CheckEquals(GetFormatName(Format), GetFormatName(FImage.Format), Msg + ': format');
+end;
+
+procedure TImagingFileFormatTestCase.CheckRoundTrip(const Ext: string;
+  Format: TImageFormat; Width, Height: Integer; const ColorTolerance: Double);
+var
+  Original: TImageData;
+  Stream: TMemoryStream;
+  I: Integer;
+  Ch: TPixelChannel;
+  Expected, Actual: TIdealPixel;
+  Tolerance: Double;
+  Msg: string;
+begin
+  Msg := GetFormatName(Format) + ' as ' + Ext;
+  InitImage(Original);
+  Stream := TMemoryStream.Create;
+  try
+    CheckTrue(NewImage(Width, Height, Format, Original), Msg + ': NewImage');
+    FillTestImage(Original, 987654321);
+
+    CheckTrue(SaveImageToStream(Ext, Stream, Original), Msg + ': image is saved');
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), Msg + ': image is loaded');
+    CheckEquals(Width, FImage.Width, Msg + ': width');
+    CheckEquals(Height, FImage.Height, Msg + ': height');
+
+    for I := 0 to Width * Height - 1 do
+    begin
+      Expected := ReadIdealPixel(Original, I);
+      Actual := ReadIdealPixel(FImage, I);
+
+      for Ch := Low(TPixelChannel) to High(TPixelChannel) do
+      begin
+        Tolerance := 1e-9;
+        if Ch <> chAlpha then
+        begin
+          if ColorTolerance < 0 then
+            Continue;
+          Tolerance := Tolerance + ColorTolerance;
+        end;
+
+        CheckEquals(Expected.Channels[Ch], Actual.Channels[Ch], Tolerance,
+                    SysUtils.Format('%s: pixel %d %s', [Msg, I, ChannelNames[Ch]]));
+      end;
+    end;
+  finally
+    Stream.Free;
+    FreeImage(Original);
+  end;
 end;
 
 { TTestPortableMaps }
@@ -199,6 +265,73 @@ procedure TTestPortableMaps.TestInvalidMaxValIsRefused;
 begin
   CheckFalse(LoadFromData('P2' + LF + '2 1' + LF + '0' + LF + '0 0' + LF), 'Max value 0');
   CheckFalse(LoadFromData('P2' + LF + '2 1' + LF + '70000' + LF + '0 70000' + LF), 'Max value 70000');
+end;
+
+procedure TTestPortableMaps.TestBinaryBitmap;
+begin
+  // One bit per pixel, rows are padded to whole bytes, set bit is black
+  CheckLoaded('P4' + LF + '10 2' + LF + #$A5#$40 + #$00#$C0, 10, 2, ifGray8, 'PBM');
+  CheckGray8([0, 255, 0, 255, 255, 0, 255, 0, 255, 0,
+              255, 255, 255, 255, 255, 255, 255, 255, 0, 0], 'PBM');
+end;
+
+procedure TTestPortableMaps.TestPAMBlackAndWhite;
+begin
+  // Unlike in PBM set sample is white
+  CheckLoaded('P7' + LF + 'WIDTH 4' + LF + 'HEIGHT 1' + LF + 'DEPTH 1' + LF +
+              'MAXVAL 1' + LF + 'TUPLTYPE BLACKANDWHITE' + LF + 'ENDHDR' + LF + #1#0#0#1,
+              4, 1, ifGray8, 'PAM');
+  CheckGray8([255, 0, 0, 255], 'PAM');
+end;
+
+procedure TTestPortableMaps.TestSavedBinaryFiles;
+begin
+  CheckRoundTrip('pgm', ifGray8, 13, 7, 0);
+  CheckRoundTrip('pgm', ifGray16, 13, 7, 0);
+  CheckRoundTrip('ppm', ifR8G8B8, 13, 7, 0);
+  CheckRoundTrip('ppm', ifR16G16B16, 13, 7, 0);
+  CheckRoundTrip('pam', ifA8Gray8, 13, 7, 0);
+  CheckRoundTrip('pam', ifA16Gray16, 13, 7, 0);
+  CheckRoundTrip('pam', ifA8R8G8B8, 13, 7, 0);
+  CheckRoundTrip('pam', ifA16R16G16B16, 13, 7, 0);
+end;
+
+procedure TTestPortableMaps.TestSavedTextFiles;
+var
+  OldPgm, OldPpm: Integer;
+begin
+  OldPgm := GetOption(ImagingPGMSaveBinary);
+  OldPpm := GetOption(ImagingPPMSaveBinary);
+  try
+    SetOption(ImagingPGMSaveBinary, 0);
+    SetOption(ImagingPPMSaveBinary, 0);
+
+    CheckRoundTrip('pgm', ifGray8, 13, 7, 0);
+    CheckRoundTrip('pgm', ifGray16, 13, 7, 0);
+    CheckRoundTrip('ppm', ifR8G8B8, 13, 7, 0);
+    CheckRoundTrip('ppm', ifR16G16B16, 13, 7, 0);
+  finally
+    SetOption(ImagingPGMSaveBinary, OldPgm);
+    SetOption(ImagingPPMSaveBinary, OldPpm);
+  end;
+end;
+
+{ TTestPixelLoops }
+
+procedure TTestPixelLoops.TestJNGAlpha;
+begin
+  // Color is stored as JPEG, alpha is lossless by default and is put back
+  // to pixels after loading
+  CheckRoundTrip('jng', ifA8R8G8B8, 24, 17, -1);
+  CheckEquals(GetFormatName(ifA8R8G8B8), GetFormatName(FImage.Format), 'Format of color image');
+  CheckRoundTrip('jng', ifA8Gray8, 24, 17, -1);
+  CheckEquals(GetFormatName(ifA8Gray8), GetFormatName(FImage.Format), 'Format of grayscale image');
+end;
+
+procedure TTestPixelLoops.TestXPM;
+begin
+  CheckRoundTrip('xpm', ifR8G8B8, 12, 9, 0);
+  CheckRoundTrip('xpm', ifX8R8G8B8, 40, 30, 0);
 end;
 
 { TTestRadiance }
@@ -325,5 +458,6 @@ end;
 
 initialization
   RegisterImagingTest(TTestPortableMaps);
+  RegisterImagingTest(TTestPixelLoops);
   RegisterImagingTest(TTestRadiance);
 end.

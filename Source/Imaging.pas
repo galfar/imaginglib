@@ -1354,7 +1354,8 @@ function ConvertImage(var Image: TImageData; DestFormat: TImageFormat): Boolean;
 var
   NewData: Pointer;
   NewPal: PPalette32;
-  NewSize, NumPixels: Int64;
+  NewSize: Int64;
+  NumPixels: NativeInt;
   SrcInfo, DstInfo: PImageFormatInfo;
 begin
   Assert(IsImageFormatValid(DestFormat));
@@ -1390,8 +1391,8 @@ begin
 
     if (not SrcInfo.IsSpecial) and (not DstInfo.IsSpecial) then
     begin
-      NumPixels := Int64(Width) * Height;
-      NewSize := NumPixels * DstInfo.BytesPerPixel;
+      NumPixels := NativeInt(Width) * Height;
+      NewSize := Int64(NumPixels) * DstInfo.BytesPerPixel;
       NewData := AllocMem(NewSize);
       NewPal := nil;
       if DstInfo.PaletteEntries > 0 then
@@ -1821,7 +1822,8 @@ function MapImageToPalette(var Image: TImageData; Pal: PPalette32;
   end;
 
 var
-  I, MaxEntries: LongInt;
+  I: NativeInt;
+  MaxEntries: LongInt;
   PIndex: PByte;
   PColor: PColor32Rec;
   CloneARGB: TImageData;
@@ -1851,7 +1853,7 @@ begin
     // given palette and assign its index to resulting image's pixel.
     // Procedure used here is very slow but simple and memory usage friendly
     // (contrary to other methods).
-    for I := 0 to Image.Width * Image.Height - 1 do
+    for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
     begin
       PIndex^ := Byte(FindNearestColor(Image.Palette, MaxEntries, PColor^));
       Inc(PIndex);
@@ -1976,7 +1978,7 @@ begin
         TempImage := Images[I];
 
       // Update histogram with colors of each input image
-      ReduceColorsMedianCut(TempImage.Width * TempImage.Height, TempImage.Bits,
+      ReduceColorsMedianCut(NativeInt(TempImage.Width) * TempImage.Height, TempImage.Bits,
         nil, SrcInfo, nil, MaxColors, ColorReductionMask, nil, [raUpdateHistogram]);
 
       if Images[I].Bits <> TempImage.Bits then
@@ -2007,7 +2009,7 @@ begin
         NewImage(Images[I].Width, Images[I].Height, DstFormat, Target);
         // We map each input image to reduced palette and replace
         // image in array with mapped image
-        ReduceColorsMedianCut(Images[I].Width * Images[I].Height, Images[I].Bits,
+        ReduceColorsMedianCut(NativeInt(Images[I].Width) * Images[I].Height, Images[I].Bits,
           Target.Bits, SrcInfo, DstInfo, MaxColors, 0, nil, [raMapImage]);
         Move(Pal^, Target.Palette^, MaxColors * SizeOf(TColor32Rec));
 
@@ -2197,7 +2199,7 @@ var
         end;
       180:
         begin
-          Pix := @PBuffer(Image.Bits)[((Image.Height - 1) * Image.Width +
+          Pix := @PBuffer(Image.Bits)[((PtrInt(Image.Height) - 1) * Image.Width +
             (Image.Width - 1)) * BytesPerPixel];
           for Y := 0 to RotImage.Height - 1 do
             for X := 0 to RotImage.Width - 1 do
@@ -2211,7 +2213,7 @@ var
         begin
           for Y := 0 to RotImage.Height - 1 do
           begin
-            Pix := @PBuffer(Image.Bits)[((Image.Height - 1) * Image.Width + Y) * BytesPerPixel];
+            Pix := @PBuffer(Image.Bits)[((PtrInt(Image.Height) - 1) * Image.Width + Y) * BytesPerPixel];
             for X := 0 to RotImage.Width - 1 do
             begin
               CopyPixel(Pix, RotPix, BytesPerPixel);
@@ -2223,6 +2225,7 @@ var
     end;
 
     FreeMemNil(Image.Bits);
+    FreeMem(RotImage.Palette);
     RotImage.Palette := Image.Palette;
     Image := RotImage;
   end;
@@ -2314,7 +2317,7 @@ begin
         end;
       180:
         begin
-          Pix := @PBuffer(Image.Bits)[((Image.Height - 1) * Image.Width +
+          Pix := @PBuffer(Image.Bits)[((PtrInt(Image.Height) - 1) * Image.Width +
             (Image.Width - 1)) * BytesPerPixel];
           for Y := 0 to RotImage.Height - 1 do
             for X := 0 to RotImage.Width - 1 do
@@ -2328,7 +2331,7 @@ begin
         begin
           for Y := 0 to RotImage.Height - 1 do
           begin
-            Pix := @PBuffer(Image.Bits)[((Image.Height - 1) * Image.Width + Y) * BytesPerPixel];
+            Pix := @PBuffer(Image.Bits)[((PtrInt(Image.Height) - 1) * Image.Width + Y) * BytesPerPixel];
             for X := 0 to RotImage.Width - 1 do
             begin
               CopyPixel(Pix, RotPix, BytesPerPixel);
@@ -2340,6 +2343,7 @@ begin
     end;
 
     FreeMemNil(Image.Bits);
+    FreeMem(RotImage.Palette);
     RotImage.Palette := Image.Palette;
     Image := RotImage;
   except

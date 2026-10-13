@@ -194,7 +194,8 @@ var
 
   procedure ReadChannel(const Image: TImageData; const Info: TChannelInfo; const Comp: opj_image_comp; BytesPerPixel: Integer);
   var
-    X, Y, SX, SY, SrcIdx, LineBytes: Integer;
+    X, SX, SY, LineBytes: Integer;
+    Y, SrcIdx: NativeInt;
     DestPtr, NewPtr, LineUpPtr: PByte;
     DontScaleSamples: Boolean;
   begin
@@ -207,7 +208,7 @@ var
     begin
       // X and Y sample separation is 1 so just need to assign component values
       // to image pixels one by one
-      for Y := 0 to Image.Height * Image.Width - 1 do
+      for Y := 0 to NativeInt(Image.Height) * Image.Width - 1 do
       begin
         if DontScaleSamples then
           WriteSample(DestPtr, ChannelSize, Comp.data[SrcIdx] + Info.Shift)
@@ -264,9 +265,9 @@ var
     end;
   end;
 
-  procedure ConvertYCbCrToRGB(Pixels: PByte; NumPixels, BytesPerPixel: Integer);
+  procedure ConvertYCbCrToRGB(Pixels: PByte; NumPixels: NativeInt; BytesPerPixel: Integer);
   var
-    I: Integer;
+    I: NativeInt;
     PixPtr: PByte;
     CY, CB, CR: Byte;
     CYW, CBW, CRW: Word;
@@ -415,7 +416,7 @@ begin
 
     // If we have YCbCr image we need to convert it to RGB
     if (image.color_space = CLRSPC_SYCC) and (Info.ChannelCount in [3, 4]) then
-      ConvertYCbCrToRGB(Bits, Width * Height, Info.BytesPerPixel);
+      ConvertYCbCrToRGB(Bits, NativeInt(Width) * Height, Info.BytesPerPixel);
 
     // Set the input position just after end of image
     Seek(Handle, StartPos + Cardinal(cio.bp) - Cardinal(cio.start), smFromBeginning);
@@ -436,7 +437,9 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
   Info: TImageFormatInfo;
-  I, Z, InvZ, Channel, ChannelSize, NumPixels: Integer;
+  Z, InvZ, Channel, ChannelSize: Integer;
+  I: NativeInt;
+  NumPixels: Int64;
   Pix: PByte;
   image: popj_image_t;
   cio: popj_cio_t;
@@ -523,7 +526,7 @@ begin
     begin
       // Quality -> Rate computation taken from ImageMagick
       Rate := 100.0 / Sqr(115 - FQuality);
-      NumPixels := Width * Height * Info.BytesPerPixel;
+      NumPixels := Int64(Width) * Height * Info.BytesPerPixel;
       TargetSize := (NumPixels * Rate) + 550 + (Info.ChannelCount - 1) * 142;
       parameters.tcp_rates[0] := 1.0 / (TargetSize / NumPixels);
     end;
@@ -545,7 +548,7 @@ begin
           InvZ := Info.ChannelCount - 2 - Z;
       end;
       Pix := @PByteArray(Bits)[InvZ * ChannelSize];
-      for I := 0 to Width * Height - 1 do
+      for I := 0 to NativeInt(Width) * Height - 1 do
       begin
         case ChannelSize of
           1: image.comps[Z].data[I] := Pix^;

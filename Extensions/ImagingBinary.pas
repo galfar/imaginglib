@@ -37,7 +37,7 @@ type
   TStructElement = array of array of Byte;
 
   TCalcSkewAngleStats = record
-    PixelCount: Integer;
+    PixelCount: Int64;
     TestedPixels: Integer;
     AccumulatorSize: Integer;
     AccumulatedCounts: Integer;
@@ -78,8 +78,11 @@ implementation
 
 function OtsuThresholding(var Image: TImageData; BinarizeImage: Boolean): Integer;
 var
-  Histogram: array[Byte] of Single;
-  Level, Max, Min, I, J, NumPixels: Integer;
+  // Pixels are counted here first so it must be Double: Single stops counting
+  // at 2^24 which even ordinary scans of mostly white pages exceed.
+  Histogram: array[Byte] of Double;
+  Level, Max, Min, J: Integer;
+  I, NumPixels: NativeInt;
   Pix: PByte;
   Mean, Variance: Single;
   Mu, Omega, LevelMean, LargestMu: Single;
@@ -90,7 +93,7 @@ begin
   Min := 255;
   Max := 0;
   Level := 0;
-  NumPixels := Image.Width * Image.Height;
+  NumPixels := NativeInt(Image.Width) * Image.Height;
   Pix := Image.Bits;
 
   // Compute histogram and determine min and max pixel values
@@ -149,7 +152,7 @@ begin
   begin
     // Do thresholding using computed level
     Pix := Image.Bits;
-    for I := 0 to Image.Width * Image.Height - 1 do
+    for I := 0 to NumPixels - 1 do
     begin
       if Pix^ >= Level then
         Pix^ := 255
@@ -379,7 +382,7 @@ begin
   if Stats <> nil then
   begin
     Stats.BestCount := BestLines[0].Count;
-    Stats.PixelCount := PageWidth * PageHeight;
+    Stats.PixelCount := Int64(PageWidth) * PageHeight;
     Stats.AccumulatorSize := AccumulatorSize;
     Stats.AccumulatedCounts := AccumulatedCounts;
     Stats.TestedPixels := AccumulatedCounts div AlphaSteps;

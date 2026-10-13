@@ -70,7 +70,7 @@
         <PackageName Value="FCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="10">
+    <Units Count="13">
       <Unit0>
         <Filename Value="ImagingTests.dpr"/>
         <IsPartOfProject Value="True"/>
@@ -111,6 +111,18 @@
         <Filename Value="TestImagingAnalysis.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit9>
+      <Unit10>
+        <Filename Value="TestImagingManipulation.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit10>
+      <Unit11>
+        <Filename Value="TestImagingBinary.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit11>
+      <Unit12>
+        <Filename Value="TestImagingHuge.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit12>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
