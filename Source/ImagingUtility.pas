@@ -31,6 +31,11 @@ type
   {$IF not Defined(PUInt32)}
     PUInt32 = ^UInt32;
   {$IFEND}
+  {$IF CompilerVersion <= 18.5}
+    { In Delphi 7-2007 NativeInt is incorrectly defined to have size of 8 bytes,
+      redeclare it correctly (as ImagingTypes does).}
+    NativeInt = Integer;
+  {$IFEND}
 {$IFEND}
 
   TByteArray = array[0..MaxInt - 1] of Byte;
@@ -314,23 +319,23 @@ function IsLittleEndian: Boolean; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Swaps byte order of Word value.}
 function SwapEndianWord(Value: Word): Word; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Swaps byte order of multiple Word values.}
-procedure SwapEndianWord(P: PWordArray; Count: LongInt); overload;
+procedure SwapEndianWord(P: PWord; Count: NativeInt); overload;
 { Swaps byte order of UInt32 value.}
 function SwapEndianUInt32(Value: UInt32): UInt32; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Swaps byte order of multiple UInt32 values.}
-procedure SwapEndianUInt32(P: PUInt32; Count: LongInt); overload;
+procedure SwapEndianUInt32(P: PUInt32; Count: NativeInt); overload;
 
 { Calculates CRC32 for the given data.}
-procedure CalcCrc32(var Crc: UInt32; Data: Pointer; Size: LongInt);
+procedure CalcCrc32(var Crc: UInt32; Data: Pointer; Size: NativeInt);
 { Fills given memory with given Byte value. Size is size of buffer in bytes.}
-procedure FillMemoryByte(Data: Pointer; Size: LongInt; Value: Byte);
+procedure FillMemoryByte(Data: Pointer; Size: NativeInt; Value: Byte);
 { Fills given memory with given Word value. Size is size of buffer in bytes.}
-procedure FillMemoryWord(Data: Pointer; Size: LongInt; Value: Word);
+procedure FillMemoryWord(Data: Pointer; Size: NativeInt; Value: Word);
 { Fills given memory with given UInt32 value. Size is size of buffer in bytes.}
-procedure FillMemoryUInt32(Data: Pointer; Size: LongInt; Value: UInt32);
+procedure FillMemoryUInt32(Data: Pointer; Size: NativeInt; Value: UInt32);
 { Fills given memory zeroes.}
 {$EXTERNALSYM ZeroMemory} // Conflicts with WinAPI ZeroMemory in C++ Builder
-procedure ZeroMemory(Data: Pointer; Size: Integer); {$IFDEF USE_INLINE}inline;{$ENDIF}
+procedure ZeroMemory(Data: Pointer; Size: NativeInt); {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { Returns how many mipmap levels can be created for image of given size.}
 function GetNumMipMapLevels(Width, Height: LongInt): LongInt;
@@ -1244,7 +1249,8 @@ begin
 end;
 {$IFEND}
 
-procedure SwapEndianWord(P: PWordArray; Count: LongInt);
+// System.PWord: Windows unit used in implementation has its own PWord type
+procedure SwapEndianWord(P: System.PWord; Count: NativeInt);
 {$IFDEF USE_ASM}
 asm
 @Loop:
@@ -1257,14 +1263,15 @@ asm
 end;
 {$ELSE}
 var
-  I: LongInt;
+  I: NativeInt;
   Temp: Word;
 begin
   for I := 0 to Count - 1 do
   begin
-    Temp := P[I];
-    TWordRec(P[I]).Low := TWordRec(Temp).High;
-    TWordRec(P[I]).High := TWordRec(Temp).Low;
+    Temp := P^;
+    TWordRec(P^).Low := TWordRec(Temp).High;
+    TWordRec(P^).High := TWordRec(Temp).Low;
+    Inc(P);
   end;
 end;
 {$ENDIF}
@@ -1283,7 +1290,7 @@ begin
 end;
 {$IFEND}
 
-procedure SwapEndianUInt32(P: PUInt32; Count: LongInt);
+procedure SwapEndianUInt32(P: PUInt32; Count: NativeInt);
 {$IFDEF USE_ASM}
 asm
 @Loop:
@@ -1296,16 +1303,17 @@ asm
 end;
 {$ELSE}
 var
-  I: LongInt;
+  I: NativeInt;
   Temp: UInt32;
 begin
   for I := 0 to Count - 1 do
   begin
-    Temp := PUInt32Array(P)[I];
-    TUInt32Rec(PUInt32Array(P)[I]).Bytes[0] := TUInt32Rec(Temp).Bytes[3];
-    TUInt32Rec(PUInt32Array(P)[I]).Bytes[1] := TUInt32Rec(Temp).Bytes[2];
-    TUInt32Rec(PUInt32Array(P)[I]).Bytes[2] := TUInt32Rec(Temp).Bytes[1];
-    TUInt32Rec(PUInt32Array(P)[I]).Bytes[3] := TUInt32Rec(Temp).Bytes[0];
+    Temp := P^;
+    TUInt32Rec(P^).Bytes[0] := TUInt32Rec(Temp).Bytes[3];
+    TUInt32Rec(P^).Bytes[1] := TUInt32Rec(Temp).Bytes[2];
+    TUInt32Rec(P^).Bytes[2] := TUInt32Rec(Temp).Bytes[1];
+    TUInt32Rec(P^).Bytes[3] := TUInt32Rec(Temp).Bytes[0];
+    Inc(P);
   end;
 end;
 {$ENDIF}
@@ -1336,9 +1344,9 @@ begin
   end;
 end;
 
-procedure CalcCrc32(var Crc: UInt32; Data: Pointer; Size: LongInt);
+procedure CalcCrc32(var Crc: UInt32; Data: Pointer; Size: NativeInt);
 var
-  I: LongInt;
+  I: NativeInt;
   B: PByte;
 begin
   B := Data;
@@ -1349,7 +1357,7 @@ begin
   end
 end;
 
-procedure FillMemoryByte(Data: Pointer; Size: LongInt; Value: Byte);
+procedure FillMemoryByte(Data: Pointer; Size: NativeInt; Value: Byte);
 {$IFDEF USE_ASM}
 asm
   PUSH   EDI
@@ -1375,7 +1383,7 @@ begin
 end;
 {$ENDIF}
 
-procedure FillMemoryWord(Data: Pointer; Size: LongInt; Value: Word);
+procedure FillMemoryWord(Data: Pointer; Size: NativeInt; Value: Word);
 {$IFDEF USE_ASM}
 asm
   PUSH   EDI
@@ -1407,25 +1415,33 @@ asm
 end;
 {$ELSE}
 var
-  I: LongInt;
+  I: NativeInt;
   V: UInt32;
+  Item: PUInt32;
 begin
   V := UInt32(Value) shl 16 or Value;
+  Item := Data;
+
   for I := 0 to Size div 4 - 1 do
-    PUInt32Array(Data)[I] := V;
+  begin
+    Item^ := V;
+    Inc(Item);
+  end;
+
+  // The rest that does not make whole four bytes, Item points to it
   case Size mod 4 of
-    1: PByteArray(Data)[Size - 1] := Lo(Value);
-    2: PWordArray(Data)[Size div 2 - 1] := Value;
+    1: PByteArray(Item)[0] := Lo(Value);
+    2: PWord(Item)^ := Value;
     3:
       begin
-        PWordArray(Data)[Size  div 2 - 1] := Value;
-        PByteArray(Data)[Size - 1] := Lo(Value);
+        PWord(Item)^ := Value;
+        PByteArray(Item)[2] := Lo(Value);
       end;
   end;
 end;
 {$ENDIF}
 
-procedure FillMemoryUInt32(Data: Pointer; Size: LongInt; Value: UInt32);
+procedure FillMemoryUInt32(Data: Pointer; Size: NativeInt; Value: UInt32);
 {$IFDEF USE_ASM}
 asm
   PUSH   EDI
@@ -1454,23 +1470,31 @@ asm
 end;
 {$ELSE}
 var
-  I: LongInt;
+  I: NativeInt;
+  Item: PUInt32;
 begin
+  Item := Data;
+
   for I := 0 to Size div 4 - 1 do
-    PUInt32Array(Data)[I] := Value;
+  begin
+    Item^ := Value;
+    Inc(Item);
+  end;
+
+  // The rest that does not make whole four bytes, Item points to it
   case Size mod 4 of
-    1: PByteArray(Data)[Size - 1] := TUInt32Rec(Value).Bytes[0];
-    2: PWordArray(Data)[Size div 2 - 1] := TUInt32Rec(Value).Words[0];
+    1: PByteArray(Item)[0] := TUInt32Rec(Value).Bytes[0];
+    2: PWord(Item)^ := TUInt32Rec(Value).Words[0];
     3:
       begin
-        PWordArray(Data)[Size div 2 - 1] := TUInt32Rec(Value).Words[0];
-        PByteArray(Data)[Size - 1] := TUInt32Rec(Value).Bytes[0];
+        PWord(Item)^ := TUInt32Rec(Value).Words[0];
+        PByteArray(Item)[2] := TUInt32Rec(Value).Bytes[0];
       end;
   end;
 end;
 {$ENDIF}
 
-procedure ZeroMemory(Data: Pointer; Size: Integer);
+procedure ZeroMemory(Data: Pointer; Size: NativeInt);
 begin
   FillMemoryByte(Data, Size, 0);
 end;
@@ -1632,15 +1656,16 @@ begin
   TargetWidth := TargetRect.Right - TargetRect.Left;
   TargetHeight := TargetRect.Bottom - TargetRect.Top;
 
-  if SourceWidth * TargetHeight < SourceHeight * TargetWidth then
+  // Products of two dimensions are computed in 64 bits
+  if Int64(SourceWidth) * TargetHeight < Int64(SourceHeight) * TargetWidth then
   begin
-    ScaledWidth := (SourceWidth * TargetHeight) div SourceHeight;
+    ScaledWidth := (Int64(SourceWidth) * TargetHeight) div SourceHeight;
     Result := BoundsToRect(TargetRect.Left + ((TargetWidth - ScaledWidth) div 2),
       TargetRect.Top, ScaledWidth, TargetHeight);
   end
   else
   begin
-    ScaledHeight := (SourceHeight * TargetWidth) div SourceWidth;
+    ScaledHeight := (Int64(SourceHeight) * TargetWidth) div SourceWidth;
     Result := BoundsToRect(TargetRect.Left, TargetRect.Top + ((TargetHeight - ScaledHeight) div 2),
       TargetWidth, ScaledHeight);
   end;

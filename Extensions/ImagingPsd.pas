@@ -7,7 +7,7 @@
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at https://mozilla.org/MPL/2.0.
-} 
+}
 
 { This unit contains image format loader/saver for Photoshop PSD image format.}
 unit ImagingPsd;
@@ -102,7 +102,7 @@ begin
   Header.Rows := SwapEndianUInt32(Header.Rows);
   Header.Columns := SwapEndianUInt32(Header.Columns);
   Header.Mode := TPSDColorMode(SwapEndianWord(Word(Header.Mode)));
-end; 
+end;
 
 {
   TPSDFileFormat class implementation
@@ -128,7 +128,8 @@ var
   RawPal: array[0..767] of Byte;
   Compression, PackedSize: Word;
   LineSize, ChannelPixelSize, WidthBytes,
-    CurrChannel, MaxRLESize, I, Y, X: LongInt;
+    CurrChannel, MaxRLESize, I, Y: LongInt;
+  X: NativeInt;
   Info: TImageFormatInfo;
   PackedLine, LineBuffer: TDynByteArray;
   RLELineSizes: array of Word;
@@ -337,7 +338,7 @@ begin
           if ChannelPixelSize = 4 then
             SwapEndianUInt32(PUInt32(LineBuffer), Width)
           else if ChannelPixelSize = 2 then
-            SwapEndianWord(PWordArray(LineBuffer), Width);
+            SwapEndianWord(PWord(LineBuffer), Width);
 
           if Info.ChannelCount > 1 then
           begin
@@ -377,7 +378,7 @@ begin
       if ChannelPixelSize = 1 then
       begin
         PCol32 := Bits;
-        for X := 0 to Width * Height - 1 do
+        for X := 0 to NativeInt(Width) * Height - 1 do
         begin
           Col32.A := 255 - PCol32.A;
           Col32.R := 255 - PCol32.R;
@@ -391,7 +392,7 @@ begin
       else
       begin
         PCol64 := Bits;
-        for X := 0 to Width * Height - 1 do
+        for X := 0 to NativeInt(Width) * Height - 1 do
         begin
           Col64.A := 65535 - PCol64.A;
           Col64.R := 65535 - PCol64.R;
@@ -557,7 +558,7 @@ var
         if ChannelPixelSize = 4 then
           SwapEndianUInt32(PUInt32(LineBuffer), ImageToSave.Width)
         else if ChannelPixelSize = 2 then
-          SwapEndianWord(PWordArray(LineBuffer), ImageToSave.Width);
+          SwapEndianWord(PWord(LineBuffer), ImageToSave.Width);
 
         if Compression = CompressionRLE then
         begin
@@ -764,7 +765,7 @@ initialization
     - PSDs are now saved with RLE compression.
     - Mask layer saving added to SaveData for images with alpha
       (shows proper transparency when opened in Photoshop). Can be
-      enabled/disabled using option 
+      enabled/disabled using option
     - Fixed memory leak in SaveData.
 
   -- 0.23 Changes/Bug Fixes -----------------------------------

@@ -486,14 +486,14 @@ begin
       begin
         // Check if there is alpha channel present in A1R5GB5 images, if it is not
         // change format to X1R5G5B5
-        if not Has16BitImageAlpha(Width * Height, Bits) then
+        if not Has16BitImageAlpha(NativeInt(Width) * Height, Bits) then
           Format := ifX1R5G5B5;
       end
       else if Format = ifA8R8G8B8 then
       begin
         // Check if there is alpha channel present in A8R8G8B8 images, if it is not
         // change format to X8R8G8B8
-        if not Has32BitImageAlpha(Width * Height, Bits) then
+        if not Has32BitImageAlpha(NativeInt(Width) * Height, Bits) then
           Format := ifX8R8G8B8;
       end;
     end;

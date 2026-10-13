@@ -646,6 +646,22 @@ begin
   Scaled := ScaleSizeToFit(Current, MaxSize);
   CheckEquals(33, Scaled.cx, 'ScaleSizeToFit tall: width');
   CheckEquals(100, Scaled.cy, 'ScaleSizeToFit tall: height');
+
+  // Products of the dimensions do not fit into 32 bits
+  CheckEqualsRect(Rect(0, 2000, 60000, 58000),
+    ScaleRectToRect(Rect(0, 0, 48000, 44800), Rect(0, 0, 60000, 60000)), 'Large wide into square');
+  CheckEqualsRect(Rect(2000, 0, 58000, 60000),
+    ScaleRectToRect(Rect(0, 0, 44800, 48000), Rect(0, 0, 60000, 60000)), 'Large tall into square');
+  CheckEqualsRect(Rect(0, 0, 100000, 50000),
+    ScaleRectToRect(Rect(0, 0, 200000, 100000), Rect(0, 0, 100000, 50000)), 'Large, same aspect');
+
+  Current.cx := 48000;
+  Current.cy := 44800;
+  MaxSize.cx := 60000;
+  MaxSize.cy := 60000;
+  Scaled := ScaleSizeToFit(Current, MaxSize);
+  CheckEquals(60000, Scaled.cx, 'ScaleSizeToFit large: width');
+  CheckEquals(56000, Scaled.cy, 'ScaleSizeToFit large: height');
 end;
 
 initialization

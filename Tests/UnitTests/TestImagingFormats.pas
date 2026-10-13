@@ -40,6 +40,13 @@ type
     procedure TestTestImageOver32Bits;
   end;
 
+  { Checks whether pixels with 16 and 32 bits use their alpha bits.}
+  TTestAlphaChecks = class(TImagingTestCase)
+  published
+    procedure Test16Bit;
+    procedure Test32Bit;
+  end;
+
   TTestHalfFloat = class(TImagingTestCase)
   private
     procedure CheckNormalized(F: Single);
@@ -259,6 +266,50 @@ begin
   CheckFalse(TestImage(Image), 'Size truncated to 32 bits is not valid');
 end;
 
+{ TTestAlphaChecks }
+
+procedure TTestAlphaChecks.Test16Bit;
+var
+  Pixels: array[0..99] of Word;
+  I: Integer;
+begin
+  for I := 0 to High(Pixels) do
+    Pixels[I] := (I * 331) and $7FFF;
+  Pixels[3] := $7FFF;
+
+  CheckFalse(Has16BitImageAlpha(Length(Pixels), @Pixels), 'No pixel has the alpha bit');
+  CheckFalse(Has16BitImageAlpha(0, @Pixels), 'No pixels');
+
+  Pixels[High(Pixels)] := $8000;
+  CheckTrue(Has16BitImageAlpha(Length(Pixels), @Pixels), 'The last pixel has the alpha bit');
+  CheckFalse(Has16BitImageAlpha(Length(Pixels) - 1, @Pixels), 'Pixel after the end is not read');
+  CheckTrue(Has16BitImageAlpha(1, @Pixels[High(Pixels)]), 'One pixel');
+
+  Pixels[0] := $FFFF;
+  CheckTrue(Has16BitImageAlpha(1, @Pixels), 'The first pixel has the alpha bit');
+end;
+
+procedure TTestAlphaChecks.Test32Bit;
+var
+  Pixels: array[0..99] of UInt32;
+  I: Integer;
+begin
+  for I := 0 to High(Pixels) do
+    Pixels[I] := (I * 167531) and $00FFFFFF;
+  Pixels[3] := $00FFFFFF;
+
+  CheckFalse(Has32BitImageAlpha(Length(Pixels), @Pixels), 'No pixel has alpha');
+  CheckFalse(Has32BitImageAlpha(0, @Pixels), 'No pixels');
+
+  Pixels[High(Pixels)] := $01000000;
+  CheckTrue(Has32BitImageAlpha(Length(Pixels), @Pixels), 'The last pixel has alpha');
+  CheckFalse(Has32BitImageAlpha(Length(Pixels) - 1, @Pixels), 'Pixel after the end is not read');
+  CheckTrue(Has32BitImageAlpha(1, @Pixels[High(Pixels)]), 'One pixel');
+
+  Pixels[0] := $FF000000;
+  CheckTrue(Has32BitImageAlpha(1, @Pixels), 'The first pixel has alpha');
+end;
+
 { TTestHalfFloat }
 
 const
@@ -341,5 +392,6 @@ end;
 initialization
   RegisterImagingTest(TTestFormatInfos);
   RegisterImagingTest(TTestPixelsSize);
+  RegisterImagingTest(TTestAlphaChecks);
   RegisterImagingTest(TTestHalfFloat);
 end.

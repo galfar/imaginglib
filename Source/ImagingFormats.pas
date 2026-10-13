@@ -141,10 +141,10 @@ procedure Convert4To8(DataIn, DataOut: PByte; Width, Height,
   may contain 1 bit alpha but there is no indication of it. This function checks
   all 16 bit(should be X1R5G5B5 or A1R5G5B5 format) pixels and some of them have
   alpha bit set it returns True, otherwise False.}
-function Has16BitImageAlpha(NumPixels: LongInt; Data: PWord): Boolean;
+function Has16BitImageAlpha(NumPixels: NativeInt; Data: PWord): Boolean;
 { Helper function for image file loaders. This function checks is similar
   to Has16BitImageAlpha but works with A8R8G8B8/X8R8G8B8 format.}
-function Has32BitImageAlpha(NumPixels: LongInt; Data: PUInt32): Boolean;
+function Has32BitImageAlpha(NumPixels: NativeInt; Data: PUInt32): Boolean;
 { Checks if there is any relevant alpha data (any entry has alpha <> 255)
   in the given palette.}
 function PaletteHasAlpha(Palette: PPalette32; PaletteEntries: Integer): Boolean;
@@ -256,55 +256,55 @@ procedure SetPixelFPGeneric(Bits: Pointer; Info: PImageFormatInfo;
 { Image format conversion functions }
 
 { Converts any ARGB format to any ARGB format.}
-procedure ChannelToChannel(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ChannelToChannel(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 { Converts any ARGB format to any grayscale format.}
-procedure ChannelToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ChannelToGray(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 { Converts any ARGB format to any floating point format.}
-procedure ChannelToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ChannelToFloat(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 { Converts any ARGB format to any indexed format.}
-procedure ChannelToIndex(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ChannelToIndex(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; DstPal: PPalette32);
 
 { Converts any grayscale format to any grayscale format.}
-procedure GrayToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure GrayToGray(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 { Converts any grayscale format to any ARGB format.}
-procedure GrayToChannel(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure GrayToChannel(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 { Converts any grayscale format to any floating point format.}
-procedure GrayToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure GrayToFloat(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 { Converts any grayscale format to any indexed format.}
-procedure GrayToIndex(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure GrayToIndex(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; DstPal: PPalette32);
 
 { Converts any floating point format to any floating point format.}
-procedure FloatToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure FloatToFloat(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 { Converts any floating point format to any ARGB format.}
-procedure FloatToChannel(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure FloatToChannel(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 { Converts any floating point format to any grayscale format.}
-procedure FloatToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure FloatToGray(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 { Converts any floating point format to any indexed format.}
-procedure FloatToIndex(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure FloatToIndex(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; DstPal: PPalette32);
 
 { Converts any indexed format to any indexed format.}
-procedure IndexToIndex(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure IndexToIndex(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal, DstPal: PPalette32);
 { Converts any indexed format to any ARGB format.}
-procedure IndexToChannel(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure IndexToChannel(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal: PPalette32);
 { Converts any indexed format to any grayscale format.}
-procedure IndexToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure IndexToGray(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal: PPalette32);
 { Converts any indexed format to any floating point  format.}
-procedure IndexToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure IndexToFloat(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal: PPalette32);
 
 { Special formats conversion functions }
@@ -1444,34 +1444,43 @@ procedure StretchNearest(const SrcImage: TImageData; SrcX, SrcY, SrcWidth,
   DstHeight: LongInt);
 var
   Info: TImageFormatInfo;
-  ScaleX, ScaleY, X, Y, Xp, Yp: LongInt;
+  X, Y: LongInt;
+  ScaleX, ScaleY, Xp, Yp: Int64;
+  SrcPos: PtrInt;
   DstPixel, SrcLine: PByte;
 begin
   GetImageFormatInfo(SrcImage.Format, Info);
   Assert(SrcImage.Format = DstImage.Format);
   Assert(not Info.IsSpecial);
   // Use integers instead of floats for source image pixel coords
-  // Xp and Yp coords must be shifted right to get read source image coords
-  ScaleX := (SrcWidth shl 16) div DstWidth;
-  ScaleY := (SrcHeight shl 16) div DstHeight;
+  // Xp and Yp coords must be shifted right to get read source image coords.
+  // They are 64 bit, we use them as 48.16 fixed point numbers
+  // (16.16 fixed point numbers in 32 bits are not
+  // enough for images with 32768 or more pixels in one dimension).
+  ScaleX := (Int64(SrcWidth) shl 16) div DstWidth;
+  ScaleY := (Int64(SrcHeight) shl 16) div DstHeight;
   Yp := 0;
 
   for Y := 0 to DstHeight - 1 do
   begin
     Xp := 0;
-    SrcLine :=  @PBuffer(SrcImage.Bits)[((SrcY + Yp shr 16) * PtrInt(SrcImage.Width) + SrcX) * Info.BytesPerPixel];
-    DstPixel := @PBuffer(DstImage.Bits)[((DstY + Y)         * PtrInt(DstImage.Width) + DstX) * Info.BytesPerPixel];
+    SrcPos := Yp shr 16;
+    SrcLine :=  @PBuffer(SrcImage.Bits)[((SrcY + SrcPos) * PtrInt(SrcImage.Width) + SrcX) * Info.BytesPerPixel];
+    DstPixel := @PBuffer(DstImage.Bits)[((DstY + Y)      * PtrInt(DstImage.Width) + DstX) * Info.BytesPerPixel];
 
     for X := 0 to DstWidth - 1 do
     begin
+      SrcPos := Xp shr 16;
+
       case Info.BytesPerPixel of
-        1: PByte(DstPixel)^ := PBuffer(SrcLine)[Xp shr 16];
-        2: PWord(DstPixel)^ := PWordArray(SrcLine)[Xp shr 16];
-        3: PColor24Rec(DstPixel)^ := PPalette24(SrcLine)[Xp shr 16];
-        4: PColor32(DstPixel)^ := PUInt32Array(SrcLine)[Xp shr 16];
-        6: PColor48Rec(DstPixel)^ := PColor48RecArray(SrcLine)[Xp shr 16];
-        8: PColor64(DstPixel)^ := PInt64Array(SrcLine)[Xp shr 16];
-        16: PColorFPRec(DstPixel)^ := PColorFPRecArray(SrcLine)[Xp shr 16];
+        1: PByte(DstPixel)^ := PBuffer(SrcLine)[SrcPos];
+        2: PWord(DstPixel)^ := PWordArray(SrcLine)[SrcPos];
+        3: PColor24Rec(DstPixel)^ := PPalette24(SrcLine)[SrcPos];
+        4: PColor32(DstPixel)^ := PUInt32Array(SrcLine)[SrcPos];
+        6: PColor48Rec(DstPixel)^ := PColor48RecArray(SrcLine)[SrcPos];
+        8: PColor64(DstPixel)^ := PInt64Array(SrcLine)[SrcPos];
+        12: PColor96FPRec(DstPixel)^ := PColor96FPRecArray(SrcLine)[SrcPos];
+        16: PColorFPRec(DstPixel)^ := PColorFPRecArray(SrcLine)[SrcPos];
       end;
       Inc(DstPixel, Info.BytesPerPixel);
       Inc(Xp, ScaleX);
@@ -2156,9 +2165,9 @@ begin
     end;
 end;
 
-function Has16BitImageAlpha(NumPixels: LongInt; Data: PWord): Boolean;
+function Has16BitImageAlpha(NumPixels: NativeInt; Data: PWord): Boolean;
 var
-  I: LongInt;
+  I: NativeInt;
 begin
   Result := False;
   for I := 0 to NumPixels - 1 do
@@ -2172,9 +2181,9 @@ begin
   end;
 end;
 
-function Has32BitImageAlpha(NumPixels: LongInt; Data: PUInt32): Boolean;
+function Has32BitImageAlpha(NumPixels: NativeInt; Data: PUInt32): Boolean;
 var
-  I: LongInt;
+  I: NativeInt;
 begin
   Result := False;
   for I := 0 to NumPixels - 1 do
@@ -3030,10 +3039,10 @@ end;
 
 { Image format conversion functions }
 
-procedure ChannelToChannel(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ChannelToChannel(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
-  I: LongInt;
+  I: NativeInt;
   Pix64: TColor64Rec;
 begin
   // two most common conversions (RGB->ARGB and ARGB->RGB for 24/32 bit
@@ -3067,10 +3076,10 @@ begin
     end;
 end;
 
-procedure ChannelToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ChannelToGray(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
-  I: LongInt;
+  I: NativeInt;
   Pix64, Gray: TColor64Rec;
   WideGray: Boolean;
 begin
@@ -3110,10 +3119,10 @@ begin
     end;
 end;
 
-procedure ChannelToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ChannelToFloat(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
-  I: LongInt;
+  I: NativeInt;
   Pix64: TColor64Rec;
   PixF: TColorFPRec;
 begin
@@ -3133,17 +3142,17 @@ begin
   end;
 end;
 
-procedure ChannelToIndex(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure ChannelToIndex(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; DstPal: PPalette32);
 begin
   ReduceColorsMedianCut(NumPixels, Src, Dst, SrcInfo, DstInfo, DstInfo.PaletteEntries,
     GetOption(ImagingColorReductionMask), DstPal);
 end;
 
-procedure GrayToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure GrayToGray(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
-  I: LongInt;
+  I: NativeInt;
   Gray: TColor64Rec;
   Alpha: Word;
 begin
@@ -3152,14 +3161,14 @@ begin
   if (SrcInfo.Format = ifGray8) and (DstInfo.Format = ifGray16) then
   begin
     for I := 0 to NumPixels - 1 do
-      PWordArray(Dst)[I] := Scale8To16(PBuffer(Src)[I]);
+      PWordBuffer(Dst)[I] := Scale8To16(PBuffer(Src)[I]);
   end
   else
   begin
     if (DstInfo.Format = ifGray8) and (SrcInfo.Format = ifGray16) then
     begin
       for I := 0 to NumPixels - 1 do
-        PBuffer(Dst)[I] := Scale16To8(PWordArray(Src)[I]);
+        PBuffer(Dst)[I] := Scale16To8(PWordBuffer(Src)[I]);
     end
     else
       for I := 0 to NumPixels - 1 do
@@ -3173,10 +3182,10 @@ begin
   end;
 end;
 
-procedure GrayToChannel(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure GrayToChannel(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
-  I: LongInt;
+  I: NativeInt;
   Pix64: TColor64Rec;
   Alpha: Word;
 begin
@@ -3211,10 +3220,10 @@ begin
     end;
 end;
 
-procedure GrayToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure GrayToFloat(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
-  I: LongInt;
+  I: NativeInt;
   Gray: TColor64Rec;
   PixF: TColorFPRec;
   Alpha: Word;
@@ -3242,10 +3251,10 @@ begin
   end;
 end;
 
-procedure GrayToIndex(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure GrayToIndex(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; DstPal: PPalette32);
 var
-  I: LongInt;
+  I: NativeInt;
   Idx: UInt32;
   Gray: TColor64Rec;
   Alpha, Shift: Word;
@@ -3277,10 +3286,10 @@ begin
     end;
 end;
 
-procedure FloatToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure FloatToFloat(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
-  I: LongInt;
+  I: NativeInt;
   PixF: TColorFPRec;
 begin
   for I := 0 to NumPixels - 1 do
@@ -3293,10 +3302,10 @@ begin
   end;
 end;
 
-procedure FloatToChannel(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure FloatToChannel(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
-  I: LongInt;
+  I: NativeInt;
   Pix64: TColor64Rec;
   PixF: TColorFPRec;
 begin
@@ -3317,10 +3326,10 @@ begin
   end;
 end;
 
-procedure FloatToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure FloatToGray(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo);
 var
-  I: LongInt;
+  I: NativeInt;
   PixF: TColorFPRec;
   Gray: TColor64Rec;
   Alpha: Word;
@@ -3351,17 +3360,17 @@ begin
   end;
 end;
 
-procedure FloatToIndex(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure FloatToIndex(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; DstPal: PPalette32);
 begin
   ReduceColorsMedianCut(NumPixels, Src, Dst, SrcInfo, DstInfo, DstInfo.PaletteEntries,
     GetOption(ImagingColorReductionMask), DstPal);
 end;
 
-procedure IndexToIndex(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure IndexToIndex(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal, DstPal: PPalette32);
 var
-  I: LongInt;
+  I: NativeInt;
 begin
   // there is only one indexed format now, so it is just a copy
   for I := 0 to NumPixels - 1 do
@@ -3374,10 +3383,10 @@ begin
     DstPal[I] := SrcPal[I];
 end;
 
-procedure IndexToChannel(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure IndexToChannel(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal: PPalette32);
 var
-  I: LongInt;
+  I: NativeInt;
   Pix64: TColor64Rec;
   Idx: UInt32;
 begin
@@ -3417,10 +3426,10 @@ begin
     end;
 end;
 
-procedure IndexToGray(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure IndexToGray(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal: PPalette32);
 var
-  I: LongInt;
+  I: NativeInt;
   Gray: TColor64Rec;
   Alpha: Word;
   Idx: UInt32;
@@ -3453,10 +3462,10 @@ begin
     end;
 end;
 
-procedure IndexToFloat(NumPixels: LongInt; Src, Dst: PByte; SrcInfo,
+procedure IndexToFloat(NumPixels: NativeInt; Src, Dst: PByte; SrcInfo,
   DstInfo: PImageFormatInfo; SrcPal: PPalette32);
 var
-  I: LongInt;
+  I: NativeInt;
   Idx: UInt32;
   PixF: TColorFPRec;
 begin

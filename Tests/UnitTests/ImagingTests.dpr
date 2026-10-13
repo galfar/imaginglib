@@ -23,6 +23,11 @@
                             console window started by IDE does not close
                             (in Lazarus put it to Run - Run Parameters)
 
+  Both builds take:
+    --huge   adds tests of images with more than 2^31 pixels (64-bit targets
+             only, they need about 9 GB of free memory and several minutes,
+             see TestImagingHuge unit)
+
   Delphi build takes these optional switches:
     --pause  waits for Enter key after the tests finish
     --gui    shows DUnit GUI runner instead of running the tests in console
@@ -60,12 +65,15 @@ uses
   TestImagingBasics in 'TestImagingBasics.pas',
   TestImagingColors in 'TestImagingColors.pas',
   TestImagingConversions in 'TestImagingConversions.pas',
+  TestImagingManipulation in 'TestImagingManipulation.pas',
   TestImagingAnalysis in 'TestImagingAnalysis.pas',
+  TestImagingBinary in 'TestImagingBinary.pas',
+  TestImagingHuge in 'TestImagingHuge.pas',
   TestImagingFileFormats in 'TestImagingFileFormats.pas';
 
 {$IFDEF FPC}
 type
-  { Console runner of FPCUnit that knows also --pause option.}
+  { Console runner of FPCUnit that knows also --pause and --huge options.}
   TImagingTestRunner = class(TTestRunner)
   protected
     procedure AppendLongOpts; override;
@@ -75,6 +83,7 @@ procedure TImagingTestRunner.AppendLongOpts;
 begin
   inherited AppendLongOpts;
   LongOpts.Add('pause');
+  LongOpts.Add('huge');
 end;
 {$ENDIF}
 

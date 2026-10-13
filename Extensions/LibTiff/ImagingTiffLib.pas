@@ -448,7 +448,7 @@ begin
       if Photometric = PHOTOMETRIC_MINISWHITE then
         for I := 0 to Images[Idx].Height - 1 do
         begin
-          Ptr := @PByteArray(Images[Idx].Bits)[I * ScanLineSize];
+          Ptr := @PBuffer(Images[Idx].Bits)[PtrInt(I) * ScanLineSize];
           for X := 0 to ScanLineSize - 1 do
           begin
             Ptr^ := not Ptr^;
