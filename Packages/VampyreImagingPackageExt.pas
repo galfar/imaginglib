@@ -9,7 +9,7 @@ interface
 
 uses
   ElderImagery, ElderImageryBsi, ElderImageryCif, ElderImageryImg, 
-  ElderImagerySky, ElderImageryTexture, ImagingBinary, ImagingCompare, 
+  ElderImagerySky, ElderImageryTexture, ImagingBinary, ImagingAnalysis, 
   ImagingExtFileFormats, ImagingJpeg2000, ImagingPcx, ImagingPsd, ImagingTiff, 
   ImagingWebP, ImagingXpm, VampyreImagingPackageExtRegister, LazarusPackageIntf;
 

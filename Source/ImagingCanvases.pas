@@ -78,8 +78,6 @@ type
 
   TDynFPPixelArray = array of TColorFPRec;
 
-  THistogramArray = array[Byte] of Integer;
-
   TSelectPixelFunction = function(var Pixels: TDynFPPixelArray): TColorFPRec;
 
   { Base canvas class for drawing objects, applying effects, and other.
@@ -271,11 +269,6 @@ type
     { Reverses PremultiplyAlpha operation.}
     procedure UnPremultiplyAlpha;
 
-    { Calculates image histogram for each channel and also gray values. Each
-      channel has 256 values available. Channel values of data formats with higher
-      precision are scaled and rounded. Example: Red[126] specifies number of pixels
-      in image with red channel = 126.}
-    procedure GetHistogram(out Red, Green, Blue, Alpha, Gray: THistogramArray);
     { Fills image channel with given value leaving other channels intact.
       Use ChannelAlpha, ChannelRed, etc. constants from ImagingTypes as
       channel identifier.}
@@ -1727,39 +1720,6 @@ end;
 procedure TImagingCanvas.UnPremultiplyAlpha;
 begin
   PointTransform(TransformUnPremultiplyAlpha, 0, 0, 0);
-end;
-
-procedure TImagingCanvas.GetHistogram(out Red, Green, Blue, Alpha,
-  Gray: THistogramArray);
-var
-  X, Y, Bpp: Integer;
-  PixPointer: PByte;
-  Color32: TColor32Rec;
-begin
-  FillChar(Red,   SizeOf(Red), 0);
-  FillChar(Green, SizeOf(Green), 0);
-  FillChar(Blue,  SizeOf(Blue), 0);
-  FillChar(Alpha, SizeOf(Alpha), 0);
-  FillChar(Gray,  SizeOf(Gray), 0);
-
-  Bpp := FFormatInfo.BytesPerPixel;
-
-  for Y := FClipRect.Top to FClipRect.Bottom - 1 do
-  begin
-    PixPointer := @PByteArray(FPData.Bits)[Y * FPData.Width * Bpp + FClipRect.Left * Bpp];
-    for X := FClipRect.Left to FClipRect.Right - 1 do
-    begin
-      Color32 := FFormatInfo.GetPixel32(PixPointer, @FFormatInfo, FPData.Palette);
-
-      Inc(Red[Color32.R]);
-      Inc(Green[Color32.G]);
-      Inc(Blue[Color32.B]);
-      Inc(Alpha[Color32.A]);
-      Inc(Gray[Round(GrayConv.R * Color32.R + GrayConv.G * Color32.G + GrayConv.B * Color32.B)]);
-
-      Inc(PixPointer, Bpp);
-    end;
-  end;
 end;
 
 procedure TImagingCanvas.FillChannel(ChannelId: Integer; NewChannelValue: Byte);

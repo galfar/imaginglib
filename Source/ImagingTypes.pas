@@ -521,6 +521,15 @@ type
   { Handle to input/output.}
   TImagingHandle = Pointer;
 
+  { Color channels of pixels. The values are the same as of ChannelBlue,
+    ChannelGreen, ChannelRed, and ChannelAlpha constants, so they are also
+    indices of Channels arrays of color records like TColor32Rec.}
+  TColorChannel = (
+    ccBlue  = 0,
+    ccGreen = 1,
+    ccRed   = 2,
+    ccAlpha = 3);
+
   { Filters used in functions that resize images or their portions.}
   TResizeFilter = (
     rfNearest  = 0,

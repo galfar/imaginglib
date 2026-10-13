@@ -39,6 +39,7 @@ uses
   ImagingClasses,
   ImagingComponents,
   ImagingCanvases,
+  ImagingAnalysis,
   ImagingBinary,
   ImagingColors,
   ImagingUtility;
@@ -838,8 +839,9 @@ procedure TMainForm.MenuItem82Click(Sender: TObject);
 var
   T: Int64;
   Canvas: TImagingCanvas;
-  Red, Green, Blue, Alpha, Gray: THistogramArray;
-  I, MaxPixels: Integer;
+  Red, Green, Blue, Alpha, Luma: THistogramArray;
+  I: Integer;
+  MaxPixels: Int64;
   Factor: Single;
 
   procedure VisualizeHistogram(const Histo: THistogramArray; Color: TColor32; Offset: Integer);
@@ -852,16 +854,15 @@ var
   end;
 
 begin
-  if CheckCanvasFormat then
-  begin
-    Canvas := TImagingCanvas.CreateForImage(FImage);
+  T := GetTimeMicroseconds;
 
-    T := GetTimeMicroseconds;
-    Canvas.GetHistogram(Red, Green, Blue, Alpha, Gray);
+  // Works for all data formats but the special ones
+  if ComputeHistogram(FImage.ImageDataPointer^, Red, Green, Blue, Alpha, Luma) then
+  begin
     MeasureTime('Histograms computed in:', T);
 
     FImage.ActiveImage := FImage.AddImage(1024, 256, ifA8R8G8B8);
-    Canvas.CreateForImage(FImage);
+    Canvas := TImagingCanvas.CreateForImage(FImage);
     Canvas.FillColor32 := pcBlack;
     Canvas.FillRect(FImage.BoundsRect);
 
@@ -873,14 +874,14 @@ begin
     for I := 0 to 255 do
       if Blue[I] > MaxPixels then MaxPixels := Blue[I];
     for I := 0 to 255 do
-      if Gray[I] > MaxPixels then MaxPixels := Gray[I];
+      if Luma[I] > MaxPixels then MaxPixels := Luma[I];
 
     Factor := 256 / MaxPixels;
 
     VisualizeHistogram(Red, pcRed, 0);
     VisualizeHistogram(Green, pcGreen, 256);
     VisualizeHistogram(Blue, pcBlue, 512);
-    VisualizeHistogram(Gray, pcGray, 768);
+    VisualizeHistogram(Luma, pcGray, 768);
 
     Canvas.Free;
     UpdateView(True);
