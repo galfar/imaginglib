@@ -63,8 +63,8 @@
         <UnitName Value="ImagingBinary"/>
       </Item7>
       <Item8>
-        <Filename Value="..\Extensions\ImagingCompare.pas"/>
-        <UnitName Value="ImagingCompare"/>
+        <Filename Value="..\Extensions\ImagingAnalysis.pas"/>
+        <UnitName Value="ImagingAnalysis"/>
       </Item8>
       <Item9>
         <Filename Value="..\Extensions\ImagingExtFileFormats.pas"/>

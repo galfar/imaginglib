@@ -108,7 +108,7 @@
         <IsPartOfProject Value="True"/>
       </Unit8>
       <Unit9>
-        <Filename Value="TestImagingCompare.pas"/>
+        <Filename Value="TestImagingAnalysis.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit9>
     </Units>
