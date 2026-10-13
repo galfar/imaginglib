@@ -421,7 +421,7 @@ begin
     if not MapInfo.Binary then
     begin
       Dest := Bits;
-      for I := 0 to NativeInt(Width) * Height - 1 do
+      for I := 0 to GetPixelCount(Images[0]) - 1 do
       begin
         case Format of
           ifGray8:
@@ -475,7 +475,7 @@ begin
         begin
           // Black and white PAM files must be scaled to 8bits. Note that
           // in PAM files 1=white, 0=black (reverse of PBM)
-          for I := 0 to NativeInt(Width) * Height * Iff(MapInfo.TupleType = ttBlackAndWhiteAlpha, 2, 1) - 1 do
+          for I := 0 to GetPixelCount(Images[0]) * Iff(MapInfo.TupleType = ttBlackAndWhiteAlpha, 2, 1) - 1 do
             PBuffer(Bits)[I] := PBuffer(Bits)[I] * 255;
         end
         else if MapInfo.TupleType in [ttRGB, ttRGBAlpha] then
@@ -486,7 +486,7 @@ begin
 
         // Swap byte order if needed
         if (MapInfo.BitCount = 16) and MapInfo.IsBigEndian then
-          SwapEndianWord(Bits, NativeInt(Width) * Height * Info.BytesPerPixel div SizeOf(Word));
+          SwapEndianWord(Bits, GetPixelCount(Images[0]) * Info.BytesPerPixel div SizeOf(Word));
       end
       else
       begin
@@ -500,7 +500,7 @@ begin
           Read(Handle, MonoData, MonoSize);
           Convert1To8(MonoData, Bits, Width, Height, ScanLineSize, False);
           // 1bit mono images must be scaled to 8bit, but inverted (where 0=white, 1=black)
-          for I := 0 to NativeInt(Width) * Height - 1 do
+          for I := 0 to GetPixelCount(Images[0]) - 1 do
             PBuffer(Bits)[I] := 255 - PBuffer(Bits)[I] * 255;
         finally
           FreeMem(MonoData);
@@ -516,7 +516,7 @@ begin
       Dest := Bits;
       // Scale color values according to MaxVal we got from header
       // if necessary.
-      for I := 0 to NativeInt(Width) * Height * Info.BytesPerPixel div (MapInfo.BitCount shr 3) - 1 do
+      for I := 0 to GetPixelCount(Images[0]) * Info.BytesPerPixel div (MapInfo.BitCount shr 3) - 1 do
       begin
         if MapInfo.BitCount = 8 then
           Dest^ := ScaleValue(Dest^, MapInfo.MaxVal, 255)
@@ -625,7 +625,7 @@ begin
       Src := Bits;
       LineLength := 0;
       // For each pixel find its text representation and write it to file
-      for I := 0 to NativeInt(Width) * Height - 1 do
+      for I := 0 to GetPixelCount(ImageToSave) - 1 do
       begin
         case Format of
           ifGray8: WriteString(IntToStr(Src^), PixelDelimiter);
@@ -664,7 +664,7 @@ begin
             // 8bit RGB/ARGB images: red and blue must be swapped and
             // 3 or 4 bytes must be written
             Src := Bits;
-            for I := 0 to NativeInt(Width) * Height - 1 do
+            for I := 0 to GetPixelCount(ImageToSave) - 1 do
             with PColor32Rec(Src)^ do
             begin
               if MapInfo.TupleType = ttRGBAlpha then
@@ -684,7 +684,7 @@ begin
           if MapInfo.TupleType in [ttGrayScale, ttGrayScaleAlpha] then
           begin
             // 16bit grayscale image
-            for I := 0 to NativeInt(Width) * Height * Info.BytesPerPixel div SizeOf(Word) - 1 do
+            for I := 0 to GetPixelCount(ImageToSave) * Info.BytesPerPixel div SizeOf(Word) - 1 do
             begin
               W := SwapEndianWord(PWord(Src)^);
               Write(Handle, @W, SizeOf(Word));
@@ -694,7 +694,7 @@ begin
           else
           begin
             // RGB images with 16bit channels: swap RB and endian too
-            for I := 0 to NativeInt(Width) * Height - 1 do
+            for I := 0 to GetPixelCount(ImageToSave) - 1 do
             with PColor64Rec(Src)^ do
             begin
               if MapInfo.TupleType = ttRGBAlpha then

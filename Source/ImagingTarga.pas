@@ -269,7 +269,7 @@ begin
     // change format to X1R5G5B5
     if Format = ifA1R5G5B5 then
     begin
-      if not Has16BitImageAlpha(NativeInt(Width) * Height, Bits) then
+      if not Has16BitImageAlpha(GetPixelCount(Images[0]), Bits) then
         Format := ifX1R5G5B5;
     end;
 

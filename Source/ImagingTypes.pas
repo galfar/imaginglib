@@ -421,19 +421,28 @@ type
   PPalette24 = ^TPalette24;
 
   { Record that stores single image data and information describing it.
+
     Width and Height are 32 bit integers, the image size in bytes is Int64
     (for older Delphi without UInt64). Number of pixels can exceed 32 bits
     on 64 bit targets: data format conversions and basic manipulation
     functions handle that, but not all code has been updated yet (canvases,
     block compressed formats, some file formats).
-    The types used should be:
+
+    Recommended types used when working with TImageData:
       - width and height: Integer (32 bit always)
       - size in bytes: Int64
       - num pixels: NativeInt (so older Delphi can use it in for loops)
 
-    Remember, that in Pascal when multiplying integers you need to cast (one or all operands,
-    not the result!) to 64 bit even when the receiveng variable is 64 bit:
+    Careful when you multiply Width and Height, product of two 32 bit integers
+    overflows for large images. Remember that in Pascal when multiplying integers you need to cast
+    (one or all operands, not the result!) to 64 bit even when the receiveng variable is 64 bit:
       Size64 := Int64(Width) * Height * Bpp;
+
+    You can use these functions to avoid casting all the time:
+      - GetPixelCount(Image) for number of pixels
+      - Size field or GetPixelsSize for size in bytes
+      - GetPixelPointer and GetScanlinePointer for addresses of pixels (variants with
+        BytesPerPixel parameter are in this unit and are inlined)
   }
   TImageData = packed record
     Width: Integer;       // Width of image in pixels
@@ -572,8 +581,27 @@ type
   TReadProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: TIOReadWriteCount): TIOReadWriteCount; cdecl;
   TWriteProc = function(Handle: TImagingHandle; Buffer: Pointer; Count: TIOReadWriteCount): TIOReadWriteCount; cdecl;
 
+{ Returns pointer to pixel at [X, Y] of image with pixels of the given size
+  (image in regular, not special, data format). Coordinates are not checked.
+  These two functions are in this unit so that they are inlined everywhere:
+  this unit uses no other one. Imaging unit has overloads that find
+  the size of pixels themselves.}
+function GetPixelPointer(const Image: TImageData; X, Y, BytesPerPixel: Integer): Pointer; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
+{ Returns pointer to the first pixel of scanline Y of image with pixels
+  of the given size. Y is not checked.}
+function GetScanlinePointer(const Image: TImageData; Y, BytesPerPixel: Integer): Pointer; overload; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 implementation
+
+function GetPixelPointer(const Image: TImageData; X, Y, BytesPerPixel: Integer): Pointer;
+begin
+  Result := @PBuffer(Image.Bits)[(PtrInt(Y) * Image.Width + X) * BytesPerPixel];
+end;
+
+function GetScanlinePointer(const Image: TImageData; Y, BytesPerPixel: Integer): Pointer;
+begin
+  Result := @PBuffer(Image.Bits)[PtrInt(Y) * Image.Width * BytesPerPixel];
+end;
 
 {
   File Notes:

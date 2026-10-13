@@ -377,7 +377,7 @@ begin
   ElemSize := GetElementSize(Info);
   ElemCount := Info.BytesPerPixel div ElemSize;
 
-  for I := 0 to Image.Width * Image.Height - 1 do
+  for I := 0 to GetPixelCount(Image) - 1 do
   begin
     for E := 0 to ElemCount - 1 do
     begin
@@ -405,7 +405,7 @@ begin
   Kind := GetElementKind(Info);
   ElemSize := GetElementSize(Info);
   ElemCount := Info.BytesPerPixel div ElemSize;
-  PixelCount := Image.Width * Image.Height;
+  PixelCount := GetPixelCount(Image);
 
   if Info.IsFloatingPoint then
   begin

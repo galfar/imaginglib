@@ -588,7 +588,7 @@ begin
     end;
   end;
 
-  Stats.PixelCount := Int64(Image.Width) * Image.Height;
+  Stats.PixelCount := GetPixelCount(Image);
   Stats.ChannelCount := Layout.SlotCount;
   PixelCount := Stats.PixelCount;
 
@@ -734,7 +734,7 @@ begin
     end;
   end;
 
-  Diff.PixelCount := Int64(Image1.Width) * Image1.Height;
+  Diff.PixelCount := GetPixelCount(Image1);
   Diff.ChannelCount := Layout.SlotCount;
   if Diff.DiffPixelCount > 0 then
     Diff.DiffRect := Rect(MinX, MinY, MaxX + 1, MaxY + 1);
@@ -1154,7 +1154,7 @@ begin
 
   Count := 0;
   KeySize := GetColorKeySize(Layout);
-  PixelCount := NativeInt(Image.Width) * Image.Height;
+  PixelCount := GetPixelCount(Image);
   P := Image.Bits;
   FillChar(Key, SizeOf(Key), 0);
   FillChar(OtherKey, SizeOf(OtherKey), 0);

@@ -18,7 +18,8 @@ unit TestImagingBasics;
 interface
 
 uses
-  SysUtils, Classes, ImagingTypes, Imaging, ImagingUtility, ImagingTestCase;
+  SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility,
+  ImagingTestCase;
 
 type
   TTestImageLifetime = class(TImagingTestCase)
@@ -51,6 +52,21 @@ type
     procedure TestPixel32InARGB;
     procedure TestPixel32InRGB24;
     procedure TestPixel32InGray8;
+  end;
+
+  { Values computed from dimensions of image: number of pixels and addresses
+    of pixels and scanlines.}
+  TTestImageGeometry = class(TImagingTestCase)
+  private
+    FImage: TImageData;
+  protected
+    procedure SetUp; override;
+    procedure TearDown; override;
+  published
+    procedure TestPixelCount;
+    procedure TestPixelCountOver32Bits;
+    procedure TestPixelAndScanlinePointers;
+    procedure TestPointersOver32Bits;
   end;
 
   TTestImageFiles = class(TImagingTestCase)
@@ -371,8 +387,130 @@ begin
   end;
 end;
 
+{ TTestImageGeometry }
+
+{$IF Defined(CPU64) or Defined(CPUX64) or Defined(CPU64BITS)}
+  {$DEFINE HAS_64BIT_ADDRESSES}
+{$IFEND}
+
+procedure TTestImageGeometry.SetUp;
+begin
+  InitImage(FImage);
+end;
+
+procedure TTestImageGeometry.TearDown;
+begin
+  FreeImage(FImage);
+end;
+
+procedure TTestImageGeometry.TestPixelCount;
+begin
+  CheckTrue(NewImage(7, 5, ifR8G8B8, FImage), 'NewImage');
+  CheckEquals(35, GetPixelCount(FImage), '7x5');
+  CheckTrue(NewImage(1, 1, ifA16R16G16B16, FImage), 'NewImage');
+  CheckEquals(1, GetPixelCount(FImage), '1x1');
+  CheckTrue(NewImage(1000, 3000, ifGray8, FImage), 'NewImage');
+  CheckEquals(3000000, GetPixelCount(FImage), '1000x3000');
+  // Dimensions of images in block formats are rounded up
+  CheckTrue(NewImage(5, 5, ifDXT1, FImage), 'NewImage');
+  CheckEquals(64, GetPixelCount(FImage), '5x5 DXT1');
+end;
+
+procedure TTestImageGeometry.TestPixelCountOver32Bits;
+{$IFDEF HAS_64BIT_ADDRESSES}
+var
+  Image: TImageData;
+begin
+  // Bits are not touched so no memory needs to be allocated
+  InitImage(Image);
+  Image.Format := ifGray8;
+  Image.Width := 46341;
+  Image.Height := 46341;
+  CheckEquals(Int64(2147488281), Int64(GetPixelCount(Image)), 'Just over 2^31');
+  Image.Width := 65536;
+  Image.Height := 65536;
+  CheckEquals(Int64(4294967296), Int64(GetPixelCount(Image)), '2^32');
+  Image.Width := 48000;
+  Image.Height := 44800;
+  CheckEquals(Int64(2150400000), Int64(GetPixelCount(Image)), '48000x44800');
+{$ELSE}
+begin
+  // Such images cannot exist with 32-bit addresses
+{$ENDIF}
+end;
+
+procedure TTestImageGeometry.TestPixelAndScanlinePointers;
+const
+  Width = 9;
+  Height = 6;
+  Formats: array[0..6] of TImageFormat = (ifIndex8, ifGray8, ifR5G6B5, ifR8G8B8,
+    ifA8R8G8B8, ifA16R16G16B16, ifA32R32G32B32F);
+var
+  F, X, Y: Integer;
+  Info: TImageFormatInfo;
+  Expected: Pointer;
+  Msg: string;
+begin
+  for F := Low(Formats) to High(Formats) do
+  begin
+    CheckTrue(NewImage(Width, Height, Formats[F], FImage), 'NewImage');
+    CheckTrue(GetImageFormatInfo(Formats[F], Info), 'Format info');
+
+    for Y := 0 to Height - 1 do
+    begin
+      Msg := Format('%s line %d', [Info.Name, Y]);
+      Expected := @PBuffer(FImage.Bits)[Y * Width * Info.BytesPerPixel];
+      CheckTrue(GetScanlinePointer(FImage, Y) = Expected, Msg + ': GetScanlinePointer');
+      CheckTrue(GetScanlinePointer(FImage, Y, Info.BytesPerPixel) = Expected,
+        Msg + ': GetScanlinePointer with size of pixels');
+      CheckTrue(GetScanLine(FImage.Bits, Info, Width, Y) = Expected, Msg + ': GetScanLine of ImagingFormats');
+
+      for X := 0 to Width - 1 do
+      begin
+        Expected := @PBuffer(FImage.Bits)[(Y * Width + X) * Info.BytesPerPixel];
+        CheckTrue(GetPixelPointer(FImage, X, Y) = Expected, Format('%s: GetPixelPointer of %d', [Msg, X]));
+        CheckTrue(GetPixelPointer(FImage, X, Y, Info.BytesPerPixel) = Expected,
+          Format('%s: GetPixelPointer of %d with size of pixels', [Msg, X]));
+      end;
+    end;
+  end;
+end;
+
+procedure TTestImageGeometry.TestPointersOver32Bits;
+{$IFDEF HAS_64BIT_ADDRESSES}
+var
+  Image: TImageData;
+begin
+  // Addresses are only computed: with no bits the result is the offset
+  InitImage(Image);
+  Image.Format := ifA8R8G8B8;
+  Image.Width := 70000;
+  Image.Height := 70000;
+
+  CheckEquals(Int64(0), Int64(PtrUInt(GetPixelPointer(Image, 0, 0))), 'The first pixel');
+  CheckEquals(Int64(19599999996), Int64(PtrUInt(GetPixelPointer(Image, 69999, 69999))), 'The last pixel');
+  CheckEquals(Int64(19599720000), Int64(PtrUInt(GetScanlinePointer(Image, 69999))), 'The last scanline');
+  // Offset just over 2^31 and 2^32 bytes
+  CheckEquals(Int64(2147600000), Int64(PtrUInt(GetScanlinePointer(Image, 7670))), 'Scanline over 2 GB');
+  CheckEquals(Int64(4295200004), Int64(PtrUInt(GetPixelPointer(Image, 1, 15340))), 'Pixel over 4 GB');
+
+  Image.Format := ifA32R32G32B32F;
+  CheckEquals(Int64(78399999984), Int64(PtrUInt(GetPixelPointer(Image, 69999, 69999))), 'The last pixel, 16 bytes');
+
+  // Variants with the size of pixels given by the caller
+  CheckEquals(Int64(19599999996), Int64(PtrUInt(GetPixelPointer(Image, 69999, 69999, 4))), 'The last pixel, given size');
+  CheckEquals(Int64(4295200004), Int64(PtrUInt(GetPixelPointer(Image, 1, 15340, 4))), 'Pixel over 4 GB, given size');
+  CheckEquals(Int64(19599720000), Int64(PtrUInt(GetScanlinePointer(Image, 69999, 4))), 'The last scanline, given size');
+  CheckEquals(Int64(78398880000), Int64(PtrUInt(GetScanlinePointer(Image, 69999, 16))), 'The last scanline, 16 bytes');
+{$ELSE}
+begin
+  // Such images cannot exist with 32-bit addresses
+{$ENDIF}
+end;
+
 initialization
   RegisterImagingTest(TTestImageLifetime);
+  RegisterImagingTest(TTestImageGeometry);
   RegisterImagingTest(TTestPixelAccess);
   RegisterImagingTest(TTestImageFiles);
 end.

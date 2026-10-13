@@ -217,6 +217,7 @@ function ReplaceColor(var Image: TImageData; X, Y, Width, Height: LongInt;
 function StretchRect(const SrcImage: TImageData; SrcX, SrcY, SrcWidth,
   SrcHeight: LongInt; var DstImage: TImageData; DstX, DstY, DstWidth,
   DstHeight: LongInt; Filter: TResizeFilter): Boolean;
+
 { Copies pixel of Image at [X, Y] to memory pointed at by Pixel. Doesn't
   work with special formats.}
 procedure GetPixelDirect(const Image: TImageData; X, Y: LongInt; Pixel: Pointer);
@@ -247,6 +248,15 @@ function GetPixel64(const Image: TImageData; X, Y: LongInt): TColor64Rec;
   channel) is translated to native format and then written to Image.
   Works for all image formats (except special) so it is not very fast.}
 procedure SetPixel64(const Image: TImageData; X, Y: LongInt; const Color: TColor64Rec);
+
+{ Returns pointer to pixel at [X, Y] of image in regular (not special) data format.
+  Coordinates are not checked.}
+function GetPixelPointer(const Image: TImageData; X, Y: Integer): Pointer; overload;
+{ Returns pointer to the first pixel of scanline Y of image in regular
+  (not special) data format. Y is not checked.
+  Both functions have overloads with BytesPerPixel parameter in ImagingTypes
+  unit: those are inlined, use them where the size of pixels is at hand.}
+function GetScanlinePointer(const Image: TImageData; Y: Integer): Pointer; overload;
 
 { Palette Functions }
 
@@ -299,6 +309,10 @@ function PopOptions: Boolean;
 function GetImageFormatInfo(Format: TImageFormat; out Info: TImageFormatInfo): Boolean;
 { Returns size in bytes of Width x Height area of pixels. Works for all formats.}
 function GetPixelsSize(Format: TImageFormat; Width, Height: LongInt): Int64;
+{ Returns number of pixels of the image (Width * Height). Use this instead
+  of multiplying the dimensions: the product of two 32 bit integers
+  overflows for images with 2^31 pixels or more.}
+function GetPixelCount(const Image: TImageData): NativeInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
 
 { IO Functions }
 
@@ -1391,7 +1405,7 @@ begin
 
     if (not SrcInfo.IsSpecial) and (not DstInfo.IsSpecial) then
     begin
-      NumPixels := NativeInt(Width) * Height;
+      NumPixels := GetPixelCount(Image);
       NewSize := Int64(NumPixels) * DstInfo.BytesPerPixel;
       NewData := AllocMem(NewSize);
       NewPal := nil;
@@ -1488,8 +1502,8 @@ begin
     // Swap all scanlines of image
     for I := 0 to Height div 2 - 1 do
     begin
-      P1 := @PBuffer(Bits)[I * WidthBytes];
-      P2 := @PBuffer(Bits)[(Height - I - 1) * WidthBytes];
+      P1 := GetScanlinePointer(Image, I);
+      P2 := GetScanlinePointer(Image, Height - I - 1);
       Move(P1^, Buff[0], WidthBytes);
       Move(P2^, P1^, WidthBytes);
       Move(Buff[0], P2^, WidthBytes);
@@ -1509,7 +1523,6 @@ var
   Scanline: PBuffer;
   Buff: TColorFPRec;
   Bpp, Y, X, WidthDiv2, XLeft, XRight: LongInt;
-  WidthBytes: PtrInt;
   OldFmt: TImageFormat;
 begin
   Result := False;
@@ -1522,12 +1535,11 @@ begin
 
     Bpp := ImageFormatInfos[Format].BytesPerPixel;
     WidthDiv2 := Width div 2;
-    WidthBytes := Width * Bpp;
 
     // Mirror all pixels on each scanline of image
     for Y := 0 to Height - 1 do
     begin
-      Scanline := @PBuffer(Bits)[Y * WidthBytes];
+      Scanline := GetScanlinePointer(Image, Y, Bpp);
       XLeft := 0;
       XRight := (Width - 1) * Bpp;
       for X := 0 to WidthDiv2 - 1 do
@@ -1596,7 +1608,7 @@ begin
   if TestImage(Image) and (SrcChannel <> DstChannel) then
   with Image do
   try
-    NumPixels := NativeInt(Width) * Height;
+    NumPixels := GetPixelCount(Image);
     Info := ImageFormatInfos[Format];
     Data := Bits;
 
@@ -1703,7 +1715,7 @@ begin
     FillChar(TmpInfo, SizeOf(TmpInfo), 0);
     TmpInfo.PaletteEntries := MaxColors;
     TmpInfo.BytesPerPixel := 2;
-    NumPixels := Int64(Width) * Height;
+    NumPixels := GetPixelCount(Image);
     Data := AllocMem(NumPixels * TmpInfo.BytesPerPixel);
     Pal := AllocMem(MaxColors * SizeOf(TColor32Rec));
     ConvertImage(Image, ifA8R8G8B8);
@@ -1853,7 +1865,7 @@ begin
     // given palette and assign its index to resulting image's pixel.
     // Procedure used here is very slow but simple and memory usage friendly
     // (contrary to other methods).
-    for I := 0 to NativeInt(Image.Width) * Image.Height - 1 do
+    for I := 0 to GetPixelCount(Image) - 1 do
     begin
       PIndex^ := Byte(FindNearestColor(Image.Palette, MaxEntries, PColor^));
       Inc(PIndex);
@@ -1978,7 +1990,7 @@ begin
         TempImage := Images[I];
 
       // Update histogram with colors of each input image
-      ReduceColorsMedianCut(NativeInt(TempImage.Width) * TempImage.Height, TempImage.Bits,
+      ReduceColorsMedianCut(GetPixelCount(TempImage), TempImage.Bits,
         nil, SrcInfo, nil, MaxColors, ColorReductionMask, nil, [raUpdateHistogram]);
 
       if Images[I].Bits <> TempImage.Bits then
@@ -2009,7 +2021,7 @@ begin
         NewImage(Images[I].Width, Images[I].Height, DstFormat, Target);
         // We map each input image to reduced palette and replace
         // image in array with mapped image
-        ReduceColorsMedianCut(NativeInt(Images[I].Width) * Images[I].Height, Images[I].Bits,
+        ReduceColorsMedianCut(GetPixelCount(Images[I]), Images[I].Bits,
           Target.Bits, SrcInfo, DstInfo, MaxColors, 0, nil, [raMapImage]);
         Move(Pal^, Target.Palette^, MaxColors * SizeOf(TColor32Rec));
 
@@ -2188,7 +2200,7 @@ var
         begin
           for Y := 0 to RotImage.Height - 1 do
           begin
-            Pix := @PBuffer(Image.Bits)[(Image.Width - Y - 1) * BytesPerPixel];
+            Pix := GetPixelPointer(Image, Image.Width - Y - 1, 0, BytesPerPixel);
             for X := 0 to RotImage.Width - 1 do
             begin
               CopyPixel(Pix, RotPix, BytesPerPixel);
@@ -2199,8 +2211,7 @@ var
         end;
       180:
         begin
-          Pix := @PBuffer(Image.Bits)[((PtrInt(Image.Height) - 1) * Image.Width +
-            (Image.Width - 1)) * BytesPerPixel];
+          Pix := GetPixelPointer(Image, Image.Width - 1, Image.Height - 1, BytesPerPixel);
           for Y := 0 to RotImage.Height - 1 do
             for X := 0 to RotImage.Width - 1 do
             begin
@@ -2213,7 +2224,7 @@ var
         begin
           for Y := 0 to RotImage.Height - 1 do
           begin
-            Pix := @PBuffer(Image.Bits)[((PtrInt(Image.Height) - 1) * Image.Width + Y) * BytesPerPixel];
+            Pix := GetPixelPointer(Image, Y, Image.Height - 1, BytesPerPixel);
             for X := 0 to RotImage.Width - 1 do
             begin
               CopyPixel(Pix, RotPix, BytesPerPixel);
@@ -2306,7 +2317,7 @@ begin
         begin
           for Y := 0 to RotImage.Height - 1 do
           begin
-            Pix := @PBuffer(Image.Bits)[(Image.Width - Y - 1) * BytesPerPixel];
+            Pix := GetPixelPointer(Image, Image.Width - Y - 1, 0, BytesPerPixel);
             for X := 0 to RotImage.Width - 1 do
             begin
               CopyPixel(Pix, RotPix, BytesPerPixel);
@@ -2317,8 +2328,7 @@ begin
         end;
       180:
         begin
-          Pix := @PBuffer(Image.Bits)[((PtrInt(Image.Height) - 1) * Image.Width +
-            (Image.Width - 1)) * BytesPerPixel];
+          Pix := GetPixelPointer(Image, Image.Width - 1, Image.Height - 1, BytesPerPixel);
           for Y := 0 to RotImage.Height - 1 do
             for X := 0 to RotImage.Width - 1 do
             begin
@@ -2331,7 +2341,7 @@ begin
         begin
           for Y := 0 to RotImage.Height - 1 do
           begin
-            Pix := @PBuffer(Image.Bits)[((PtrInt(Image.Height) - 1) * Image.Width + Y) * BytesPerPixel];
+            Pix := GetPixelPointer(Image, Y, Image.Height - 1, BytesPerPixel);
             for X := 0 to RotImage.Width - 1 do
             begin
               CopyPixel(Pix, RotPix, BytesPerPixel);
@@ -2394,9 +2404,9 @@ begin
 
       MoveBytes := Width * Info.BytesPerPixel;
       DstWidthBytes := DstImage.Width * Info.BytesPerPixel;
-      DstPointer := @PBuffer(DstImage.Bits)[DstY * DstWidthBytes + DstX * Info.BytesPerPixel];
+      DstPointer := GetPixelPointer(DstImage, DstX, DstY, Info.BytesPerPixel);
       SrcWidthBytes := WorkImage.Width * Info.BytesPerPixel;
-      SrcPointer := @PBuffer(WorkImage.Bits)[SrcY * SrcWidthBytes + SrcX * Info.BytesPerPixel];
+      SrcPointer := GetPixelPointer(WorkImage, SrcX, SrcY, Info.BytesPerPixel);
 
       for I := 0 to Height - 1 do
       begin
@@ -2442,7 +2452,7 @@ begin
       Bpp := Info.BytesPerPixel;
       ImageWidthBytes := Image.Width * Bpp;
       RectWidthBytes := Width * Bpp;
-      LinePointer := @PBuffer(Image.Bits)[Y * ImageWidthBytes + X * Bpp];
+      LinePointer := GetPixelPointer(Image, X, Y, Bpp);
 
       for I := 0 to Height - 1 do
       begin
@@ -2495,7 +2505,7 @@ begin
       Info := ImageFormatInfos[Image.Format];
       Bpp := Info.BytesPerPixel;
       WidthBytes := Image.Width * Bpp;
-      LinePointer := @PBuffer(Image.Bits)[Y * WidthBytes + X * Bpp];
+      LinePointer := GetPixelPointer(Image, X, Y, Bpp);
 
       for I := 0 to Height - 1 do
       begin
@@ -2677,6 +2687,18 @@ begin
   Info := ImageFormatInfos[Image.Format];
   Data := @PBuffer(Image.Bits)[(Y * PtrInt(Image.Width) + X) * Info.BytesPerPixel];
   SetPixel64Generic(Data, Info, Image.Palette, Color);
+end;
+
+function GetPixelPointer(const Image: TImageData; X, Y: Integer): Pointer;
+begin
+  Assert(not ImageFormatInfos[Image.Format].IsSpecial);
+  Result := GetPixelPointer(Image, X, Y, ImageFormatInfos[Image.Format].BytesPerPixel);
+end;
+
+function GetScanlinePointer(const Image: TImageData; Y: Integer): Pointer;
+begin
+  Assert(not ImageFormatInfos[Image.Format].IsSpecial);
+  Result := GetScanlinePointer(Image, Y, ImageFormatInfos[Image.Format].BytesPerPixel);
 end;
 
 { Palette Functions }
@@ -2876,6 +2898,11 @@ begin
     Result := ImageFormatInfos[Format].GetPixelsSize(Format, Width, Height)
   else
     Result := 0;
+end;
+
+function GetPixelCount(const Image: TImageData): NativeInt;
+begin
+  Result := NativeInt(Image.Width) * Image.Height;
 end;
 
 { IO Functions }
