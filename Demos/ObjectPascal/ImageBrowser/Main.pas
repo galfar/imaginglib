@@ -100,7 +100,6 @@ type
     // Canvas for background image
     FBackCanvas: ImagingCanvases.TImagingCanvas;
     FFileName: string;
-    FLastTime: LongInt;
     FOriginalFormats: array of TImageFormat;
     FOriginalSizes: array of Int64;
     FSupported: Boolean;
@@ -118,7 +117,7 @@ type
 const
   FillColor = $FFE6F2FF;
   CheckersDensity = 32;
-  SUnsupportedFormat = 'Selected item format not supported';
+  SUnsupportedFormat = 'File format not supported';
 
 var
   MainForm: TMainForm;
@@ -158,7 +157,7 @@ end;
 procedure TMainForm.LoadFile;
 var
   I: LongInt;
-  T: Int64;
+  T: Double;
 begin
   try
     // DetermineFileFormat reads file header and returns image
@@ -176,8 +175,9 @@ begin
         Exit;
       end;
 
-      FLastTime := (ImagingUtility.GetTimeMicroseconds - T) div 1000;
-      StatusBar.SimpleText := Format('Last image loaded in: %.0n ms', [FLastTime * 1.0]);
+      T := (ImagingUtility.GetTimeMicroseconds - T) / 1000;
+      StatusBar.Panels[0].Text := Format('Image loaded in: %.0n ms', [T]);
+      StatusBar.Panels[1].Text := '';
 
       // Store original data formats and sizes for later use
       SetLength(FOriginalFormats, FImage.ImageCount);
@@ -214,17 +214,21 @@ var
   ImgSize: Int64;
 begin
   // Update image info and enable previous/next buttons
-  ImgSize := FOriginalSizes[FImage.ActiveImage];
-  if ImgSize > 8192 then
-    ImgSize := ImgSize div 1024;
+  LabFileFormat.Caption := Imaging.FindImageFileFormatByName(FFileName).Name;
+
   LabDim.Caption := Format('%dx%d pixels', [FImage.Width, FImage.Height]);
   if GlobalMetadata.GetPhysicalPixelSize(ruDpi, XRes, YRes) then
     LabDim.Caption := LabDim.Caption + Format(' (DPI %.0nx%.0n)', [XRes, YRes]);
-  LabFileFormat.Caption := Imaging.FindImageFileFormatByName(FFileName).Name;
+
   LabDataFormat.Caption := Imaging.GetFormatName(FOriginalFormats[FImage.ActiveImage]);
+  LabActImage.Caption := Format('%d/%d', [FImage.ActiveImage + 1, FImage.ImageCount]);
+
+  ImgSize := FOriginalSizes[FImage.ActiveImage];
+  if ImgSize > 8192 then
+    ImgSize := ImgSize div 1024;
   LabDataFormat.Caption := LabDataFormat.Caption +
     Format('   (Size in memory: %s %s)', [IntToStrFmt(ImgSize), Iff(ImgSize = FOriginalSizes[FImage.ActiveImage], 'B', 'KiB')]);
-  LabActImage.Caption := Format('%d/%d', [FImage.ActiveImage + 1, FImage.ImageCount]);
+
   BtnPrev.Enabled := True;
   BtnNext.Enabled := True;
   BtnFirst.Enabled := True;
@@ -232,6 +236,9 @@ begin
   BtnSave.Enabled := True;
   CheckFilter.Enabled := True;
   FSupported := True;
+
+  // Paint current image
+  PaintBox.Repaint;
 end;
 
 procedure TMainForm.SetUnsupported;
@@ -239,11 +246,13 @@ var
   X, Y, Step: LongInt;
 begin
   // Set info texts to 'unsupported' and create default image to show
-  LabDim.Caption := SUnsupportedFormat;
   LabFileFormat.Caption := SUnsupportedFormat;
-  LabDataFormat.Caption := SUnsupportedFormat;
+  LabDim.Caption := '';
+  LabDataFormat.Caption := '';
   LabActImage.Caption := '0/0';
-  StatusBar.SimpleText := 'No image loaded';
+  StatusBar.Panels[0].Text := 'No image loaded';
+  StatusBar.Panels[1].Text := '';
+
   BtnPrev.Enabled := False;
   BtnNext.Enabled := False;
   BtnFirst.Enabled := False;
@@ -267,7 +276,7 @@ begin
         FImageCanvas.FillRect(Rect(X * Step, Y * Step, (X + 1) * Step, (Y + 1) * Step));
       end;
   end;
-  // Paint current image
+  // Paint just checkered background
   PaintBox.Repaint;
 end;
 
@@ -369,6 +378,7 @@ procedure TMainForm.PaintBoxPaint(Sender: TObject);
 var
   R: TRect;
   Filter: TResizeFilter;
+  T1, T2, T3: Double;
 begin
   // Fill background with default color
   FillDefault;
@@ -378,19 +388,31 @@ begin
     Filter := rfBicubic
   else
     Filter := rfNearest;
+
   // Scale image to fit the paint box
   R := ImagingUtility.ScaleRectToRect(FImage.BoundsRect, PaintBox.ClientRect);
+
   // Create canvas for current image frame
   FImageCanvas.Free;
   FImageCanvas := FindBestCanvasForImage(FImage).CreateForImage(FImage);
+
+  T1 := ImagingUtility.GetTimeMicroseconds;
   // Stretch image over background canvas
   FImageCanvas.StretchDrawAlpha(FImage.BoundsRect, FBackCanvas, R, Filter);
+  T2 := ImagingUtility.GetTimeMicroseconds;
 
   // Draw image to canvas (without conversion) using OS drawing functions.
   // Note that DisplayImage only supports images in ifA8R8G8B8 format so
   // if you have image in different format you must convert it or
   // create standard TBitmap by calling ImagingComponents.ConvertImageToBitmap
   ImagingComponents.DisplayImage(PaintBox.Canvas, PaintBox.BoundsRect, FBack);
+  T3 := ImagingUtility.GetTimeMicroseconds;
+
+  if FSupported then
+  begin
+    StatusBar.Panels[1].Text := Format('Stretch: %.0n ms, paint: %.0n ms',
+      [(T2 - T1) / 1000, (T3 - T2) / 1000]);
+  end;
 end;
 
 procedure TMainForm.FillDefault;
