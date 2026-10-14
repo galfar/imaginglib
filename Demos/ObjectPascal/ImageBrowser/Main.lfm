@@ -7,13 +7,15 @@ object MainForm: TMainForm
   ClientHeight = 791
   ClientWidth = 1026
   Color = clWindow
+  Constraints.MinHeight = 400
+  Constraints.MinWidth = 600
   Font.CharSet = EASTEUROPE_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
+  Position = poScreenCenter
+  LCLVersion = '4.8.0.0'
   OnCreate = FormCreate
   OnDestroy = FormDestroy
-  Position = poScreenCenter
-  LCLVersion = '2.2.0.4'
   object Splitter1: TSplitter
     Left = 249
     Height = 791
@@ -29,6 +31,7 @@ object MainForm: TMainForm
     BevelOuter = bvNone
     ClientHeight = 791
     ClientWidth = 249
+    ParentBackground = False
     TabOrder = 0
     object Tree: TShellTreeView
       Left = 0
@@ -39,12 +42,13 @@ object MainForm: TMainForm
       FileSortType = fstFoldersFirst
       Images = ImageList
       Indent = 19
+      ReadOnly = False
       RightClickSelect = True
       TabOrder = 0
-      OnChange = TreeChange
-      OnKeyDown = TreeKeyDown
       Options = [tvoAutoItemHeight, tvoHideSelection, tvoKeepCollapsedNodes, tvoRightClickSelect, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
       ObjectTypes = [otFolders, otNonFolders, otHidden]
+      OnChange = TreeChange
+      OnKeyDown = TreeKeyDown
     end
   end
   object RightPanel: TPanel
@@ -58,6 +62,7 @@ object MainForm: TMainForm
     ClientWidth = 772
     Constraints.MinHeight = 300
     Constraints.MinWidth = 400
+    ParentBackground = False
     TabOrder = 1
     object InfoPanel: TPanel
       Left = 0
@@ -72,6 +77,7 @@ object MainForm: TMainForm
       ClientHeight = 90
       ClientWidth = 772
       Color = clWindow
+      ParentBackground = False
       ParentColor = False
       TabOrder = 0
       object LabDataFormat: TLabel
@@ -105,23 +111,23 @@ object MainForm: TMainForm
       end
       object Label3: TLabel
         Left = 4
-        Height = 13
+        Height = 16
         Top = 53
-        Width = 65
+        Width = 66
         BorderSpacing.Around = 4
         Caption = 'Data format:'
       end
       object Label2: TLabel
         Left = 4
-        Height = 13
+        Height = 16
         Top = 37
-        Width = 59
+        Width = 60
         BorderSpacing.Around = 4
         Caption = 'File format:'
       end
       object Label1: TLabel
         Left = 4
-        Height = 13
+        Height = 16
         Top = 21
         Width = 64
         BorderSpacing.Around = 4
@@ -129,17 +135,17 @@ object MainForm: TMainForm
       end
       object Lab1: TLabel
         Left = 4
-        Height = 13
+        Height = 16
         Top = 5
-        Width = 69
+        Width = 65
         BorderSpacing.Around = 4
         Caption = 'Selected file:'
       end
       object Label4: TLabel
         Left = 4
-        Height = 13
+        Height = 16
         Top = 69
-        Width = 90
+        Width = 88
         BorderSpacing.Around = 4
         Caption = 'Active subimage:'
       end
@@ -202,9 +208,9 @@ object MainForm: TMainForm
           0303030303030303030303080803030000000303030303030303030303030303
           0303030000000303030303030303030303030303030303000000
         }
-        OnClick = BtnPrevClick
         ShowHint = True
         ParentShowHint = False
+        OnClick = BtnPrevClick
       end
       object BtnNext: TSpeedButton
         Left = 257
@@ -259,9 +265,9 @@ object MainForm: TMainForm
           0303030000000303030303030303030303030303030303000000
         }
         Layout = blGlyphRight
-        OnClick = BtnNextClick
         ShowHint = True
         ParentShowHint = False
+        OnClick = BtnNextClick
       end
       object BtnFirst: TSpeedButton
         Left = 316
@@ -315,9 +321,9 @@ object MainForm: TMainForm
           08080F0303030303030303030303080F03030303030303030303030303030303
           0303030303030303030303030303030303030303030303030303
         }
-        OnClick = BtnFirstClick
         ShowHint = True
         ParentShowHint = False
+        OnClick = BtnFirstClick
       end
       object BtnLast: TSpeedButton
         Left = 345
@@ -373,9 +379,9 @@ object MainForm: TMainForm
           030308080F030300000003030303030303030303030303030303030303030300
           0000030303030303030303030303030303030303030303000000
         }
-        OnClick = BtnLastClick
         ShowHint = True
         ParentShowHint = False
+        OnClick = BtnLastClick
       end
       object BtnSave: TButton
         Left = 639
@@ -384,20 +390,20 @@ object MainForm: TMainForm
         Width = 129
         Anchors = [akTop, akRight]
         Caption = 'Save Image Copy'
-        OnClick = BtnSaveClick
         TabOrder = 0
+        OnClick = BtnSaveClick
       end
       object CheckFilter: TCheckBox
-        Left = 655
-        Height = 18
+        Left = 654
+        Height = 21
         Top = 36
-        Width = 105
+        Width = 106
         Anchors = [akTop, akRight]
         Caption = 'Bicubic filtering'
         Checked = True
-        OnClick = CheckFilterClick
         State = cbChecked
         TabOrder = 1
+        OnClick = CheckFilterClick
       end
     end
     object ViewPanel: TPanel
@@ -410,12 +416,13 @@ object MainForm: TMainForm
       ClientHeight = 693
       ClientWidth = 772
       Color = 16777126
+      ParentBackground = False
       ParentColor = False
       TabOrder = 1
       OnResize = ViewPanelResize
       object PaintBox: TPaintBox
         Left = 0
-        Height = 675
+        Height = 672
         Top = 0
         Width = 772
         Align = alClient
@@ -425,12 +432,19 @@ object MainForm: TMainForm
       end
       object StatusBar: TStatusBar
         Left = 0
-        Height = 18
-        Top = 675
+        Height = 21
+        Top = 672
         Width = 772
         Color = clWhite
-        Panels = <>
+        Panels = <        
+          item
+            Width = 200
+          end        
+          item
+            Width = 200
+          end>
         ParentColor = False
+        SimplePanel = False
       end
     end
   end

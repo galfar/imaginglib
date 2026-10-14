@@ -1864,7 +1864,7 @@ var
   DestPix: PColor32Rec;
   Accum: TColor32Rec;
 begin
-  if (Filter = rfBicubic) or (DestCanvas.ClassType <> Self.ClassType) then
+  if not (Filter in [rfNearest, rfBilinear]) or (DestCanvas.ClassType <> Self.ClassType) then
   begin
     inherited;
     Exit;

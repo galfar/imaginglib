@@ -414,8 +414,14 @@ object MainForm: TMainForm
         Width = 774
         Height = 19
         Color = clWhite
-        Panels = <>
-        SimplePanel = True
+        Panels = <        
+          item
+            Width = 200
+          end        
+          item
+            Width = 200
+          end>
+        SimplePanel = False
       end
     end
   end
