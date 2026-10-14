@@ -11,6 +11,7 @@ uses
   ImagingClasses in '..\..\..\Source\ImagingClasses.pas';
 
 {$R *.res}
+{$R ..\Common\MainIcon.res}
 
 begin
 {$IFDEF LCL}

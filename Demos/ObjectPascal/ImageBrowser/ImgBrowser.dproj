@@ -36,7 +36,6 @@
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_DcuOutput>..\..\Bin\Dcu\$(Platform)\$(MSBuildProjectName)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
-        <Icon_MainIcon>..\..\Data\Imaging.ico</Icon_MainIcon>
         <DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
         <DCC_E>false</DCC_E>
         <DCC_StrictVarStrings>false</DCC_StrictVarStrings>

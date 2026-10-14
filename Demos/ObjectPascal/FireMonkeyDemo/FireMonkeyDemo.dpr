@@ -1,7 +1,5 @@
 program FireMonkeyDemo;
 
-{$R *.dres}
-
 uses
   FMX.Forms,
   FMX.Types,
@@ -18,6 +16,8 @@ uses
   ImagingFmx in '..\..\..\Extensions\ImagingFmx.pas';
 
 {$R *.res}
+{$R ..\Common\MainIcon.res}
+{$R ..\Common\Logo.res}
 
 begin
   //FMX.Types.GlobalUseDirect2DSoftware := True;

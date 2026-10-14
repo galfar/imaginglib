@@ -9,6 +9,8 @@ uses
   MainUnit, AboutUnit;
 
 {$R *.res}
+{$R ..\Common\MainIcon.res}
+{$R ..\Common\Logo.res}
 
 begin
   Application.Title:='LCL Imager';
