@@ -43,25 +43,22 @@ Temp
 *.vlb
 *.dsv
 
+Packages/*.res
+Packages/*.cfg
+
 Doc/*.chm
 Doc/*.chw
 Doc/*.html
 
 Demos/**/*.res
-Demos/**/*.dres
 Demos/**/*.cfg
 
-Packages/*.res
-Packages/*.cfg
-
-Demos/**/ImgBrowser.ico
-Demos/**/lclimager.ico
-
+# These resources need to stay
 !Demos/**/ImgBrowser.res
-!Demos/**/lclimager.res
+!Demos/**/MainIcon.res
+!Demos/**/Logo.res
 
 Demos/ObjectPascal/FireMonkeyDemo/*emplate*.xml
-Demos/ObjectPascal/FireMonkeyDemo/FireMonkeyDemoResource.rc
 Demos/ObjectPascal/FireMonkeyDemo/Deploy
 
 !Tests/UnitTests

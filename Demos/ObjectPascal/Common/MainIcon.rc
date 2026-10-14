@@ -1,0 +1,9 @@
+/* Main icon of the demos, linked with {$R ..\Common\MainIcon.res}.
+   The compiled MainIcon.res is kept in the repository so that the demos
+   do not depend on the resource compiler of the IDE. Rebuild it after
+   a change of the icon, from this directory:
+     windres -O res -i MainIcon.rc -o MainIcon.res   (FPC)
+     rc /fo MainIcon.res MainIcon.rc                  (Windows SDK)
+   BRCC32 can not read the PNG frame of the icon. */
+
+MAINICON ICON "../../Data/Imaging.ico"

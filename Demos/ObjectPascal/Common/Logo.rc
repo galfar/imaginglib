@@ -1,0 +1,8 @@
+/* Logo shown in the About forms of the demos, linked with
+   {$R ..\Common\Logo.res}. The compiled Logo.res is kept in the
+   repository so that the demos do not depend on the resource compiler
+   of the IDE. Rebuild it after a change of the image, from this directory:
+     windres -O res -i Logo.rc -o Logo.res   (FPC)
+     rc /fo Logo.res Logo.rc                  (Windows SDK) */
+
+LOGO RCDATA "../../Data/Logo.png"

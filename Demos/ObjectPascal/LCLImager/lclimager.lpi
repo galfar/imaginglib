@@ -17,9 +17,6 @@
         <TextDesc Value="LCL Imager Demo"/>
       </XPManifest>
       <Icon Value="0"/>
-      <Resources Count="1">
-        <Resource_0 FileName="..\..\Data\Logo.png" Type="RCDATA" ResourceName="LOGO"/>
-      </Resources>
     </General>
     <BuildModes Count="2">
       <Item1 Name="Debug" Default="True"/>
