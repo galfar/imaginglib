@@ -1,4 +1,5 @@
 @echo OFF
+setlocal
 rem Ext. demos have some build and/or runtime dependencies like SDL or GL.
 echo Building Extended Demos using Free Pascal
 echo.
@@ -39,6 +40,6 @@ if "%DEMOSBUILD%"=="%DEMOCOUNT%" (
   echo [92mBuild Successful -  all %DEMOSBUILD% of %DEMOCOUNT% build in Demos/Bin directory[0m
 ) else (
   echo [91mErrors during building - only %DEMOSBUILD% of %DEMOCOUNT% demos build[0m
-  exit 1
+  exit /b 1
 )
 
