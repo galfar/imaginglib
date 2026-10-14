@@ -29,8 +29,8 @@ unit TestImagingHuge;
 interface
 
 uses
-  SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility,
-  ImagingBinary, ImagingTestCase, ImagingTestPixels;
+  SysUtils, Types, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility,
+  ImagingBinary, ImagingCanvases, ImagingTestCase, ImagingTestPixels;
 
 { Returns True when the test program was started with --huge option.}
 function HugeTestsRequested: Boolean;
@@ -60,6 +60,7 @@ type
     procedure TestRotateMul90;
     procedure TestMakePalette;
     procedure TestOtsu;
+    procedure TestCanvas;
   end;
 {$ENDIF}
 
@@ -386,6 +387,102 @@ begin
   CheckEquals(0, PBuffer(FImage.Bits)[DarkCount - 1], 'The last dark pixel');
   CheckEquals(255, PBuffer(FImage.Bits)[DarkCount], 'The first light pixel');
   CheckEquals(255, PBuffer(FImage.Bits)[HugePixels - 1], 'The last light pixel');
+end;
+
+procedure TTestHugeImages.TestCanvas;
+const
+  // Clipping rectangle is the end of the last two rows. Only the last 4633 pixels
+  // of the image have offsets of 2^31 and more.
+  ClipWidth = 6;
+  ClipHeight = 2;
+var
+  Canvas, SmallCanvas: TImagingCanvas;
+  Small: TImageData;
+  Clip: TRect;
+  I: Integer;
+
+  procedure CheckClipped(Expected: Byte; const Msg: string);
+  var
+    X, Y: Integer;
+    Offset: NativeInt;
+  begin
+    for Y := Clip.Top to Clip.Bottom - 1 do
+    begin
+      Offset := NativeInt(Y) * HugeSide + Clip.Left;
+      CheckEquals(0, PBuffer(FImage.Bits)[Offset - 1], Format('%s: pixel before the rectangle in row %d', [Msg, Y]));
+      for X := 0 to ClipWidth - 1 do
+        CheckEquals(Expected, PBuffer(FImage.Bits)[Offset + X], Format('%s: pixel %d in row %d', [Msg, X, Y]));
+    end;
+
+    CheckEquals(0, PBuffer(FImage.Bits)[0], Msg + ': the first pixel of the image');
+    CheckEquals(0, PBuffer(FImage.Bits)[NativeInt(Clip.Top) * HugeSide - 1], Msg + ': pixel above the rectangle');
+  end;
+
+begin
+  NewHugeImage(ifGray8, HugeSide, HugeSide);
+  Clip := Rect(HugeSide - ClipWidth, HugeSide - ClipHeight, HugeSide, HugeSide);
+  InitImage(Small);
+  SmallCanvas := nil;
+  Canvas := TImagingCanvas.CreateForData(@FImage);
+  try
+    Canvas.ClipRect := Clip;
+    CheckEqualsRect(Clip, Canvas.ClipRect, 'Clipping rectangle');
+    CheckClipped(0, 'New image');
+
+    Canvas.FillColor32 := $FF646464;
+    Canvas.FillRectBlend(Rect(0, HugeSide - 10, HugeSide, HugeSide + 10), bfOne, bfZero);
+    CheckClipped(100, 'FillRectBlend');
+
+    Canvas.InvertColors;
+    CheckClipped(155, 'InvertColors');
+
+    // Change of one channel changes the luminance, the same way as in a small image
+    CheckTrue(NewImage(ClipWidth, ClipHeight, ifGray8, Small), 'NewImage');
+    FillChar(Small.Bits^, Small.Size, 155);
+    SmallCanvas := TImagingCanvas.CreateForData(@Small);
+
+    SmallCanvas.FillChannelFP(ChannelRed, 0.0);
+    Canvas.FillChannelFP(ChannelRed, 0.0);
+    CheckTrue(PByte(Small.Bits)^ < 155, 'FillChannelFP changes the small image');
+    CheckClipped(PByte(Small.Bits)^, 'FillChannelFP');
+
+    SmallCanvas.FillChannel(ChannelGreen, 255);
+    Canvas.FillChannel(ChannelGreen, 255);
+    CheckTrue(PByte(Small.Bits)^ > 155, 'FillChannel changes the small image');
+    CheckClipped(PByte(Small.Bits)^, 'FillChannel');
+
+    // Filters work with copy of the whole image
+    Canvas.FillColor32 := $FF505050;
+    Canvas.FillRectBlend(Clip, bfOne, bfZero);
+    Canvas.ApplyConvolution3x3(FilterSharpen3x3);
+    CheckClipped(80, 'ApplyConvolution3x3');
+    Canvas.ApplyMaxFilter(3);
+    CheckClipped(80, 'ApplyMaxFilter');
+
+    // Ellipse larger than the rectangle
+    Canvas.FillColor32 := $FFC8C8C8;
+    Canvas.PenColor32 := $FFC8C8C8;
+    Canvas.Ellipse(Rect(HugeSide - 100, HugeSide - 100, HugeSide + 100, HugeSide + 100));
+    CheckClipped(200, 'Ellipse');
+
+    // Drawing to and from another canvas
+    FillChar(Small.Bits^, Small.Size, 30);
+    SmallCanvas.DrawBlend(Rect(0, 0, ClipWidth, ClipHeight), Canvas, Clip.Left, Clip.Top, bfOne, bfZero);
+    CheckClipped(30, 'DrawBlend to huge image');
+
+    Canvas.InvertColors;
+    Canvas.DrawBlend(Clip, SmallCanvas, 0, 0, bfOne, bfZero);
+    for I := 0 to Small.Size - 1 do
+      CheckEquals(225, PBuffer(Small.Bits)[I], Format('DrawBlend from huge image: pixel %d', [I]));
+
+    FillChar(Small.Bits^, Small.Size, 60);
+    SmallCanvas.StretchDrawBlend(Rect(0, 0, ClipWidth, ClipHeight), Canvas, Clip, bfOne, bfZero, rfNearest);
+    CheckClipped(60, 'StretchDrawBlend to huge image');
+  finally
+    SmallCanvas.Free;
+    Canvas.Free;
+    FreeImage(Small);
+  end;
 end;
 
 {$ENDIF}
