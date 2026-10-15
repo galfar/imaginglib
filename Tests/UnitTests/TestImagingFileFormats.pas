@@ -70,9 +70,15 @@ type
   TTestTarga = class(TImagingFileFormatTestCase)
   private
     procedure CheckBothModes(Format: TImageFormat; Width, Height: Integer);
+    procedure SaveRle(const Image: TImageData; Stream: TStream);
   published
     procedure TestRoundTrip;
     procedure TestRunsOfPixels;
+    procedure TestDataLargerThanReadBlock;
+    procedure TestPositionAfterImage;
+    procedure TestTruncatedData;
+    procedure TestPacketsPastImageEnd;
+    procedure TestDimensionsOver32767;
   end;
 
   { Radiance HDR: RGBE pixels to floating point values and back.}
@@ -91,6 +97,18 @@ const
 function BE16(Value: Word): AnsiString;
 begin
   Result := AnsiChar(Value shr 8) + AnsiChar(Value and $FF);
+end;
+
+function LE16(Value: Word): AnsiString;
+begin
+  Result := AnsiChar(Value and $FF) + AnsiChar(Value shr 8);
+end;
+
+function TgaHeader(ImageType: Byte; Width, Height: Word; PixelSize: Byte): AnsiString;
+begin
+  // No image ID and no color map, rows stored top-down
+  Result := AnsiChar(0) + AnsiChar(0) + AnsiChar(ImageType) + AnsiString(#0#0#0#0#0) +
+    LE16(0) + LE16(0) + LE16(Width) + LE16(Height) + AnsiChar(PixelSize) + AnsiChar($20);
 end;
 
 function Rgbe(R, G, B, E: Byte): AnsiString;
@@ -525,6 +543,196 @@ begin
     SetOption(ImagingTargaRLE, OldRle);
     Stream.Free;
     FreeImage(Original);
+  end;
+end;
+
+procedure TTestTarga.SaveRle(const Image: TImageData; Stream: TStream);
+var
+  OldRle: Integer;
+begin
+  OldRle := GetOption(ImagingTargaRLE);
+  try
+    SetOption(ImagingTargaRLE, 1);
+    CheckTrue(SaveImageToStream('tga', Stream, Image), 'Image is saved');
+  finally
+    SetOption(ImagingTargaRLE, OldRle);
+  end;
+end;
+
+procedure TTestTarga.TestDataLargerThanReadBlock;
+const
+  Formats: array[0..2] of TImageFormat = (ifGray8, ifR8G8B8, ifA8R8G8B8);
+var
+  Original: TImageData;
+  Stream: TMemoryStream;
+  F: Integer;
+  Name: string;
+begin
+  // Compressed noise is larger than the 1 MB blocks the data are read and
+  // written in, packets are split between the blocks
+  InitImage(Original);
+  Stream := TMemoryStream.Create;
+  try
+    for F := Low(Formats) to High(Formats) do
+    begin
+      Name := GetFormatName(Formats[F]);
+      CheckTrue(NewImage(1000, 1100, Formats[F], Original), Name + ': NewImage');
+      FillTestImage(Original, 4321);
+
+      Stream.Clear;
+      SaveRle(Original, Stream);
+      CheckTrue(Stream.Size > 1024 * 1024, Format('%s: compressed size %d bytes', [Name, Stream.Size]));
+      Stream.Position := 0;
+      CheckTrue(LoadImageFromStream(Stream, FImage), Name + ': image is loaded');
+      CheckImagesEqual(Original, FImage, Name + ': loaded image');
+    end;
+  finally
+    Stream.Free;
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestTarga.TestPositionAfterImage;
+var
+  First, Second: TImageData;
+  Stream: TMemoryStream;
+begin
+  // Input is read ahead in blocks, the position must be set back to the end
+  // of the image so that the next one can be read
+  InitImage(First);
+  InitImage(Second);
+  Stream := TMemoryStream.Create;
+  try
+    CheckTrue(NewImage(70, 50, ifR8G8B8, First), 'NewImage');
+    FillTestImage(First, 11);
+    CheckTrue(NewImage(30, 20, ifR8G8B8, Second), 'NewImage');
+    FillTestImage(Second, 12);
+    SaveRle(First, Stream);
+    SaveRle(Second, Stream);
+
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'The first image is loaded');
+    CheckImagesEqual(First, FImage, 'The first image');
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'The second image is loaded');
+    CheckImagesEqual(Second, FImage, 'The second image');
+  finally
+    Stream.Free;
+    FreeImage(First);
+    FreeImage(Second);
+  end;
+end;
+
+procedure TTestTarga.TestTruncatedData;
+const
+  Width = 64;
+  Height = 40;
+var
+  Original: TImageData;
+  Stream: TMemoryStream;
+  RowBytes, I: Integer;
+begin
+  // Pixels after the end of the data are left black
+  InitImage(Original);
+  Stream := TMemoryStream.Create;
+  try
+    CheckTrue(NewImage(Width, Height, ifR8G8B8, Original), 'NewImage');
+    FillTestImage(Original, 99);
+    SaveRle(Original, Stream);
+
+    // Cut in the middle of the data, most likely inside of a packet
+    Stream.Size := Stream.Size div 2 + 1;
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'Truncated image is loaded');
+    CheckEquals(Width, FImage.Width, 'Width');
+    CheckEquals(Height, FImage.Height, 'Height');
+    CheckEquals(Ord(ifR8G8B8), Ord(FImage.Format), 'Format');
+
+    RowBytes := Width * 3;
+    CheckSameMem(Original.Bits, FImage.Bits, RowBytes * (Height div 4), 'The first quarter of rows');
+    for I := RowBytes * (Height - 1) to FImage.Size - 1 do
+      CheckEquals(0, PBuffer(FImage.Bits)[I], Format('The last row, byte %d', [I]));
+  finally
+    Stream.Free;
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestTarga.TestPacketsPastImageEnd;
+var
+  Raw: AnsiString;
+  I: Integer;
+begin
+  // Packets of 128 pixels in a 4x2 image: only 8 pixels are written
+  CheckLoaded(TgaHeader(11, 4, 2, 8) + AnsiChar($FF) + AnsiChar(200), 4, 2, ifGray8, 'Run');
+  for I := 0 to 7 do
+    CheckEquals(200, PBuffer(FImage.Bits)[I], Format('Run, pixel %d', [I]));
+
+  Raw := '';
+  for I := 0 to 127 do
+    Raw := Raw + AnsiChar(I + 10);
+  CheckLoaded(TgaHeader(11, 4, 2, 8) + AnsiChar($7F) + Raw, 4, 2, ifGray8, 'Raw pixels');
+  for I := 0 to 7 do
+    CheckEquals(I + 10, PBuffer(FImage.Bits)[I], Format('Raw pixels, pixel %d', [I]));
+end;
+
+procedure TTestTarga.TestDimensionsOver32767;
+const
+  Width = 40000;
+var
+  Data: AnsiString;
+  Row: Integer;
+  Image: TImageData;
+  Stream: TMemoryStream;
+  Saved: Boolean;
+
+  function RleRow(Value: Byte): AnsiString;
+  var
+    I: Integer;
+  begin
+    // 312 runs of 128 pixels and one of 64
+    Result := '';
+    for I := 1 to Width div 128 do
+      Result := Result + AnsiChar($FF) + AnsiChar(Value);
+    Result := Result + AnsiChar($80 or (Width mod 128 - 1)) + AnsiChar(Value);
+  end;
+
+begin
+  // Width and height in the header are unsigned 16-bit numbers
+  Data := TgaHeader(11, Width, 2, 8) + RleRow(50) + RleRow(150);
+  CheckLoaded(Data, Width, 2, ifGray8, 'Loaded');
+  for Row := 0 to 1 do
+  begin
+    CheckEquals(Iff(Row = 0, 50, 150), PBuffer(FImage.Bits)[Row * Width], Format('Row %d, the first pixel', [Row]));
+    CheckEquals(Iff(Row = 0, 50, 150), PBuffer(FImage.Bits)[Row * Width + Width - 1], Format('Row %d, the last pixel', [Row]));
+  end;
+
+  // Saving and loading again, RLE and raw
+  InitImage(Image);
+  Stream := TMemoryStream.Create;
+  try
+    CheckTrue(CloneImage(FImage, Image), 'CloneImage');
+    SaveRle(Image, Stream);
+    CheckTrue(SaveImageToStream('tga', Stream, Image), 'Raw image is saved');
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'RLE image is loaded');
+    CheckImagesEqual(Image, FImage, 'RLE image');
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'Raw image is loaded');
+    CheckImagesEqual(Image, FImage, 'Raw image');
+  finally
+    Stream.Free;
+    FreeImage(Image);
+  end;
+
+  // Larger images cannot be saved
+  InitImage(Image);
+  Stream := TMemoryStream.Create;
+  try
+    CheckTrue(NewImage(65536, 1, ifGray8, Image), 'NewImage');
+    Saved := SaveImageToStream('tga', Stream, Image);
+    CheckFalse(Saved, 'Image 65536 pixels wide is refused');
+  finally
+    Stream.Free;
+    FreeImage(Image);
   end;
 end;
 

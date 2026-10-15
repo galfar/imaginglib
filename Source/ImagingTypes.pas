@@ -42,6 +42,7 @@ type
     Int32 = Integer;
     UInt32 = Cardinal;
     Int16 = SmallInt;
+    UInt16 = Word;
     { In Delphi 7-2007 NativeInt is incorrectly defined to have size of 8 bytes,
       redeclare it correctly. }
     NativeInt = Integer;
