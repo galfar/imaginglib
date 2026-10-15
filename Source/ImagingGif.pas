@@ -175,7 +175,7 @@ type
     BitsPerPixel: Integer;
     Pass: Integer;
     Interlace: Boolean;
-    LineIdent: Integer;
+    LineIdent: NativeInt;
     Data: Pointer;
     CurrLineData: Pointer;
   end;
@@ -336,7 +336,7 @@ var
     else
       Inc(Context.Y);
 
-    Context.CurrLineData := @PByteArray(Context.Data)[Context.Y * Context.LineIdent];
+    Context.CurrLineData := @PBuffer(Context.Data)[Context.Y * Context.LineIdent];
   end;
 
 begin
@@ -456,7 +456,7 @@ end;
 procedure TGIFFileFormat.LZWCompress(const IO: TIOFunctions; Handle: TImagingHandle; Width, Height, BitCount: Integer;
     Interlaced: Boolean; Data: Pointer);
 var
-  LineIdent: Integer;
+  LineIdent: NativeInt;
   MinCodeSize, Col: Byte;
   InitCodeSize, X, Y: Integer;
   Pass: Integer;
@@ -544,7 +544,7 @@ begin
 
     while Y < Height do
     begin
-      PData := @PByteArray(Data)[Y * LineIdent];
+      PData := @PBuffer(Data)[Y * LineIdent];
       for X := 0 to Width - 1 do
       begin
         // Only ifIndex8 support

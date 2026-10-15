@@ -225,7 +225,7 @@ var
       // dimensions are [Comp.w * Comp.dx, Comp.h * Comp.dy]
       for Y := 0 to Comp.h - 1 do
       begin
-        LineUpPtr := @PByteArray(Image.Bits)[Y * Comp.dy * LineBytes + Info.DestOffset];
+        LineUpPtr := @PBuffer(Image.Bits)[Y * Comp.dy * LineBytes + Info.DestOffset];
         DestPtr := LineUpPtr;
 
         for X := 0 to Comp.w - 1 do
@@ -253,7 +253,7 @@ var
         begin
           if Y * Comp.dy + SY >= Image.Height then Break;
           // Replicate line
-          NewPtr := @PByteArray(Image.Bits)[(Y * Comp.dy + SY) * LineBytes + Info.DestOffset];
+          NewPtr := @PBuffer(Image.Bits)[(Y * Comp.dy + SY) * LineBytes + Info.DestOffset];
           for X := 0 to Image.Width - 1 do
           begin
             CopySample(LineUpPtr, NewPtr, ChannelSize);

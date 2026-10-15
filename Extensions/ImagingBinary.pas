@@ -65,7 +65,7 @@ procedure Morphology(var Image: TImageData; const Strel: TStructElement; Op: TMo
   smaller area of page and non-text features outside the area confuse the rotation detector).
   Various calculations stats can be retrieved by passing Stats parameter.}
 function CalcRotationAngle(MaxAngle: Integer; Threshold: Integer;
-  Width, Height: Integer; Pixels: PByteArray; DetectionArea: PRect = nil;
+  Width, Height: Integer; Pixels: PBuffer; DetectionArea: PRect = nil;
   Stats: PCalcSkewAngleStats = nil): Double;
 { Deskews given image. Finds rotation angle and rotates image accordingly.
   Works best on low-color document-like images (scans).
@@ -168,7 +168,8 @@ end;
 procedure Morphology(var Image: TImageData; const Strel: TStructElement; Op: TMorphologyOp);
 var
   X, Y, I, J: Integer;
-  SWidth, SHeight, PixCount, PixVal, NumOnes, PosX, PosY: Integer;
+  SWidth, SHeight, PixCount, PixVal, NumOnes, PosX: Integer;
+  PosY: NativeInt;
   ImgOut: TImageData;
   OutPix: PByte;
 begin
@@ -205,7 +206,7 @@ begin
           if (PosX >= 0) and (PosX < Image.Width) and
             (PosY >= 0) and (PosY < Image.Height) then
           begin
-            PixVal := PByteArray(Image.Bits)[PosY * Image.Width + PosX];
+            PixVal := PBuffer(Image.Bits)[PosY * Image.Width + PosX];
           end
           else
             PixVal := 0;
@@ -228,7 +229,7 @@ begin
 end;
 
 function CalcRotationAngle(MaxAngle: Integer; Threshold: Integer;
-  Width, Height: Integer; Pixels: PByteArray; DetectionArea: PRect; Stats: PCalcSkewAngleStats): Double;
+  Width, Height: Integer; Pixels: PBuffer; DetectionArea: PRect; Stats: PCalcSkewAngleStats): Double;
 const
   // Number of "best" lines we take into account when determining
   // resulting rotation angle (lines with most votes).
@@ -252,7 +253,7 @@ var
   ContentRect: TRect;
 
   // Classifies pixel at [X, Y] as black or white using threshold.
-  function IsPixelBlack(X, Y: Integer): Boolean;
+  function IsPixelBlack(X: Integer; Y: NativeInt): Boolean;
   begin
     Result := Pixels[Y * Width + X] < Threshold;
   end;

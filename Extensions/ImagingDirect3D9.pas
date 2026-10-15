@@ -68,7 +68,7 @@ function LoadD3DTextureFromStream(Stream: TStream; Device: IDirect3DDevice9;
 { Creates D3D texture from image in memory in format supported by Imaging.
   You can use CreatedWidth and Height parameters to query dimensions of created textures
   (it could differ from dimensions of source image).}
-function LoadD3DTextureFromMemory(Data: Pointer; Size: LongInt;
+function LoadD3DTextureFromMemory(Data: Pointer; Size: Int64;
   Device: IDirect3DDevice9; var Texture: IDirect3DTexture9;
   CreatedWidth: PLongInt = nil; CreatedHeight: PLongInt = nil): Boolean;
 
@@ -109,7 +109,7 @@ function SaveD3DTextureToFile(const FileName: string; const Texture: IDirect3DTe
 function SaveD3DTextureToStream(const Ext: string; Stream: TStream; const Texture: IDirect3DTexture9): Boolean;
 { Saves D3D texture to memory in one of formats supported by Imaging.
   Saves all present mipmap levels.}
-function SaveD3DTextureToMemory(const Ext: string; Data: Pointer; var Size: LongInt; const Texture: IDirect3DTexture9): Boolean;
+function SaveD3DTextureToMemory(const Ext: string; Data: Pointer; var Size: Int64; const Texture: IDirect3DTexture9): Boolean;
 
 { Converts main level of the D3D texture to TImageData structure. OverrideFormat
   can be used to convert output image to the specified format rather
@@ -326,7 +326,7 @@ begin
   FreeImagesInArray(Images);
 end;
 
-function LoadD3DTextureFromMemory(Data: Pointer; Size: LongInt;
+function LoadD3DTextureFromMemory(Data: Pointer; Size: Int64;
   Device: IDirect3DDevice9; var Texture: IDirect3DTexture9;
   CreatedWidth, CreatedHeight: PLongInt): Boolean;
 var
@@ -359,7 +359,8 @@ end;
 
 procedure FillLockedRectWithImage(var Rect: TD3DLockedRect; const Image: TImageData);
 var
-  I, LineBytes: LongInt;
+  I: NativeInt;
+  LineBytes: LongInt;
   Info: TImageFormatInfo;
 begin
   GetImageFormatInfo(Image.Format, Info);
@@ -368,8 +369,7 @@ begin
   if (not Info.IsSpecial) and (LineBytes < Rect.Pitch) then
   begin
     for I := 0 to Image.Height - 1 do
-      Move(PByteArray(Image.Bits)[I * LineBytes],
-        PByteArray(Rect.pBits)[I * Rect.Pitch], LineBytes);
+      Move(PBuffer(Image.Bits)[I * LineBytes], PBuffer(Rect.pBits)[I * Rect.Pitch], LineBytes);
   end
   else
     Move(Image.Bits^, Rect.pBits^, Image.Size);
@@ -562,7 +562,7 @@ begin
   end;
 end;
 
-function SaveD3DTextureToMemory(const Ext: string; Data: Pointer; var Size: LongInt; const Texture: IDirect3DTexture9): Boolean;
+function SaveD3DTextureToMemory(const Ext: string; Data: Pointer; var Size: Int64; const Texture: IDirect3DTexture9): Boolean;
 var
   Arr: TDynImageDataArray;
   Fmt: TImageFileFormat;
@@ -601,7 +601,8 @@ end;
 
 procedure FillImageWithLockedRect(var Image: TImageData; const Rect: TD3DLockedRect);
 var
-  I, LineBytes: LongInt;
+  I: NativeInt;
+  LineBytes: LongInt;
   Info: TImageFormatInfo;
 begin
   GetImageFormatInfo(Image.Format, Info);
@@ -610,8 +611,7 @@ begin
   if (not Info.IsSpecial) and (LineBytes < Rect.Pitch) then
   begin
     for I := 0 to Image.Height - 1 do
-      Move(PByteArray(Rect.pBits)[I * Rect.Pitch],
-        PByteArray(Image.Bits)[I * LineBytes], LineBytes);
+      Move(PBuffer(Rect.pBits)[I * Rect.Pitch], PBuffer(Image.Bits)[I * LineBytes], LineBytes);
   end
   else
     Move(Rect.pBits^, Image.Bits^, Image.Size);

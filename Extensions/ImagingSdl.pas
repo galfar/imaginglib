@@ -35,7 +35,7 @@ function LoadSDLSurfaceFromFile(const FileName: string): PSDL_Surface;
 { Creates SDL surface from image in stream in format supported by Imaging.}
 function LoadSDLSurfaceFromStream(Stream: TStream): PSDL_Surface;
 { Creates SDL surface from image in memory in format supported by Imaging.}
-function LoadSDLSurfaceFromMemory(Data: Pointer; Size: LongInt): PSDL_Surface;
+function LoadSDLSurfaceFromMemory(Data: Pointer; Size: Int64): PSDL_Surface;
 
 { Converts image to SDL surface. Flags is used when creating SDL surface
   using SDL_CreateRGBSurface and is passed to it. OverrideFormat can be
@@ -51,7 +51,7 @@ function SaveSDLSurfaceToStream(const Ext: string; Stream: TStream; Surface: PSD
 { Saves SDL surface to memory in one of the formats supported by Imaging defined
   by Ext. Size must contain size of available memory before the function
   is called and memory size taken up by the image is returned in this parameter.}
-function SaveSDLSurfaceToMemory(const Ext: string; Data: Pointer; var Size: LongInt; Surface: PSDL_Surface): Boolean;
+function SaveSDLSurfaceToMemory(const Ext: string; Data: Pointer; var Size: Int64; Surface: PSDL_Surface): Boolean;
 
 { Converts SDL surface to TImageData structure. OverrideFormat can be
   used to convert output image to the specified format rather than
@@ -96,7 +96,7 @@ begin
   FreeImage(ImageData);
 end;
 
-function LoadSDLSurfaceFromMemory(Data: Pointer; Size: LongInt): PSDL_Surface;
+function LoadSDLSurfaceFromMemory(Data: Pointer; Size: Int64): PSDL_Surface;
 var
   ImageData: TImageData;
 begin
@@ -115,7 +115,8 @@ var
   Info: TImageFormatInfo;
   ConvFormat: TImageFormat;
   AMask, RMask, GMask, BMask: UInt32;
-  I, LineBytes: LongInt;
+  I: NativeInt;
+  LineBytes: LongInt;
 
   procedure DetermineSDLMasks(var AMask, RMask, GMask, BMask: UInt32);
   begin
@@ -185,8 +186,7 @@ begin
         Move(WorkData.Bits^, Result.pixels^, WorkData.Size)
       else
         for I := 0 to WorkData.Height - 1 do
-          Move(PByteArray(WorkData.Bits)[I * LineBytes],
-            PByteArray(Result.pixels)[I * Result.pitch], LineBytes);
+          Move(PBuffer(WorkData.Bits)[I * LineBytes], PBuffer(Result.pixels)[I * Result.pitch], LineBytes);
 
       if SDL_MustLock(Result) then
         SDL_UnlockSurface(Result);
@@ -233,7 +233,7 @@ begin
   end;
 end;
 
-function SaveSDLSurfaceToMemory(const Ext: string; Data: Pointer; var Size: LongInt; Surface: PSDL_Surface): Boolean;
+function SaveSDLSurfaceToMemory(const Ext: string; Data: Pointer; var Size: Int64; Surface: PSDL_Surface): Boolean;
 var
   ImageData: TImageData;
 begin
@@ -257,7 +257,8 @@ var
   Format: TImageFormat;
   Converted: PSDL_Surface;
   Info: TImageFormatInfo;
-  I, LineBytes: LongInt;
+  I: NativeInt;
+  LineBytes: LongInt;
 
   function DetermineImageFormat: TImageFormat;
   var
@@ -331,8 +332,7 @@ begin
         Move(Converted.pixels^, ImageData.Bits^, ImageData.Size)
     else
       for I := 0 to ImageData.Height - 1 do
-        Move(PByteArray(Converted.pixels)[I * Converted.pitch],
-          PByteArray(ImageData.Bits)[I * LineBytes], LineBytes);
+        Move(PBuffer(Converted.pixels)[I * Converted.pitch], PBuffer(ImageData.Bits)[I * LineBytes], LineBytes);
 
     if SDL_MustLock(Converted) then
       SDL_UnlockSurface(Converted);

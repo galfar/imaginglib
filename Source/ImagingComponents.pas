@@ -528,7 +528,8 @@ var
   Info: TImageFormatInfo;
   WorkData: TImageData;
 {$IFDEF COMPONENT_SET_VCL}
-  I, LineBytes: LongInt;
+  I: NativeInt;
+  LineBytes: LongInt;
   LogPalette: TMaxLogPalette;
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
@@ -600,7 +601,7 @@ begin
   // Copy scanlines
   LineBytes := WorkData.Width * Info.BytesPerPixel;
   for I := 0 to WorkData.Height - 1 do
-    Move(PByteArray(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
+    Move(PBuffer(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
 
   // Delphi 2009 and newer support alpha transparency for TBitmap
 {$IF Defined(DELPHI) and (CompilerVersion >= 20.0)}
@@ -653,7 +654,8 @@ end;
 
 procedure ConvertBitmapToData(Bitmap: TBitmap; var Data: TImageData);
 var
-  I, LineBytes: LongInt;
+  I: NativeInt;
+  LineBytes: LongInt;
   Format: TImageFormat;
   Info: TImageFormatInfo;
 {$IFDEF COMPONENT_SET_VCL}
@@ -726,7 +728,7 @@ begin
   end;
   // Copy scanlines
   for I := 0 to Data.Height - 1 do
-    Move(Bitmap.ScanLine[I]^, PByteArray(Data.Bits)[I * LineBytes], LineBytes);
+    Move(Bitmap.ScanLine[I]^, PBuffer(Data.Bits)[I * LineBytes], LineBytes);
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   // Get raw image from bitmap (mask handle must be 0 or expect violations)
@@ -737,8 +739,7 @@ begin
     // Copy scanlines
     for I := 0 to Data.Height - 1 do
     begin
-      Move(PByteArray(RawImage.Data)[I * LineLazBytes],
-        PByteArray(Data.Bits)[I * LineBytes], LineBytes);
+      Move(PBuffer(RawImage.Data)[I * LineLazBytes], PBuffer(Data.Bits)[I * LineBytes], LineBytes);
     end;
     // May need to swap RB order, depends on widget set
     if RawImage.Description.BlueShift > RawImage.Description.RedShift then

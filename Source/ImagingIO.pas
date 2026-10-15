@@ -23,7 +23,7 @@ uses
 type
   TMemoryIORec = record
     Data: PBuffer;
-    Position: LongInt;
+    Position: Int64;
     Size: Int64;
   end;
   PMemoryIORec = ^TMemoryIORec;

@@ -148,14 +148,14 @@ var
 
   procedure LoadUncompressed;
   var
-    I: LongInt;
+    I: NativeInt;
   begin
     // Add image and read its pixels row by row
     Index := AddImage(ImageHdr.Width, ImageHdr.Height);
     with GetIO, Images[Index] do
     for I := 0 to ImageHdr.Height - 1 do
     begin
-      Read(Handle, @PByteArray(Bits)[I * Width], Width);
+      Read(Handle, @PBuffer(Bits)[I * Width], Width);
       Seek(Handle, 256 - Width, smFromCurrent);
     end;
   end;
@@ -190,12 +190,12 @@ var
             // to this row (slight compression as many images/sprites have
             // many zero pixels)
             Read(Handle, @NumZeroes, 1);
-            FillChar(PByteArray(Bits)[J * SubWidth + WritePos], NumZeroes, 0);
+            FillChar(PBuffer(Bits)[J * SubWidth + WritePos], NumZeroes, 0);
             WritePos := WritePos + NumZeroes;
             // Now there is a number of bytes that contain image data and should
             // be copied to this row
             Read(Handle, @NumImageBytes, 1);
-            Read(Handle, @PByteArray(Bits)[J * SubWidth + WritePos], NumImageBytes);
+            Read(Handle, @PBuffer(Bits)[J * SubWidth + WritePos], NumImageBytes);
             WritePos := WritePos + NumImageBytes;
           end;
         end;
@@ -211,7 +211,8 @@ var
     end;
   var
     RowOffs: packed array[0..255] of TRowOff;
-    I, J, WritePos, NextOffsetPos: LongInt;
+    I, WritePos, NextOffsetPos: LongInt;
+    J: NativeInt;
     RLEData: Byte;
     ByteCount, RowWidth: SmallInt;
   begin
@@ -242,20 +243,20 @@ var
               Read(Handle, @ByteCount, 2);
               if ByteCount > 0 then
               begin
-                Read(Handle, @PByteArray(Bits)[J * Width + WritePos], ByteCount);
+                Read(Handle, @PBuffer(Bits)[J * Width + WritePos], ByteCount);
                 WritePos := WritePos + ByteCount;
               end
               else
               begin
                 Read(Handle, @RLEData, 1);
-                FillChar(PByteArray(Bits)[J * Width + WritePos], -ByteCount, RLEData);
+                FillChar(PBuffer(Bits)[J * Width + WritePos], -ByteCount, RLEData);
                 WritePos := WritePos - ByteCount;
               end;
             end;
           end
           else
             // Read uncompressed row
-            Read(Handle, @PByteArray(Bits)[J * Width], Width);
+            Read(Handle, @PBuffer(Bits)[J * Width], Width);
         end;
       end;
     end;

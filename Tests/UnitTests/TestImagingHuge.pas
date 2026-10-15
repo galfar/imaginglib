@@ -64,6 +64,7 @@ type
     procedure TestCanvas;
     procedure TestDXT;
     procedure TestStreamIO;
+    procedure TestMemoryIO;
   end;
 {$ENDIF}
 
@@ -644,6 +645,41 @@ begin
   finally
     SetOption(ImagingTargaRLE, OldRle);
     Stream.Free;
+    FreeMem(Data);
+    FreeImage(Loaded);
+  end;
+end;
+
+procedure TTestHugeImages.TestMemoryIO;
+const
+  Extra = 4096;
+var
+  Data: Pointer;
+  Size: Int64;
+  Loaded: TImageData;
+  OldRle: Integer;
+begin
+  // Positions in memory over 2 GB
+  NewLitImage(ifGray8);
+  PBuffer(FImage.Bits)[NativeInt(1) shl 31 + 3] := 77;
+
+  InitImage(Loaded);
+  Size := FImage.Size + Extra;
+  Data := AllocHuge(Size);
+  OldRle := GetOption(ImagingTargaRLE);
+  try
+    SetOption(ImagingTargaRLE, 0);
+    CheckTrue(SaveImageToMemory('tga', Data, Size, FImage), 'Image is saved');
+    CheckTrue((Size > FImage.Size) and (Size < FImage.Size + Extra), Format('Size of the file: %d bytes', [Size]));
+
+    CheckTrue(LoadImageFromMemory(Data, Size, Loaded), 'Image is loaded');
+    CheckEquals(HugeSide, Loaded.Width, 'Width');
+    CheckEquals(HugeSide, Loaded.Height, 'Height');
+    CheckEquals(77, PBuffer(Loaded.Bits)[NativeInt(1) shl 31 + 3], 'Marker over 2 GB');
+    if not CompareMem(FImage.Bits, Loaded.Bits, FImage.Size) then
+      CheckSameMem(FImage.Bits, Loaded.Bits, FImage.Size, 'Loaded image');
+  finally
+    SetOption(ImagingTargaRLE, OldRle);
     FreeMem(Data);
     FreeImage(Loaded);
   end;

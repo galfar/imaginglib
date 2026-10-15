@@ -69,7 +69,7 @@ function DetermineStreamFormat(Stream: TStream): string;
   the memory is in one of them returns its string identifier
   (which can be used in LoadFromStream/LoadFromMem type functions).
   If memory is not in any of the supported formats empty string is returned.}
-function DetermineMemoryFormat(Data: Pointer; Size: LongInt): string;
+function DetermineMemoryFormat(Data: Pointer; Size: Int64): string;
 { Checks that an appropriate file format is supported purely from inspecting
   the given file name's extension (not contents of the file itself).
   The file need not exist.}
@@ -90,7 +90,7 @@ function LoadImageFromFile(const FileName: string; var Image: TImageData): Boole
   is not changed.}
 function LoadImageFromStream(Stream: TStream; var Image: TImageData): Boolean;
 { Loads single image from given memory location.}
-function LoadImageFromMemory(Data: Pointer; Size: LongInt; var Image: TImageData): Boolean;
+function LoadImageFromMemory(Data: Pointer; Size: Int64; var Image: TImageData): Boolean;
 { Loads multiple images from given file.}
 function LoadMultiImageFromFile(const FileName: string;
   var Images: TDynImageDataArray): Boolean;
@@ -99,7 +99,7 @@ function LoadMultiImageFromFile(const FileName: string;
 function LoadMultiImageFromStream(Stream: TStream;
   var Images: TDynImageDataArray): Boolean;
 { Loads multiple images from given memory location.}
-function LoadMultiImageFromMemory(Data: Pointer; Size: LongInt;
+function LoadMultiImageFromMemory(Data: Pointer; Size: Int64;
   var Images: TDynImageDataArray): Boolean;
 
 { Saving Functions }
@@ -113,7 +113,7 @@ function SaveImageToStream(const Ext: string; Stream: TStream;
 { Saves single image to given memory location. Memory must be allocated and its
   size is passed in Size parameter in which number of written bytes is returned.
   Ext identifies desired image file format (jpg, png, dds, ...).}
-function SaveImageToMemory(const Ext: string; Data: Pointer; var Size: LongInt;
+function SaveImageToMemory(const Ext: string; Data: Pointer; var Size: Int64;
   const Image: TImageData): Boolean;
 { Saves multiple images to given file. If format supports
   only single level images and there are multiple images to be saved,
@@ -132,7 +132,7 @@ function SaveMultiImageToStream(const Ext: string; Stream: TStream;
   its size is passed in Size parameter in which number of written bytes is returned.
   Ext identifies desired image file format (jpg, png, dds, ...).}
 function SaveMultiImageToMemory(const Ext: string; Data: Pointer;
-  var Size: LongInt; const Images: TDynImageDataArray): Boolean;
+  var Size: Int64; const Images: TDynImageDataArray): Boolean;
 
 { Manipulation Functions }
 
@@ -482,7 +482,7 @@ type
     function LoadFromStream(Stream: TStream; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean = False): Boolean;
     { Loads images from memory source.}
-    function LoadFromMemory(Data: Pointer; Size: LongInt;
+    function LoadFromMemory(Data: Pointer; Size: Int64;
       var Images: TDynImageDataArray; OnlyFirstLevel: Boolean = False): Boolean;
 
     { Saves images to file. If format supports only single level images and
@@ -501,7 +501,7 @@ type
       independent images. Data must be already allocated and their size passed
       as Size parameter, number of written bytes is then returned in the same
       parameter.}
-    function SaveToMemory(Data: Pointer; var Size: LongInt;
+    function SaveToMemory(Data: Pointer; var Size: Int64;
       const Images: TDynImageDataArray; OnlyFirstLevel: Boolean = False): Boolean;
 
     { Makes Image compatible with this file format (that means it is in one
@@ -1058,7 +1058,7 @@ begin
   end;
 end;
 
-function DetermineMemoryFormat(Data: Pointer; Size: LongInt): string;
+function DetermineMemoryFormat(Data: Pointer; Size: Int64): string;
 var
   I: LongInt;
   Fmt: TImageFileFormat;
@@ -1171,7 +1171,7 @@ begin
   end;
 end;
 
-function LoadImageFromMemory(Data: Pointer; Size: LongInt; var Image: TImageData): Boolean;
+function LoadImageFromMemory(Data: Pointer; Size: Int64; var Image: TImageData): Boolean;
 var
   Format: TImageFileFormat;
   IArray: TDynImageDataArray;
@@ -1226,7 +1226,7 @@ begin
   end;
 end;
 
-function LoadMultiImageFromMemory(Data: Pointer; Size: LongInt;
+function LoadMultiImageFromMemory(Data: Pointer; Size: Int64;
   var Images: TDynImageDataArray): Boolean;
 var
   Format: TImageFileFormat;
@@ -1276,7 +1276,7 @@ begin
   end;
 end;
 
-function SaveImageToMemory(const Ext: string; Data: Pointer; var Size: LongInt;
+function SaveImageToMemory(const Ext: string; Data: Pointer; var Size: Int64;
   const Image: TImageData): Boolean;
 var
   Format: TImageFileFormat;
@@ -1318,7 +1318,7 @@ begin
 end;
 
 function SaveMultiImageToMemory(const Ext: string; Data: Pointer;
-  var Size: LongInt; const Images: TDynImageDataArray): Boolean;
+  var Size: Int64; const Images: TDynImageDataArray): Boolean;
 var
   Format: TImageFileFormat;
 begin
@@ -3787,7 +3787,7 @@ begin
   end;
 end;
 
-function TImageFileFormat.LoadFromMemory(Data: Pointer; Size: LongInt; var
+function TImageFileFormat.LoadFromMemory(Data: Pointer; Size: Int64; var
   Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Handle: TImagingHandle;
@@ -3916,7 +3916,7 @@ begin
   end;
 end;
 
-function TImageFileFormat.SaveToMemory(Data: Pointer; var Size: LongInt;
+function TImageFileFormat.SaveToMemory(Data: Pointer; var Size: Int64;
   const Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Handle: TImagingHandle;
