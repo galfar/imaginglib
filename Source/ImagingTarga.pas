@@ -120,7 +120,7 @@ var
     begin
       // Allocates buffer large enough to hold the worst case
       // RLE compressed data and reads then from input
-      BufSize := Width * Height * FmtInfo.BytesPerPixel;
+      BufSize := NativeInt(Width) * Height * FmtInfo.BytesPerPixel;
       BufSize := BufSize + BufSize div 2 + 1;
 
       SetLength(Buffer, BufSize);
@@ -129,7 +129,7 @@ var
       Src := @Buffer[0];
       Dest := Bits;
 
-      CountPixels := Width * Height;
+      CountPixels := GetPixelCount(Images[0]);
       Bpp := FmtInfo.BytesPerPixel;
       CurrentPixel := 0;
 
@@ -322,7 +322,8 @@ var
   procedure SaveRLE;
   var
     DestBuffer: TDynByteArray;
-    WidthBytes, Written, I, Total, DestSize: LongInt;
+    WidthBytes, Written, I: LongInt;
+    Total, DestSize: NativeInt;
 
     function CountDiff(Data: PByte; Bpp, PixelCount: Longint): LongInt;
     var
@@ -454,14 +455,14 @@ var
       // Allocate enough space to hold the worst case compression
       // result and then compress source's scanlines
       WidthBytes := Width * FmtInfo.BytesPerPixel;
-      DestSize := WidthBytes * Height;
+      DestSize := NativeInt(WidthBytes) * Height;
       DestSize := DestSize + DestSize div 2 + 1;
       SetLength(DestBuffer, DestSize);
       Total := 0;
 
       for I := 0 to Height - 1 do
       begin
-        RleCompressLine(@PByteArray(Bits)[I * WidthBytes], Width,
+        RleCompressLine(GetScanlinePointer(ImageToSave, I, FmtInfo.BytesPerPixel), Width,
           FmtInfo.BytesPerPixel, @DestBuffer[Total], Written);
         Total := Total + Written;
       end;

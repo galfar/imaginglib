@@ -114,8 +114,8 @@ begin
     SrcWidthBytes := Image.Width * Bpp;
     DstWidth := Bitmap32.Width;
     MoveBytes := Width * Bpp;
-    SrcPtr := @PByteArray(Image.Bits)[SrcY * SrcWidthBytes + SrcX * Bpp];
-    DstPtr := @PColor32RecArray(Bitmap32.Bits)[DstY * DstWidth + DstX];
+    SrcPtr := @PBuffer(Image.Bits)[PtrInt(SrcY) * SrcWidthBytes + SrcX * Bpp];
+    DstPtr := @PColor32RecBuffer(Bitmap32.Bits)[PtrInt(DstY) * DstWidth + DstX];
 
     for Y := 0 to Height - 1 do
     begin
@@ -225,7 +225,7 @@ begin
   Image.Width := Bitmap32.Width;
   Image.Height := Bitmap32.Height;
   Image.Format := ifA8R8G8B8;
-  Image.Size := Image.Width * Image.Height * 4;
+  Image.Size := Int64(Image.Width) * Image.Height * 4;
 
   Image.Bits := Bitmap32.Bits;
 end;

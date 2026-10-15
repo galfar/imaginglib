@@ -30,7 +30,7 @@ unit ImagingAnalysis;
 interface
 
 uses
-  Types, SysUtils, Math, ImagingTypes, Imaging, ImagingFormats;
+  Types, SysUtils, Math, ImagingTypes, Imaging, ImagingFormats, ImagingUtility;
 
 type
   { Number of pixels for each value of 8-bit channel.}
@@ -433,23 +433,23 @@ begin
         Values[I] := PBuffer(P)[I];
     skUInt16:
       for I := 0 to Layout.SlotCount - 1 do
-        Values[I] := PWord(@PBuffer(P)[I * 2])^;
+        Values[I] := PWordBuffer(P)[I];
     skUInt32:
       for I := 0 to Layout.SlotCount - 1 do
-        Values[I] := PUInt32(@PBuffer(P)[I * 4])^;
+        Values[I] := PUInt32Buffer(P)[I];
     skUInt64:
       for I := 0 to Layout.SlotCount - 1 do
       begin
-        Low32 := PUInt32(@PBuffer(P)[I * 8])^;
-        High32 := PUInt32(@PBuffer(P)[I * 8 + 4])^;
+        Low32 := PUInt32Buffer(P)[I * 2];
+        High32 := PUInt32Buffer(P)[I * 2 + 1];
         Values[I] := High32 * TwoPow32 + Low32;
       end;
     skHalf:
       for I := 0 to Layout.SlotCount - 1 do
-        Values[I] := HalfToFloat(PWord(@PBuffer(P)[I * 2])^);
+        Values[I] := HalfToFloat(PWordBuffer(P)[I]);
     skSingle:
       for I := 0 to Layout.SlotCount - 1 do
-        Values[I] := PSingle(@PBuffer(P)[I * 4])^;
+        Values[I] := PSingleBuffer(P)[I];
     skPacked:
       begin
         Packed32 := 0;
@@ -488,8 +488,8 @@ begin
     skUInt64:
       begin
         // Differences of low and high halves are exact
-        V1 := PUInt32(@PBuffer(P1)[4])^;
-        V2 := PUInt32(@PBuffer(P2)[4])^;
+        V1 := PUInt32Buffer(P1)[1];
+        V2 := PUInt32Buffer(P2)[1];
         Result := (V2 - V1) * TwoPow32;
         V1 := PUInt32(P1)^;
         V2 := PUInt32(P2)^;

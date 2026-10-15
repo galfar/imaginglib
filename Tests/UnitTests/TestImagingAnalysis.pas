@@ -22,8 +22,8 @@ unit TestImagingAnalysis;
 interface
 
 uses
-  Types, SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingAnalysis,
-  ImagingTestCase, ImagingTestPixels;
+  Types, SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility,
+  ImagingAnalysis, ImagingTestCase, ImagingTestPixels;
 
 type
   { Base of the tests with two images that are freed after each test.}
@@ -633,7 +633,7 @@ end;
 
 procedure SetPixelWord(var Image: TImageData; Index: Integer; Value: Word);
 begin
-  PWord(@PBuffer(Image.Bits)[Index * 2])^ := Value;
+  PWordBuffer(Image.Bits)[Index] := Value;
 end;
 
 procedure SetPaletteEntry(var Image: TImageData; Index: Integer; R, G, B, A: Byte);
@@ -861,7 +861,7 @@ begin
 
   NewImages(ifGray32, 100, 100, 0, 0);
   for I := 0 to 100 * 100 - 1 do
-    PUInt32(@PBuffer(FImage1.Bits)[I * 4])^ := UInt32(4000000000) + UInt32(I and 1);
+    PUInt32Buffer(FImage1.Bits)[I] := UInt32(4000000000) + UInt32(I and 1);
 
   CheckTrue(ComputeImageStatistics(FImage1, Stats), 'Gray32: statistics computed');
   CheckEquals(0.5, Stats.Channels[ccRed].StdDev, 1e-9, 'Gray32: StdDev precision');

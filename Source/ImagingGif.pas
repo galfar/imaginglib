@@ -916,7 +916,7 @@ var
     // Copy all pixels from frame to log screen but ignore the transparent ones
     for Y := 0 to Frame.Height - 1 do
     begin
-      Dst := @PColor32RecArray(Image.Bits)[(Top + Y) * Image.Width + Left];
+      Dst := @PColor32RecBuffer(Image.Bits)[PtrInt(Top + Y) * Image.Width + Left];
       for X := 0 to Frame.Width - 1 do
       begin
         if (Frame.Palette[Src^].A <> 0) then

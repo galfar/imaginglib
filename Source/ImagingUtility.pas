@@ -38,10 +38,9 @@ type
   {$IFEND}
 {$IFEND}
 
-  TByteArray = array[0..MaxInt - 1] of Byte;
-  PByteArray = ^TByteArray;
-  TWordArray = array[0..MaxInt div 2 - 1] of Word;
-  PWordArray = ^TWordArray;
+  { For indexing big memory blocks (like TImageData.Bits) rather use PBuffer
+    and other utility types declared bellow.
+    PByteArray and others are capped at ~2GB (even in Delphi 64, not limited in FPC.}
   TUInt32Array = array[0..MaxInt div 4 - 1] of UInt32;
   PUInt32Array = ^TUInt32Array;
   TInt64Array = array[0..MaxInt div 8 - 1] of Int64;
@@ -88,6 +87,17 @@ type
   PInt64Rec = ^TInt64Rec;
   TInt64RecArray = array[0..MaxInt div 8 - 1] of TInt64Rec;
   PInt64RecArray = ^TInt64RecArray;
+
+{$IFDEF HAS_POINTER_MATH}
+  PUInt32Buffer = PUInt32;
+  PInt64Buffer = PInt64;
+  PSingleBuffer = PSingle;
+{$ELSE}
+  // Delphi 2007 and earlier - no POINTERMATH support
+  PUInt32Buffer = PUInt32Array;
+  PInt64Buffer = PInt64Array;
+  PSingleBuffer = PSingleArray;
+{$ENDIF}
 
   TFloatHelper = record
     Data: Int64;

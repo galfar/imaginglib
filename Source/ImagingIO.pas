@@ -22,7 +22,7 @@ uses
 
 type
   TMemoryIORec = record
-    Data: ImagingUtility.PByteArray;
+    Data: PBuffer;
     Position: LongInt;
     Size: Int64;
   end;

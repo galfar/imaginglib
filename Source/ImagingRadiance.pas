@@ -396,7 +396,7 @@ var
   procedure SavePixels;
   var
     Y, X, I, Width: Integer;
-    SrcPtr: PColor96FPRecArray;
+    SrcPtr: PColor96FPRecBuffer;
     Components: array of array of Byte;
     StartLine: array[0..3] of Byte;
   begin
@@ -406,7 +406,7 @@ var
 
     for Y := 0 to ImageToSave.Height - 1 do
     begin
-      SrcPtr := @PColor96FPRecArray(ImageToSave.Bits)[ImageToSave.Width * Y];
+      SrcPtr := @PColor96FPRecBuffer(ImageToSave.Bits)[PtrInt(Y) * ImageToSave.Width];
 
       // Identify line as using "new" RLE scheme (separate components)
       StartLine[0] := 2;

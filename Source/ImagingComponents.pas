@@ -835,13 +835,13 @@ end;
     begin
       gdk_draw_rgb_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
         DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
-        @PUInt32Array(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 3);
+        @PBuffer(ImageData.Bits)[(PtrInt(SrcY) * ImageData.Width + SrcX) * 3], ImageData.Width * 3);
     end
     else
     begin
       gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
         DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
-        @PUInt32Array(ImageData.Bits)[SrcY * ImageData.Width + SrcX], ImageData.Width * 4);
+        @PColor32RecBuffer(ImageData.Bits)[PtrInt(SrcY) * ImageData.Width + SrcX], ImageData.Width * 4);
     end;
   end;
 
