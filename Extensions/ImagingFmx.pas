@@ -186,7 +186,7 @@ procedure CopyRectToFmxBitmap(const Image: TImageData; Bitmap: TBitmap;
   SrcX, SrcY, Width, Height, DstX, DstY: LongInt);
 var
   TempImage: TImageData;
-  X, Y, Bpp, SrcLineBytes: Integer;
+  X, Y, Bpp: Integer;
   SrcPtr: PByte;
   Info: TImageFormatInfo;
   MapData: TBitmapData;
@@ -205,12 +205,11 @@ begin
   if not Info.IsSpecial then
   begin
     Bpp := Info.BytesPerPixel;
-    SrcLineBytes := Image.Width * Bpp;
     Bitmap.Map(TMapAccess.Write, MapData);
 
     for Y := 0 to Height - 1 do
     begin
-      SrcPtr := @PByteArray(Image.Bits)[(SrcY + Y) * SrcLineBytes + SrcX * Bpp];
+      SrcPtr := GetPixelPointer(Image, SrcX, SrcY + Y, Bpp);
       DstPtr := @PAlphaColorRecArray(MapData.GetScanline(DstY + Y))[DstX];
 
       for X := 0 to Width - 1 do

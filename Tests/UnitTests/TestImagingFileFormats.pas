@@ -66,6 +66,15 @@ type
     procedure TestXPM;
   end;
 
+  { Targa: raw and RLE compressed images.}
+  TTestTarga = class(TImagingFileFormatTestCase)
+  private
+    procedure CheckBothModes(Format: TImageFormat; Width, Height: Integer);
+  published
+    procedure TestRoundTrip;
+    procedure TestRunsOfPixels;
+  end;
+
   { Radiance HDR: RGBE pixels to floating point values and back.}
   TTestRadiance = class(TImagingFileFormatTestCase)
   published
@@ -456,8 +465,72 @@ begin
   end;
 end;
 
+{ TTestTarga }
+
+procedure TTestTarga.CheckBothModes(Format: TImageFormat; Width, Height: Integer);
+var
+  OldRle: Integer;
+begin
+  OldRle := GetOption(ImagingTargaRLE);
+  try
+    SetOption(ImagingTargaRLE, 0);
+    CheckRoundTrip('tga', Format, Width, Height, 0);
+    SetOption(ImagingTargaRLE, 1);
+    CheckRoundTrip('tga', Format, Width, Height, 0);
+  finally
+    SetOption(ImagingTargaRLE, OldRle);
+  end;
+end;
+
+procedure TTestTarga.TestRoundTrip;
+begin
+  // One to four bytes per pixel
+  CheckBothModes(ifGray8, 13, 7);
+  CheckBothModes(ifA1R5G5B5, 13, 7);
+  CheckBothModes(ifR8G8B8, 13, 7);
+  CheckBothModes(ifA8R8G8B8, 13, 7);
+end;
+
+procedure TTestTarga.TestRunsOfPixels;
+const
+  Width = 300;
+  Height = 5;
+var
+  Original: TImageData;
+  Stream: TMemoryStream;
+  OldRle, X, Y: Integer;
+begin
+  // Rows with runs longer than one RLE packet (128 pixels) and single pixels between
+  InitImage(Original);
+  Stream := TMemoryStream.Create;
+  OldRle := GetOption(ImagingTargaRLE);
+  try
+    CheckTrue(NewImage(Width, Height, ifR8G8B8, Original), 'NewImage');
+    for Y := 0 to Height - 1 do
+      for X := 0 to Width - 1 do
+        with PColor24RecArray(Original.Bits)[Y * Width + X] do
+        begin
+          R := Iff(X mod 97 = 0, X and $FF, 10);
+          G := Y * 40;
+          B := Iff(X < 200, 0, 255);
+        end;
+
+    SetOption(ImagingTargaRLE, 1);
+    CheckTrue(SaveImageToStream('tga', Stream, Original), 'Image is saved');
+    CheckTrue(Stream.Size < Original.Size div 4, Format('RLE compressed: %d bytes', [Stream.Size]));
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'Image is loaded');
+    CheckImagesEqual(Original, FImage, 'Loaded image');
+  finally
+    SetOption(ImagingTargaRLE, OldRle);
+    Stream.Free;
+    FreeImage(Original);
+  end;
+end;
+
 initialization
   RegisterImagingTest(TTestPortableMaps);
   RegisterImagingTest(TTestPixelLoops);
+  RegisterImagingTest(TTestTarga);
   RegisterImagingTest(TTestRadiance);
 end.

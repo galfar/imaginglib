@@ -15,7 +15,8 @@
   These tests are for 64-bit targets only and they are registered only when
   the test program is started with --huge option, so they are never reported
   as passed without being run. They allocate up to 4 bytes per pixel of
-  a 46341x46341 image at once (8.6 GB), about 9 GB of free memory is needed.
+  a 46341x46341 image at once (8.6 GB) and some smaller image along it,
+  about 10 GB of free memory is needed.
   The whole set takes several minutes, to run just this set:
     ImagingTests --huge --suite=TTestHugeImages   (Free Pascal build)}
 unit TestImagingHuge;
@@ -61,6 +62,7 @@ type
     procedure TestMakePalette;
     procedure TestOtsu;
     procedure TestCanvas;
+    procedure TestDXT;
   end;
 {$ENDIF}
 
@@ -483,6 +485,49 @@ begin
     Canvas.Free;
     FreeImage(Small);
   end;
+end;
+
+procedure TTestHugeImages.TestDXT;
+const
+  // Multiple of 4 (size of DXT blocks), more than 2^31 pixels
+  Width = 65536;
+  Height = 32772;
+  Black = TColor32($FF000000);
+  White = TColor32($FFFFFFFF);
+
+  procedure CheckDecoded(const Msg: string);
+  var
+    Pixels: PColor32RecBuffer;
+    LastRow: NativeInt;
+  begin
+    CheckEquals(Ord(ifA8R8G8B8), Ord(FImage.Format), Msg + ': format');
+    Pixels := FImage.Bits;
+    LastRow := NativeInt(Height - 1) * Width;
+    CheckEqualsColor32(Black, Pixels[0].Color, Msg + ': the first pixel');
+    CheckEqualsColor32(Black, Pixels[LastRow + Width - 5].Color, Msg + ': pixel left of the last block');
+    CheckEqualsColor32(White, Pixels[LastRow + Width - 4].Color,
+                       Msg + ': the first pixel of the last block in the last row');
+    CheckEqualsColor32(White, Pixels[LastRow + Width - 1].Color, Msg + ': the last pixel');
+    CheckEqualsColor32(White, Pixels[LastRow - 3 * Width + Width - 4].Color,
+                       Msg + ': the first pixel of the last block');
+  end;
+
+var
+  LastBlock: PByte;
+begin
+  // Decoding: blocks of zeros are black, the last block is white
+  NewHugeImage(ifDXT1, Width, Height);
+  LastBlock := @PBuffer(FImage.Bits)[FImage.Size - 8];
+  // Color0 = white in R5G6B5, Color1 = black, all pixels have color 0
+  PWord(LastBlock)^ := $FFFF;
+  CheckTrue(ConvertImage(FImage, ifA8R8G8B8), 'Decoding of DXT1');
+  CheckDecoded('Decoded DXT1');
+
+  // Encoding reads blocks of pixels from the whole image
+  CheckTrue(ConvertImage(FImage, ifDXT1), 'Encoding to DXT1');
+  CheckEquals(Ord(ifDXT1), Ord(FImage.Format), 'Encoded: format');
+  CheckTrue(ConvertImage(FImage, ifA8R8G8B8), 'Decoding of encoded DXT1');
+  CheckDecoded('Encoded and decoded DXT1');
 end;
 
 {$ENDIF}

@@ -1474,13 +1474,13 @@ begin
 
       case Info.BytesPerPixel of
         1: PByte(DstPixel)^ := PBuffer(SrcLine)[SrcPos];
-        2: PWord(DstPixel)^ := PWordArray(SrcLine)[SrcPos];
-        3: PColor24Rec(DstPixel)^ := PPalette24(SrcLine)[SrcPos];
-        4: PColor32(DstPixel)^ := PUInt32Array(SrcLine)[SrcPos];
-        6: PColor48Rec(DstPixel)^ := PColor48RecArray(SrcLine)[SrcPos];
-        8: PColor64(DstPixel)^ := PInt64Array(SrcLine)[SrcPos];
-        12: PColor96FPRec(DstPixel)^ := PColor96FPRecArray(SrcLine)[SrcPos];
-        16: PColorFPRec(DstPixel)^ := PColorFPRecArray(SrcLine)[SrcPos];
+        2: PWord(DstPixel)^ := PWordBuffer(SrcLine)[SrcPos];
+        3: PColor24Rec(DstPixel)^ := PColor24RecBuffer(SrcLine)[SrcPos];
+        4: PColor32Rec(DstPixel)^ := PColor32RecBuffer(SrcLine)[SrcPos];
+        6: PColor48Rec(DstPixel)^ := PColor48RecBuffer(SrcLine)[SrcPos];
+        8: PColor64Rec(DstPixel)^ := PColor64RecBuffer(SrcLine)[SrcPos];
+        12: PColor96FPRec(DstPixel)^ := PColor96FPRecBuffer(SrcLine)[SrcPos];
+        16: PColorFPRec(DstPixel)^ := PColorFPRecBuffer(SrcLine)[SrcPos];
       end;
       Inc(DstPixel, Info.BytesPerPixel);
       Inc(Xp, ScaleX);
@@ -3580,7 +3580,7 @@ begin
         begin
           Sel := (Block.Mask and (3 shl (K shl 1))) shr (K shl 1);
           if ((X shl 2 + I) < Width) and ((Y shl 2 + J) < Height) then
-            PPalette32(DestBits)[(Y shl 2 + J) * Width + X shl 2 + I] :=
+            PColor32RecBuffer(DestBits)[PtrInt(Y shl 2 + J) * Width + X shl 2 + I] :=
               Colors[Sel];
           Inc(K);
         end;
@@ -3627,7 +3627,7 @@ begin
           begin
             Colors[Sel].A := AWord and $0F;
             Colors[Sel].A := Colors[Sel].A or (Colors[Sel].A shl 4);
-            PPalette32(DestBits)[(Y shl 2 + J) * Width + X shl 2 + I] :=
+            PColor32RecBuffer(DestBits)[PtrInt(Y shl 2 + J) * Width + X shl 2 + I] :=
               Colors[Sel];
           end;
           Inc(K);
@@ -3705,7 +3705,7 @@ begin
           if ((X shl 2 + I) < Width) and ((Y shl 2 + J) < Height) then
           begin
             Colors[Sel].A := AlphaBlock.Alphas[AMask[J shr 1] and 7];
-            PPalette32(DestBits)[(Y shl 2 + J) * Width + (X shl 2 + I)] :=
+            PColor32RecBuffer(DestBits)[PtrInt(Y shl 2 + J) * Width + X shl 2 + I] :=
               Colors[Sel];
           end;
           Inc(K);
@@ -3726,7 +3726,7 @@ begin
   for Y := 0 to 3 do
     for X := 0 to 3 do
     begin
-      Src := @PPalette32(SrcBits)[(YPos shl 2 + Y) * Width + XPos shl 2 + X];
+      Src := @PColor32RecBuffer(SrcBits)[PtrInt(YPos shl 2 + Y) * Width + XPos shl 2 + X];
       Block[I].Color := ((Src.R shr 3) shl 11) or ((Src.G shr 2) shl 5) or
         (Src.B shr 3);
       Block[I].Alpha := Src.A;
@@ -4228,7 +4228,7 @@ begin
        begin
          Color.R := AlphaBlock1.Alphas[AMask1[J shr 1] and 7];
          Color.G := AlphaBlock2.Alphas[AMask2[J shr 1] and 7];
-         PColor32RecArray(DestBits)[(Y shl 2 + J) * Width + (X shl 2 + I)] := Color;
+         PColor32RecBuffer(DestBits)[PtrInt(Y shl 2 + J) * Width + X shl 2 + I] := Color;
          AMask1[J shr 1] := AMask1[J shr 1] shr 3;
          AMask2[J shr 1] := AMask2[J shr 1] shr 3;
        end;

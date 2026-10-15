@@ -67,6 +67,7 @@ type
     procedure TestPixelCountOver32Bits;
     procedure TestPixelAndScanlinePointers;
     procedure TestPointersOver32Bits;
+    procedure TestBufferTypes;
   end;
 
   TTestImageFiles = class(TImagingTestCase)
@@ -505,6 +506,57 @@ begin
 {$ELSE}
 begin
   // Such images cannot exist with 32-bit addresses
+{$ENDIF}
+end;
+
+procedure TTestImageGeometry.TestBufferTypes;
+var
+  Pixels: array[0..3] of TColor32Rec;
+  Words: array[0..3] of Word;
+  Pixels24: array[0..3] of TColor24Rec;
+{$IFDEF HAS_64BIT_ADDRESSES}
+  Index: NativeInt;
+  Base: Pointer;
+{$ENDIF}
+begin
+  FillChar(Pixels, SizeOf(Pixels), 0);
+  PColor32RecBuffer(@Pixels)[2].Color := $11223344;
+  PColor32RecBuffer(@Pixels)[3].A := $55;
+  CheckEqualsColor32($11223344, Pixels[2].Color, 'Pixel written through PColor32RecBuffer');
+  CheckEquals($55, Pixels[3].A, 'Channel written through PColor32RecBuffer');
+  CheckEquals($44, PBuffer(@Pixels)[8], 'The same pixel through PBuffer');
+
+  FillChar(Words, SizeOf(Words), 0);
+  PWordBuffer(@Words)[3] := $ABCD;
+  CheckEquals($ABCD, Words[3], 'Word written through PWordBuffer');
+
+  // Pointer math on 3 byte elements is wrong in Delphi, see PColor24RecBuffer
+  FillChar(Pixels24, SizeOf(Pixels24), 0);
+  PColor24RecBuffer(@Pixels24)[3].R := $77;
+  CheckEquals($77, Pixels24[3].R, 'Pixel written through PColor24RecBuffer');
+  CheckEquals($77, PBuffer(@Pixels24)[11], 'The same pixel through PBuffer');
+
+{$IFDEF HAS_64BIT_ADDRESSES}
+  // Addresses are only computed: the indexes are over the limits of
+  // PByteArray, PWordArray and PColor32RecArray
+  Base := nil;
+  Index := NativeInt(3) * 1000 * 1000 * 1000;
+  CheckEquals(Int64(3000000000), Int64(PtrUInt(@PBuffer(Base)[Index])), 'PBuffer over 2 GB');
+  CheckEquals(Int64(6000000000), Int64(PtrUInt(@PWordBuffer(Base)[Index])), 'PWordBuffer over 2^31 words');
+  CheckEquals(Int64(12000000000), Int64(PtrUInt(@PColor32RecBuffer(Base)[Index])), 'PColor32RecBuffer over 2^31 pixels');
+{$IF Defined(FPC) or (CompilerVersion >= 36.0)}
+  // Array type in older Delphi, the index is over its range
+  CheckEquals(Int64(9000000000), Int64(PtrUInt(@PColor24RecBuffer(Base)[Index])), 'PColor24RecBuffer over 2^31 pixels');
+{$IFEND}
+  CheckEquals(Int64(18000000000), Int64(PtrUInt(@PColor48RecBuffer(Base)[Index])), 'PColor48RecBuffer over 2^31 pixels');
+  CheckEquals(Int64(24000000000), Int64(PtrUInt(@PColor64RecBuffer(Base)[Index])), 'PColor64RecBuffer over 2^31 pixels');
+  CheckEquals(Int64(36000000000), Int64(PtrUInt(@PColor96FPRecBuffer(Base)[Index])), 'PColor96FPRecBuffer over 2^31 pixels');
+  CheckEquals(Int64(48000000000), Int64(PtrUInt(@PColorFPRecBuffer(Base)[Index])), 'PColorFPRecBuffer over 2^31 pixels');
+  CheckEquals(Int64(12000000000), Int64(PtrUInt(@PUInt32Buffer(Base)[Index])), 'PUInt32Buffer over 2^31 elements');
+  CheckEquals(Int64(24000000000), Int64(PtrUInt(@PInt64Buffer(Base)[Index])), 'PInt64Buffer over 2^31 elements');
+  CheckEquals(Int64(12000000000), Int64(PtrUInt(@PSingleBuffer(Base)[Index])), 'PSingleBuffer over 2^31 elements');
+  Index := 600 * 1000 * 1000;
+  CheckEquals(Int64(2400000000), Int64(PtrUInt(@PColor32RecBuffer(Base)[Index])), 'PColor32RecBuffer over MaxInt div 4 pixels');
 {$ENDIF}
 end;
 

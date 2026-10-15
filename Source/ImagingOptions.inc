@@ -197,6 +197,11 @@
   {$DEFINE HAS_INLINE}
 {$IFEND}
 
+// Define if compiler supports pointer math: Delphi 2009+ and FPC
+{$IF (Defined(DCC) and (CompilerVersion >= 20.0)) or Defined(FPC)}
+  {$DEFINE HAS_POINTER_MATH}
+{$IFEND}
+
 // Define if compiler supports advanced records with methods
 {$IF (Defined(DCC) and (CompilerVersion >= 18)) or
   (Defined(FPC) and (FPC_FULLVERSION >= 20600))}
@@ -279,4 +284,7 @@
   {$INLINE ON}             // turns inlining on for compilers that support it
 {$ENDIF}
 
+{$IFDEF HAS_POINTER_MATH}
+  {$POINTERMATH ON}        // turns pointer math on for compilers that support it
+{$ENDIF}
 
