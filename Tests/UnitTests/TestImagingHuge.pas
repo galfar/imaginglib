@@ -63,6 +63,7 @@ type
     procedure TestOtsu;
     procedure TestCanvas;
     procedure TestDXT;
+    procedure TestStreamIO;
   end;
 {$ENDIF}
 
@@ -79,6 +80,77 @@ end;
 const
   // The smallest square with more than 2^31 pixels (by 4633)
   HugeSide = 46341;
+
+type
+  { Stream over a memory block of fixed capacity. TMemoryStream of older
+    Delphi cannot grow over 2 GB, this one does not depend on the RTL.
+    Read and Write take 32-bit counts like TStream of FPC 3.2.}
+  TBlockStream = class(TStream)
+  private
+    FData: Pointer;
+    FCapacity, FSize, FPosition: Int64;
+  protected
+    function GetSize: Int64; override;
+  public
+    constructor Create(Data: Pointer; const Capacity: Int64);
+    function Read(var Buffer; Count: LongInt): LongInt; override;
+    function Write(const Buffer; Count: LongInt): LongInt; override;
+    function Seek(const Offset: Int64; Origin: TSeekOrigin): Int64; override;
+  end;
+
+constructor TBlockStream.Create(Data: Pointer; const Capacity: Int64);
+begin
+  inherited Create;
+  FData := Data;
+  FCapacity := Capacity;
+end;
+
+function TBlockStream.GetSize: Int64;
+begin
+  Result := FSize;
+end;
+
+function TBlockStream.Read(var Buffer; Count: LongInt): LongInt;
+begin
+  Result := Count;
+  if FPosition + Result > FSize then
+    Result := FSize - FPosition;
+  if Result <= 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  Move(PBuffer(FData)[FPosition], Buffer, Result);
+  Inc(FPosition, Result);
+end;
+
+function TBlockStream.Write(const Buffer; Count: LongInt): LongInt;
+begin
+  Result := Count;
+  if FPosition + Result > FCapacity then
+    Result := FCapacity - FPosition;
+  if Result <= 0 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  Move(Buffer, PBuffer(FData)[FPosition], Result);
+  Inc(FPosition, Result);
+  if FPosition > FSize then
+    FSize := FPosition;
+end;
+
+function TBlockStream.Seek(const Offset: Int64; Origin: TSeekOrigin): Int64;
+begin
+  case Origin of
+    soBeginning: FPosition := Offset;
+    soCurrent:   FPosition := FPosition + Offset;
+    soEnd:       FPosition := FSize + Offset;
+  end;
+  Result := FPosition;
+end;
 
 function HugePixels: NativeInt;
 begin
@@ -528,6 +600,53 @@ begin
   CheckEquals(Ord(ifDXT1), Ord(FImage.Format), 'Encoded: format');
   CheckTrue(ConvertImage(FImage, ifA8R8G8B8), 'Decoding of encoded DXT1');
   CheckDecoded('Encoded and decoded DXT1');
+end;
+
+procedure TTestHugeImages.TestStreamIO;
+const
+  // Room for the header and footer of the file
+  Extra = 4096;
+var
+  Data: Pointer;
+  Stream: TBlockStream;
+  Loaded: TImageData;
+  OldRle: Integer;
+  Markers: array[0..2] of NativeInt;
+  I: Integer;
+begin
+  // Uncompressed Targa is read and written in one call of the size of the
+  // image, stream IO passes it to TStream in smaller blocks
+  NewLitImage(ifGray8);
+  Markers[0] := NativeInt(1) shl 30 + 5;
+  Markers[1] := NativeInt(1) shl 31 + 7;
+  Markers[2] := HugePixels - 2;
+  for I := Low(Markers) to High(Markers) do
+    PBuffer(FImage.Bits)[Markers[I]] := 50 + I;
+
+  InitImage(Loaded);
+  Data := AllocHuge(FImage.Size + Extra);
+  Stream := TBlockStream.Create(Data, FImage.Size + Extra);
+  OldRle := GetOption(ImagingTargaRLE);
+  try
+    SetOption(ImagingTargaRLE, 0);
+    CheckTrue(SaveImageToStream('tga', Stream, FImage), 'Image is saved');
+    CheckTrue(Stream.Size > FImage.Size, Format('Size of the file: %d bytes', [Stream.Size]));
+
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, Loaded), 'Image is loaded');
+    CheckEquals(HugeSide, Loaded.Width, 'Width');
+    CheckEquals(HugeSide, Loaded.Height, 'Height');
+    CheckEquals(Ord(ifGray8), Ord(Loaded.Format), 'Format');
+    for I := Low(Markers) to High(Markers) do
+      CheckEquals(50 + I, PBuffer(Loaded.Bits)[Markers[I]], Format('Marker %d', [I]));
+    if not CompareMem(FImage.Bits, Loaded.Bits, FImage.Size) then
+      CheckSameMem(FImage.Bits, Loaded.Bits, FImage.Size, 'Loaded image');
+  finally
+    SetOption(ImagingTargaRLE, OldRle);
+    Stream.Free;
+    FreeMem(Data);
+    FreeImage(Loaded);
+  end;
 end;
 
 {$ENDIF}

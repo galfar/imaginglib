@@ -590,12 +590,9 @@ const
 type
   { IO functions used for reading and writing images from/to input/output.}
 
-{$IFDEF DELPHI}
+  { Number of bytes read or written. TStream of FPC 3.2 and older Delphi takes
+    only 32-bit counts, stream IO functions split larger requests.}
   TIOReadWriteCount = NativeInt;
-{$ELSE}
-  // FPC 3.2.2 still has only TStream with Read/Write count as LongInt
-  TIOReadWriteCount = LongInt;
-{$ENDIF}
 
   TOpenProc = function(Source: PChar; Mode: TOpenMode): TImagingHandle; cdecl;
   TCloseProc = procedure(Handle: TImagingHandle); cdecl;

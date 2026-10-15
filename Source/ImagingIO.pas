@@ -196,7 +196,6 @@ end;
 
 function TBufferedStream.Read(var Buffer; Count: NativeInt): NativeInt;
 var
-  BufAsBytes: TByteArray absolute Buffer;
   BufIdx, BytesToGo, BytesToRead: NativeInt;
 begin
   // Calculate the actual number of bytes we can read - this depends on
@@ -222,7 +221,7 @@ begin
   if BytesToRead > BytesToGo then
     BytesToRead := BytesToGo;
   // Copy from the stream buffer to the caller's buffer
-  Move(FBuffer^[FBufPos], BufAsBytes[BufIdx], BytesToRead);
+  Move(FBuffer^[FBufPos], PBuffer(@Buffer)[BufIdx], BytesToRead);
   // Calculate the number of bytes still to read}
   Dec(BytesToGo, BytesToRead);
 
@@ -245,7 +244,7 @@ begin
     if BytesToRead > BytesToGo then
       BytesToRead := BytesToGo;
     // Copy from the stream buffer to the caller's buffer
-    Move(FBuffer^, BufAsBytes[BufIdx], BytesToRead);
+    Move(FBuffer^, PBuffer(@Buffer)[BufIdx], BytesToRead);
     // Calculate the number of bytes still to read
     Dec(BytesToGo, BytesToRead);
   end;
@@ -297,7 +296,6 @@ end;
 
 function TBufferedStream.Write(const Buffer; Count: NativeInt): NativeInt;
 var
-  BufAsBytes: TByteArray absolute Buffer;
   BufIdx, BytesToGo, BytesToWrite: NativeInt;
 begin
   // When we write to this stream we always assume that we can write the
@@ -315,7 +313,7 @@ begin
   if BytesToWrite > BytesToGo then
     BytesToWrite := BytesToGo;
   // Copy from the caller's buffer to the stream buffer
-  Move(BufAsBytes[BufIdx], FBuffer^[FBufPos], BytesToWrite);
+  Move(PBuffer(@Buffer)[BufIdx], FBuffer^[FBufPos], BytesToWrite);
   // Mark our stream buffer as requiring a save to the actual stream,
   // note that this will suffice for the rest of the routine as well: no
   // inner routine will turn off the dirty flag.
@@ -341,7 +339,7 @@ begin
     if BytesToWrite > BytesToGo then
       BytesToWrite := BytesToGo;
     // Copy from the caller's buffer to our buffer
-    Move(BufAsBytes[BufIdx], FBuffer^, BytesToWrite);
+    Move(PBuffer(@Buffer)[BufIdx], FBuffer^, BytesToWrite);
     // Calculate the number of bytes still to write
     Dec(BytesToGo, BytesToWrite);
   end;
@@ -513,16 +511,51 @@ begin
   Result := TStream(Handle).Position;
 end;
 
+const
+  { Largest count passed to TStream.Read and Write at once, they take only
+    32-bit counts in FPC 3.2 and older Delphi.}
+  MaxStreamBlock = 1024 * 1024 * 1024;  // 1 GB
+
 function StreamRead(Handle: TImagingHandle; Buffer: Pointer; Count: TIOReadWriteCount):
   TIOReadWriteCount; cdecl;
+var
+  Block, Done: NativeInt;
 begin
-  Result := TStream(Handle).Read(Buffer^, Count);
+  Result := 0;
+  while Result < Count do
+  begin
+    Block := Count - Result;
+    if Block > MaxStreamBlock then
+      Block := MaxStreamBlock;
+
+    Done := TStream(Handle).Read(PBuffer(Buffer)[Result], Block);
+    if Done > 0 then
+      Inc(Result, Done);
+    // End of stream
+    if Done < Block then
+      Break;
+  end;
 end;
 
 function StreamWrite(Handle: TImagingHandle; Buffer: Pointer; Count: TIOReadWriteCount):
   TIOReadWriteCount; cdecl;
+var
+  Block, Done: NativeInt;
 begin
-  Result := TStream(Handle).Write(Buffer^, Count);
+  Result := 0;
+  while Result < Count do
+  begin
+    Block := Count - Result;
+    if Block > MaxStreamBlock then
+      Block := MaxStreamBlock;
+
+    Done := TStream(Handle).Write(PBuffer(Buffer)[Result], Block);
+    if Done > 0 then
+      Inc(Result, Done);
+    // Stream is full or failed
+    if Done < Block then
+      Break;
+  end;
 end;
 
 { Memory IO functions }
