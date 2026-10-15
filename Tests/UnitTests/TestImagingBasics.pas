@@ -73,6 +73,7 @@ type
   TTestImageFiles = class(TImagingTestCase)
   published
     procedure TestLoadFromTestData;
+    procedure TestSaveAndLoadMemory;
   end;
 
 implementation
@@ -385,6 +386,46 @@ begin
     CheckEquals(378, Image.Height, 'Height');
   finally
     FreeImage(Image);
+  end;
+end;
+
+procedure TTestImageFiles.TestSaveAndLoadMemory;
+const
+  Capacity = 64 * 1024;
+var
+  Image, Loaded: TImageData;
+  Images: TDynImageDataArray;
+  Buffer: TDynByteArray;
+  Size: Int64;
+begin
+  InitImage(Image);
+  InitImage(Loaded);
+  try
+    CheckTrue(NewImage(31, 17, ifR8G8B8, Image), 'NewImage');
+    FillChar(Image.Bits^, Image.Size, $5A);
+    SetLength(Buffer, Capacity);
+
+    // Size is the capacity of the memory on input and size of the file on output
+    Size := Capacity;
+    CheckTrue(SaveImageToMemory('tga', Pointer(Buffer), Size, Image), 'SaveImageToMemory');
+    CheckTrue((Size > Image.Size) and (Size < Capacity), Format('Size of the saved file: %d', [Size]));
+    CheckEquals('tga', DetermineMemoryFormat(Pointer(Buffer), Size), 'DetermineMemoryFormat');
+    CheckTrue(LoadImageFromMemory(Pointer(Buffer), Size, Loaded), 'LoadImageFromMemory');
+    CheckImagesEqual(Image, Loaded, 'Loaded image');
+
+    // Multi image variants
+    SetLength(Images, 1);
+    Images[0] := Image;
+    Size := Capacity;
+    CheckTrue(SaveMultiImageToMemory('tga', Pointer(Buffer), Size, Images), 'SaveMultiImageToMemory');
+    Images := nil;
+    CheckTrue(LoadMultiImageFromMemory(Pointer(Buffer), Size, Images), 'LoadMultiImageFromMemory');
+    CheckEquals(1, Length(Images), 'Number of loaded images');
+    CheckImagesEqual(Image, Images[0], 'Loaded multi image');
+  finally
+    FreeImage(Image);
+    FreeImage(Loaded);
+    FreeImagesInArray(Images);
   end;
 end;
 

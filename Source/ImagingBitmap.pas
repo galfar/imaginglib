@@ -139,7 +139,8 @@ var
   BC: TBitmapCoreHeader;
   IsOS2: Boolean;
   PalRGB: PPalette24;
-  I, FPalSize, AlignedSize, StartPos, HeaderSize, AlignedWidthBytes, WidthBytes: LongInt;
+  I, FPalSize, AlignedSize, HeaderSize, AlignedWidthBytes, WidthBytes: LongInt;
+  StartPos: Int64;
   Info: TImageFormatInfo;
   Data: Pointer;
 
@@ -191,10 +192,11 @@ var
   procedure LoadRLE4;
   var
     RLESrc: PByteArray;
-    Row, Col, WriteRow, I: Integer;
+    Row, Col, I: Integer;
+    WriteRow: NativeInt;
     SrcPos: UInt32;
     DeltaX, DeltaY, Low, High: Byte;
-    Pixels: PByteArray;
+    Pixels: PBuffer;
     OpCode: TRLEOpcode;
     NegHeightBitmap: Boolean;
   begin
@@ -288,10 +290,11 @@ var
   procedure LoadRLE8;
   var
     RLESrc: PByteArray;
-    SrcCount, Row, Col, WriteRow: Integer;
+    SrcCount, Row, Col: Integer;
+    WriteRow: NativeInt;
     SrcPos: UInt32;
     DeltaX, DeltaY: Byte;
-    Pixels: PByteArray;
+    Pixels: PBuffer;
     OpCode: TRLEOpcode;
     NegHeightBitmap: Boolean;
   begin
@@ -357,7 +360,7 @@ var
           if Col + OpCode.Count > Width then
             OpCode.Count := Width - Col;
           // Store a run of the same color value. Count is number of bytes to store
-          FillChar(Pixels [WriteRow * Width + Col], OpCode.Count, OpCode.Command);
+          FillChar(Pixels[WriteRow * Width + Col], OpCode.Count, OpCode.Command);
           Inc(Col, OpCode.Count);
         end;
       end;
@@ -524,7 +527,9 @@ end;
 function TBitmapFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
-  StartPos, EndPos, I, Pad, PadSize, WidthBytes: LongInt;
+  StartPos, EndPos: Int64;
+  I: NativeInt;
+  Pad, PadSize, WidthBytes: LongInt;
   BF: TBitmapFileHeader;
   BI: TBitmapInfoHeader;
   Info: TImageFormatInfo;
@@ -535,9 +540,10 @@ var
   const
     BufferSize = 8 * 1024;
   var
-    X, Y, I, SrcPos: LongInt;
+    X, I, SrcPos: LongInt;
+    Y: NativeInt;
     DiffCount, SameCount: Byte;
-    Pixels: PByteArray;
+    Pixels: PBuffer;
     Buffer: array[0..BufferSize - 1] of Byte;
     BufferPos: LongInt;
 
@@ -561,7 +567,7 @@ var
       begin
         X := 0;
         SrcPos := 0;
-        Pixels := @PByteArray(Bits)[Y * Width];
+        Pixels := @PBuffer(Bits)[Y * Width];
 
         while X < Width do
         begin
@@ -705,7 +711,7 @@ begin
 
       for I := Height - 1 downto 0 do
       begin
-        Write(Handle, @PByteArray(Bits)[I * WidthBytes], WidthBytes);
+        Write(Handle, @PBuffer(Bits)[I * WidthBytes], WidthBytes);
         if PadSize > 0 then
           Write(Handle, @Pad, PadSize);
       end;

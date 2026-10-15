@@ -83,7 +83,7 @@ function LoadGLTextureFromStream(Stream: TStream; CreatedWidth: PLongInt = nil;
 { Creates GL texture from image in memory in format supported by Imaging.
   You can use CreatedWidth and Height parameters to query dimensions of created textures
   (it could differ from dimensions of source image).}
-function LoadGLTextureFromMemory(Data: Pointer; Size: LongInt;
+function LoadGLTextureFromMemory(Data: Pointer; Size: Int64;
   CreatedWidth: PLongInt = nil; CreatedHeight: PLongInt = nil): GLuint;
 
 { Converts TImageData structure to OpenGL texture.
@@ -126,7 +126,7 @@ function SaveGLTextureToFile(const FileName: string; const Texture: GLuint): Boo
 function SaveGLTextureToStream(const Ext: string; Stream: TStream; const Texture: GLuint): Boolean;
 { Saves GL texture to memory in one of formats supported by Imaging.
   Saves all present mipmap levels.}
-function SaveGLTextureToMemory(const Ext: string; Data: Pointer; var Size: LongInt; const Texture: GLuint): Boolean;
+function SaveGLTextureToMemory(const Ext: string; Data: Pointer; var Size: Int64; const Texture: GLuint): Boolean;
 
 { Converts main level of the GL texture to TImageData structure. OverrideFormat
   can be used to convert output image to the specified format rather
@@ -523,7 +523,7 @@ begin
   FreeImagesInArray(Images);
 end;
 
-function LoadGLTextureFromMemory(Data: Pointer; Size: LongInt; CreatedWidth, CreatedHeight: PLongInt): GLuint;
+function LoadGLTextureFromMemory(Data: Pointer; Size: Int64; CreatedWidth, CreatedHeight: PLongInt): GLuint;
 var
   Images: TDynImageDataArray;
 begin
@@ -806,7 +806,7 @@ begin
   end;
 end;
 
-function SaveGLTextureToMemory(const Ext: string; Data: Pointer; var Size: LongInt; const Texture: GLuint): Boolean;
+function SaveGLTextureToMemory(const Ext: string; Data: Pointer; var Size: Int64; const Texture: GLuint): Boolean;
 var
   Arr: TDynImageDataArray;
   Fmt: TImageFileFormat;

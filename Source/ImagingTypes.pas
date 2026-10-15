@@ -234,7 +234,7 @@ type
   index limit is no restriction).
 
   Usage:
-    ScanLinePtr := @PBuffer(Bits)[Y * Width * Bpp];
+    ScanLinePtr := @PBuffer(Bits)[PtrInt(Y) * Width * Bpp];  // Y, Width, Bpp are all Int32
     PBuffer(Bits)[Index] := 255;
     PWordBuffer(Bits)[PixelIndex] := 65535;
     PColor32RecBuffer(Bits)[PixelIndex].A := 255;

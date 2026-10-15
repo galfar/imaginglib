@@ -80,7 +80,8 @@ var
   PalID, B: Byte;
   PalPCX: TPalette24Size256;
   FileDataFormat: TImageFormat;
-  I, J, UncompSize, BytesPerLine, ByteNum, BitNum: LongInt;
+  I: NativeInt;
+  J, UncompSize, BytesPerLine, ByteNum, BitNum: LongInt;
   UncompData, RowPointer, PixelIdx: PByte;
   Pixel24: PColor24Rec;
   Pixel32: PColor32Rec;
@@ -250,7 +251,7 @@ begin
       begin
         // Just copy 8bit lines
         for I := 0 to Height - 1 do
-          Move(PByteArray(UncompData)[I * Hdr.BytesPerLine], PByteArray(Bits)[I * Width], Width);
+          Move(PBuffer(UncompData)[I * Hdr.BytesPerLine], PBuffer(Bits)[I * Width], Width);
       end
       else if FileDataFormat = ifMono then
       begin

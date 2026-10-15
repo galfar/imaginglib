@@ -238,7 +238,8 @@ var
 
   procedure Reconstruct;
   var
-    ImgIndex, I, J, K: Integer;
+    ImgIndex, I, K: Integer;
+    J: NativeInt;
     RowOffsets: PUInt32Array;
     RowPtr: PByte;
     Offset: UInt32;
@@ -269,7 +270,7 @@ var
           with Images[ImgIndex] do
           for J := 0 to BHDR.Height - 1 do
             Move(PByteArray(ChunkData)[RowOffsets[I * BHDR.Height + J]],
-              PByteArray(Bits)[J * Width], Width);
+              PBuffer(Bits)[J * Width], Width);
         end;
       end;
     end
@@ -299,7 +300,7 @@ var
               for K := 0 to BHDR.Width - 1 do
               begin
                 Idx := PByteArray(ChunkData)[RowOffsets[I * BHDR.Height + J] and $FFFF + K];
-                PByteArray(Bits)[J * Width + K] := Idx;
+                PBuffer(Bits)[J * Width + K] := Idx;
               end;
           end
           else
@@ -311,11 +312,11 @@ var
               IsRleLine := (Offset and $80000000) = $80000000;
               Offset := Offset and $FFFFFF;
               RowPtr := @PByteArray(ChunkData)[Offset];
-              DestLine := @PByteArray(Bits)[J * BHDR.Width];
+              DestLine := @PBuffer(Bits)[J * BHDR.Width];
 
               if not IsRleLine then
               begin
-                Move(PByteArray(ChunkData)[Offset], PByteArray(Bits)[J * Width], Width);
+                Move(PByteArray(ChunkData)[Offset], PBuffer(Bits)[J * Width], Width);
               end
               else
               begin
