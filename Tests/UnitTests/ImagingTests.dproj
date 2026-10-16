@@ -86,6 +86,7 @@
         <DCCReference Include="TestImagingBasics.pas"/>
         <DCCReference Include="TestImagingClasses.pas"/>
         <DCCReference Include="TestImagingCanvases.pas"/>
+        <DCCReference Include="TestImagingZLib.pas"/>
         <DCCReference Include="TestImagingColors.pas"/>
         <DCCReference Include="TestImagingConversions.pas"/>
         <DCCReference Include="TestImagingManipulation.pas"/>

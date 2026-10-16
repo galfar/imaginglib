@@ -32,6 +32,8 @@ type
   end;
 
   TTestUtilityMemory = class(TImagingTestCase)
+  private
+    procedure CheckLengthsAndOffsets;
   published
     procedure TestSwapEndianValues;
     procedure TestSwapEndianBuffers;
@@ -265,6 +267,46 @@ begin
   Crc := $FFFFFFFF;
   CalcCrc32(Crc, nil, 0);
   CheckEquals(Int64(0), Int64(Crc xor $FFFFFFFF), 'CRC of no data');
+
+  CheckLengthsAndOffsets;
+end;
+
+procedure TTestUtilityMemory.CheckLengthsAndOffsets;
+var
+  Data: array[0..99] of Byte;
+  Table: array[Byte] of UInt32;
+  I, J, Offset, Len: Integer;
+  Crc, Expected: UInt32;
+begin
+  // CRC is computed by more bytes at once from aligned addresses, compare it
+  // with bit by bit CRC for all lengths and start offsets around those blocks
+  for I := 0 to 255 do
+  begin
+    Expected := I;
+    for J := 0 to 7 do
+    begin
+      if Expected and 1 <> 0 then
+        Expected := $EDB88320 xor (Expected shr 1)
+      else
+        Expected := Expected shr 1;
+    end;
+    Table[I] := Expected;
+  end;
+  for I := 0 to High(Data) do
+    Data[I] := Byte(I * 37 + 11);
+
+  for Offset := 0 to 7 do
+    for Len := 0 to 40 do
+    begin
+      Expected := $FFFFFFFF;
+      for I := Offset to Offset + Len - 1 do
+        Expected := (Expected shr 8) xor Table[Byte(Expected) xor Data[I]];
+
+      Crc := $FFFFFFFF;
+      CalcCrc32(Crc, @Data[Offset], Len);
+      if Crc <> Expected then
+        Fail(Format('CRC of %d bytes from offset %d: %.8x, expected %.8x', [Len, Offset, Crc, Expected]));
+    end;
 end;
 
 procedure TTestUtilityMemory.TestFillMemory;
