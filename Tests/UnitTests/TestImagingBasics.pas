@@ -19,7 +19,7 @@ interface
 
 uses
   SysUtils, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility,
-  ImagingTestCase;
+  ImagingIO, ImagingTestCase;
 
 type
   TTestImageLifetime = class(TImagingTestCase)
@@ -74,9 +74,44 @@ type
   published
     procedure TestLoadFromTestData;
     procedure TestSaveAndLoadMemory;
+    procedure TestStreamSeekOver4GB;
+    procedure TestReadRestOfInput;
   end;
 
 implementation
+
+type
+  { Stream with no data that only keeps the position, for seeks to large positions.}
+  TSeekOnlyStream = class(TStream)
+  private
+    FPosition: Int64;
+  public
+    function Read(var Buffer; Count: LongInt): LongInt; override;
+    function Write(const Buffer; Count: LongInt): LongInt; override;
+    function Seek(const Offset: Int64; Origin: TSeekOrigin): Int64; override;
+  end;
+
+function TSeekOnlyStream.Read(var Buffer; Count: LongInt): LongInt;
+begin
+  Result := 0;
+end;
+
+function TSeekOnlyStream.Write(const Buffer; Count: LongInt): LongInt;
+begin
+  Result := 0;
+end;
+
+function TSeekOnlyStream.Seek(const Offset: Int64; Origin: TSeekOrigin): Int64;
+const
+  VirtualSize = Int64(10) shl 30;
+begin
+  case Origin of
+    soBeginning: FPosition := Offset;
+    soCurrent:   FPosition := FPosition + Offset;
+    soEnd:       FPosition := VirtualSize + Offset;
+  end;
+  Result := FPosition;
+end;
 
 { TTestImageLifetime }
 
@@ -599,6 +634,77 @@ begin
   Index := 600 * 1000 * 1000;
   CheckEquals(Int64(2400000000), Int64(PtrUInt(@PColor32RecBuffer(Base)[Index])), 'PColor32RecBuffer over MaxInt div 4 pixels');
 {$ENDIF}
+end;
+
+procedure TTestImageFiles.TestStreamSeekOver4GB;
+const
+  Far = Int64(5) shl 30 + 3;
+var
+  Stream: TSeekOnlyStream;
+  Handle: TImagingHandle;
+begin
+  // Stream IO must not pass positions to the 32-bit TStream.Seek overload
+  Stream := TSeekOnlyStream.Create;
+  try
+    Handle := StreamIO.Open(Pointer(Stream), omReadWrite);
+    try
+      CheckEquals(Far, StreamIO.Seek(Handle, Far, smFromBeginning), 'Seek from beginning');
+      CheckEquals(Far, StreamIO.Tell(Handle), 'Position after seek from beginning');
+      CheckEquals(Far + Far, StreamIO.Seek(Handle, Far, smFromCurrent), 'Seek from current');
+      CheckEquals(Int64(10) shl 30 - Far, StreamIO.Seek(Handle, -Far, smFromEnd), 'Seek from end');
+      CheckEquals(Int64(3), StreamIO.Seek(Handle, 3, smFromBeginning), 'Seek back');
+    finally
+      StreamIO.Close(Handle);
+    end;
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TTestImageFiles.TestReadRestOfInput;
+const
+  DataSize = 300000; // More blocks of growing size
+  Start = 1000;
+var
+  Stream: TMemoryStream;
+  Handle: TImagingHandle;
+  Buffer: TDynByteArray;
+  I: Integer;
+  Same: Boolean;
+
+  procedure CheckRead(MaxSize: NativeInt; Expected: Boolean; ExpectedSize: Integer; const Msg: string);
+  begin
+    StreamIO.Seek(Handle, Start, smFromBeginning);
+    CheckEquals(Expected, ReadRestOfInput(StreamIO, Handle, Buffer, MaxSize), Msg + ': result');
+    CheckEquals(ExpectedSize, Length(Buffer), Msg + ': size');
+  end;
+
+begin
+  Stream := TMemoryStream.Create;
+  try
+    Stream.Size := DataSize;
+    for I := 0 to DataSize - 1 do
+      PBuffer(Stream.Memory)[I] := Byte(I * 7 + I shr 8);
+    Handle := StreamIO.Open(Pointer(Stream), omReadOnly);
+    try
+      CheckRead(High(NativeInt), True, DataSize - Start, 'Unlimited');
+      Same := CompareMem(@PBuffer(Stream.Memory)[Start], Pointer(Buffer), DataSize - Start);
+      CheckTrue(Same, 'Data read');
+      CheckEquals(Int64(DataSize), StreamIO.Tell(Handle), 'Position at the end');
+
+      CheckRead(DataSize - Start, True, DataSize - Start, 'Limit equal to the rest');
+      CheckRead(DataSize - Start - 1, False, 0, 'Limit smaller than the rest');
+      CheckRead(100, False, 0, 'Limit smaller than the first block');
+
+      StreamIO.Seek(Handle, 0, smFromEnd);
+      CheckTrue(ReadRestOfInput(StreamIO, Handle, Buffer), 'At the end: result');
+      CheckEquals(0, Length(Buffer), 'At the end: size');
+    finally
+      StreamIO.Close(Handle);
+    end;
+  finally
+    Stream.Free;
+  end;
 end;
 
 initialization

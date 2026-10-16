@@ -34,9 +34,17 @@ var
   StreamIO: TIOFunctions;
   MemoryIO: TIOFunctions;
 
-{ Helper function that returns size of input (from current position to the end)
-  represented by Handle (and opened and operated on by members of IOFunctions).}
+{ Helper function that returns size of the whole input represented by Handle
+  (and opened and operated on by members of IOFunctions), not only the part
+  from the current position to the end.
+  Be careful when relying on it, some input types may not be able to see the whole size. }
 function GetInputSize(const IOFunctions: TIOFunctions; Handle: TImagingHandle): Int64;
+{ Reads the rest of input from the current position to its end into Buffer
+  (Length(Buffer) is the number of bytes read). The size of input need not be
+  known, it is read in blocks of growing size. Returns False and empty Buffer
+  when the input is longer than MaxSize bytes.}
+function ReadRestOfInput(const IOFunctions: TIOFunctions; Handle: TImagingHandle;
+  out Buffer: TDynByteArray; MaxSize: NativeInt = High(NativeInt)): Boolean;
 { Helper function that initializes TMemoryIORec with given params.}
 function PrepareMemIO(Data: Pointer; const Size: Int64): TMemoryIORec;
 { Reads one text line from input (CR+LF, CR, or LF as line delimiter).}
@@ -503,7 +511,7 @@ end;
 
 function StreamSeek(Handle: TImagingHandle; Offset: Int64; Mode: TSeekMode): Int64; cdecl;
 begin
-  Result := TStream(Handle).Seek(Offset, Word(Mode));
+  Result := TStream(Handle).Seek(Offset, TSeekOrigin(Mode));
 end;
 
 function StreamTell(Handle: TImagingHandle): Int64; cdecl;
@@ -627,6 +635,50 @@ begin
   IOFunctions.Seek(Handle, 0, smFromEnd);
   Result := IOFunctions.Tell(Handle);
   IOFunctions.Seek(Handle, OldPos, smFromBeginning);
+end;
+
+function ReadRestOfInput(const IOFunctions: TIOFunctions; Handle: TImagingHandle;
+  out Buffer: TDynByteArray; MaxSize: NativeInt): Boolean;
+const
+  MinBlockSize = 64 * 1024;
+var
+  Size, NewSize, ReadCount: NativeInt;
+  Extra: Byte;
+begin
+  Buffer := nil;
+  Size := 0;
+
+  repeat
+    if Size = Length(Buffer) then
+    begin
+      if Size >= MaxSize then
+      begin
+        // Full buffer is fine only at the end of input
+        Result := IOFunctions.Read(Handle, @Extra, 1) <= 0;
+        if not Result then
+          Buffer := nil;
+        Exit;
+      end;
+
+      // Size of buffer doubles up to MaxSize
+      if Size > MaxSize div 2 then
+        NewSize := MaxSize
+      else if Size < MinBlockSize then
+        NewSize := MinBlockSize
+      else
+        NewSize := Size * 2;
+      if NewSize > MaxSize then
+        NewSize := MaxSize;
+      SetLength(Buffer, NewSize);
+    end;
+
+    ReadCount := IOFunctions.Read(Handle, @Buffer[Size], Length(Buffer) - Size);
+    if ReadCount > 0 then
+      Inc(Size, ReadCount);
+  until ReadCount <= 0;
+
+  SetLength(Buffer, Size);
+  Result := True;
 end;
 
 function PrepareMemIO(Data: Pointer; const Size: Int64): TMemoryIORec;

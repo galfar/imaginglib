@@ -164,7 +164,7 @@ type
   end;
 var
   FileType: TJpeg2000FileType;
-  Buffer: PByte;
+  Buffer: TDynByteArray;
   BufferSize, ChannelSize, I: Integer;
   Info: TImageFormatInfo;
   dinfo: popj_dinfo_t;
@@ -299,9 +299,21 @@ begin
   Result := False;
   image := nil;
   cio := nil;
+
+  StartPos := GetIO.Tell(Handle);
+  FileType := GetFileType(Handle);
+  if FileType = jtInvalid then
+    Exit;
+
+  // OpenJPEG decodes only from memory and takes the size of input as 32-bit
+  // integer, the whole rest of input is read to a buffer (we set the position
+  // to the end of JPEG 2000 data after loading). Larger inputs cannot be loaded.
+  if not ReadRestOfInput(GetIO, Handle, Buffer, MaxInt) then
+    Exit;
+  BufferSize := Length(Buffer);
+
   opj_set_default_decoder_parameters(@parameters);
   // Determine which codec to use
-  FileType := GetFileType(Handle);
   case FileType of
     jtJP2: dinfo := opj_create_decompress(CODEC_JP2);
     jtJ2K: dinfo := opj_create_decompress(CODEC_J2K);
@@ -311,19 +323,11 @@ begin
   end;
   // Set event manager to nil to avoid getting messages
   dinfo.event_mgr := nil;
-  // Currently OpenJPEG can load images only from memory so we have to
-  // preload whole input to mem buffer. Not good but no other way now.
-  // At least we set stream pos to end of JP2 data after loading (we will now
-  // the exact size by then).
-  StartPos := GetIO.Tell(Handle);
-  BufferSize := ImagingIO.GetInputSize(GetIO, Handle);
-  GetMem(Buffer, BufferSize);
 
   SetLength(Images, 1);
   with GetIO, Images[0] do
   try
-    Read(Handle, Buffer, BufferSize);
-    cio := opj_cio_open(opj_common_ptr(dinfo), Buffer, BufferSize);
+    cio := opj_cio_open(opj_common_ptr(dinfo), PByte(Buffer), BufferSize);
     opj_setup_decoder(dinfo, @parameters);
     // Decode image
     image := opj_decode(dinfo, cio);
@@ -419,14 +423,13 @@ begin
       ConvertYCbCrToRGB(Bits, GetPixelCount(Images[0]), Info.BytesPerPixel);
 
     // Set the input position just after end of image
-    Seek(Handle, StartPos + Cardinal(cio.bp) - Cardinal(cio.start), smFromBeginning);
+    Seek(Handle, StartPos + (PtrUInt(cio.bp) - PtrUInt(cio.start)), smFromBeginning);
 
     Result := True;
   finally
     opj_image_destroy(image);
     opj_destroy_decompress(dinfo);
     opj_cio_close(cio);
-    FreeMem(Buffer);
   end;
 end;
 

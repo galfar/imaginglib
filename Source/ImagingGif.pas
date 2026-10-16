@@ -777,23 +777,28 @@ var
   procedure CopyLZWData(Dest: TStream);
   var
     CodeSize, BlockSize: Byte;
-    InputSize: Integer;
+    ReadCount: Integer;
     Buff: array[Byte] of Byte;
   begin
-    InputSize := ImagingIO.GetInputSize(GetIO, Handle);
     // Copy codesize to stream
-    GetIO.Read(Handle, @CodeSize, 1);
+    if GetIO.Read(Handle, @CodeSize, 1) < 1 then
+      Exit;
     Dest.Write(CodeSize, 1);
     repeat
-      // Read and write data blocks, last is block term value of 0
-      GetIO.Read(Handle, @BlockSize, 1);
+      // Read and write data blocks, last is block term value of 0. Truncated
+      // input ends the data too.
+      if GetIO.Read(Handle, @BlockSize, 1) < 1 then
+        Break;
       Dest.Write(BlockSize, 1);
       if BlockSize > 0 then
       begin
-        GetIO.Read(Handle, @Buff[0], BlockSize);
-        Dest.Write(Buff[0], BlockSize);
+        ReadCount := GetIO.Read(Handle, @Buff[0], BlockSize);
+        if ReadCount > 0 then
+          Dest.Write(Buff[0], ReadCount);
+        if ReadCount < BlockSize then
+          Break;
       end;
-    until (BlockSize = 0) or (GetIO.Tell(Handle) >= InputSize);
+    until BlockSize = 0;
   end;
 
   procedure ReadFrame;

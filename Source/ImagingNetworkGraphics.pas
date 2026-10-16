@@ -1281,7 +1281,7 @@ begin
     end;
 
     // Check if alpha channel is the same size as image
-    if (Image.Width <> AlphaImage.Width) and (Image.Height <> AlphaImage.Height) then
+    if (Image.Width <> AlphaImage.Width) or (Image.Height <> AlphaImage.Height) then
       ResizeImage(AlphaImage, Image.Width, Image.Height, rfNearest);
 
     // Check alpha channels data format
@@ -2568,7 +2568,7 @@ procedure TMNGFileFormat.Define;
 begin
   inherited;
   FName := SMNGFormatName;
-  FFeatures := FFeatures + [ffMultiImage];
+  FFeatures := FFeatures + [ffMultiImage, ffHugeImages];
   AddMasks(SMNGMasks);
 
   FSignature := MNGSignature;
@@ -2613,7 +2613,7 @@ begin
       begin
         // Some MNG files (with BASI-IEND streams) dont have actual pixel data
         SetLength(Images, 1);
-        NewImage(NGFileLoader.MHDR.FrameWidth, NGFileLoader.MHDR.FrameWidth, ifDefault, Images[0]);
+        NewImage(NGFileLoader.MHDR.FrameWidth, NGFileLoader.MHDR.FrameHeight, ifDefault, Images[0]);
       end;
       Result := True;
     end;
@@ -2686,6 +2686,7 @@ procedure TJNGFileFormat.Define;
 begin
   inherited;
   FName := SJNGFormatName;
+  FFeatures := FFeatures + [ffHugeImages];
   AddMasks(SJNGMasks);
 
   FSignature := JNGSignature;
