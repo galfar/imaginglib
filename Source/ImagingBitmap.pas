@@ -122,7 +122,7 @@ procedure TBitmapFileFormat.Define;
 begin
   inherited;
   FName := SBitmapFormatName;
-  FFeatures := [ffLoad, ffSave];
+  FFeatures := [ffLoad, ffSave, ffHugeImages];
   FSupportedFormats := BitmapSupportedFormats;
 
   FUseRLE := BitmapDefaultRLE;
@@ -139,7 +139,8 @@ var
   BC: TBitmapCoreHeader;
   IsOS2: Boolean;
   PalRGB: PPalette24;
-  I, FPalSize, AlignedSize, HeaderSize, AlignedWidthBytes, WidthBytes: LongInt;
+  I, FPalSize, HeaderSize, AlignedWidthBytes, WidthBytes: LongInt;
+  AlignedSize: NativeInt;
   StartPos: Int64;
   Info: TImageFormatInfo;
   Data: Pointer;
@@ -309,6 +310,7 @@ var
       Col := 0; // Current column in dest image
       // Row in dest image where actual writing will be done
       WriteRow := Iff(NegHeightBitmap, Row, Height - 1 - Row);
+
       while (Row < Height) and (SrcPos < BI.SizeImage) do
       begin
         // Read RLE op-code
@@ -370,6 +372,7 @@ var
   end;
 
 begin
+  Result := False;
   Data := nil;
   SetLength(Images, 1);
   with GetIO, Images[0] do
@@ -378,7 +381,8 @@ begin
     StartPos := Tell(Handle);
     Read(Handle, @BF, SizeOf(BF));
     Read(Handle, @BI.Size, SizeOf(BI.Size));
-    IsOS2 := BI.Size = SizeOf(TBitmapCoreHeader);
+    // OS/2 1.x version, 2.x is handled by "Windows type bitmap" paths
+    IsOS2 := (BI.Size = SizeOf(TBitmapCoreHeader));
 
     // Bitmap Info reading
     if IsOS2 then
@@ -400,13 +404,28 @@ begin
       // Windows type bitmap
       HeaderSize := Min(BI.Size - SizeOf(BI.Size), SizeOf(BI) - SizeOf(BI.Size)); // do not read more than size of BI!
       Read(Handle, @PByteArray(@BI)[SizeOf(BI.Size)], HeaderSize);
-      // SizeImage can be 0 for BI_RGB images, but it is here because of:
-      // I saved 8bit bitmap in Paint Shop Pro 8 as OS2 RLE compressed.
-      // It wrote strange 64 Byte Info header with SizeImage set to 0
-      // Some progs were able to open it, some were not.
-      if BI.SizeImage = 0 then
+      // SizeImage can be 0 for BI_RGB images, but RLE loading needs it. OS/2 2.x
+      // header (up to 64 bytes, the first 40 like Windows V3 header) can have it
+      // 0 for RLE images too (Paint Shop Pro 8 writes such files), so it is
+      // computed from the file size if that is sane.
+      if (BI.SizeImage = 0) and (BF.Size > BF.Offset) then
         BI.SizeImage := BF.Size - BF.Offset;
     end;
+
+    // Refuse compressions and bit counts that cannot be loaded (BI_JPEG, BI_PNG,
+    // OS/2 Huffman 1D and RLE24, ...)
+    case BI.Compression of
+      BI_RGB:       if not (BI.BitCount in [1, 4, 8, 16, 24, 32]) then Exit;
+      BI_RLE8:      if BI.BitCount <> 8 then Exit;
+      BI_RLE4:      if BI.BitCount <> 4 then Exit;
+      BI_BITFIELDS: if not (BI.BitCount in [16, 32]) then Exit;
+    else
+      Exit;
+    end;
+
+    // RLE data cannot be loaded without their size
+    if ((BI.Compression = BI_RLE8) or (BI.Compression = BI_RLE4)) and (BI.SizeImage = 0) then
+      Exit;
     // Bit mask reading. Only read it if there is V3 header, V4 header has
     // masks loaded already (only masks for RGB in V3).
     if (BI.Compression = BI_BITFIELDS) and (BI.Size = V3InfoHeaderSize) then
@@ -433,7 +452,7 @@ begin
     Info := GetFormatInfo(Format);
     WidthBytes := Width * Info.BytesPerPixel;
     AlignedWidthBytes := (((Width * BI.BitCount) + 31) shr 5) * 4;
-    AlignedSize := Height * LongInt(AlignedWidthBytes);
+    AlignedSize := NativeInt(Height) * AlignedWidthBytes;
 
     // Palette settings and reading
     if BI.BitCount <= 8 then
@@ -461,10 +480,11 @@ begin
       end
       else
       begin
-        // Windows type
-        FPalSize := BI.ClrUsed;
-        if FPalSize = 0 then
-          FPalSize := 1 shl BI.BitCount;
+        // Windows type, more colors than the bit count allows are not read
+        // (image data are found by offset from the header anyway)
+        FPalSize := 1 shl BI.BitCount;
+        if (BI.ClrUsed > 0) and (BI.ClrUsed < UInt32(FPalSize)) then
+          FPalSize := BI.ClrUsed;
         Read(Handle, Palette, FPalSize * SizeOf(TColor32Rec));
       end;
       for I := 0 to Info.PaletteEntries - 1 do
@@ -527,7 +547,7 @@ end;
 function TBitmapFileFormat.SaveData(Handle: TImagingHandle;
   const Images: TDynImageDataArray; Index: LongInt): Boolean;
 var
-  StartPos, EndPos: Int64;
+  StartPos, EndPos, FileSize: Int64;
   I: NativeInt;
   Pad, PadSize, WidthBytes: LongInt;
   BF: TBitmapFileHeader;
@@ -660,14 +680,23 @@ begin
     BI.BitCount := Info.BytesPerPixel * 8;
     BI.XPelsPerMeter := 2835; // 72 dpi
     BI.YPelsPerMeter := 2835; // 72 dpi
-    // Set compression
-    if (Info.BytesPerPixel = 1) and FUseRLE then
+
+    // Set compression. Size of RLE8 data is a 32-bit header field, images
+    // whose data could exceed it are saved uncompressed. RLE8 takes at most
+    // 2 bytes per pixel plus end of line and end of bitmap commands.
+    if (Info.BytesPerPixel = 1) and FUseRLE and
+       (2 * (Int64(GetPixelCount(ImageToSave)) + Height + 1) <= High(UInt32)) then
+    begin
       BI.Compression := BI_RLE8
+    end
     else if (Info.HasAlphaChannel or
       ((BI.BitCount = 16) and (Format <> ifX1R5G5B5))) and (Info.BytesPerPixel = 2){V4 temp hack} then
+    begin
       BI.Compression := BI_BITFIELDS
+    end
     else
       BI.Compression := BI_RGB;
+
     // Write header (first time)
     Write(Handle, @BI, BI.Size);
 
@@ -724,9 +753,21 @@ begin
 
     EndPos := Tell(Handle);
     Seek(Handle, StartPos, smFromBeginning);
-    // Rewrite header with new values
-    BF.Size := EndPos - StartPos;
-    BI.SizeImage := BF.Size - BF.Offset;
+    // Rewrite header with new values. Sizes are 32-bit fields: for larger
+    // files the file size is clamped and the size of image data is 0 (only
+    // uncompressed files can be that large, readers compute the size from
+    // the dimensions)
+    FileSize := EndPos - StartPos;
+    if FileSize <= High(UInt32) then
+    begin
+      BF.Size := FileSize;
+      BI.SizeImage := FileSize - BF.Offset;
+    end
+    else
+    begin
+      BF.Size := High(UInt32);
+      BI.SizeImage := 0;
+    end;
     Write(Handle, @BF, SizeOf(BF));
     Write(Handle, @BI, BI.Size);
     Seek(Handle, EndPos, smFromBeginning);

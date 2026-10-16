@@ -205,6 +205,7 @@ function TXPMFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Contents, PalLookup: TStringList;
+  Buffer: TDynByteArray;
   S: AnsiString;
   I, J, NumColors, Cpp, Line: Integer;
 
@@ -372,8 +373,9 @@ begin
     PalLookup.CaseSensitive := True;
     // Read whole file and assign it to string list
     Contents := TStringList.Create;
-    SetLength(S, GetInputSize(GetIO, Handle));
-    Read(Handle, @S[1], Length(S));
+    ReadRestOfInput(GetIO, Handle, Buffer);
+    SetString(S, PAnsiChar(Pointer(Buffer)), Length(Buffer));
+    Buffer := nil;
     Contents.Text := string(S);
     // Remove quotes and other stuff
     for I := Contents.Count - 1 downto 0 do

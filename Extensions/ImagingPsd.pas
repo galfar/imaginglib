@@ -367,7 +367,7 @@ begin
             Seek(Handle, RLELineSizes[I * Height + Y], smFromCurrent);
         end
         else
-          Seek(Handle, LineSize * Height, smFromCurrent);
+          Seek(Handle, Int64(LineSize) * Height, smFromCurrent);
       end;
     end;
 

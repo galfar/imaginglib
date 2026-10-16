@@ -67,6 +67,8 @@ type
     procedure TestMemoryIO;
     procedure TestPng;
     procedure TestZLibStreams;
+    procedure TestMngJng;
+    procedure TestBmp;
   end;
 {$ENDIF}
 
@@ -786,6 +788,199 @@ begin
     end;
   finally
     Compressed.Free;
+  end;
+end;
+
+procedure TTestHugeImages.TestMngJng;
+const
+  StreamCapacity = 512 * 1024 * 1024;
+var
+  Data: Pointer;
+  Stream: TBlockStream;
+  Loaded: TImageData;
+  Last: NativeInt;
+  Ext: string;
+  E: Integer;
+begin
+  // MNG frame (PNG) and JNG (JPEG) of more than 2^31 pixels through a stream
+  NewLitImage(ifGray8);
+  Last := HugePixels - 1;
+  InitImage(Loaded);
+  Data := AllocHuge(StreamCapacity);
+  try
+    for E := 0 to 1 do
+    begin
+      if E = 0 then
+        Ext := 'mng'
+      else
+        Ext := 'jng';
+      Stream := TBlockStream.Create(Data, StreamCapacity);
+      try
+        CheckTrue(SaveImageToStream(Ext, Stream, FImage), Ext + ': image is saved');
+        CheckTrue(Stream.Size < StreamCapacity, Format('%s: size of the file %d bytes', [Ext, Stream.Size]));
+        Stream.Position := 0;
+        CheckTrue(LoadImageFromStream(Stream, Loaded), Ext + ': image is loaded');
+        CheckEquals(HugeSide, Loaded.Width, Ext + ': width');
+        CheckEquals(HugeSide, Loaded.Height, Ext + ': height');
+        CheckEquals(Ord(ifGray8), Ord(Loaded.Format), Ext + ': format');
+        if E = 0 then
+        begin
+          // Lossless
+          CheckEquals(255, PBuffer(Loaded.Bits)[Last - 1], Ext + ': the pixel before the last');
+          CheckEquals(0, PBuffer(Loaded.Bits)[Last], Ext + ': the last pixel');
+          if not CompareMem(FImage.Bits, Loaded.Bits, FImage.Size) then
+            CheckSameMem(FImage.Bits, Loaded.Bits, FImage.Size, Ext + ': loaded image');
+        end
+        else
+        begin
+          // Lossy, the last pixel is dark and the area before it white
+          CheckTrue(PBuffer(Loaded.Bits)[Last - HugeSide * 8] > 200, Ext + ': white area at the end');
+          CheckTrue(PBuffer(Loaded.Bits)[Last] < 128, Format('%s: the last pixel is dark: %d', [Ext, PBuffer(Loaded.Bits)[Last]]));
+        end;
+      finally
+        Stream.Free;
+        FreeImage(Loaded);
+      end;
+    end;
+  finally
+    FreeMem(Data);
+  end;
+end;
+
+procedure TTestHugeImages.TestBmp;
+const
+  RgbWidth = 40000;
+  RgbHeight = 36000;
+  // 4-bit image with more than 2 GB of packed pixels in the file
+  Width4 = 80000;
+  Height4 = 54000;
+  RowBytes4 = Width4 div 2;
+  HeaderSize = 14 + 40;
+  PixelsOffset4 = HeaderSize + 16 * 4;
+var
+  Data: Pointer;
+  Capacity, Size4, I, Count: NativeInt;
+  Stream: TBlockStream;
+  Markers: array[0..2] of NativeInt;
+  Header: array[0..HeaderSize - 1] of Byte;
+  Palette: array[0..15] of UInt32;
+  B: Byte;
+  OldRle: Integer;
+  Loaded: TImageData;
+begin
+  // Saving and loading of more than 4 GB of pixel data (24-bit)
+  CheckTrue(NewImage(RgbWidth, RgbHeight, ifR8G8B8, FImage), 'NewImage of R8G8B8');
+  FillChar(FImage.Bits^, FImage.Size, $C0);
+  Markers[0] := 7;
+  Markers[1] := NativeInt(1) shl 32 + 13;
+  Markers[2] := FImage.Size - 1;
+  for I := Low(Markers) to High(Markers) do
+    PBuffer(FImage.Bits)[Markers[I]] := 30 + I;
+
+  Capacity := FImage.Size + 1024 * 1024;
+  Data := AllocHuge(Capacity);
+  Stream := TBlockStream.Create(Data, Capacity);
+  try
+    CheckTrue(SaveImageToStream('bmp', Stream, FImage), 'R8G8B8: image is saved');
+    CheckEquals(FImage.Size + HeaderSize, Stream.Size, 'R8G8B8: size of the file');
+    CheckEquals(Int64(High(UInt32)), Int64(PUInt32(@PBuffer(Data)[2])^), 'R8G8B8: file size field is clamped');
+    CheckEquals(Int64(0), Int64(PUInt32(@PBuffer(Data)[34])^), 'R8G8B8: image size field is 0');
+    FreeImage(FImage);
+
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'R8G8B8: image is loaded');
+    CheckEquals(RgbWidth, FImage.Width, 'R8G8B8: width');
+    CheckEquals(RgbHeight, FImage.Height, 'R8G8B8: height');
+    CheckEquals(Ord(ifR8G8B8), Ord(FImage.Format), 'R8G8B8: format');
+    for I := Low(Markers) to High(Markers) do
+      CheckEquals(30 + I, PBuffer(FImage.Bits)[Markers[I]], Format('R8G8B8: marker %d', [I]));
+    Count := 0;
+    for I := 0 to FImage.Size - 1 do
+      if PBuffer(FImage.Bits)[I] <> $C0 then
+        Inc(Count);
+    CheckEquals(Length(Markers), Count, 'R8G8B8: other bytes are unchanged');
+  finally
+    Stream.Free;
+    FreeMem(Data);
+    FreeImage(FImage);
+  end;
+
+  // Loading of 4-bit file, stored bottom-up: the first row of pixels in the
+  // file is the last one of the image
+  Size4 := NativeInt(RowBytes4) * Height4;
+  CheckTrue(Size4 > MaxInt, 'More than 2 GB of packed pixels');
+  Capacity := PixelsOffset4 + Size4;
+  Data := AllocHuge(Capacity);
+  Stream := TBlockStream.Create(Data, Capacity);
+  try
+    FillChar(Header, SizeOf(Header), 0);
+    PWord(@Header[0])^ := $4D42;
+    PUInt32(@Header[2])^ := High(UInt32);
+    PUInt32(@Header[10])^ := PixelsOffset4;
+    PUInt32(@Header[14])^ := 40;
+    PInteger(@Header[18])^ := Width4;
+    PInteger(@Header[22])^ := Height4;
+    PWord(@Header[26])^ := 1;
+    PWord(@Header[28])^ := 4;
+    for I := 0 to 15 do
+      Palette[I] := UInt32(I * $111111);
+    Stream.WriteBuffer(Header, SizeOf(Header));
+    Stream.WriteBuffer(Palette, SizeOf(Palette));
+
+    FillChar(PBuffer(Data)[PixelsOffset4], Size4, $12);
+    PBuffer(Data)[PixelsOffset4] := $56;
+    Stream.Position := Capacity - 1;
+    B := $34;
+    Stream.WriteBuffer(B, 1);
+
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), '4-bit: image is loaded');
+    CheckEquals(Width4, FImage.Width, '4-bit: width');
+    CheckEquals(Height4, FImage.Height, '4-bit: height');
+    CheckEquals(Ord(ifIndex8), Ord(FImage.Format), '4-bit: format');
+    CheckEquals(1, PBuffer(FImage.Bits)[0], '4-bit: the first pixel');
+    CheckEquals(3, PBuffer(FImage.Bits)[Width4 - 2], '4-bit: the pixel before the end of the first row');
+    CheckEquals(4, PBuffer(FImage.Bits)[Width4 - 1], '4-bit: the last pixel of the first row');
+    CheckEquals(5, PBuffer(FImage.Bits)[GetPixelCount(FImage) - Width4], '4-bit: the first pixel of the last row');
+    CheckEquals(6, PBuffer(FImage.Bits)[GetPixelCount(FImage) - Width4 + 1], '4-bit: the second pixel of the last row');
+    CheckEquals(2, PBuffer(FImage.Bits)[GetPixelCount(FImage) - 1], '4-bit: the last pixel');
+    CheckEquals(1, PBuffer(FImage.Bits)[GetPixelCount(FImage) div 2], '4-bit: pixel in the middle');
+    CheckEquals(Int64($FF555555), Int64(FImage.Palette[5].Color), '4-bit: palette');
+  finally
+    Stream.Free;
+    FreeMem(Data);
+    FreeImage(FImage);
+  end;
+
+  // 8-bit image whose RLE data could exceed the 32-bit size field is saved
+  // uncompressed even with RLE enabled
+  NewLitImage(ifIndex8);
+  Markers[0] := NativeInt(1) shl 31 + 9;
+  PBuffer(FImage.Bits)[Markers[0]] := 77;
+  InitImage(Loaded);
+  OldRle := GetOption(ImagingBitmapRLE);
+  Capacity := FImage.Size + 1024 * 1024;
+  Data := AllocHuge(Capacity);
+  Stream := TBlockStream.Create(Data, Capacity);
+  try
+    SetOption(ImagingBitmapRLE, 1);
+    CheckTrue(SaveImageToStream('bmp', Stream, FImage), 'Index8: image is saved');
+    CheckEquals(Int64(0), Int64(PUInt32(@PBuffer(Data)[30])^), 'Index8: no compression');
+    CheckEquals(Stream.Size, Int64(PUInt32(@PBuffer(Data)[2])^), 'Index8: file size field');
+
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, Loaded), 'Index8: image is loaded');
+    CheckEquals(HugeSide, Loaded.Width, 'Index8: width');
+    CheckEquals(HugeSide, Loaded.Height, 'Index8: height');
+    CheckEquals(Ord(ifIndex8), Ord(Loaded.Format), 'Index8: format');
+    CheckEquals(77, PBuffer(Loaded.Bits)[Markers[0]], 'Index8: marker');
+    if not CompareMem(FImage.Bits, Loaded.Bits, FImage.Size) then
+      CheckSameMem(FImage.Bits, Loaded.Bits, FImage.Size, 'Index8: loaded image');
+  finally
+    SetOption(ImagingBitmapRLE, OldRle);
+    Stream.Free;
+    FreeMem(Data);
+    FreeImage(Loaded);
   end;
 end;
 

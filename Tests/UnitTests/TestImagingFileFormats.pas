@@ -19,6 +19,7 @@ interface
 
 uses
   SysUtils, Classes, ImagingTypes, Imaging, ImagingUtility, ImagingZLib,
+  ImagingExtFileFormats,
   ImagingTestCase, ImagingTestPixels;
 
 type
@@ -81,6 +82,14 @@ type
     procedure TestDimensionsOver32767;
   end;
 
+  { BMP: headers written by other programs.}
+  TTestBitmap = class(TImagingFileFormatTestCase)
+  published
+    procedure TestRleWithoutImageSize;
+    procedure TestUnsupportedCompression;
+    procedure TestColorsUsedOverPaletteSize;
+  end;
+
   { PNG: data formats, filters, interlacing, image data in more chunks,
     damaged and truncated files.}
   TTestPng = class(TImagingFileFormatTestCase)
@@ -100,6 +109,13 @@ type
     procedure TestBadDataChunkCrc;
     procedure TestBadAncillaryChunkCrc;
     procedure TestLargeDataInMoreChunks;
+    procedure TestMngWithoutPixelData;
+  end;
+
+  { JPEG 2000: image stored after other data in a stream.}
+  TTestJpeg2000 = class(TImagingFileFormatTestCase)
+  published
+    procedure TestImageInsideStream;
   end;
 
   { Radiance HDR: RGBE pixels to floating point values and back.}
@@ -1070,8 +1086,193 @@ begin
   end;
 end;
 
+{ TTestJpeg2000 }
+
+procedure TTestJpeg2000.TestImageInsideStream;
+const
+  Prefix = 13;
+  Trailer = 17;
+var
+  Original: TImageData;
+  Stream: TMemoryStream;
+  Filler: array[0..Trailer - 1] of Byte;
+  DataEnd: Int64;
+  OldLossless: Integer;
+begin
+  // Only the data of the image are read and the stream is positioned just after them
+  if FindImageFileFormatByExt('jp2') = nil then
+    Exit; // OpenJPEG is not available for this target
+  InitImage(Original);
+  Stream := TMemoryStream.Create;
+  OldLossless := GetOption(ImagingJpeg2000LosslessCompression);
+  try
+    CheckTrue(NewImage(40, 30, ifR8G8B8, Original), 'NewImage');
+    FillTestImage(Original, 2000);
+    FillChar(Filler, SizeOf(Filler), $5A);
+    Stream.WriteBuffer(Filler, Prefix);
+    SetOption(ImagingJpeg2000LosslessCompression, 1);
+    CheckTrue(SaveImageToStream('jp2', Stream, Original), 'Image is saved');
+    DataEnd := Stream.Size;
+    Stream.WriteBuffer(Filler, Trailer);
+
+    Stream.Position := Prefix;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'Image is loaded');
+    CheckImagesEqual(Original, FImage, 'Loaded image');
+    CheckEquals(DataEnd, Stream.Position, 'Position after the image');
+  finally
+    SetOption(ImagingJpeg2000LosslessCompression, OldLossless);
+    Stream.Free;
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestPng.TestMngWithoutPixelData;
+var
+  Data: AnsiString;
+begin
+  // MNG with only MHDR gives empty image of frame size from the header
+  Data := #$8A'MNG'#13#10#26#10 + PngChunk('MHDR', BE32(20) + BE32(10) + BE32(0) + BE32(0) +
+    BE32(0) + BE32(0) + BE32(0)) + PngChunk('MEND', '');
+  CheckTrue(LoadFromData(Data), 'MNG is loaded');
+  CheckEquals(20, FImage.Width, 'Width');
+  CheckEquals(10, FImage.Height, 'Height');
+end;
+
+{ TTestBitmap }
+
+procedure TTestBitmap.TestRleWithoutImageSize;
+const
+  Width = 37;
+  Height = 11;
+var
+  Image: TImageData;
+  Stream: TMemoryStream;
+  OldRle, X, Y: Integer;
+  Zero: UInt32;
+
+  procedure ZeroField(SizeOffset: Integer);
+  begin
+    Stream.Position := SizeOffset;
+    Stream.WriteBuffer(Zero, SizeOf(Zero));
+    Stream.Position := 0;
+    FreeImage(FImage);
+  end;
+
+begin
+  InitImage(Image);
+  Stream := TMemoryStream.Create;
+  OldRle := GetOption(ImagingBitmapRLE);
+  try
+    // Runs and single pixels
+    NewImage(Width, Height, ifIndex8, Image);
+    for Y := 0 to Height - 1 do
+      for X := 0 to Width - 1 do
+        if X < 20 then
+          PBuffer(Image.Bits)[Y * Width + X] := Y
+        else
+          PBuffer(Image.Bits)[Y * Width + X] := (X * 7 + Y) and $FF;
+
+    SetOption(ImagingBitmapRLE, 1);
+    CheckTrue(SaveImageToStream('bmp', Stream, Image), 'Image is saved');
+    Zero := 0;
+    Stream.Position := 30;
+    Stream.ReadBuffer(X, SizeOf(X));
+    CheckEquals(1, X, 'Saved with RLE8');
+
+    // Size of image data 0 (allowed by OS/2 2.x header): computed from the file size
+    ZeroField(34);
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'Image without size of data is loaded');
+    CheckEquals(Width, FImage.Width, 'Width');
+    CheckEquals(Height, FImage.Height, 'Height');
+    CheckTrue(CompareMem(Image.Bits, FImage.Bits, Image.Size), 'Loaded pixels');
+
+    // File size 0 too: RLE data size is unknown, the file is refused
+    ZeroField(2);
+    CheckFalse(LoadImageFromStream(Stream, FImage), 'Image without any size is refused');
+  finally
+    SetOption(ImagingBitmapRLE, OldRle);
+    Stream.Free;
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestBitmap.TestUnsupportedCompression;
+var
+  Image: TImageData;
+  Stream: TMemoryStream;
+
+  procedure CheckRefused(Compression: UInt32; BitCount: Word; const Msg: string);
+  begin
+    Stream.Position := 28;
+    Stream.WriteBuffer(BitCount, SizeOf(BitCount));
+    Stream.WriteBuffer(Compression, SizeOf(Compression));
+    Stream.Position := 0;
+    FreeImage(FImage);
+    CheckFalse(LoadImageFromStream(Stream, FImage), Msg + ' is refused');
+  end;
+
+begin
+  InitImage(Image);
+  Stream := TMemoryStream.Create;
+  try
+    NewImage(8, 4, ifR8G8B8, Image);
+    CheckTrue(SaveImageToStream('bmp', Stream, Image), 'Image is saved');
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'Saved image is loaded');
+
+    CheckRefused(4, 24, 'BI_JPEG or OS/2 RLE24');
+    CheckRefused(5, 24, 'BI_PNG');
+    CheckRefused(3, 1, 'OS/2 Huffman 1D');
+    CheckRefused(3, 24, 'BI_BITFIELDS with 24 bits');
+    CheckRefused(1, 24, 'BI_RLE8 with 24 bits');
+    CheckRefused(0, 7, 'BI_RGB with 7 bits');
+  finally
+    Stream.Free;
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestBitmap.TestColorsUsedOverPaletteSize;
+const
+  ColorCounts: array[0..2] of UInt32 = (257, 100000, $80000000);
+var
+  Image: TImageData;
+  Stream: TMemoryStream;
+  I, J: Integer;
+begin
+  InitImage(Image);
+  Stream := TMemoryStream.Create;
+  try
+    NewImage(8, 4, ifIndex8, Image);
+    for I := 0 to 255 do
+      Image.Palette[I].Color := $FF000000 or UInt32(I * $010203);
+    for I := 0 to 31 do
+      PBuffer(Image.Bits)[I] := I * 8;
+    CheckTrue(SaveImageToStream('bmp', Stream, Image), 'Image is saved');
+
+    // Number of used colors over 256 must not make the loader write past the palette
+    for I := Low(ColorCounts) to High(ColorCounts) do
+    begin
+      Stream.Position := 46;
+      Stream.WriteBuffer(ColorCounts[I], SizeOf(ColorCounts[I]));
+      Stream.Position := 0;
+      FreeImage(FImage);
+      CheckTrue(LoadImageFromStream(Stream, FImage), Format('Image with %u colors is loaded', [ColorCounts[I]]));
+      CheckTrue(CompareMem(Image.Bits, FImage.Bits, Image.Size), Format('Pixels with %u colors', [ColorCounts[I]]));
+      for J := 0 to 255 do
+        CheckEquals(Int64(Image.Palette[J].Color), Int64(FImage.Palette[J].Color),
+                    Format('Palette entry %d with %u colors', [J, ColorCounts[I]]));
+    end;
+  finally
+    Stream.Free;
+    FreeImage(Image);
+  end;
+end;
+
 initialization
   RegisterImagingTest(TTestPortableMaps);
+  RegisterImagingTest(TTestBitmap);
+  RegisterImagingTest(TTestJpeg2000);
   RegisterImagingTest(TTestPng);
   RegisterImagingTest(TTestPixelLoops);
   RegisterImagingTest(TTestTarga);

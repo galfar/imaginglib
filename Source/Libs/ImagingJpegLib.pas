@@ -784,36 +784,6 @@ begin
   end;
 end;
 
-{ Reads the rest of the input, returns number of bytes read. }
-function ReadRestOfInput(const IO: TIOFunctions; Handle: TImagingHandle;
-  var Buffer: TDynByteArray): Int64;
-const
-  MaxChunkSize = 64 * 1024 * 1024;
-var
-  Size: Int64;
-  ToRead, WasRead: TIOReadWriteCount;
-begin
-  Result := 0;
-  Size := GetInputSize(IO, Handle) - IO.Tell(Handle);
-  if Size <= 0 then
-    Exit;
-
-  SetLength(Buffer, Size);
-
-  while Result < Size do
-  begin
-    if Size - Result > MaxChunkSize then
-      ToRead := MaxChunkSize
-    else
-      ToRead := Size - Result;
-
-    WasRead := IO.Read(Handle, @Buffer[PtrInt(Result)], ToRead);
-    if WasRead <= 0 then
-      Break;
-    Result := Result + WasRead;
-  end;
-end;
-
 function TurboLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
   var Image: TImageData; out Info: TJpegImageInfo): Boolean;
 var
@@ -832,7 +802,8 @@ begin
   ColorSpace := 0;
 
   StartPos := IO.Tell(Handle);
-  ScanJpegData(Pointer(Buffer), ReadRestOfInput(IO, Handle, Buffer), Scan);
+  ReadRestOfInput(IO, Handle, Buffer);
+  ScanJpegData(Pointer(Buffer), Length(Buffer), Scan);
 
   TJHandle := tjInitDecompress;
   if TJHandle = nil then
