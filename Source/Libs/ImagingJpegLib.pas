@@ -154,6 +154,20 @@ type
     YDensity: Integer;
   end;
 
+  { Color space of the data stored in a JPEG stream, for callers that know it
+    better than the JPEG library can guess from the stream's markers. That is
+    the case for JPEG data embedded in other formats: in TIFF it is the
+    PhotometricInterpretation tag that says whether three components are
+    YCbCr or untransformed RGB, and the stream itself usually has no JFIF or
+    Adobe marker to tell. }
+  TJpegSourceColorSpace = (
+    jscAuto,   // let the JPEG library decide (as plain JPEG files need)
+    jscGray,   // one component, loaded as ifGray8
+    jscYCbCr,  // three components YCbCr, converted to RGB and loaded as ifR8G8B8
+    jscRGB,    // three components stored as RGB, loaded as ifR8G8B8
+    jscCMYK    // four components loaded as they are, see jcsCMYK
+  );
+
   { JPEG codec implementation in use. }
   TJpegBackend = (
     jbPascal,     // Pascal codec compiled in (ImPasJpeg or FPC's PasJpeg)
@@ -178,7 +192,15 @@ function TryLoadTurboJpegLibrary(const FileName: string): Boolean;
   Info.Complete is False in this case. After loading, the input position is
   just after the end of JPEG data. }
 function JpegLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
-  var Image: TImageData; out Info: TJpegImageInfo): Boolean;
+  var Image: TImageData; out Info: TJpegImageInfo): Boolean; overload;
+{ The same with color space of the stored data given by the caller.
+  Returns False if SourceColorSpace does not fit the number of components
+  of the JPEG stream. With the TurboJPEG backend, streams whose color space
+  TurboJPEG would see differently (untransformed RGB) are loaded by the Pascal
+  codec, TurboJPEG cannot be told about it. }
+function JpegLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
+  var Image: TImageData; out Info: TJpegImageInfo;
+  SourceColorSpace: TJpegSourceColorSpace): Boolean; overload;
 
 { Saves Image as JPEG to output represented by Handle and written using IO functions.
   Image must be in ifGray8 or ifR8G8B8 format. Raises EImagingError on errors. }
@@ -513,7 +535,10 @@ begin
 end;
 
 function PasLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
-  var Image: TImageData; out Info: TJpegImageInfo): Boolean;
+  var Image: TImageData; out Info: TJpegImageInfo;
+  SourceColorSpace: TJpegSourceColorSpace): Boolean;
+const
+  SourceComponents: array[TJpegSourceColorSpace] of Integer = (0, 1, 3, 3, 4);
 var
   PtrInc, LinesPerCall, LinesRead, I: Integer;
   Dest: PByte;
@@ -543,6 +568,36 @@ begin
     end;
   {$ENDIF}
     InitDecompressor(IO, Handle, jc);
+
+    if SourceColorSpace <> jscAuto then
+    begin
+      // Caller knows what the components are: replace the guess JpegLib
+      // made in jpeg_read_header and select the matching output.
+      if jc.d.num_components <> SourceComponents[SourceColorSpace] then
+        Exit;
+      case SourceColorSpace of
+        jscGray:
+          begin
+            jc.d.jpeg_color_space := JCS_GRAYSCALE;
+            jc.d.out_color_space := JCS_GRAYSCALE;
+          end;
+        jscYCbCr:
+          begin
+            jc.d.jpeg_color_space := JCS_YCbCr;
+            jc.d.out_color_space := JCS_RGB;
+          end;
+        jscRGB:
+          begin
+            jc.d.jpeg_color_space := JCS_RGB;
+            jc.d.out_color_space := JCS_RGB;
+          end;
+        jscCMYK:
+          begin
+            jc.d.jpeg_color_space := JCS_CMYK;
+            jc.d.out_color_space := JCS_CMYK;
+          end;
+      end;
+    end;
 
     case jc.d.out_color_space of
       JCS_GRAYSCALE:
@@ -785,7 +840,8 @@ begin
 end;
 
 function TurboLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
-  var Image: TImageData; out Info: TJpegImageInfo): Boolean;
+  var Image: TImageData; out Info: TJpegImageInfo;
+  SourceColorSpace: TJpegSourceColorSpace): Boolean;
 var
   Buffer: TDynByteArray;
   StartPos: Int64;
@@ -817,6 +873,21 @@ begin
        (Width <= 0) or (Height <= 0)) then
     begin
       RaiseTurboError(TJHandle);
+    end;
+
+    // TurboJPEG decides about color space by itself. When the caller says
+    // something else (e.g. untransformed RGB, which TurboJPEG takes for
+    // YCbCr) the stream goes to the Pascal codec instead.
+    if ((SourceColorSpace = jscGray) and (ColorSpace <> TJCS_GRAY)) or
+       ((SourceColorSpace = jscYCbCr) and (ColorSpace <> TJCS_YCbCr)) or
+       ((SourceColorSpace = jscCMYK) and (ColorSpace <> TJCS_CMYK)) or
+       (SourceColorSpace = jscRGB) then
+    begin
+      tjDestroy(TJHandle);
+      TJHandle := nil;
+      IO.Seek(Handle, StartPos, smFromBeginning);
+      Result := PasLoadImage(IO, Handle, Image, Info, SourceColorSpace);
+      Exit;
     end;
 
     case ColorSpace of
@@ -858,7 +929,8 @@ begin
 
     Result := True;
   finally
-    tjDestroy(TJHandle);
+    if TJHandle <> nil then
+      tjDestroy(TJHandle);
   end;
 
   // Move input position just after the JPEG data so that more than one
@@ -956,14 +1028,21 @@ end;
 function JpegLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
   var Image: TImageData; out Info: TJpegImageInfo): Boolean;
 begin
+  Result := JpegLoadImage(IO, Handle, Image, Info, jscAuto);
+end;
+
+function JpegLoadImage(const IO: TIOFunctions; Handle: TImagingHandle;
+  var Image: TImageData; out Info: TJpegImageInfo;
+  SourceColorSpace: TJpegSourceColorSpace): Boolean;
+begin
 {$IFDEF JPEG_USE_TURBO_DYNLIB}
   if JpegBackend = jbTurboJpeg then
   begin
-    Result := TurboLoadImage(IO, Handle, Image, Info);
+    Result := TurboLoadImage(IO, Handle, Image, Info, SourceColorSpace);
     Exit;
   end;
 {$ENDIF}
-  Result := PasLoadImage(IO, Handle, Image, Info);
+  Result := PasLoadImage(IO, Handle, Image, Info, SourceColorSpace);
 end;
 
 function JpegSaveImage(const IO: TIOFunctions; Handle: TImagingHandle;
