@@ -18,8 +18,8 @@ unit TestImagingFileFormats;
 interface
 
 uses
-  SysUtils, Classes, ImagingTypes, Imaging, ImagingUtility, ImagingTestCase,
-  ImagingTestPixels;
+  SysUtils, Classes, ImagingTypes, Imaging, ImagingUtility, ImagingZLib,
+  ImagingTestCase, ImagingTestPixels;
 
 type
   TImagingFileFormatTestCase = class(TImagingTestCase)
@@ -81,6 +81,27 @@ type
     procedure TestDimensionsOver32767;
   end;
 
+  { PNG: data formats, filters, interlacing, image data in more chunks,
+    damaged and truncated files.}
+  TTestPng = class(TImagingFileFormatTestCase)
+  private
+    procedure NewGray8Pattern(var Image: TImageData; Width, Height: Integer);
+    function RawRows(const Image: TImageData): AnsiString;
+    function MakePng(const IHDR, Compressed: AnsiString; IDATSize: Integer;
+      BadCrcIDAT: Integer = -1; const ExtraChunks: AnsiString = ''): AnsiString;
+    procedure CheckFirstRowsAndBlackEnd(const Original: TImageData; GoodRows: Integer;
+      const Msg: string);
+  published
+    procedure TestRoundTrip;
+    procedure TestPreFilters;
+    procedure TestInterlaced;
+    procedure TestManyDataChunks;
+    procedure TestTruncatedData;
+    procedure TestBadDataChunkCrc;
+    procedure TestBadAncillaryChunkCrc;
+    procedure TestLargeDataInMoreChunks;
+  end;
+
   { Radiance HDR: RGBE pixels to floating point values and back.}
   TTestRadiance = class(TImagingFileFormatTestCase)
   published
@@ -102,6 +123,48 @@ end;
 function LE16(Value: Word): AnsiString;
 begin
   Result := AnsiChar(Value and $FF) + AnsiChar(Value shr 8);
+end;
+
+function BE32(Value: UInt32): AnsiString;
+begin
+  Result := AnsiChar(Value shr 24) + AnsiChar((Value shr 16) and $FF) +
+    AnsiChar((Value shr 8) and $FF) + AnsiChar(Value and $FF);
+end;
+
+const
+  PngSignature: AnsiString = #137'PNG'#13#10#26#10;
+
+function PngChunk(const ChunkType, Data: AnsiString; BadCrc: Boolean = False): AnsiString;
+var
+  Crc: UInt32;
+begin
+  Crc := $FFFFFFFF;
+  CalcCrc32(Crc, @ChunkType[1], 4);
+  CalcCrc32(Crc, PAnsiChar(Data), Length(Data));
+  Crc := not Crc;
+  if BadCrc then
+    Crc := Crc xor 1;
+  Result := BE32(Length(Data)) + ChunkType + Data + BE32(Crc);
+end;
+
+function PngIHDR(Width, Height: Integer; BitDepth, ColorType, Interlace: Byte): AnsiString;
+begin
+  Result := PngChunk('IHDR', BE32(Width) + BE32(Height) + AnsiChar(BitDepth) +
+    AnsiChar(ColorType) + AnsiChar(0) + AnsiChar(0) + AnsiChar(Interlace));
+end;
+
+function ZLibCompress(const Data: AnsiString; Level: Integer): AnsiString;
+var
+  Buffer: Pointer;
+  Size: NativeInt;
+begin
+  CompressBuf(PAnsiChar(Data), Length(Data), Buffer, Size, Level);
+  try
+    SetLength(Result, Size);
+    Move(Buffer^, Result[1], Size);
+  finally
+    FreeMem(Buffer);
+  end;
 end;
 
 function TgaHeader(ImageType: Byte; Width, Height: Word; PixelSize: Byte): AnsiString;
@@ -736,8 +799,280 @@ begin
   end;
 end;
 
+{ TTestPng }
+
+procedure TTestPng.NewGray8Pattern(var Image: TImageData; Width, Height: Integer);
+var
+  X, Y: Integer;
+begin
+  CheckTrue(NewImage(Width, Height, ifGray8, Image), 'NewImage');
+  for Y := 0 to Height - 1 do
+    for X := 0 to Width - 1 do
+      PBuffer(Image.Bits)[Y * Width + X] := Byte(X * 7 + Y * 13 + 1);
+end;
+
+function TTestPng.RawRows(const Image: TImageData): AnsiString;
+var
+  Y, RowBytes: Integer;
+begin
+  // Rows of PNG data without filtering: filter byte 0 before each row
+  RowBytes := Image.Size div Image.Height;
+  Result := '';
+  for Y := 0 to Image.Height - 1 do
+  begin
+    SetLength(Result, Length(Result) + RowBytes + 1);
+    Result[Length(Result) - RowBytes] := #0;
+    Move(PBuffer(Image.Bits)[Y * RowBytes], Result[Length(Result) - RowBytes + 1], RowBytes);
+  end;
+end;
+
+function TTestPng.MakePng(const IHDR, Compressed: AnsiString; IDATSize: Integer;
+  BadCrcIDAT: Integer; const ExtraChunks: AnsiString): AnsiString;
+var
+  Pos, Index: Integer;
+begin
+  // Compressed data are split into IDAT chunks of IDATSize bytes
+  if IDATSize > Length(Compressed) then
+    IDATSize := Length(Compressed);
+  Result := PngSignature + IHDR + ExtraChunks;
+  Pos := 1;
+  Index := 0;
+  while Pos <= Length(Compressed) do
+  begin
+    Result := Result + PngChunk('IDAT', Copy(Compressed, Pos, IDATSize), Index = BadCrcIDAT);
+    Inc(Pos, IDATSize);
+    Inc(Index);
+  end;
+  Result := Result + PngChunk('IEND', '');
+end;
+
+procedure TTestPng.CheckFirstRowsAndBlackEnd(const Original: TImageData; GoodRows: Integer;
+  const Msg: string);
+var
+  RowBytes, I: Integer;
+begin
+  CheckEquals(Original.Width, FImage.Width, Msg + ': width');
+  CheckEquals(Original.Height, FImage.Height, Msg + ': height');
+  RowBytes := Original.Size div Original.Height;
+  CheckSameMem(Original.Bits, FImage.Bits, GoodRows * RowBytes, Msg + ': the first rows');
+  for I := (Original.Height - 1) * RowBytes to FImage.Size - 1 do
+    CheckEquals(0, PBuffer(FImage.Bits)[I], Format('%s: the last row, byte %d', [Msg, I]));
+end;
+
+procedure TTestPng.TestRoundTrip;
+const
+  Formats: array[0..7] of TImageFormat = (ifGray8, ifA8Gray8, ifGray16, ifA16Gray16,
+    ifR8G8B8, ifA8R8G8B8, ifR16G16B16, ifA16R16G16B16);
+var
+  F: Integer;
+begin
+  for F := Low(Formats) to High(Formats) do
+  begin
+    CheckRoundTrip('png', Formats[F], 13, 7, 0);
+    CheckRoundTrip('png', Formats[F], 1, 1, 0);
+  end;
+end;
+
+procedure TTestPng.TestPreFilters;
+var
+  OldFilter, Filter: Integer;
+begin
+  // 0..4 are filters, 5 is chosen by data format, 6 adaptive (best filter for each row)
+  OldFilter := GetOption(ImagingPNGPreFilter);
+  try
+    for Filter := 0 to 6 do
+    begin
+      SetOption(ImagingPNGPreFilter, Filter);
+      CheckRoundTrip('png', ifR8G8B8, 37, 23, 0);
+      CheckRoundTrip('png', ifA16R16G16B16, 11, 9, 0);
+    end;
+  finally
+    SetOption(ImagingPNGPreFilter, OldFilter);
+  end;
+end;
+
+procedure TTestPng.TestInterlaced;
+const
+  RowStart: array[0..6] of Integer = (0, 0, 4, 0, 2, 0, 1);
+  ColumnStart: array[0..6] of Integer = (0, 4, 0, 2, 0, 1, 0);
+  RowIncrement: array[0..6] of Integer = (8, 8, 8, 4, 4, 2, 2);
+  ColumnIncrement: array[0..6] of Integer = (8, 8, 4, 4, 2, 2, 1);
+  Sizes: array[0..2, 0..1] of Integer = ((13, 11), (3, 2), (1, 9));
+var
+  Original: TImageData;
+  Raw: AnsiString;
+  S, Pass, X, Y: Integer;
+  Msg: string;
+begin
+  // Adam7 data are made here pass by pass, without filtering
+  InitImage(Original);
+  try
+    for S := Low(Sizes) to High(Sizes) do
+    begin
+      Msg := Format('%dx%d', [Sizes[S, 0], Sizes[S, 1]]);
+      NewGray8Pattern(Original, Sizes[S, 0], Sizes[S, 1]);
+      Raw := '';
+      for Pass := 0 to 6 do
+      begin
+        // Passes without pixels have no rows at all
+        if (Original.Width <= ColumnStart[Pass]) or (Original.Height <= RowStart[Pass]) then
+          Continue;
+        Y := RowStart[Pass];
+        while Y < Original.Height do
+        begin
+          Raw := Raw + #0;
+          X := ColumnStart[Pass];
+          while X < Original.Width do
+          begin
+            Raw := Raw + AnsiChar(PBuffer(Original.Bits)[Y * Original.Width + X]);
+            Inc(X, ColumnIncrement[Pass]);
+          end;
+          Inc(Y, RowIncrement[Pass]);
+        end;
+      end;
+
+      CheckLoaded(MakePng(PngIHDR(Original.Width, Original.Height, 8, 0, 1), ZLibCompress(Raw, 6), MaxInt),
+                  Original.Width, Original.Height, ifGray8, Msg);
+      CheckImagesEqual(Original, FImage, Msg + ': loaded image');
+    end;
+  finally
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestPng.TestManyDataChunks;
+var
+  Original: TImageData;
+  Compressed: AnsiString;
+begin
+  InitImage(Original);
+  try
+    NewGray8Pattern(Original, 30, 20);
+    Compressed := ZLibCompress(RawRows(Original), 6);
+    CheckLoaded(MakePng(PngIHDR(30, 20, 8, 0, 0), Compressed, 7), 30, 20, ifGray8, 'IDAT of 7 bytes');
+    CheckImagesEqual(Original, FImage, 'IDAT of 7 bytes');
+    CheckLoaded(MakePng(PngIHDR(30, 20, 8, 0, 0), Compressed, 1), 30, 20, ifGray8, 'IDAT of 1 byte');
+    CheckImagesEqual(Original, FImage, 'IDAT of 1 byte');
+  finally
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestPng.TestTruncatedData;
+var
+  Original: TImageData;
+  Data: AnsiString;
+begin
+  // Stored (level 0) data: the first half of the file holds the first rows
+  InitImage(Original);
+  try
+    NewGray8Pattern(Original, 64, 40);
+    Data := MakePng(PngIHDR(64, 40, 8, 0, 0), ZLibCompress(RawRows(Original), 0), MaxInt);
+    SetLength(Data, Length(Data) div 2);
+    CheckLoaded(Data, 64, 40, ifGray8, 'Truncated file');
+    CheckFirstRowsAndBlackEnd(Original, 10, 'Truncated file');
+  finally
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestPng.TestBadDataChunkCrc;
+var
+  Original: TImageData;
+  Compressed: AnsiString;
+  Half: Integer;
+begin
+  // Data of the chunk with bad CRC and the following ones are not used
+  InitImage(Original);
+  try
+    NewGray8Pattern(Original, 64, 40);
+    Compressed := ZLibCompress(RawRows(Original), 0);
+    Half := Length(Compressed) div 2 + 1;
+
+    CheckLoaded(MakePng(PngIHDR(64, 40, 8, 0, 0), Compressed, Half), 64, 40, ifGray8, 'Good CRC');
+    CheckImagesEqual(Original, FImage, 'Good CRC');
+
+    CheckLoaded(MakePng(PngIHDR(64, 40, 8, 0, 0), Compressed, Half, 1), 64, 40, ifGray8, 'Bad CRC of the second IDAT');
+    CheckFirstRowsAndBlackEnd(Original, 10, 'Bad CRC of the second IDAT');
+
+    CheckLoaded(MakePng(PngIHDR(64, 40, 8, 0, 0), Compressed, Half, 0), 64, 40, ifGray8, 'Bad CRC of the first IDAT');
+    CheckFirstRowsAndBlackEnd(Original, 0, 'Bad CRC of the first IDAT');
+  finally
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestPng.TestBadAncillaryChunkCrc;
+var
+  Original: TImageData;
+  Compressed: AnsiString;
+begin
+  // Gray image with transparent color (tRNS) is loaded with alpha channel,
+  // tRNS with bad CRC is skipped
+  InitImage(Original);
+  try
+    NewGray8Pattern(Original, 8, 4);
+    Compressed := ZLibCompress(RawRows(Original), 6);
+    CheckLoaded(MakePng(PngIHDR(8, 4, 8, 0, 0), Compressed, MaxInt, -1, PngChunk('tRNS', BE16(1))),
+                8, 4, ifA8Gray8, 'Good tRNS');
+    CheckLoaded(MakePng(PngIHDR(8, 4, 8, 0, 0), Compressed, MaxInt, -1, PngChunk('tRNS', BE16(1), True)),
+                8, 4, ifGray8, 'tRNS with bad CRC');
+    CheckImagesEqual(Original, FImage, 'tRNS with bad CRC');
+  finally
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestPng.TestLargeDataInMoreChunks;
+const
+  Width = 2400;
+  Height = 2400;
+var
+  Original: TImageData;
+  Stream: TMemoryStream;
+  Pos, Count: Int64;
+  Size: UInt32;
+  ChunkType: AnsiString;
+begin
+  // Compressed noise is larger than the largest IDAT chunk written (16 MB)
+  InitImage(Original);
+  Stream := TMemoryStream.Create;
+  try
+    CheckTrue(NewImage(Width, Height, ifR8G8B8, Original), 'NewImage');
+    FillTestImage(Original, 777);
+    CheckTrue(SaveImageToStream('png', Stream, Original), 'Image is saved');
+
+    // Walk through the chunks of the file
+    Count := 0;
+    Pos := Length(PngSignature);
+    SetLength(ChunkType, 4);
+    while Pos < Stream.Size do
+    begin
+      Size := (UInt32(PBuffer(Stream.Memory)[Pos]) shl 24) or (UInt32(PBuffer(Stream.Memory)[Pos + 1]) shl 16) or
+        (UInt32(PBuffer(Stream.Memory)[Pos + 2]) shl 8) or PBuffer(Stream.Memory)[Pos + 3];
+      Move(PBuffer(Stream.Memory)[Pos + 4], ChunkType[1], 4);
+      if ChunkType = 'IDAT' then
+      begin
+        Inc(Count);
+        CheckTrue(Size <= 16 * 1024 * 1024, Format('Size of IDAT chunk %d: %d', [Count, Size]));
+      end;
+      Pos := Pos + 12 + Size;
+    end;
+    CheckEquals(Stream.Size, Pos, 'The last chunk ends at the end of file');
+    CheckTrue(Count >= 2, Format('Number of IDAT chunks: %d', [Count]));
+
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'Image is loaded');
+    CheckImagesEqual(Original, FImage, 'Loaded image');
+  finally
+    Stream.Free;
+    FreeImage(Original);
+  end;
+end;
+
 initialization
   RegisterImagingTest(TTestPortableMaps);
+  RegisterImagingTest(TTestPng);
   RegisterImagingTest(TTestPixelLoops);
   RegisterImagingTest(TTestTarga);
   RegisterImagingTest(TTestRadiance);

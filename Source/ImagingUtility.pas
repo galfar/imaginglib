@@ -1328,10 +1328,10 @@ begin
 end;
 {$ENDIF}
 
-type
-  TCrcTable = array[Byte] of UInt32;
 var
-  CrcTable: TCrcTable;
+  { Tables for CRC computed 8 bytes at once (slicing-by-8): the first one
+    is the usual byte table, table K gives CRC of a byte followed by K zero bytes.}
+  CrcTables: array[0..7, Byte] of UInt32;
 
 procedure InitCrcTable;
 const
@@ -1350,21 +1350,60 @@ begin
       else
         C := C shr 1;
     end;
-    CrcTable[I] := C;
+    CrcTables[0, I] := C;
+  end;
+
+  for I := 0 to 255 do
+  begin
+    for J := 1 to 7 do
+    begin
+      C := CrcTables[J - 1, I];
+      CrcTables[J, I] := (C shr 8) xor CrcTables[0, C and $FF];
+    end;
   end;
 end;
 
 procedure CalcCrc32(var Crc: UInt32; Data: Pointer; Size: NativeInt);
 var
-  I: NativeInt;
+  C, Low, High: UInt32;
   B: PByte;
 begin
+  // CRC is kept in a local variable, the var parameter would be read and
+  // written in memory in every step by some compilers
+  C := Crc;
   B := Data;
-  for I := 0 to Size - 1 do
+
+  // Bytes up to the first 4-byte aligned address one by one
+  while (Size > 0) and ({$IFDEF FPC}PtrUInt{$ELSE}NativeInt{$ENDIF}(B) and 3 <> 0) do
   begin
-    Crc := (Crc shr 8) xor CrcTable[B^ xor Byte(Crc)];
+    C := (C shr 8) xor CrcTables[0, B^ xor Byte(C)];
     Inc(B);
-  end
+    Dec(Size);
+  end;
+
+  // Then 8 bytes at once
+  while Size >= 8 do
+  begin
+    Low := PUInt32(B)^ xor C;
+    Inc(B, 4);
+    High := PUInt32(B)^;
+    Inc(B, 4);
+    C := CrcTables[7, Low and $FF] xor CrcTables[6, (Low shr 8) and $FF] xor
+         CrcTables[5, (Low shr 16) and $FF] xor CrcTables[4, Low shr 24] xor
+         CrcTables[3, High and $FF] xor CrcTables[2, (High shr 8) and $FF] xor
+         CrcTables[1, (High shr 16) and $FF] xor CrcTables[0, High shr 24];
+    Dec(Size, 8);
+  end;
+
+  // The rest one by one
+  while Size > 0 do
+  begin
+    C := (C shr 8) xor CrcTables[0, B^ xor Byte(C)];
+    Inc(B);
+    Dec(Size);
+  end;
+
+  Crc := C;
 end;
 
 procedure FillMemoryByte(Data: Pointer; Size: NativeInt; Value: Byte);

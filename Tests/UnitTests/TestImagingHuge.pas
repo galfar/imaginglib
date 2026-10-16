@@ -31,7 +31,7 @@ interface
 
 uses
   SysUtils, Types, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility,
-  ImagingBinary, ImagingCanvases, ImagingTestCase, ImagingTestPixels;
+  ImagingBinary, ImagingCanvases, ImagingZLib, ImagingTestCase, ImagingTestPixels;
 
 { Returns True when the test program was started with --huge option.}
 function HugeTestsRequested: Boolean;
@@ -65,6 +65,8 @@ type
     procedure TestDXT;
     procedure TestStreamIO;
     procedure TestMemoryIO;
+    procedure TestPng;
+    procedure TestZLibStreams;
   end;
 {$ENDIF}
 
@@ -682,6 +684,108 @@ begin
     SetOption(ImagingTargaRLE, OldRle);
     FreeMem(Data);
     FreeImage(Loaded);
+  end;
+end;
+
+procedure TTestHugeImages.TestPng;
+const
+  // Compressed data of mostly uniform images are small
+  StreamCapacity = 256 * 1024 * 1024;
+  RgbWidth = 40000;
+  RgbHeight = 36000;
+
+  procedure RoundTrip(const Markers: array of NativeInt; const Msg: string);
+  var
+    Data: Pointer;
+    Stream: TBlockStream;
+    Loaded: TImageData;
+    I: Integer;
+  begin
+    for I := Low(Markers) to High(Markers) do
+      PBuffer(FImage.Bits)[Markers[I]] := 30 + I;
+
+    InitImage(Loaded);
+    Data := AllocHuge(StreamCapacity);
+    Stream := TBlockStream.Create(Data, StreamCapacity);
+    try
+      CheckTrue(SaveImageToStream('png', Stream, FImage), Msg + ': image is saved');
+      CheckTrue(Stream.Size < StreamCapacity, Format('%s: size of the file %d bytes', [Msg, Stream.Size]));
+      Stream.Position := 0;
+      CheckTrue(LoadImageFromStream(Stream, Loaded), Msg + ': image is loaded');
+      CheckEquals(FImage.Width, Loaded.Width, Msg + ': width');
+      CheckEquals(FImage.Height, Loaded.Height, Msg + ': height');
+      CheckEquals(Ord(FImage.Format), Ord(Loaded.Format), Msg + ': format');
+      for I := Low(Markers) to High(Markers) do
+        CheckEquals(30 + I, PBuffer(Loaded.Bits)[Markers[I]], Format('%s: marker %d', [Msg, I]));
+      if not CompareMem(FImage.Bits, Loaded.Bits, FImage.Size) then
+        CheckSameMem(FImage.Bits, Loaded.Bits, FImage.Size, Msg + ': loaded image');
+    finally
+      Stream.Free;
+      FreeMem(Data);
+      FreeImage(Loaded);
+    end;
+  end;
+
+begin
+  // More than 2^31 pixels
+  NewLitImage(ifGray8);
+  RoundTrip([NativeInt(1) shl 30 + 5, NativeInt(1) shl 31 + 7, HugePixels - 2], 'Gray8');
+  FreeImage(FImage);
+
+  // More than 4 GB of pixel data (fewer than 2^31 pixels, so no NewHugeImage)
+  CheckTrue(NewImage(RgbWidth, RgbHeight, ifR8G8B8, FImage), 'NewImage of R8G8B8');
+  CheckTrue(FImage.Size > Int64(1) shl 32, 'More than 4 GB');
+  FillChar(FImage.Bits^, FImage.Size, $C0);
+  RoundTrip([NativeInt(1) shl 31 + 11, NativeInt(1) shl 32 + 13, FImage.Size - 1], 'R8G8B8');
+end;
+
+procedure TTestHugeImages.TestZLibStreams;
+const
+  BlockSize = 64 * 1024 * 1024;
+  BlockCount = 80; // 5 GB
+var
+  Block, Output: TDynByteArray;
+  Compressed: TMemoryStream;
+  Compression: TCompressionStream;
+  Decompression: TDecompressionStream;
+  I, Len: Integer;
+begin
+  // More than 4 GB through zlib streams, compressible data need little memory
+  SetLength(Block, BlockSize);
+  for I := 0 to BlockSize - 1 do
+    Block[I] := Byte(I shr 20);
+  SetLength(Output, BlockSize);
+
+  Compressed := TMemoryStream.Create;
+  try
+    Compression := TCompressionStream.Create(clFastest, Compressed);
+    try
+      for I := 1 to BlockCount do
+        Compression.WriteBuffer(Block[0], BlockSize);
+      CheckEquals(Int64(BlockSize) * BlockCount, Compression.Position, 'Position of compression stream');
+      CheckTrue(Compression.CompressionRate > 99, Format('Compression rate %.2f', [Compression.CompressionRate]));
+    finally
+      Compression.Free;
+    end;
+
+    Compressed.Position := 0;
+    Decompression := TDecompressionStream.Create(Compressed);
+    try
+      for I := 1 to BlockCount do
+      begin
+        FillChar(Output[0], BlockSize, 0);
+        Decompression.ReadBuffer(Output[0], BlockSize);
+        if not CompareMem(Pointer(Block), Pointer(Output), BlockSize) then
+          Fail(Format('Decompressed block %d differs', [I]));
+      end;
+      CheckEquals(Int64(BlockSize) * BlockCount, Decompression.Position, 'Position of decompression stream');
+      Len := Decompression.Read(Output[0], 10);
+      CheckEquals(0, Len, 'Nothing after the end');
+    finally
+      Decompression.Free;
+    end;
+  finally
+    Compressed.Free;
   end;
 end;
 

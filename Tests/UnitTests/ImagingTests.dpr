@@ -65,6 +65,7 @@ uses
   TestImagingBasics in 'TestImagingBasics.pas',
   TestImagingClasses in 'TestImagingClasses.pas',
   TestImagingCanvases in 'TestImagingCanvases.pas',
+  TestImagingZLib in 'TestImagingZLib.pas',
   TestImagingColors in 'TestImagingColors.pas',
   TestImagingConversions in 'TestImagingConversions.pas',
   TestImagingManipulation in 'TestImagingManipulation.pas',
