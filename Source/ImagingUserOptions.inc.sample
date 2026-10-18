@@ -51,6 +51,12 @@
 {.$DEFINE JPEG_USE_TURBO_DYNLIB}  // TurboJPEG shared library (libjpeg-turbo 2.0+)
                                   // when found at run time, Pascal codec otherwise
 
+// TIFF
+{.$DEFINE TIFF_USE_LIBTIFF_DYNLIB} // libtiff 4 shared library when found at run
+                                  // time, Pascal codec (PasTiff) otherwise
+{.$DEFINE TIFF_NO_BUNDLED}        // leave out PasTiff (libtiff shared library only)
+
 // WebP
 {.$DEFINE WEBP_NO_DYNLIB}         // never look for libwebp shared library
 {.$DEFINE WEBP_NO_BUNDLED}        // leave out Pascal WebP decoder
+

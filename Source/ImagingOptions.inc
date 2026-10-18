@@ -74,6 +74,12 @@
 {.$DEFINE JPEG_USE_TURBO_DYNLIB}  // use TurboJPEG shared library (libjpeg-turbo 2.0+)
                                   // when it is found at run time, Pascal codec otherwise
 
+// TIFF (Extensions/Libs/ImagingTiffBackend.pas)
+{.$DEFINE TIFF_USE_LIBTIFF_DYNLIB} // use libtiff 4 shared library when it is found
+                                  // at run time, Pascal codec (PasTiff) otherwise.
+                                  // Always on for Delphi older than 2009 (no PasTiff)
+{.$DEFINE TIFF_NO_BUNDLED}        // leave out PasTiff (libtiff shared library only)
+
 // WebP (Extensions/Libs/ImagingLibWebP.pas)
 {.$DEFINE WEBP_NO_DYNLIB}         // never look for libwebp shared library
 {.$DEFINE WEBP_NO_BUNDLED}        // leave out Pascal WebP decoder (WebPDec)
