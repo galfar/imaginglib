@@ -72,7 +72,8 @@ uses
   TestImagingAnalysis in 'TestImagingAnalysis.pas',
   TestImagingBinary in 'TestImagingBinary.pas',
   TestImagingHuge in 'TestImagingHuge.pas',
-  TestImagingFileFormats in 'TestImagingFileFormats.pas';
+  TestImagingFileFormats in 'TestImagingFileFormats.pas',
+  TestImagingTiff in 'TestImagingTiff.pas';
 
 {$IFDEF FPC}
 type

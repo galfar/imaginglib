@@ -31,7 +31,8 @@ interface
 
 uses
   SysUtils, Types, Classes, ImagingTypes, Imaging, ImagingFormats, ImagingUtility,
-  ImagingBinary, ImagingCanvases, ImagingZLib, ImagingTestCase, ImagingTestPixels;
+  ImagingBinary, ImagingCanvases, ImagingZLib, ImagingExtFileFormats, ImagingTiff,
+  ImagingTestCase, ImagingTestPixels;
 
 { Returns True when the test program was started with --huge option.}
 function HugeTestsRequested: Boolean;
@@ -69,6 +70,7 @@ type
     procedure TestZLibStreams;
     procedure TestMngJng;
     procedure TestBmp;
+    procedure TestTiff;
   end;
 {$ENDIF}
 
@@ -981,6 +983,61 @@ begin
     Stream.Free;
     FreeMem(Data);
     FreeImage(Loaded);
+  end;
+end;
+
+procedure TTestHugeImages.TestTiff;
+const
+  Width = 40000;
+  Height = 36000;
+var
+  Data: Pointer;
+  Capacity, I, Count: NativeInt;
+  Stream: TBlockStream;
+  Markers: array[0..2] of NativeInt;
+  OldCompression, OldBigTiff: Integer;
+begin
+  // Uncompressed pixels over 4 GB: BigTIFF is chosen with the default
+  // ImagingTiffBigTiffWriteMode (IfNeeded)
+  CheckTrue(NewImage(Width, Height, ifR8G8B8, FImage), 'NewImage');
+  FillChar(FImage.Bits^, FImage.Size, $C0);
+  Markers[0] := 7;
+  Markers[1] := NativeInt(1) shl 32 + 13;
+  Markers[2] := FImage.Size - 1;
+  for I := Low(Markers) to High(Markers) do
+    PBuffer(FImage.Bits)[Markers[I]] := 30 + I;
+
+  OldCompression := GetOption(ImagingTiffCompression);
+  OldBigTiff := GetOption(ImagingTiffBigTiffWriteMode);
+  Capacity := FImage.Size + 4 * 1024 * 1024;
+  Data := AllocHuge(Capacity);
+  Stream := TBlockStream.Create(Data, Capacity);
+  try
+    SetOption(ImagingTiffCompression, TiffCompressionOptionNone);
+    SetOption(ImagingTiffBigTiffWriteMode, TiffBigTiffWriteModeIfNeeded);
+    CheckTrue(SaveImageToStream('tif', Stream, FImage), 'image is saved');
+    CheckEquals(43, PBuffer(Data)[2], 'BigTIFF is written');
+    CheckTrue(Stream.Size > FImage.Size, 'size of the file');
+    FreeImage(FImage);
+
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'image is loaded');
+    CheckEquals(Width, FImage.Width, 'width');
+    CheckEquals(Height, FImage.Height, 'height');
+    CheckEquals(Ord(ifR8G8B8), Ord(FImage.Format), 'format');
+    for I := Low(Markers) to High(Markers) do
+      CheckEquals(30 + I, PBuffer(FImage.Bits)[Markers[I]], Format('marker %d', [I]));
+    Count := 0;
+    for I := 0 to FImage.Size - 1 do
+      if PBuffer(FImage.Bits)[I] <> $C0 then
+        Inc(Count);
+    CheckEquals(Length(Markers), Count, 'other bytes are unchanged');
+  finally
+    SetOption(ImagingTiffCompression, OldCompression);
+    SetOption(ImagingTiffBigTiffWriteMode, OldBigTiff);
+    Stream.Free;
+    FreeMem(Data);
+    FreeImage(FImage);
   end;
 end;
 
