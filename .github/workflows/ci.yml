@@ -137,6 +137,13 @@ jobs:
         shell: bash
         run: ./Scripts/CI.RunTests.sh
 
+      # Unit tests and Bench with zlib, TurboJPEG, libwebp and libtiff shared
+      # libraries (installed by CI.SetupLinux.sh)
+      - name: Build and run with shared libraries
+        if: runner.os == 'Linux'
+        shell: bash
+        run: ./Scripts/CI.DynLibs.sh
+
       - name: List Demos Bin directory
         shell: bash
         run:  ls Demos/Bin

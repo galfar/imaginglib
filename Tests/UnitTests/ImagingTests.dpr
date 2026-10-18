@@ -27,6 +27,9 @@
     --huge   adds tests of images with more than 2^31 pixels (64-bit targets
              only, they need about 9 GB of free memory and several minutes,
              see TestImagingHuge unit)
+    --dynlibs  adds checks that third party shared libraries are used (for
+               builds that use them, see TestImagingDynLibs unit and
+               Scripts/CI.DynLibs.sh)
 
   Delphi build takes these optional switches:
     --pause  waits for Enter key after the tests finish
@@ -73,11 +76,12 @@ uses
   TestImagingBinary in 'TestImagingBinary.pas',
   TestImagingHuge in 'TestImagingHuge.pas',
   TestImagingFileFormats in 'TestImagingFileFormats.pas',
-  TestImagingTiff in 'TestImagingTiff.pas';
+  TestImagingTiff in 'TestImagingTiff.pas',
+  TestImagingDynLibs in 'TestImagingDynLibs.pas';
 
 {$IFDEF FPC}
 type
-  { Console runner of FPCUnit that knows also --pause and --huge options.}
+  { Console runner of FPCUnit that knows also --pause, --huge and --dynlibs options.}
   TImagingTestRunner = class(TTestRunner)
   protected
     procedure AppendLongOpts; override;
@@ -88,6 +92,7 @@ begin
   inherited AppendLongOpts;
   LongOpts.Add('pause');
   LongOpts.Add('huge');
+  LongOpts.Add('dynlibs');
 end;
 {$ENDIF}
 

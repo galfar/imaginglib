@@ -8,6 +8,8 @@ set -eo pipefail
 # like libtiff5 vs libtiff6 in different distro versions
 sudo apt install libtiff-dev -y
 sudo apt install libwebp-dev -y
+# For CI.DynLibs.sh: TurboJPEG API of libjpeg-turbo (zlib is always there)
+sudo apt install libturbojpeg0-dev -y
 
 # Needed for SDL and GL demos
 sudo apt install libsdl1.2-dev -y
