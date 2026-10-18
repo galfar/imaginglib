@@ -470,6 +470,8 @@ begin
           FreeImage(ImageToSave);
       end;
     end;
+
+    Writer.Finish;
   finally
     Writer.Free;
   end;

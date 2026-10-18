@@ -154,14 +154,20 @@ type
     Palette: PPalette32;
   end;
 
-  { Writes pages to a TIFF file. Create with TiffCreateWriter, free to
-    finish the file. }
+  { Writes pages to a TIFF file. Create with TiffCreateWriter, call Finish
+    after the last page, then free it. Freeing without Finish (after an
+    error) only releases the writer, the output is not a complete file. }
   TTiffFileWriter = class
   public
     procedure BeginPage(const Params: TTiffSaveParams); virtual; abstract;
     { Hands over the next RowCount rows of the current page. }
     procedure WriteRows(Buffer: Pointer; RowCount: Integer); virtual; abstract;
     procedure EndPage; virtual; abstract;
+    { Ends the file: data still buffered is written and the output is
+      positioned after the last byte of the file. Imaging takes that
+      position as the end of a file saved to memory, and the writers leave
+      it where they last linked a directory. }
+    procedure Finish; virtual; abstract;
   end;
 
 { Returns TIFF implementation in use. Looks for libtiff (if compiled in)
@@ -323,6 +329,7 @@ type
     procedure BeginPage(const Params: TTiffSaveParams); override;
     procedure WriteRows(Buffer: Pointer; RowCount: Integer); override;
     procedure EndPage; override;
+    procedure Finish; override;
   end;
 
 procedure PageInfoToDesc(const Info: TTiffPageInfo; out Desc: TTiffPageDesc);
@@ -421,10 +428,6 @@ end;
 
 destructor TPasTiffFileWriter.Destroy;
 begin
-  // The writer leaves the stream where it last linked a directory, Imaging
-  // takes the position after saving as the end of the file (memory IO)
-  if FWriter <> nil then
-    FStream.Position := FStart + FWriter.Container.Size;
   FWriter.Free;
   FStream.Free;
   inherited;
@@ -481,6 +484,12 @@ begin
   FWriter.EndPage;
 end;
 
+procedure TPasTiffFileWriter.Finish;
+begin
+  // TTiffWriter writes everything in EndPage, only the position is left
+  FStream.Position := FStart + FWriter.Container.Size;
+end;
+
 {$ENDIF}
 
 {$IFDEF TIFF_USE_LIBTIFF}
@@ -520,6 +529,10 @@ type
     FInfo: TTiffPageInfo;
     FConverter: TTiffRowConverter;
   {$ENDIF}
+    function TagWord(Tag: UInt32; Default: Word): Word;
+    function TagLong(Tag: UInt32; Default: UInt32): UInt32;
+    function RequiredTagLong(Tag: UInt32; const Name: string): UInt32;
+    function TagFloat(Tag: UInt32; out Value: Double): Boolean;
     function NativeLayout: TTiffDataLayout;
     procedure ReadChunkRows(Dst: Pointer; Stride: NativeInt);
     procedure ReadRgba(Dst: Pointer; Stride: NativeInt);
@@ -544,6 +557,7 @@ type
     procedure BeginPage(const Params: TTiffSaveParams); override;
     procedure WriteRows(Buffer: Pointer; RowCount: Integer); override;
     procedure EndPage; override;
+    procedure Finish; override;
   end;
 
 threadvar
@@ -688,14 +702,55 @@ begin
   inherited;
 end;
 
+{ Values of tags of C type uint16, uint32 and float in the current
+  directory. TIFFGetFieldDefaulted gives the default of the TIFF
+  specification for tags that have one (BitsPerSample, Compression...);
+  Default is for tags without, when the file does not have them. }
+
+function TLibTiffFileReader.TagWord(Tag: UInt32; Default: Word): Word;
+var
+  Value: Word;
+begin
+  if TIFFGetFieldDefaulted(FTiff, Tag, @Value) = 1 then
+    Result := Value
+  else
+    Result := Default;
+end;
+
+function TLibTiffFileReader.TagLong(Tag: UInt32; Default: UInt32): UInt32;
+var
+  Value: UInt32;
+begin
+  if TIFFGetFieldDefaulted(FTiff, Tag, @Value) = 1 then
+    Result := Value
+  else
+    Result := Default;
+end;
+
+function TLibTiffFileReader.RequiredTagLong(Tag: UInt32; const Name: string): UInt32;
+begin
+  Result := TagLong(Tag, 0);
+  if Result = 0 then
+    RaiseLibTiffError(Format('TIFF page has no valid %s', [Name]));
+end;
+
+function TLibTiffFileReader.TagFloat(Tag: UInt32; out Value: Double): Boolean;
+var
+  Single32: Single;
+begin
+  Result := TIFFGetField(FTiff, Tag, @Single32) = 1;
+  if Result then
+    Value := Single32
+  else
+    Value := 0;
+end;
+
 procedure TLibTiffFileReader.SelectPage(Index: Integer);
 var
-  W16, Count: Word;
-  W32: UInt32;
-  F32: Single;
+  ExtraCount: Word;
   ExtraTypes: PWordArray;
 {$IFDEF TIFF_USE_PASTIFF}
-  SubH, SubV: Word;
+  SubsampleH, SubsampleV: Word;
   Floats: PSingles;
   I: Integer;
 {$ENDIF}
@@ -704,44 +759,20 @@ begin
   if TIFFSetDirectory(FTiff, Index) = 0 then
     RaiseLibTiffError(Format('libtiff cannot read TIFF page %d', [Index]));
 
-  // libtiff's TIFFGetField writes the C type of each tag: uint32 for sizes,
-  // uint16 for most others, float for resolution
-  W32 := 0;
-  TIFFGetField(FTiff, TIFFTAG_IMAGEWIDTH, @W32);
-  FPage.Width := W32;
-  W32 := 0;
-  TIFFGetField(FTiff, TIFFTAG_IMAGELENGTH, @W32);
-  FPage.Height := W32;
-  W16 := 1;
-  TIFFGetFieldDefaulted(FTiff, TIFFTAG_BITSPERSAMPLE, @W16);
-  FPage.BitsPerSample := W16;
-  W16 := 1;
-  TIFFGetFieldDefaulted(FTiff, TIFFTAG_SAMPLESPERPIXEL, @W16);
-  FPage.SamplesPerPixel := W16;
-  W16 := SampleFormatUInt;
-  TIFFGetFieldDefaulted(FTiff, TIFFTAG_SAMPLEFORMAT, @W16);
-  FPage.SampleFormat := W16;
-  W16 := CompressionNone;
-  TIFFGetFieldDefaulted(FTiff, TIFFTAG_COMPRESSION, @W16);
-  FPage.Compression := W16;
-  W16 := PhotometricMinIsBlack;
-  TIFFGetField(FTiff, TIFFTAG_PHOTOMETRIC, @W16);
-  FPage.Photometric := W16;
-  W16 := PlanarContig;
-  TIFFGetFieldDefaulted(FTiff, TIFFTAG_PLANARCONFIG, @W16);
-  FPage.PlanarConfig := W16;
-  W16 := 1;
-  TIFFGetFieldDefaulted(FTiff, TIFFTAG_ORIENTATION, @W16);
-  FPage.Orientation := W16;
-  W16 := RESUNIT_INCH;
-  TIFFGetFieldDefaulted(FTiff, TIFFTAG_RESOLUTIONUNIT, @W16);
-  FPage.ResolutionUnit := W16;
-  F32 := 0;
-  FPage.HasResolution := TIFFGetField(FTiff, TIFFTAG_XRESOLUTION, @F32) = 1;
-  FPage.XResolution := F32;
-  F32 := 0;
-  FPage.HasResolution := FPage.HasResolution and (TIFFGetField(FTiff, TIFFTAG_YRESOLUTION, @F32) = 1);
-  FPage.YResolution := F32;
+  FPage.Width := RequiredTagLong(TIFFTAG_IMAGEWIDTH, 'ImageWidth');
+  FPage.Height := RequiredTagLong(TIFFTAG_IMAGELENGTH, 'ImageLength');
+  FPage.BitsPerSample := TagWord(TIFFTAG_BITSPERSAMPLE, 1);
+  FPage.SamplesPerPixel := TagWord(TIFFTAG_SAMPLESPERPIXEL, 1);
+  FPage.SampleFormat := TagWord(TIFFTAG_SAMPLEFORMAT, SampleFormatUInt);
+  FPage.Compression := TagWord(TIFFTAG_COMPRESSION, CompressionNone);
+  // No default in the specification; libtiff itself guesses one for files
+  // without the tag when it reads the directory
+  FPage.Photometric := TagWord(TIFFTAG_PHOTOMETRIC, PhotometricMinIsBlack);
+  FPage.PlanarConfig := TagWord(TIFFTAG_PLANARCONFIG, PlanarContig);
+  FPage.Orientation := TagWord(TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+  FPage.ResolutionUnit := TagWord(TIFFTAG_RESOLUTIONUNIT, RESUNIT_INCH);
+  FPage.HasResolution := TagFloat(TIFFTAG_XRESOLUTION, FPage.XResolution) and
+                         TagFloat(TIFFTAG_YRESOLUTION, FPage.YResolution);
 
   FRed := nil;
   FGreen := nil;
@@ -753,11 +784,13 @@ begin
     FColorCount := 1 shl FPage.BitsPerSample;
   end;
 
-  Count := 0;
+  // Count and array of types; the array belongs to libtiff
   ExtraTypes := nil;
-  TIFFGetFieldDefaulted(FTiff, TIFFTAG_EXTRASAMPLES, @Count, @ExtraTypes);
-  if ExtraTypes = nil then
-    Count := 0;
+  if (TIFFGetFieldDefaulted(FTiff, TIFFTAG_EXTRASAMPLES, @ExtraCount, @ExtraTypes) <> 1) or
+    (ExtraTypes = nil) then
+  begin
+    ExtraCount := 0;
+  end;
 
   // libtiff's JPEG codec converts YCbCr to RGB when asked. Must be set before
   // any size is queried, it changes strip/tile sizes.
@@ -788,7 +821,7 @@ begin
     FInfo.Predictor := TiffPredictorNone;       // and undoes the predictor
     FInfo.Orientation := FPage.Orientation;
     FInfo.ResolutionUnit := FPage.ResolutionUnit;
-    FInfo.ExtraSampleCount := Count;
+    FInfo.ExtraSampleCount := ExtraCount;
     if FInfo.ExtraSampleCount > TiffMaxExtraSamples then
       FInfo.ExtraSampleCount := TiffMaxExtraSamples;
     for I := 0 to FInfo.ExtraSampleCount - 1 do
@@ -806,25 +839,28 @@ begin
       end;
     end;
 
-    W16 := TiffInkSetCmyk;
-    TIFFGetFieldDefaulted(FTiff, TIFFTAG_INKSET, @W16);
-    FInfo.InkSet := W16;
+    FInfo.InkSet := TagWord(TIFFTAG_INKSET, TiffInkSetCmyk);
 
-    SubH := 2;
-    SubV := 2;
-    TIFFGetFieldDefaulted(FTiff, TIFFTAG_YCBCRSUBSAMPLING, @SubH, @SubV);
-    FInfo.YCbCrSubsampleH := SubH;
-    FInfo.YCbCrSubsampleV := SubV;
+    // The YCbCr tags all have defaults in libtiff: subsampling 2x2,
+    // ITU-R BT.601 coefficients, full range reference black and white
+    FInfo.YCbCrSubsampleH := 2;
+    FInfo.YCbCrSubsampleV := 2;
+    if TIFFGetFieldDefaulted(FTiff, TIFFTAG_YCBCRSUBSAMPLING, @SubsampleH, @SubsampleV) = 1 then
+    begin
+      FInfo.YCbCrSubsampleH := SubsampleH;
+      FInfo.YCbCrSubsampleV := SubsampleV;
+    end;
     Floats := nil;
-    TIFFGetFieldDefaulted(FTiff, TIFFTAG_YCBCRCOEFFICIENTS, @Floats);
-    for I := 0 to 2 do
-      if Floats <> nil then
+    if (TIFFGetFieldDefaulted(FTiff, TIFFTAG_YCBCRCOEFFICIENTS, @Floats) = 1) and (Floats <> nil) then
+    begin
+      for I := 0 to 2 do
         FInfo.YCbCrCoefficients[I] := Floats[I];
-    Floats := nil;
-    TIFFGetFieldDefaulted(FTiff, TIFFTAG_REFERENCEBLACKWHITE, @Floats);
-    for I := 0 to 5 do
-      if Floats <> nil then
+    end;
+    if (TIFFGetFieldDefaulted(FTiff, TIFFTAG_REFERENCEBLACKWHITE, @Floats) = 1) and (Floats <> nil) then
+    begin
+      for I := 0 to 5 do
         FInfo.ReferenceBlackWhite[I] := Floats[I];
+    end;
 
     if (FPage.Compression = CompressionJpeg) and (FPage.Photometric = PhotometricYCbCr) then
     begin
@@ -918,7 +954,7 @@ end;
 procedure TLibTiffFileReader.ReadRgba(Dst: Pointer; Stride: NativeInt);
 var
   Raster: TDynByteArray;
-  Y: Integer;
+  Row: Integer;
   RowBytes: NativeInt;
 begin
   RowBytes := NativeInt(FPage.Width) * 4;
@@ -931,8 +967,8 @@ begin
     RaiseLibTiffError('libtiff cannot read TIFF page');
   end;
 
-  for Y := 0 to FPage.Height - 1 do
-    Move(Raster[NativeInt(Y) * RowBytes], PBuffer(Dst)[NativeInt(Y) * Stride], RowBytes);
+  for Row := 0 to FPage.Height - 1 do
+    Move(Raster[NativeInt(Row) * RowBytes], PBuffer(Dst)[NativeInt(Row) * Stride], RowBytes);
 end;
 
 { Reads strips or tiles band by band (a band is a strip, or a row of tiles)
@@ -943,44 +979,46 @@ const
   ScanlineThreshold = 16 * 1024 * 1024;
   ScanlineBand = 256;
 var
-  Planes, P, Plane, BandRows, BandDataRows, DataRows, DataRowsDone, RowsDone,
-    N, ChunksPerPlane, TilesAcross, TX, Y, ChunkHeight, ChunkWidth, R: Integer;
+  Planes, Plane, BandRows, BandDataRows, DataRows, DataRowsDone, RowsDone,
+    Band, ChunksPerPlane, TilesAcross, TileColumn, Row, ChunkHeight, ChunkWidth,
+    RowsConverted: Integer;
   RowsPerSrcRow: Integer;
   RowBytes, TileRowBytes, ChunkBytes, CopyBytes, Offset: NativeInt;
   Tiled, ByScanline: Boolean;
   Bands: array of TDynByteArray;
   Tile: TDynByteArray;
   Src: array of Pointer;
-  W32: UInt32;
-  Index: UInt32;
+  StripRows: UInt32;
+  ChunkIndex: UInt32;
 
   procedure InvertRows(Count: Integer);
   var
     I: Integer;
     J: NativeInt;
-    Row: PBuffer;
-    W: PWord;
+    RowData: PBuffer;
+    Sample: PWord;
   begin
     for I := 0 to Count - 1 do
     begin
-      Row := @PBuffer(Dst)[NativeInt(RowsDone + I) * Stride];
+      RowData := @PBuffer(Dst)[NativeInt(RowsDone + I) * Stride];
       if FPage.BitsPerSample = 16 then
       begin
-        W := PWord(Row);
+        Sample := PWord(RowData);
         for J := 0 to NativeInt(FPage.Width) - 1 do
         begin
-          W^ := not W^;
-          Inc(W);
+          Sample^ := not Sample^;
+          Inc(Sample);
         end;
       end
       else
         for J := 0 to RowBytes - 1 do
-          Row[J] := not Row[J];
+          RowData[J] := not RowData[J];
     end;
   end;
 
 begin
   Tiled := TIFFIsTiled(FTiff) <> 0;
+  Tile := nil;
   if FPage.PlanarConfig = PlanarContig then
     Planes := 1
   else
@@ -997,14 +1035,8 @@ begin
 
   if Tiled then
   begin
-    W32 := 0;
-    TIFFGetField(FTiff, TIFFTAG_TILEWIDTH, @W32);
-    ChunkWidth := W32;
-    W32 := 0;
-    TIFFGetField(FTiff, TIFFTAG_TILELENGTH, @W32);
-    ChunkHeight := W32;
-    if (ChunkWidth <= 0) or (ChunkHeight <= 0) then
-      RaiseLibTiffError('Invalid TIFF tile size');
+    ChunkWidth := RequiredTagLong(TIFFTAG_TILEWIDTH, 'TileWidth');
+    ChunkHeight := RequiredTagLong(TIFFTAG_TILELENGTH, 'TileLength');
     TilesAcross := (FPage.Width + ChunkWidth - 1) div ChunkWidth;
     TileRowBytes := RowSize(ChunkWidth, FPage.BitsPerSample, FPage.SamplesPerPixel div Planes);
     ChunkBytes := TIFFTileSize(FTiff);
@@ -1015,11 +1047,11 @@ begin
   end
   else
   begin
-    W32 := 0;
-    TIFFGetFieldDefaulted(FTiff, TIFFTAG_ROWSPERSTRIP, @W32);
+    // Default (2^32 - 1) and values over the height mean one strip
+    StripRows := TagLong(TIFFTAG_ROWSPERSTRIP, High(UInt32));
     ChunkHeight := FPage.Height;
-    if (W32 > 0) and (W32 < UInt32(FPage.Height)) then
-      ChunkHeight := W32;
+    if (StripRows > 0) and (StripRows < UInt32(FPage.Height)) then
+      ChunkHeight := StripRows;
     TilesAcross := 1;
     TileRowBytes := 0;
     ChunkBytes := 0;
@@ -1038,65 +1070,71 @@ begin
 
   SetLength(Bands, Planes);
   SetLength(Src, Planes);
-  for P := 0 to Planes - 1 do
-    SetLength(Bands[P], NativeInt(BandDataRows) * RowBytes);
+  for Plane := 0 to Planes - 1 do
+    SetLength(Bands[Plane], NativeInt(BandDataRows) * RowBytes);
 
   DataRowsDone := 0;
   RowsDone := 0;
-  N := 0;
+  Band := 0;
   while (DataRowsDone < DataRows) and (RowsDone < FPage.Height) do
   begin
     BandRows := Min(BandDataRows, DataRows - DataRowsDone);
 
-    for P := 0 to Planes - 1 do
+    for Plane := 0 to Planes - 1 do
     begin
-      Plane := P;
       // Damaged chunks give zeros, as PasTiff does with TolerateDataErrors
-      FillChar(Bands[P][0], Length(Bands[P]), 0);
+      FillChar(Bands[Plane][0], Length(Bands[Plane]), 0);
       ClearLibTiffError;
 
       if ByScanline then
       begin
-        for R := 0 to BandRows - 1 do
-          TIFFReadScanline(FTiff, @Bands[P][NativeInt(R) * RowBytes], DataRowsDone + R, Plane);
+        for Row := 0 to BandRows - 1 do
+          TIFFReadScanline(FTiff, @Bands[Plane][NativeInt(Row) * RowBytes], DataRowsDone + Row, Plane);
       end
       else if Tiled then
       begin
-        for TX := 0 to TilesAcross - 1 do
+        for TileColumn := 0 to TilesAcross - 1 do
         begin
           FillChar(Tile[0], Length(Tile), 0);
-          Index := UInt32(Plane) * UInt32(ChunksPerPlane) + UInt32(N) * UInt32(TilesAcross) + UInt32(TX);
-          TIFFReadEncodedTile(FTiff, Index, Pointer(Tile), ChunkBytes);
-          Offset := NativeInt(TX) * TileRowBytes;
+          ChunkIndex := UInt32(Plane) * UInt32(ChunksPerPlane) + UInt32(Band) * UInt32(TilesAcross) +
+                        UInt32(TileColumn);
+          TIFFReadEncodedTile(FTiff, ChunkIndex, Pointer(Tile), ChunkBytes);
+          Offset := NativeInt(TileColumn) * TileRowBytes;
           CopyBytes := RowBytes - Offset;
           if CopyBytes > TileRowBytes then
             CopyBytes := TileRowBytes;
-          for Y := 0 to BandRows - 1 do
-            Move(Tile[NativeInt(Y) * TileRowBytes], Bands[P][NativeInt(Y) * RowBytes + Offset], CopyBytes);
+          for Row := 0 to BandRows - 1 do
+          begin
+            Move(Tile[NativeInt(Row) * TileRowBytes], Bands[Plane][NativeInt(Row) * RowBytes + Offset],
+                 CopyBytes);
+          end;
         end;
       end
       else
       begin
-        Index := UInt32(Plane) * UInt32(ChunksPerPlane) + UInt32(N);
-        TIFFReadEncodedStrip(FTiff, Index, Pointer(Bands[P]), NativeInt(BandRows) * RowBytes);
+        ChunkIndex := UInt32(Plane) * UInt32(ChunksPerPlane) + UInt32(Band);
+        TIFFReadEncodedStrip(FTiff, ChunkIndex, Pointer(Bands[Plane]), NativeInt(BandRows) * RowBytes);
       end;
-      Src[P] := Pointer(Bands[P]);
+      Src[Plane] := Pointer(Bands[Plane]);
     end;
 
   {$IFDEF TIFF_USE_PASTIFF}
-    R := FConverter.ConvertRows(Src, @PBuffer(Dst)[NativeInt(RowsDone) * Stride], Stride,
-                                BandRows, FPage.Height - RowsDone);
+    RowsConverted := FConverter.ConvertRows(Src, @PBuffer(Dst)[NativeInt(RowsDone) * Stride], Stride,
+                                            BandRows, FPage.Height - RowsDone);
   {$ELSE}
-    R := Min(BandRows, FPage.Height - RowsDone);
-    for Y := 0 to R - 1 do
-      Move(Bands[0][NativeInt(Y) * RowBytes], PBuffer(Dst)[NativeInt(RowsDone + Y) * Stride], RowBytes);
+    RowsConverted := Min(BandRows, FPage.Height - RowsDone);
+    for Row := 0 to RowsConverted - 1 do
+    begin
+      Move(Bands[0][NativeInt(Row) * RowBytes], PBuffer(Dst)[NativeInt(RowsDone + Row) * Stride],
+           RowBytes);
+    end;
     if FInvert then
-      InvertRows(R);
+      InvertRows(RowsConverted);
   {$ENDIF}
 
-    Inc(RowsDone, R);
+    Inc(RowsDone, RowsConverted);
     Inc(DataRowsDone, BandRows);
-    Inc(N);
+    Inc(Band);
   end;
 end;
 
@@ -1133,12 +1171,7 @@ end;
 destructor TLibTiffFileWriter.Destroy;
 begin
   if FTiff <> nil then
-  begin
     TIFFClose(FTiff);
-    // libtiff leaves the position where it last linked a directory, Imaging
-    // takes the position after saving as the end of the file (memory IO)
-    FIOWrapper.IO.Seek(FIOWrapper.Handle, FIOWrapper.Base + FIOWrapper.WrittenEnd, smFromBeginning);
-  end;
   inherited;
 end;
 
@@ -1229,6 +1262,14 @@ procedure TLibTiffFileWriter.EndPage;
 begin
   if TIFFWriteDirectory(FTiff) = 0 then
     RaiseLibTiffError('libtiff cannot write TIFF directory');
+end;
+
+procedure TLibTiffFileWriter.Finish;
+begin
+  // TIFFClose flushes what libtiff still buffers
+  TIFFClose(FTiff);
+  FTiff := nil;
+  FIOWrapper.IO.Seek(FIOWrapper.Handle, FIOWrapper.Base + FIOWrapper.WrittenEnd, smFromBeginning);
 end;
 
 {$ENDIF}
