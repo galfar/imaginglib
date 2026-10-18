@@ -56,7 +56,7 @@
     <PropertyGroup Condition="'$(Base)'!=''">
         <DCC_DcuOutput>..\..\Bin\Dcu\$(Platform)\$(MSBuildProjectName)\$(Config)</DCC_DcuOutput>
         <DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
-        <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\..\..\Extensions\Libs;..\..\..\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\..\..\Extensions\Libs;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_Define>LINK_ALL_FILE_FORMATS;$(DCC_Define)</DCC_Define>
         <DCC_Namespace>System;$(DCC_Namespace)</DCC_Namespace>
     </PropertyGroup>

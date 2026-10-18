@@ -8,7 +8,7 @@ source ./DemosCommonFPC.sh
 
 DEFINES="-dLINK_ALL_FILE_FORMATS"
 UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/Libs
-  -Fu$ROOTDIR/Extensions -Fu$ROOTDIR/Extensions/Libs -Fu$ROOTDIR/Extensions/LibTiff -Fu$DEMOPATH/Common"
+  -Fu$ROOTDIR/Extensions -Fu$ROOTDIR/Extensions/Libs -Fu$DEMOPATH/Common"
 
 DEMOCOUNT=2
 
