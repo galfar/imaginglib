@@ -30,8 +30,8 @@
           </Target>
           <SearchPaths>
             <IncludeFiles Value="..\..\Source;$(ProjOutDir)"/>
-            <Libraries Value="..\..\Extensions\J2KObjects;..\..\Extensions\LibTiff\Compiled"/>
-            <OtherUnitFiles Value="..\..\Source;..\..\Source\Libs;..\..\Extensions;..\..\Extensions\Libs;..\..\Extensions\LibTiff"/>
+            <Libraries Value="..\..\Extensions\J2KObjects"/>
+            <OtherUnitFiles Value="..\..\Source;..\..\Source\Libs;..\..\Extensions;..\..\Extensions\Libs"/>
             <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
           </SearchPaths>
           <Parsing>
@@ -70,7 +70,7 @@
         <PackageName Value="FCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="14">
+    <Units Count="17">
       <Unit0>
         <Filename Value="ImagingTests.dpr"/>
         <IsPartOfProject Value="True"/>
@@ -135,6 +135,10 @@
         <Filename Value="TestImagingZLib.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit15>
+      <Unit16>
+        <Filename Value="TestImagingTiff.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit16>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -145,8 +149,8 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="..\..\Source;$(ProjOutDir)"/>
-      <Libraries Value="..\..\Extensions\J2KObjects;..\..\Extensions\LibTiff\Compiled"/>
-      <OtherUnitFiles Value="..\..\Source;..\..\Source\Libs;..\..\Extensions;..\..\Extensions\Libs;..\..\Extensions\LibTiff"/>
+      <Libraries Value="..\..\Extensions\J2KObjects"/>
+      <OtherUnitFiles Value="..\..\Source;..\..\Source\Libs;..\..\Extensions;..\..\Extensions\Libs"/>
       <UnitOutputDirectory Value="..\..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\$NameOnly($(ProjFile))\$(BuildMode)"/>
     </SearchPaths>
     <Parsing>
