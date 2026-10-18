@@ -16,9 +16,9 @@ rem FPC does not like creating any new directories passed by -FE -FU
 mkdir %BINPATH%\ %UNITPATH%\  2>nul
 
 set DEFINES=-dLINK_ALL_FILE_FORMATS
-set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\Libs -Fu%ROOTDIR%\Extensions -Fu%ROOTDIR%\Extensions\Libs -Fu%ROOTDIR%\Extensions\LibTiff -Fu%DEMOPATH%\Common
+set UNITS=-Fu%ROOTDIR%\Source -Fu%ROOTDIR%\Source\Libs -Fu%ROOTDIR%\Extensions -Fu%ROOTDIR%\Extensions\Libs -Fu%DEMOPATH%\Common
 set INCLUDE=-Fi%ROOTDIR%\Source 
-set LIBS=-Fl%ROOTDIR%\Extensions\J2KObjects -Fl%ROOTDIR%\Extensions\LibTiff\Compiled
+set LIBS=-Fl%ROOTDIR%\Extensions\J2KObjects
 
 set DEMOSBUILD=0
 set DEMOCOUNT=2

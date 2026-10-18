@@ -28,7 +28,7 @@ OUTPUT="-FE$BINPATH -FU$UNITPATH"
 # This is how you suppress -vn set in fpc.cfg
 OPTIONS="-B -O3 -Xs -vn-"
 INCLUDE="-Fi$ROOTDIR/Source"
-LIBS="-Fl$ROOTDIR/Extensions/J2KObjects -Fl$ROOTDIR/Extensions/LibTiff/Compiled"
+LIBS="-Fl$ROOTDIR/Extensions/J2KObjects"
 
 DEMOSBUILD=0
 DEMOCOUNT=0

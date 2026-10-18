@@ -40,7 +40,7 @@
         <DCC_ExeOutput>..\..\Bin</DCC_ExeOutput>
         <DCC_K>false</DCC_K>
         <DCC_E>false</DCC_E>
-        <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\Common;..\..\..\Extensions\Libs;..\..\..\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\..\..\Source;..\..\..\Source\Libs;..\..\..\Extensions;..\Common;..\..\..\Extensions\Libs;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_SymbolReferenceInfo>1</DCC_SymbolReferenceInfo>
         <DCC_Define>LINK_ALL_FILE_FORMATS;$(DCC_Define)</DCC_Define>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;$(DCC_Namespace)</DCC_Namespace>

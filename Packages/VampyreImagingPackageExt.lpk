@@ -10,8 +10,8 @@
       <PathDelim Value="\"/>
       <SearchPaths>
         <IncludeFiles Value="..\Source"/>
-        <Libraries Value="..\Extensions\J2KObjects;..\Extensions\LibTiff\Compiled"/>
-        <OtherUnitFiles Value="..\Extensions;..\Extensions\Libs;..\Extensions\LibTiff"/>
+        <Libraries Value="..\Extensions\J2KObjects"/>
+        <OtherUnitFiles Value="..\Extensions;..\Extensions\Libs"/>
         <UnitOutputDirectory Value="..\Bin\Dcu\$(TargetCPU)-$(TargetOS)\pkg-ext"/>
       </SearchPaths>
       <CodeGeneration>
@@ -33,7 +33,7 @@
     <Description Value="Vampyre Imaging Library Package for Lazarus - Extensions. Imaging is image loading, saving, and manipulation library."/>
     <License Value="MPL 2.0 (GPL compatible) "/>
     <Version Minor="82"/>
-    <Files Count="24">
+    <Files Count="30">
       <Item1>
         <Filename Value="..\Extensions\ElderImagery.pas"/>
         <UnitName Value="ElderImagery"/>
@@ -91,54 +91,84 @@
         <UnitName Value="ImagingXpm"/>
       </Item14>
       <Item15>
-        <Filename Value="..\Extensions\LibTiff\ImagingTiffLib.pas"/>
-        <AddToUsesPkgSection Value="False"/>
-        <UnitName Value="ImagingTiffLib"/>
-      </Item15>
-      <Item16>
-        <Filename Value="..\Extensions\LibTiff\LibDelphi.pas"/>
-        <AddToUsesPkgSection Value="False"/>
-        <UnitName Value="LibDelphi"/>
-      </Item16>
-      <Item17>
-        <Filename Value="..\Extensions\LibTiff\LibJpegDelphi.pas"/>
-        <AddToUsesPkgSection Value="False"/>
-        <UnitName Value="LibJpegDelphi"/>
-      </Item17>
-      <Item18>
-        <Filename Value="..\Extensions\LibTiff\LibTiffDelphi.pas"/>
-        <AddToUsesPkgSection Value="False"/>
-        <UnitName Value="LibTiffDelphi"/>
-      </Item18>
-      <Item19>
-        <Filename Value="..\Extensions\LibTiff\ZLibDelphi.pas"/>
-        <AddToUsesPkgSection Value="False"/>
-        <UnitName Value="ZLibDelphi"/>
-      </Item19>
-      <Item20>
         <Filename Value="VampyreImagingPackageExtRegister.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="VampyreImagingPackageExtRegister"/>
-      </Item20>
-      <Item21>
+      </Item15>
+      <Item16>
         <Filename Value="..\Extensions\ImagingWebP.pas"/>
         <UnitName Value="ImagingWebP"/>
-      </Item21>
-      <Item22>
+      </Item16>
+      <Item17>
         <Filename Value="..\Extensions\Libs\ImagingLibWebP.pas"/>
         <AddToUsesPkgSection Value="False"/>
         <UnitName Value="ImagingLibWebP"/>
-      </Item22>
-      <Item23>
+      </Item17>
+      <Item18>
         <Filename Value="..\Extensions\Libs\LibWebPDynLib.pas"/>
         <AddToUsesPkgSection Value="False"/>
         <UnitName Value="LibWebPDynLib"/>
-      </Item23>
-      <Item24>
+      </Item18>
+      <Item19>
         <Filename Value="..\Extensions\Libs\WebPDec.pas"/>
         <AddToUsesPkgSection Value="False"/>
         <UnitName Value="WebPDec"/>
+      </Item19>
+      <Item20>
+        <Filename Value="..\Extensions\Libs\ImagingTiffBackend.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="ImagingTiffBackend"/>
+      </Item20>
+      <Item21>
+        <Filename Value="..\Extensions\Libs\LibTiffDynLib.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="LibTiffDynLib"/>
+      </Item21>
+      <Item22>
+        <Filename Value="..\Extensions\Libs\PasTiffTypes.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasTiffTypes"/>
+      </Item22>
+      <Item23>
+        <Filename Value="..\Extensions\Libs\PasTiffDirectory.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasTiffDirectory"/>
+      </Item23>
+      <Item24>
+        <Filename Value="..\Extensions\Libs\PasTiffCodecs.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasTiffCodecs"/>
       </Item24>
+      <Item25>
+        <Filename Value="..\Extensions\Libs\PasTiffFax.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasTiffFax"/>
+      </Item25>
+      <Item26>
+        <Filename Value="..\Extensions\Libs\PasTiffJpeg.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasTiffJpeg"/>
+      </Item26>
+      <Item27>
+        <Filename Value="..\Extensions\Libs\PasTiffPixels.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasTiffPixels"/>
+      </Item27>
+      <Item28>
+        <Filename Value="..\Extensions\Libs\PasTiffReader.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasTiffReader"/>
+      </Item28>
+      <Item29>
+        <Filename Value="..\Extensions\Libs\PasTiffWriter.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasTiffWriter"/>
+      </Item29>
+      <Item30>
+        <Filename Value="..\Extensions\Libs\PasTiffExif.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasTiffExif"/>
+      </Item30>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">
@@ -150,7 +180,7 @@
       </Item2>
     </RequiredPkgs>
     <UsageOptions>
-      <LibraryPath Value="..\Extensions\J2KObjects;..\Extensions\LibTiff\Compiled"/>
+      <LibraryPath Value="..\Extensions\J2KObjects"/>
       <UnitPath Value="$(PkgOutDir)"/>
     </UsageOptions>
     <PublishOptions>

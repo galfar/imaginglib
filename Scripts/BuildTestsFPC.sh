@@ -17,7 +17,7 @@ OUTPUT="-FE$BINPATH -FU$UNITPATH"
 OPTIONS="-B -O1 -gl -gh -Sa -CroiR -vn-"
 DEFINES="-dLINK_ALL_FILE_FORMATS"
 UNITS="-Fu$ROOTDIR/Source -Fu$ROOTDIR/Source/Libs
-  -Fu$ROOTDIR/Extensions -Fu$ROOTDIR/Extensions/Libs -Fu$ROOTDIR/Extensions/LibTiff"
+  -Fu$ROOTDIR/Extensions -Fu$ROOTDIR/Extensions/Libs"
 
 $FPC $OPTIONS $OUTPUT $TARGET $DEFINES $UNITS $INCLUDE $LIBS $TESTPATH/ImagingTests.dpr
 

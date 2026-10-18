@@ -21,7 +21,7 @@ rem -NS Unit scopes are needed for newer Delphi and argument is happily ignored 
 set OPTIONS=-B -$D+ -$L+ -$C+ -$R+ -$Q+ -$O- -Q -DDEBUG -NSSystem;Winapi
 
 set DEFINES=-DLINK_ALL_FILE_FORMATS
-set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\Libs -U%ROOTDIR%\Extensions -U%ROOTDIR%\Extensions\Libs -U%ROOTDIR%\Extensions\LibTiff
+set UNITS=-U%ROOTDIR%\Source -U%ROOTDIR%\Source\Libs -U%ROOTDIR%\Extensions -U%ROOTDIR%\Extensions\Libs
 if defined DUNIT_DIR set UNITS=%UNITS% -U"%DUNIT_DIR%"
 
 pushd "%~dp0..\Tests\UnitTests"

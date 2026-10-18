@@ -42,7 +42,7 @@
         <DCC_Description>Vampyre Imaging Library Package</DCC_Description>
         <DCC_DcuOutput>..\Bin\Dcu\$(Platform)\$(Config)\pkg</DCC_DcuOutput>
         <DCC_ExeOutput>..\Bin</DCC_ExeOutput>
-        <DCC_UnitSearchPath>..\Source;..\Source\Libs;..\Extensions;..\Extensions\Libs;..\Extensions\LibTiff;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\Source;..\Source\Libs;..\Extensions;..\Extensions\Libs;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_K>false</DCC_K>
         <GenDll>true</GenDll>
         <DCC_S>false</DCC_S>
@@ -107,7 +107,8 @@
         <DCCReference Include="..\Source\Libs\ImagingJpegLib.pas"/>
         <DCCReference Include="..\Source\Libs\ImPasJpeg.pas"/>
         <DCCReference Include="..\Source\Libs\LibTurboJpegDynLib.pas"/>
-        <DCCReference Include="..\Extensions\LibTiff\ImagingTiffLib.pas"/>
+        <DCCReference Include="..\Extensions\Libs\ImagingTiffBackend.pas"/>
+        <DCCReference Include="..\Extensions\Libs\LibTiffDynLib.pas"/>
         <DCCReference Include="..\Extensions\ElderImagery.pas"/>
         <DCCReference Include="..\Extensions\ElderImageryBsi.pas"/>
         <DCCReference Include="..\Extensions\ElderImageryCif.pas"/>
