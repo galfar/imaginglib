@@ -641,28 +641,28 @@ end;
 { Parses the version out of "LIBTIFF, Version 4.7.0<LF>Copyright...". }
 function ParseVersion(Text: PAnsiChar): Boolean;
 var
-  S: string;
-  P, Part: Integer;
+  Version: string;
+  Position, Part: Integer;
   Parts: array[0..2] of Integer;
 begin
-  S := string(AnsiString(Text));
-  P := Pos('Version ', S);
-  Result := P > 0;
+  Version := string(AnsiString(Text));
+  Position := Pos('Version ', Version);
+  Result := Position > 0;
   if not Result then
     Exit;
 
-  P := P + Length('Version ');
+  Position := Position + Length('Version ');
   FillChar(Parts, SizeOf(Parts), 0);
   Part := 0;
-  while (P <= Length(S)) and (Part <= High(Parts)) do
+  while (Position <= Length(Version)) and (Part <= High(Parts)) do
   begin
-    if (S[P] >= '0') and (S[P] <= '9') then
-      Parts[Part] := Parts[Part] * 10 + Ord(S[P]) - Ord('0')
-    else if S[P] = '.' then
+    if (Version[Position] >= '0') and (Version[Position] <= '9') then
+      Parts[Part] := Parts[Part] * 10 + Ord(Version[Position]) - Ord('0')
+    else if Version[Position] = '.' then
       Inc(Part)
     else
       Break;
-    Inc(P);
+    Inc(Position);
   end;
 
   VersionMajor := Parts[0];

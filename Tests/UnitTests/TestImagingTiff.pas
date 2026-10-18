@@ -336,7 +336,7 @@ var
   Original: TImageData;
   Stream: TMemoryStream;
   I: Integer;
-  Ch: TPixelChannel;
+  Channel: TPixelChannel;
   Expected, Actual: TIdealPixel;
   Info: TImageFormatInfo;
   Msg: string;
@@ -374,9 +374,9 @@ begin
     begin
       Expected := ReadIdealPixel(Original, I);
       Actual := ReadIdealPixel(FImage, I);
-      for Ch := Low(TPixelChannel) to High(TPixelChannel) do
-        CheckEquals(Expected.Channels[Ch], Actual.Channels[Ch], ColorTolerance + 1e-9,
-          SysUtils.Format('%s: pixel %d %s', [Msg, I, ChannelNames[Ch]]));
+      for Channel := Low(TPixelChannel) to High(TPixelChannel) do
+        CheckEquals(Expected.Channels[Channel], Actual.Channels[Channel], ColorTolerance + 1e-9,
+          SysUtils.Format('%s: pixel %d %s', [Msg, I, ChannelNames[Channel]]));
     end;
   finally
     Stream.Free;
@@ -577,7 +577,7 @@ end;
 procedure TTiffTestCase.TestResolution;
 var
   Stream: TMemoryStream;
-  X, Y: Double;
+  XDpi, YDpi: Double;
 begin
   Stream := TMemoryStream.Create;
   try
@@ -588,9 +588,9 @@ begin
     SaveToStream(FImage, Stream);
     CheckTrue(LoadFromStream(Stream), 'image is loaded');
     CheckEquals(3, Integer(GlobalMetadata.MetaItems[SMetaTiffResolutionUnit]), 'unit is centimeter');
-    CheckTrue(GlobalMetadata.GetPhysicalPixelSize(ruDpi, X, Y), 'resolution is loaded');
-    CheckEquals(300, X, 0.01, 'X dpi');
-    CheckEquals(150, Y, 0.01, 'Y dpi');
+    CheckTrue(GlobalMetadata.GetPhysicalPixelSize(ruDpi, XDpi, YDpi), 'resolution is loaded');
+    CheckEquals(300, XDpi, 0.01, 'X dpi');
+    CheckEquals(150, YDpi, 0.01, 'Y dpi');
 
     // Inches when asked for by the resolution unit metadata
     GlobalMetadata.SetMetaItemForSaving(SMetaTiffResolutionUnit, 2);
@@ -598,9 +598,9 @@ begin
     SaveToStream(FImage, Stream);
     CheckTrue(LoadFromStream(Stream), 'image is loaded');
     CheckEquals(2, Integer(GlobalMetadata.MetaItems[SMetaTiffResolutionUnit]), 'unit is inch');
-    CheckTrue(GlobalMetadata.GetPhysicalPixelSize(ruDpi, X, Y), 'resolution is loaded');
-    CheckEquals(300, X, 0.001, 'X dpi');
-    CheckEquals(150, Y, 0.001, 'Y dpi');
+    CheckTrue(GlobalMetadata.GetPhysicalPixelSize(ruDpi, XDpi, YDpi), 'resolution is loaded');
+    CheckEquals(300, XDpi, 0.001, 'X dpi');
+    CheckEquals(150, YDpi, 0.001, 'Y dpi');
   finally
     Stream.Free;
   end;
@@ -651,78 +651,78 @@ end;
 
 procedure TTiffTestCase.TestOrientation;
 var
-  B: TTiffBuilder;
+  Builder: TTiffBuilder;
 begin
-  B := TTiffBuilder.Create;
+  Builder := TTiffBuilder.Create;
   try
-    B.Long(TagWidth, [3]);
-    B.Long(TagHeight, [1]);
-    B.Short(TagBitsPerSample, [8]);
-    B.Short(TagPhotometric, [1]);
-    B.Short(TagOrientation, [3]);
-    CheckTrue(LoadFromData(B.Build([Bytes([10, 20, 30])])), 'image is loaded');
+    Builder.Long(TagWidth, [3]);
+    Builder.Long(TagHeight, [1]);
+    Builder.Short(TagBitsPerSample, [8]);
+    Builder.Short(TagPhotometric, [1]);
+    Builder.Short(TagOrientation, [3]);
+    CheckTrue(LoadFromData(Builder.Build([Bytes([10, 20, 30])])), 'image is loaded');
     // Orientation is reported, pixels stay as stored
     CheckEquals(3, Integer(GlobalMetadata.MetaItems[SMetaTiffOrientation]), 'orientation');
     CheckGray8([10, 20, 30], 'pixels');
   finally
-    B.Free;
+    Builder.Free;
   end;
 end;
 
 procedure TTiffTestCase.TestMinIsWhite;
 var
-  B: TTiffBuilder;
+  Builder: TTiffBuilder;
 begin
-  B := TTiffBuilder.Create;
+  Builder := TTiffBuilder.Create;
   try
-    B.Long(TagWidth, [4]);
-    B.Long(TagHeight, [1]);
-    B.Short(TagBitsPerSample, [8]);
-    B.Short(TagPhotometric, [0]);
-    CheckTrue(LoadFromData(B.Build([Bytes([0, 1, 200, 255])])), '8-bit is loaded');
+    Builder.Long(TagWidth, [4]);
+    Builder.Long(TagHeight, [1]);
+    Builder.Short(TagBitsPerSample, [8]);
+    Builder.Short(TagPhotometric, [0]);
+    CheckTrue(LoadFromData(Builder.Build([Bytes([0, 1, 200, 255])])), '8-bit is loaded');
     CheckGray8([255, 254, 55, 0], '8-bit');
   finally
-    B.Free;
+    Builder.Free;
   end;
 
-  B := TTiffBuilder.Create;
+  Builder := TTiffBuilder.Create;
   try
-    B.Long(TagWidth, [10]);
-    B.Long(TagHeight, [1]);
-    B.Short(TagBitsPerSample, [1]);
-    B.Short(TagPhotometric, [0]);
-    CheckTrue(LoadFromData(B.Build([Bytes([$F0, $C0])])), '1-bit is loaded');
+    Builder.Long(TagWidth, [10]);
+    Builder.Long(TagHeight, [1]);
+    Builder.Short(TagBitsPerSample, [1]);
+    Builder.Short(TagPhotometric, [0]);
+    CheckTrue(LoadFromData(Builder.Build([Bytes([$F0, $C0])])), '1-bit is loaded');
     CheckEquals(GetFormatName(ifBinary), GetFormatName(FImage.Format), '1-bit: format');
     // 1 is white in ifBinary, the bits after the 10 pixels are not compared
     CheckEquals($0F, PBuffer(FImage.Bits)[0], '1-bit: first byte');
     CheckEquals($3F, PBuffer(FImage.Bits)[1] or $3F, '1-bit: second byte');
   finally
-    B.Free;
+    Builder.Free;
   end;
 end;
 
 procedure TTiffTestCase.TestBigEndian16;
 var
-  B: TTiffBuilder;
+  Builder: TTiffBuilder;
 begin
-  B := TTiffBuilder.Create(True);
+  Builder := TTiffBuilder.Create(True);
   try
-    B.Long(TagWidth, [2]);
-    B.Long(TagHeight, [1]);
-    B.Short(TagBitsPerSample, [16]);
-    B.Short(TagPhotometric, [1]);
-    CheckTrue(LoadFromData(B.Build([Bytes([$12, $34, $FF, $01])])), 'image is loaded');
+    Builder.Long(TagWidth, [2]);
+    Builder.Long(TagHeight, [1]);
+    Builder.Short(TagBitsPerSample, [16]);
+    Builder.Short(TagPhotometric, [1]);
+    CheckTrue(LoadFromData(Builder.Build([Bytes([$12, $34, $FF, $01])])), 'image is loaded');
     CheckEquals(GetFormatName(ifGray16), GetFormatName(FImage.Format), 'format');
     CheckEquals($1234, PWordArray(FImage.Bits)[0], 'pixel 0');
     CheckEquals($FF01, PWordArray(FImage.Bits)[1], 'pixel 1');
   finally
-    B.Free;
+    Builder.Free;
   end;
 end;
 
 procedure TTiffTestCase.TestTiles;
 var
-  B: TTiffBuilder;
+  Builder: TTiffBuilder;
   Tiles: array[0..3] of AnsiString;
   Expected: array[0..20 * 18 - 1] of Byte;
   I, X, Y: Integer;
@@ -740,104 +740,104 @@ begin
     for X := 0 to 19 do
       Expected[Y * 20 + X] := (Y div 16 * 2 + X div 16) * 60 + (Y mod 16) * 3 + X mod 16;
 
-  B := TTiffBuilder.Create;
+  Builder := TTiffBuilder.Create;
   try
-    B.Long(TagWidth, [20]);
-    B.Long(TagHeight, [18]);
-    B.Short(TagBitsPerSample, [8]);
-    B.Short(TagPhotometric, [1]);
-    B.Long(TagTileWidth, [16]);
-    B.Long(TagTileLength, [16]);
-    CheckTrue(LoadFromData(B.Build(Tiles, True)), 'image is loaded');
+    Builder.Long(TagWidth, [20]);
+    Builder.Long(TagHeight, [18]);
+    Builder.Short(TagBitsPerSample, [8]);
+    Builder.Short(TagPhotometric, [1]);
+    Builder.Long(TagTileWidth, [16]);
+    Builder.Long(TagTileLength, [16]);
+    CheckTrue(LoadFromData(Builder.Build(Tiles, True)), 'image is loaded');
     CheckGray8(Expected, 'tiled');
   finally
-    B.Free;
+    Builder.Free;
   end;
 end;
 
 procedure TTiffTestCase.TestOddLayouts;
 var
-  B: TTiffBuilder;
+  Builder: TTiffBuilder;
 begin
   // 4-bit gray: scaled to 8 bits
-  B := TTiffBuilder.Create;
+  Builder := TTiffBuilder.Create;
   try
-    B.Long(TagWidth, [4]);
-    B.Long(TagHeight, [1]);
-    B.Short(TagBitsPerSample, [4]);
-    B.Short(TagPhotometric, [1]);
-    CheckTrue(LoadFromData(B.Build([Bytes([$0F, $8A])])), '4-bit gray is loaded');
+    Builder.Long(TagWidth, [4]);
+    Builder.Long(TagHeight, [1]);
+    Builder.Short(TagBitsPerSample, [4]);
+    Builder.Short(TagPhotometric, [1]);
+    CheckTrue(LoadFromData(Builder.Build([Bytes([$0F, $8A])])), '4-bit gray is loaded');
   {$IFDEF TIFF_CONVERTS_LAYOUTS}
     CheckGray8([0, 255, 136, 170], '4-bit gray');
   {$ELSE}
     CheckRgb8([0, 0, 0, 255, 255, 255, 136, 136, 136, 170, 170, 170], '4-bit gray');
   {$ENDIF}
   finally
-    B.Free;
+    Builder.Free;
   end;
 
   // RGB in separate planes
-  B := TTiffBuilder.Create;
+  Builder := TTiffBuilder.Create;
   try
-    B.Long(TagWidth, [2]);
-    B.Long(TagHeight, [1]);
-    B.Short(TagBitsPerSample, [8, 8, 8]);
-    B.Short(TagPhotometric, [2]);
-    B.Short(TagSamplesPerPixel, [3]);
-    B.Short(TagPlanarConfig, [2]);
-    CheckTrue(LoadFromData(B.Build([Bytes([1, 2]), Bytes([3, 4]), Bytes([5, 6])])), 'planar RGB is loaded');
+    Builder.Long(TagWidth, [2]);
+    Builder.Long(TagHeight, [1]);
+    Builder.Short(TagBitsPerSample, [8, 8, 8]);
+    Builder.Short(TagPhotometric, [2]);
+    Builder.Short(TagSamplesPerPixel, [3]);
+    Builder.Short(TagPlanarConfig, [2]);
+    CheckTrue(LoadFromData(Builder.Build([Bytes([1, 2]), Bytes([3, 4]), Bytes([5, 6])])), 'planar RGB is loaded');
     CheckRgb8([1, 3, 5, 2, 4, 6], 'planar RGB');
   finally
-    B.Free;
+    Builder.Free;
   end;
 
   // CMYK
-  B := TTiffBuilder.Create;
+  Builder := TTiffBuilder.Create;
   try
-    B.Long(TagWidth, [2]);
-    B.Long(TagHeight, [1]);
-    B.Short(TagBitsPerSample, [8, 8, 8, 8]);
-    B.Short(TagPhotometric, [5]);
-    B.Short(TagSamplesPerPixel, [4]);
-    B.Short(TagInkSet, [1]);
-    CheckTrue(LoadFromData(B.Build([Bytes([0, 255, 255, 0, 0, 0, 0, 255])])), 'CMYK is loaded');
+    Builder.Long(TagWidth, [2]);
+    Builder.Long(TagHeight, [1]);
+    Builder.Short(TagBitsPerSample, [8, 8, 8, 8]);
+    Builder.Short(TagPhotometric, [5]);
+    Builder.Short(TagSamplesPerPixel, [4]);
+    Builder.Short(TagInkSet, [1]);
+    CheckTrue(LoadFromData(Builder.Build([Bytes([0, 255, 255, 0, 0, 0, 0, 255])])), 'CMYK is loaded');
     CheckRgb8([255, 0, 0, 0, 0, 0], 'CMYK');
   finally
-    B.Free;
+    Builder.Free;
   end;
 
   // YCbCr subsampled 2x2, uncompressed: one block of four lumas and neutral
   // chroma is gray
-  B := TTiffBuilder.Create;
+  Builder := TTiffBuilder.Create;
   try
-    B.Long(TagWidth, [2]);
-    B.Long(TagHeight, [2]);
-    B.Short(TagBitsPerSample, [8, 8, 8]);
-    B.Short(TagPhotometric, [6]);
-    B.Short(TagSamplesPerPixel, [3]);
-    B.Short(TagYCbCrSubSampling, [2, 2]);
-    CheckTrue(LoadFromData(B.Build([Bytes([10, 20, 30, 40, 128, 128])])), 'YCbCr is loaded');
+    Builder.Long(TagWidth, [2]);
+    Builder.Long(TagHeight, [2]);
+    Builder.Short(TagBitsPerSample, [8, 8, 8]);
+    Builder.Short(TagPhotometric, [6]);
+    Builder.Short(TagSamplesPerPixel, [3]);
+    Builder.Short(TagYCbCrSubSampling, [2, 2]);
+    CheckTrue(LoadFromData(Builder.Build([Bytes([10, 20, 30, 40, 128, 128])])), 'YCbCr is loaded');
     CheckRgb8([10, 10, 10, 20, 20, 20, 30, 30, 30, 40, 40, 40], 'YCbCr');
   finally
-    B.Free;
+    Builder.Free;
   end;
 end;
 
 procedure TTiffTestCase.TestTruncatedData;
 var
-  B: TTiffBuilder;
+  Builder: TTiffBuilder;
   Data: AnsiString;
 begin
-  B := TTiffBuilder.Create;
+  Builder := TTiffBuilder.Create;
   try
-    B.Long(TagWidth, [4]);
-    B.Long(TagHeight, [4]);
-    B.Short(TagBitsPerSample, [8]);
-    B.Short(TagPhotometric, [1]);
-    B.Long(TagRowsPerStrip, [2]);
-    Data := B.Build([Bytes([1, 2, 3, 4, 5, 6, 7, 8]), Bytes([9, 10, 11, 12, 13, 14, 15, 16])]);
+    Builder.Long(TagWidth, [4]);
+    Builder.Long(TagHeight, [4]);
+    Builder.Short(TagBitsPerSample, [8]);
+    Builder.Short(TagPhotometric, [1]);
+    Builder.Long(TagRowsPerStrip, [2]);
+    Data := Builder.Build([Bytes([1, 2, 3, 4, 5, 6, 7, 8]), Bytes([9, 10, 11, 12, 13, 14, 15, 16])]);
   finally
-    B.Free;
+    Builder.Free;
   end;
 
   // The second strip is missing: what is there is loaded, the rest is black
