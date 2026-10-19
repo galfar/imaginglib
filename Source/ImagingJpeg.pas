@@ -32,7 +32,6 @@ type
     FQuality: LongInt;
     FProgressive: LongBool;
     FChromaSubsampling: LongInt;
-    procedure SetJpegIO(const JpegIO: TIOFunctions); virtual;
     procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
@@ -79,9 +78,6 @@ const
     can miss it (e.. with EXIF only by Adobe).}
   JpegMagic: TChar2 = #$FF#$D8;
 
-var
-  JIO: TIOFunctions;
-
 { TJpegFileFormat class implementation }
 
 procedure TJpegFileFormat.Define;
@@ -118,11 +114,9 @@ var
   Col32: PColor32Rec;
   ResUnit: TResolutionUnit;
 begin
-  // Copy IO functions to global var used for JPEG library IO
-  SetJpegIO(GetIO);
   SetLength(Images, 1);
 
-  Result := JpegLoadImage(JIO, Handle, Images[0], JpegInfo);
+  Result := JpegLoadImage(GetIO, Handle, Images[0], JpegInfo);
 
   // Partially decoded (corrupted) images are returned as they are
   if Result and JpegInfo.Complete then
@@ -162,8 +156,6 @@ var
   XRes, YRes: Double;
 begin
   Result := False;
-  // Copy IO functions to global var used for JPEG library IO
-  SetJpegIO(GetIO);
 
   // Makes image to save compatible with Jpeg saving capabilities
   if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
@@ -181,7 +173,7 @@ begin
       Params.YDensity := Round(YRes);
     end;
 
-    Result := JpegSaveImage(JIO, Handle, ImageToSave, Params);
+    Result := JpegSaveImage(GetIO, Handle, ImageToSave, Params);
   finally
     if MustBeFreed then
       FreeImage(ImageToSave);
@@ -212,11 +204,6 @@ begin
     Result := (ReadCount = SizeOf(ID)) and
       CompareMem(@ID, @JpegMagic, SizeOf(JpegMagic));
   end;
-end;
-
-procedure TJpegFileFormat.SetJpegIO(const JpegIO: TIOFunctions);
-begin
-  JIO := JpegIO;
 end;
 
 initialization

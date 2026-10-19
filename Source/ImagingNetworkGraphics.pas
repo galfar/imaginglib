@@ -152,7 +152,7 @@ implementation
 
 uses
 {$IFNDEF DONT_LINK_JNG}
-  ImagingJpeg, ImagingIO,
+  ImagingJpegLib, ImagingIO,
 {$ENDIF}
   ImagingColors,
   ImagingCanvases;
@@ -182,6 +182,8 @@ resourcestring
   SErrorLoadingChunk = 'Error when reading %s chunk data. File may be corrupted.';
   SErrorChunkCrc = 'CRC of %s chunk does not match its data. File is corrupted.';
   SErrorChunkSize = 'Size of %s chunk is invalid. File is corrupted.';
+  SErrorJngJpegData = 'JPEG data of JNG image are not grayscale or YCbCr.';
+  SErrorJngJpegSave = 'JPEG data of JNG image could not be saved.';
 
 type
   { Chunk header.}
@@ -391,15 +393,6 @@ type
     procedure SetFileOptions;
   end;
 
-{$IFNDEF DONT_LINK_JNG}
-  TCustomIOJpegFileFormat = class(TJpegFileFormat)
-  protected
-    FCustomIO: TIOFunctions;
-    procedure SetJpegIO(const JpegIO: TIOFunctions); override;
-    procedure SetCustomIO(const CustomIO: TIOFunctions);
-  end;
-{$ENDIF}
-
   TAPNGAnimator = class
   public
     class procedure Animate(var Images: TDynImageDataArray; const acTL: TacTL; const SrcFrames: array of TFrameInfo);
@@ -450,22 +443,6 @@ begin
       end;
     end;
  end;
-
-{$IFNDEF DONT_LINK_JNG}
-
-{ TCustomIOJpegFileFormat class implementation }
-
-procedure TCustomIOJpegFileFormat.SetCustomIO(const CustomIO: TIOFunctions);
-begin
-  FCustomIO := CustomIO;
-end;
-
-procedure TCustomIOJpegFileFormat.SetJpegIO(const JpegIO: TIOFunctions);
-begin
-  inherited SetJpegIO(FCustomIO);
-end;
-
-{$ENDIF}
 
 { TFrameInfo class implementation }
 
@@ -1232,27 +1209,32 @@ var
 
   procedure LoadJpegFromStream(Stream: TStream; var DestImage: TImageData);
   var
-    JpegFormat: TCustomIOJpegFileFormat;
     Handle: TImagingHandle;
-    DynImages: TDynImageDataArray;
+    Info: TJpegImageInfo;
+    Loaded: Boolean;
   begin
-    if JHDR.SampleDepth <> 12 then
+    if JHDR.SampleDepth = 12 then
     begin
-      JpegFormat := TCustomIOJpegFileFormat.Create;
-      JpegFormat.SetCustomIO(StreamIO);
-      Stream.Position := 0;
-      Handle := StreamIO.Open(Pointer(Stream), omReadOnly);
-      try
-        JpegFormat.LoadData(Handle, DynImages, True);
-        DestImage := DynImages[0];
-      finally
-        StreamIO.Close(Handle);
-        JpegFormat.Free;
-        SetLength(DynImages, 0);
-      end;
-    end
-    else
+      // 12-bit JPEG data are not supported, frame is left empty
       NewImage(FrameWidth, FrameHeight, ifR8G8B8, DestImage);
+      Exit;
+    end;
+
+    Stream.Position := 0;
+    Handle := StreamIO.Open(Pointer(Stream), omReadOnly);
+    try
+      Loaded := JpegLoadImage(StreamIO, Handle, DestImage, Info);
+    finally
+      StreamIO.Close(Handle);
+    end;
+
+    // JNG allows only grayscale and YCbCr JPEG data. Partially decoded
+    // (corrupted) data are kept as they are.
+    if not Loaded or (Info.ColorSpace = jcsCMYK) then
+    begin
+      FreeImage(DestImage);
+      RaiseImaging(SErrorJngJpegData);
+    end;
   end;
 
 begin
@@ -1667,28 +1649,39 @@ var
 
   procedure SaveJpegToStream(Stream: TStream; const Image: TImageData);
   var
-    JpegFormat: TCustomIOJpegFileFormat;
     Handle: TImagingHandle;
-    DynImages: TDynImageDataArray;
+    Params: TJpegSaveParams;
+    XRes, YRes: Double;
+    Saved: Boolean;
   begin
-    JpegFormat := TCustomIOJpegFileFormat.Create;
-    JpegFormat.SetCustomIO(StreamIO);
+    // AddFrame and the alpha split above give only these formats
+    Assert(Image.Format in [ifGray8, ifR8G8B8]);
+
+    FillChar(Params, SizeOf(Params), 0);
+    Params.Quality := Quality;
     // Only JDAT stream can be saved progressive
-    if Stream = JDATStream then
-      JpegFormat.FProgressive := Progressive
-    else
-      JpegFormat.FProgressive := False;
-    JpegFormat.FQuality := Quality;
-    SetLength(DynImages, 1);
-    DynImages[0] := Image;
+    Params.Progressive := Progressive and (Stream = JDATStream);
+    // Default 4:2:0, an option could be added to support more subsamplings.
+    Params.ChromaSubsampling := jss420;
+
+    // JFIF density is written as JPEG file format does (pHYs chunk is what
+    // JNG readers use)
+    if FileFormat.FMetadata.GetPhysicalPixelSize(ruDpcm, XRes, YRes, True) then
+    begin
+      Params.DensityUnit := 2; // Dots per cm
+      Params.XDensity := Round(XRes);
+      Params.YDensity := Round(YRes);
+    end;
+
     Handle := StreamIO.Open(Pointer(Stream), omCreate);
     try
-      JpegFormat.SaveData(Handle, DynImages, 0);
+      Saved := JpegSaveImage(StreamIO, Handle, Image, Params);
     finally
       StreamIO.Close(Handle);
-      SetLength(DynImages, 0);
-      JpegFormat.Free;
     end;
+
+    if not Saved then
+      RaiseImaging(SErrorJngJpegSave);
   end;
 
 begin

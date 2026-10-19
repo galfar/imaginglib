@@ -19906,8 +19906,10 @@ begin
     entropy^.saved := state;
   end;
 
-  { Account for restart interval (no-op if not using restarts) }
-  Dec(entropy^.restarts_to_go);
+  { Account for restart interval (no-op if not using restarts).
+    Counter is unsigned and stays 0 without restarts, C code lets it wrap. }
+  if entropy^.restarts_to_go > 0 then
+    Dec(entropy^.restarts_to_go);
 
   decode_mcu_DC_first := TRUE;
 end;
@@ -20100,8 +20102,10 @@ begin
     entropy^.saved.EOBRUN := EOBRUN; { only part of saved state we care about }
   end;
 
-  { Account for restart interval (no-op if not using restarts) }
-  Dec(entropy^.restarts_to_go);
+  { Account for restart interval (no-op if not using restarts).
+    Counter is unsigned and stays 0 without restarts, C code lets it wrap. }
+  if entropy^.restarts_to_go > 0 then
+    Dec(entropy^.restarts_to_go);
 
   decode_mcu_AC_first := TRUE;
 end;
@@ -20183,8 +20187,10 @@ begin
   entropy^.bitstate.get_buffer := get_buffer;
   entropy^.bitstate.bits_left := bits_left;
 
-  { Account for restart interval (no-op if not using restarts) }
-  Dec(entropy^.restarts_to_go);
+  { Account for restart interval (no-op if not using restarts).
+    Counter is unsigned and stays 0 without restarts, C code lets it wrap. }
+  if entropy^.restarts_to_go > 0 then
+    Dec(entropy^.restarts_to_go);
 
   decode_mcu_DC_refine := TRUE;
 end;
@@ -20456,8 +20462,10 @@ begin
     entropy^.saved.EOBRUN := EOBRUN; { only part of saved state we care about }
   end;
 
-  { Account for restart interval (no-op if not using restarts) }
-  Dec(entropy^.restarts_to_go);
+  { Account for restart interval (no-op if not using restarts).
+    Counter is unsigned and stays 0 without restarts, C code lets it wrap. }
+  if entropy^.restarts_to_go > 0 then
+    Dec(entropy^.restarts_to_go);
 
   decode_mcu_AC_refine := TRUE;
   exit;

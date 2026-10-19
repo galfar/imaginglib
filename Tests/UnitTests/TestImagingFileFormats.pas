@@ -67,6 +67,23 @@ type
     procedure TestXPM;
   end;
 
+  { JPEG: progressive files decode to the same pixels as baseline ones.}
+  TTestJpeg = class(TImagingFileFormatTestCase)
+  published
+    procedure TestProgressive;
+  end;
+
+  { JNG: JPEG data are coded by ImagingJpegLib, options of JPEG file format
+    are independent.}
+  TTestJng = class(TImagingFileFormatTestCase)
+  private
+    procedure MakeImage(var Image: TImageData; Format: TImageFormat);
+    function SaveToData(const Ext: string; const Image: TImageData): AnsiString;
+  published
+    procedure TestJngQualityIndependentOfJpeg;
+    procedure TestJngProgressive;
+  end;
+
   { Targa: raw and RLE compressed images.}
   TTestTarga = class(TImagingFileFormatTestCase)
   private
@@ -432,6 +449,133 @@ begin
   CheckEquals(GetFormatName(ifA8R8G8B8), GetFormatName(FImage.Format), 'Format of color image');
   CheckRoundTrip('jng', ifA8Gray8, 24, 17, -1);
   CheckEquals(GetFormatName(ifA8Gray8), GetFormatName(FImage.Format), 'Format of grayscale image');
+end;
+
+{ TTestJpeg }
+
+procedure TTestJpeg.TestProgressive;
+const
+  Formats: array[0..1] of TImageFormat = (ifR8G8B8, ifGray8);
+var
+  Image, Baseline: TImageData;
+  Stream: TMemoryStream;
+  OldProgressive, I: Integer;
+  Msg: string;
+begin
+  InitImage(Image);
+  InitImage(Baseline);
+  Stream := TMemoryStream.Create;
+  OldProgressive := GetOption(ImagingJpegProgressive);
+  try
+    for I := Low(Formats) to High(Formats) do
+    begin
+      Msg := GetFormatName(Formats[I]);
+      FreeImage(Baseline);
+      CheckTrue(NewImage(70, 45, Formats[I], Image), Msg + ': NewImage');
+      FillTestImage(Image, 13579);
+
+      // Pascal codec raised range check error for files without restart
+      // markers, the counter of MCUs to the next restart went below zero
+      SetOption(ImagingJpegProgressive, 0);
+      Stream.Clear;
+      CheckTrue(SaveImageToStream('jpg', Stream, Image), Msg + ': baseline JPEG is saved');
+      Stream.Position := 0;
+      CheckTrue(LoadImageFromStream(Stream, Baseline), Msg + ': baseline JPEG is loaded');
+
+      SetOption(ImagingJpegProgressive, 1);
+      Stream.Clear;
+      CheckTrue(SaveImageToStream('jpg', Stream, Image), Msg + ': progressive JPEG is saved');
+      Stream.Position := 0;
+      FreeImage(FImage);
+      CheckTrue(LoadImageFromStream(Stream, FImage), Msg + ': progressive JPEG is loaded');
+      CheckImagesEqual(Baseline, FImage, Msg + ': progressive JPEG');
+    end;
+  finally
+    SetOption(ImagingJpegProgressive, OldProgressive);
+    Stream.Free;
+    FreeImage(Image);
+    FreeImage(Baseline);
+  end;
+end;
+
+{ TTestJng }
+
+procedure TTestJng.MakeImage(var Image: TImageData; Format: TImageFormat);
+begin
+  CheckTrue(NewImage(64, 48, Format, Image), 'NewImage');
+  FillTestImage(Image, 123456789);
+end;
+
+function TTestJng.SaveToData(const Ext: string; const Image: TImageData): AnsiString;
+var
+  Stream: TMemoryStream;
+begin
+  Stream := TMemoryStream.Create;
+  try
+    CheckTrue(SaveImageToStream(Ext, Stream, Image), 'Image is saved as ' + Ext);
+    SetLength(Result, Stream.Size);
+    if Stream.Size > 0 then
+      Move(Stream.Memory^, Result[1], Stream.Size);
+  finally
+    Stream.Free;
+  end;
+end;
+
+procedure TTestJng.TestJngQualityIndependentOfJpeg;
+var
+  Image: TImageData;
+  LowData, HighData, A, B: AnsiString;
+begin
+  InitImage(Image);
+  try
+    MakeImage(Image, ifR8G8B8);
+    SetOption(ImagingJNGQuality, 20);
+    LowData := SaveToData('jng', Image);
+    SetOption(ImagingJNGQuality, 95);
+    HighData := SaveToData('jng', Image);
+    CheckTrue(Length(LowData) < Length(HighData), 'JNG of lower quality is smaller');
+
+    SetOption(ImagingJNGQuality, 60);
+    SetOption(ImagingJpegQuality, 10);
+    A := SaveToData('jng', Image);
+    SetOption(ImagingJpegQuality, 95);
+    B := SaveToData('jng', Image);
+    CheckTrue(A = B, 'JNG does not depend on Jpeg quality option');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestJng.TestJngProgressive;
+const
+  // Signature, chunk length and type, width and height, color type, sample
+  // depth, compression come before interlace method of JHDR
+  InterlaceIndex = 8 + 8 + 8 + 3 + 1;
+var
+  Image, Baseline: TImageData;
+  BaseData, ProgData: AnsiString;
+begin
+  InitImage(Image);
+  InitImage(Baseline);
+  try
+    MakeImage(Image, ifR8G8B8);
+    SetOption(ImagingJNGProgressive, 0);
+    BaseData := SaveToData('jng', Image);
+    SetOption(ImagingJNGProgressive, 1);
+    ProgData := SaveToData('jng', Image);
+
+    CheckEquals(0, Ord(BaseData[InterlaceIndex]), 'JHDR interlace of baseline JNG');
+    CheckEquals(8, Ord(ProgData[InterlaceIndex]), 'JHDR interlace of progressive JNG');
+    CheckTrue(BaseData <> ProgData, 'Progressive JPEG data differ');
+
+    // Progressive JPEG keeps the same coefficients, so it decodes to the same pixels
+    CheckTrue(LoadImageFromMemory(@BaseData[1], Length(BaseData), Baseline), 'Baseline JNG is loaded');
+    CheckTrue(LoadFromData(ProgData), 'Progressive JNG is loaded');
+    CheckImagesEqual(Baseline, FImage, 'Progressive JNG');
+  finally
+    FreeImage(Image);
+    FreeImage(Baseline);
+  end;
 end;
 
 procedure TTestPixelLoops.TestXPM;
@@ -1275,6 +1419,8 @@ initialization
   RegisterImagingTest(TTestJpeg2000);
   RegisterImagingTest(TTestPng);
   RegisterImagingTest(TTestPixelLoops);
+  RegisterImagingTest(TTestJpeg);
+  RegisterImagingTest(TTestJng);
   RegisterImagingTest(TTestTarga);
   RegisterImagingTest(TTestRadiance);
 end.

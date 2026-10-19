@@ -151,10 +151,6 @@ function PaletteHasAlpha(Palette: PPalette32; PaletteEntries: Integer): Boolean;
 { Checks if given palette has only grayscale entries.}
 function PaletteIsGrayScale(Palette: PPalette32; PaletteEntries: Integer): Boolean;
 
-{ Provides indexed access to each line of pixels. Does not work with special
-  format images.}
-function GetScanLine(ImageBits: Pointer; const FormatInfo: TImageFormatInfo;
-  LineWidth, Index: LongInt): Pointer; {$IFDEF USE_INLINE}inline;{$ENDIF}
 { Returns True if Format is valid image data format identifier.}
 function IsImageFormatValid(Format: TImageFormat): Boolean;
 
@@ -2225,16 +2221,6 @@ begin
     end;
   end;
   Result := True;
-end;
-
-function GetScanLine(ImageBits: Pointer; const FormatInfo: TImageFormatInfo;
-  LineWidth, Index: LongInt): Pointer;
-var
-  LineBytes: LongInt;
-begin
-  Assert(not FormatInfo.IsSpecial);
-  LineBytes := FormatInfo.GetPixelsSize(FormatInfo.Format, LineWidth, 1);
-  Result := @PBuffer(ImageBits)[PtrInt(Index) * LineBytes];
 end;
 
 function IsImageFormatValid(Format: TImageFormat): Boolean;

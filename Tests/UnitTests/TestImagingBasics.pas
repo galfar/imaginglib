@@ -540,7 +540,6 @@ begin
       CheckTrue(GetScanlinePointer(FImage, Y) = Expected, Msg + ': GetScanlinePointer');
       CheckTrue(GetScanlinePointer(FImage, Y, Info.BytesPerPixel) = Expected,
         Msg + ': GetScanlinePointer with size of pixels');
-      CheckTrue(GetScanLine(FImage.Bits, Info, Width, Y) = Expected, Msg + ': GetScanLine of ImagingFormats');
 
       for X := 0 to Width - 1 do
       begin
