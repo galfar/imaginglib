@@ -25,7 +25,7 @@ unit TestImagingDynLibs;
 interface
 
 uses
-  SysUtils, ImagingTypes, Imaging, ImagingJpegLib,
+  SysUtils, ImagingTypes, Imaging, ImagingJpegLib, ImagingZLib,
 {$IFDEF ZLIB_USE_DYNLIB}
   ZLibDynLib,
 {$ENDIF}
@@ -68,6 +68,7 @@ begin
 {$IFDEF ZLIB_USE_DYNLIB}
   // The library is loaded at start, the program does not run without it
   CheckTrue(Assigned(zlibVersion), 'zlib library is loaded');
+  CheckTrue(ZLibBackend = zbDynLib, 'zlib library is the backend');
   Report('zlib', string(AnsiString(zlibVersion)));
 {$ELSE}
   Fail('Built without ZLIB_USE_DYNLIB');

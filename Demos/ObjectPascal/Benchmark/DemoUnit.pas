@@ -389,11 +389,13 @@ procedure RunDemo;
 var
   I: LongInt;
   Failed: Boolean;
-  Title: string;
+  Title, Libs: string;
 begin
   Title := 'Bench Demo - Vampyre Imaging Library v' + Imaging.GetVersionStr +
     ' (' + GetBuildInfo + ')';
+  Libs := 'Libraries: ' + GetLibsInfo;
   WriteLn(Title);
+  WriteLn(Libs);
   WriteLn;
 
   if not ParseOptions then
@@ -422,6 +424,7 @@ begin
       Exit;
     end;
     WriteLn(LogFile, Title);
+    WriteLn(LogFile, Libs);
     WriteLn(LogFile);
   end;
 

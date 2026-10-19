@@ -140,7 +140,7 @@ type
 const
   { The largest number of bytes given to zlib in one call, its byte counts
     are 32-bit. Larger inputs and outputs are passed in more calls.}
-  MaxZLibBlock = 1 shl 30;
+  MaxZLibBlock = 1 shl 30;  // 1 GB
 
 { Starts decompression of a zlib stream. Data are passed in by ZInflateData,
   ZInflateEnd must be called at the end (also when an exception is raised).}
@@ -266,6 +266,20 @@ type
   EZlibError = class(Exception);
   ECompressionError = class(EZlibError);
   EDecompressionError = class(EZlibError);
+
+type
+  { zlib implementation compiled in, see Backends above.}
+  TZLibBackend = (
+    zbBundled,  // ImPasZLib
+    zbFpc,      // paszlib package of Free Pascal
+    zbDelphi,   // ZLib unit of Delphi RTL
+    zbDynLib    // zlib shared library
+  );
+
+{ Returns zlib implementation in use (chosen at compile time).}
+function ZLibBackend: TZLibBackend;
+{ Returns version of zlib reported by the backend, e.g. '1.3.1'.}
+function GetZLibVersion: string;
 
 implementation
 
@@ -567,6 +581,28 @@ begin
     OutBuf := nil;
     raise
   end;
+end;
+
+function ZLibBackend: TZLibBackend;
+begin
+{$IF Defined(ZLIB_USE_BUNDLED)}
+  Result := zbBundled;
+{$ELSEIF Defined(ZLIB_USE_FPC)}
+  Result := zbFpc;
+{$ELSEIF Defined(ZLIB_USE_DELPHI)}
+  Result := zbDelphi;
+{$ELSE}
+  Result := zbDynLib;
+{$IFEND}
+end;
+
+function GetZLibVersion: string;
+begin
+{$IF Defined(ZLIB_USE_FPC)}
+  Result := string(paszlib.zlibVersion);
+{$ELSE}
+  Result := string(AnsiString(zlibVersion));
+{$IFEND}
 end;
 
 { TCustomZLibStream }

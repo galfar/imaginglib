@@ -24,7 +24,7 @@ function FileNameInDataDir(const BaseFileName: string): string; {$IFDEF USE_INLI
 
 function GetRootDir: string;
 
-// Returns next valid image format.
+{ Returns next valid image format.}
 function NextFormat(Format: TImageFormat): TImageFormat;
 
 { Returns description of the build: target CPU and OS, compiler and its
@@ -32,7 +32,38 @@ function NextFormat(Format: TImageFormat): TImageFormat;
   Meant to be shown in titles of demos.}
 function GetBuildInfo: string;
 
+{ Returns third party libraries (codecs) in use and where they come from,
+  e.g. 'zlib: FPC paszlib 1.2, JPEG: Pascal, TIFF: PasTiff, ...'. Backends
+  selected at run time are asked for, so shared libraries are reported
+  only when they are found and used.}
+function GetLibsInfo: string;
+
 implementation
+
+{$IF not Defined(DONT_LINK_EXT_FILE_FORMATS) and not Defined(DONT_LINK_FILE_FORMATS)}
+  {$IFNDEF DONT_LINK_TIFF}
+    {$DEFINE LIBS_INFO_TIFF}
+  {$ENDIF}
+  {$IFNDEF DONT_LINK_WEBP}
+    {$DEFINE LIBS_INFO_WEBP}
+  {$ENDIF}
+{$IFEND}
+
+uses
+  ImagingZLib,
+{$IFDEF LIBS_INFO_TIFF}
+  ImagingTiffBackend,
+  {$IFDEF HAS_DYNLIBS}
+  LibTiffDynLib,
+  {$ENDIF}
+{$ENDIF}
+{$IFDEF LIBS_INFO_WEBP}
+  ImagingLibWebP,
+  {$IFDEF HAS_DYNLIBS}
+  LibWebPDynLib,
+  {$ENDIF}
+{$ENDIF}
+  ImagingJpegLib;
 
 const
   SBuildCpu =
@@ -159,6 +190,59 @@ begin
   Compiler := 'DCC ' + SysUtils.Format('%.1f', [CompilerVersion], GetFormatSettingsForFloats);
 {$ENDIF}
   Result := SBuildCpu + ' ' + SBuildOs + ', ' + Compiler + ', ' + SBuildType;
+end;
+
+function GetLibsInfo: string;
+const
+  SZLibBackends: array[TZLibBackend] of string = ('bundled', 'FPC paszlib',
+    'Delphi RTL', 'dynlib');
+  SNotLinked = 'not linked';
+var
+  S: string;
+begin
+  Result := 'zlib: ' + SZLibBackends[ZLibBackend] + ' ' + GetZLibVersion;
+
+  if JpegBackend = jbTurboJpeg then
+    S := 'TurboJPEG dynlib'
+  else
+    S := 'Pascal';
+  Result := Result + ', JPEG: ' + S;
+
+{$IFDEF LIBS_INFO_TIFF}
+  case TiffBackend of
+    tbPasTiff: S := 'PasTiff';
+  {$IFDEF HAS_DYNLIBS}
+    tbLibTiff: S := 'libtiff ' + GetLibTiffVersion + ' dynlib';
+  {$ENDIF}
+  else
+    S := 'none';
+  end;
+{$ELSE}
+  S := SNotLinked;
+{$ENDIF}
+  Result := Result + ', TIFF: ' + S;
+
+{$IFDEF LIBS_INFO_WEBP}
+  case WebPBackend of
+    wbPascal: S := 'Pascal (load only)';
+  {$IFDEF HAS_DYNLIBS}
+    wbLibWebP: S := 'libwebp ' + GetLibWebPVersion + ' dynlib';
+  {$ENDIF}
+  else
+    S := 'none';
+  end;
+{$ELSE}
+  S := SNotLinked;
+{$ENDIF}
+  Result := Result + ', WebP: ' + S;
+
+  // OpenJPEG objects are linked only on some platforms, the format unit
+  // is empty elsewhere
+  if FindImageFileFormatByExt('jp2') <> nil then
+    S := 'OpenJPEG'
+  else
+    S := SNotLinked;
+  Result := Result + ', JPEG 2000: ' + S;
 end;
 
 end.

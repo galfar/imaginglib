@@ -28,6 +28,7 @@ type
     procedure MakeData(Size: Integer; Noise: Boolean);
     function Compress(Level: Integer): TDynByteArray;
   published
+    procedure TestBackend;
     procedure TestBufferRoundTrip;
     procedure TestStreamingDecompression;
     procedure TestStreamingCompression;
@@ -75,6 +76,29 @@ begin
   finally
     FreeMem(Buffer);
   end;
+end;
+
+procedure TTestZLib.TestBackend;
+var
+  Expected: TZLibBackend;
+  Version: string;
+begin
+  // Selection rules of ImagingZLib
+{$IF Defined(ZLIB_USE_BUNDLED)}
+  Expected := zbBundled;
+{$ELSEIF Defined(ZLIB_USE_DYNLIB) and Defined(HAS_DYNLIBS)}
+  Expected := zbDynLib;
+{$ELSEIF Defined(FPC)}
+  Expected := zbFpc;
+{$ELSEIF Defined(DCC) and (CompilerVersion > 23)}
+  Expected := zbDelphi;
+{$ELSE}
+  Expected := zbBundled;
+{$IFEND}
+  CheckEquals(Ord(Expected), Ord(ZLibBackend), 'Backend');
+
+  Version := GetZLibVersion;
+  CheckTrue(Copy(Version, 1, 2) = '1.', 'Version 1.x: ' + Version);
 end;
 
 procedure TTestZLib.TestBufferRoundTrip;
