@@ -833,7 +833,7 @@ var
   LoadOverrideFormat: TImageFormat = ifUnknown;
   // Variable for ImagingSaveOverrideFormat option
   SaveOverrideFormat: TImageFormat = ifUnknown;
-  // Variable for ImagingSaveOverrideFormat option
+  // Variable for ImagingMipMapFilter option
   MipMapFilter: TSamplingFilter = sfLinear;
   // Variable for ImagingBinaryThreshold option
   BinaryThreshold: Integer = 128;

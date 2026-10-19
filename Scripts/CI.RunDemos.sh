@@ -12,6 +12,9 @@ printf '\n===== Bench =====\n'
 if [ "$RUNNER_OS" == "Windows" ]; then
     printf '\n===== Bench 32 =====\n'
     ./Bench32
+    printf '\n===== Bench Debug =====\n'
+    # Debug build waits for Enter at the end
+    ./Bench-Debug < /dev/null
 fi
 
 printf '\n===== VampConvert help =====\n'
