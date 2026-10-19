@@ -64,6 +64,16 @@ const
     - IfSafer(1) also uses BigTIFF when compression makes the final file size uncertain.
     - Always(2) always writes BigTIFF files. }
   ImagingTiffBigTiffWriteMode        = 67;
+  { Controls the horizontal predictor (differences of neighboring samples
+    are compressed instead of the samples) of LZW and Deflate compressed
+    TIFFs. It makes photos, color scans and elevation data much smaller but
+    document scans and images with few colors larger. Values:
+    - Auto(0) decides for each image: a sample of its rows (about 256 KB from
+      the top, middle and bottom) is compressed with and without it.
+    - On(1) always uses it, Off(2) never.
+    It is never used for palette images, floating point and 1-bit data.
+    Default is Auto. }
+  ImagingTiffPredictor               = 68;
 
   { If enabled image data is saved as layer of PSD file. This is required
     to get proper transparency when opened in Photoshop for images with
