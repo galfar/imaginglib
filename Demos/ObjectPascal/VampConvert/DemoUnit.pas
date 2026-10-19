@@ -24,7 +24,8 @@ uses
   Classes,
   ImagingTypes,
   Imaging,
-  ImagingUtility;
+  ImagingUtility,
+  DemoUtils;
 
 const
   DefaultOutputFile = 'output.png';
@@ -36,7 +37,8 @@ var
 
 procedure PrintHeader;
 begin
-  WriteLn('Vampyre Image Converter (library version ', Imaging.GetVersionStr, ')');
+  WriteLn('Vampyre Image Converter v', Imaging.GetVersionStr,
+          ' (', GetBuildInfo, ')');
   WriteLn('by Marek Mauder');
   WriteLn;
 end;

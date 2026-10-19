@@ -27,7 +27,57 @@ function GetRootDir: string;
 // Returns next valid image format.
 function NextFormat(Format: TImageFormat): TImageFormat;
 
+{ Returns description of the build: target CPU and OS, compiler and its
+  version, and build type, e.g. 'x64 Windows, FPC 3.2.2, Release'.
+  Meant to be shown in titles of demos.}
+function GetBuildInfo: string;
+
 implementation
+
+const
+  SBuildCpu =
+  {$IF Defined(CPUX64)}
+    'x64'
+  {$ELSEIF Defined(CPUX86)}
+    'x86'
+  {$ELSEIF Defined(CPUAARCH64) or Defined(CPUARM64)}
+    'ARM64'
+  {$ELSEIF Defined(CPUARM) or Defined(CPUARM32)}
+    'ARM'
+  {$ELSEIF Defined(CPUPOWERPC64) and Defined(FPC_LITTLE_ENDIAN)}
+    'PowerPC64LE'
+  {$ELSEIF Defined(CPURISCV64)}
+    'RISC-V64'
+  {$ELSEIF Defined(CPUWASM32)}
+    'WASM32'
+  {$ELSEIF Defined(FPC)}
+    {$I %FPCTARGETCPU%}
+  {$ELSE}
+    'unknown CPU'
+  {$IFEND};
+
+  SBuildOs =
+  {$IF Defined(ANDROID)}
+    'Android'
+  {$ELSEIF Defined(MSWINDOWS)}
+    'Windows'
+  {$ELSEIF Defined(LINUX)}
+    'Linux'
+  {$ELSEIF Defined(IOS)}
+    'iOS'
+  {$ELSEIF Defined(MACOS)}
+    'macOS'
+  {$ELSEIF Defined(FREEBSD)}
+    'FreeBSD'
+  {$ELSEIF Defined(WASI)}
+    'WASI'
+  {$ELSEIF Defined(FPC)}
+    {$I %FPCTARGETOS%}
+  {$ELSE}
+    'unknown OS'
+  {$IFEND};
+
+  SBuildType = {$IFDEF DEBUG}'Debug'{$ELSE}'Release'{$ENDIF};
 
 function ExpandFileTo(const FileName, BasePath: string): string;
 var
@@ -97,6 +147,18 @@ begin
       Format := ifIndex8;
   until GetImageFormatInfo(Format, Info);
   Result := Format;
+end;
+
+function GetBuildInfo: string;
+var
+  Compiler: string;
+begin
+{$IFDEF FPC}
+  Compiler := 'FPC ' + {$I %FPCVERSION%};
+{$ELSE}
+  Compiler := 'DCC ' + SysUtils.Format('%.1f', [CompilerVersion], GetFormatSettingsForFloats);
+{$ENDIF}
+  Result := SBuildCpu + ' ' + SBuildOs + ', ' + Compiler + ', ' + SBuildType;
 end;
 
 end.

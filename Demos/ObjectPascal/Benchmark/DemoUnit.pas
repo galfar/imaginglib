@@ -389,20 +389,27 @@ procedure RunDemo;
 var
   I: LongInt;
   Failed: Boolean;
+  Title: string;
 begin
-  WriteLn('Vampyre Imaging Library Benchmark Demo version ', Imaging.GetVersionStr);
+  Title := 'Bench Demo - Vampyre Imaging Library v' + Imaging.GetVersionStr +
+    ' (' + GetBuildInfo + ')';
+  WriteLn(Title);
   WriteLn;
 
   if not ParseOptions then
-    Halt(1);
+  begin
+    ExitCode := 1;
+    Exit;
+  end;
 
   if not DirectoryExists(GetDataDir) then
   begin
-    // If required testing data is not found program halts.
+    // If required testing data is not found program ends.
     WriteLn('Error!' + sLineBreak + '"Data" directory with ' +
       'required "Tigers.*" images not found.');
     WaitForReturnInDebug;
-    Halt(1);
+    ExitCode := 1;
+    Exit;
   end;
 
   if WriteFiles then
@@ -410,8 +417,11 @@ begin
     // Results are written to the console and also to the log file.
     OutDir := GetOutDir;
     if not OpenLogFile then
-      Halt(1);
-    WriteLn(LogFile, 'Vampyre Imaging Library Benchmark Demo version ' + Imaging.GetVersionStr);
+    begin
+      ExitCode := 1;
+      Exit;
+    end;
+    WriteLn(LogFile, Title);
     WriteLn(LogFile);
   end;
 
@@ -480,8 +490,6 @@ begin
     except
       on E: Exception do
       begin
-        // Halt only after the log file is closed in finally,
-        // otherwise the buffered end of the log would be lost.
         Log('Exception Raised!');
         Log(E.Message);
         Failed := True;
@@ -502,7 +510,7 @@ begin
 
   WaitForReturnInDebug;
   if Failed then
-    Halt(1);
+    ExitCode := 1;
 end;
 
 end.
