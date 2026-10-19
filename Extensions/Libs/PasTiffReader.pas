@@ -331,7 +331,6 @@ begin
     if Seen then
       Break;
 
-    Next := 0;
     try
       Next := FContainer.ReadDirectoryLink(Offset);
     except

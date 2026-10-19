@@ -463,7 +463,6 @@ var
   FirstByte: Byte;
 begin
   Result := 0;
-  FirstByte := 0;
   // String cut by the end of the previous call
   if FPendingCode >= 0 then
     Inc(Result, WriteString(FPendingCode, FPendingPos, Dst, Count));
@@ -745,7 +744,6 @@ begin
     N := Count - Result;
     if N > Piece then
       N := Piece;
-    More := False;
     try
       More := ZInflateData(FInflater, FSrc + FSrcPos, FSrcSize - FSrcPos, Dst + Result, N,
         Consumed, Produced);
