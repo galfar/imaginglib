@@ -1944,10 +1944,10 @@ begin
         end;
 
         T2 := Iff(T1 < SrcWidth - 1, T1 + 1, T1);
-        Weight2:= Integer((Cardinal(InvFracY) * FracX) shr 16); // cast to Card, Int can overflow here
-        Weight1:= InvFracY - Weight2;
-        Weight4:= Integer((Cardinal(FracY) * FracX) shr 16);
-        Weight3:= FracY - Weight4;
+        Weight2 := Integer((Cardinal(InvFracY) * FracX) shr 16); // cast to Card, Int can overflow here
+        Weight1 := InvFracY - Weight2;
+        Weight4 := Integer((Cardinal(FracY) * FracX) shr 16);
+        Weight3 := Integer(FracY) - Weight4;
 
         Accum.B := (SrcLine[T1].B * Weight1 + SrcLine[T2].B * Weight2 +
           SrcLine2[T1].B * Weight3 + SrcLine2[T2].B * Weight4 + $8000) shr 16;

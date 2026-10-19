@@ -11629,7 +11629,6 @@ var
   ci, tbl : int;
   compptr : jpeg_component_info_ptr;
 begin
-  tbl := 0;
   entropy := jcphuff_phuff_entropy_ptr (cinfo^.entropy);
 
   entropy^.cinfo := cinfo;
@@ -12405,7 +12404,6 @@ var
   htblptr : ^JHUFF_TBL_PTR;
   did : array[0..NUM_HUFF_TBLS-1] of boolean;
 begin
-  tbl := 0;
   entropy := jcphuff_phuff_entropy_ptr (cinfo^.entropy);
 
   { Flush out buffered data (all we care about is counting the EOB symbol) }
@@ -15635,7 +15633,7 @@ begin
     scanptr := fill_a_scan(scanptr, 2, 1, 63, 1, 0);
     scanptr := fill_a_scan(scanptr, 1, 1, 63, 1, 0);
     { Luma bottom bit comes last since it's usually largest scan }
-    scanptr := fill_a_scan(scanptr, 0, 1, 63, 1, 0);
+    fill_a_scan(scanptr, 0, 1, 63, 1, 0);
   end
   else
   begin
@@ -15648,7 +15646,7 @@ begin
     scanptr := fill_scans(scanptr, ncomps, 1, 63, 2, 1);
     { Successive approximation final pass }
     scanptr := fill_dc_scans(scanptr, ncomps, 1, 0);
-    scanptr := fill_scans(scanptr, ncomps, 1, 63, 1, 0);
+    fill_scans(scanptr, ncomps, 1, 63, 1, 0);
   end;
 end;
 
@@ -17139,7 +17137,7 @@ begin
   begin
     { Start of APP14 does not match "Adobe", or too short }
     {$IFDEF DEBUG}
-    TRACEMS1(j_common_ptr(cinfo), 1, JTRC_APP14, int (datalen + remaining));
+    TRACEMS1(j_common_ptr(cinfo), 1, JTRC_APP14, int(datalen) + remaining);
     {$ENDIF}
   end;
 end;
@@ -17443,7 +17441,7 @@ begin
   else
     {$IFDEF DEBUG}
     TRACEMS2(j_common_ptr(cinfo), 1, JTRC_MISC_MARKER, cinfo^.unread_marker,
-	     int(data_length + length));
+	     int(data_length) + length);
     {$ENDIF}
   end;
 

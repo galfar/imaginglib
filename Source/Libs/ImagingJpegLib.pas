@@ -682,8 +682,6 @@ var
   SwapBuffer: TDynByteArray;
 {$ENDIF}
 begin
-  Result := False;
-
   with Image do
   try
     FillChar(jc, SizeOf(jc), 0);

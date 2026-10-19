@@ -134,7 +134,8 @@ function TTextureFileFormat.LoadData(Handle: TImagingHandle;
   var Images: TDynImageDataArray; OnlyFirstLevel: Boolean): Boolean;
 var
   Hdr: TTexHeader;
-  InputSize, BasePos, HdrPos, Index, I, Bias: LongInt;
+  InputSize, Index, I, Bias: LongInt;
+  BasePos, HdrPos: Int64;
   List: POffsetList;
   ImageHdr: TTexImgHeader;
 

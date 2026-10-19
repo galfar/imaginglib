@@ -299,7 +299,7 @@ var
             for J := 0 to BHDR.Height - 1 do
               for K := 0 to BHDR.Width - 1 do
               begin
-                Idx := PByteArray(ChunkData)[RowOffsets[I * BHDR.Height + J] and $FFFF + K];
+                Idx := PBuffer(ChunkData)[NativeInt(RowOffsets[I * BHDR.Height + J] and $FFFF) + K];
                 PBuffer(Bits)[J * Width + K] := Idx;
               end;
           end

@@ -670,7 +670,8 @@ end;
 
 function TCompressionStream.Read(var Buffer; Count: Longint): Longint;
 begin
-  Result := 0;
+  // FPC warns about unset result, Delphi hints that the value is never used
+  {$IFDEF FPC}Result := 0;{$ENDIF}
   raise ECompressionError.Create('Invalid stream operation');
 end;
 
@@ -766,7 +767,8 @@ end;
 
 function TDecompressionStream.Write(const Buffer; Count: Longint): Longint;
 begin
-  Result := 0;
+  // FPC warns about unset result, Delphi hints that the value is never used
+  {$IFDEF FPC}Result := 0;{$ENDIF}
   raise EDecompressionError.Create('Invalid stream operation');
 end;
 
