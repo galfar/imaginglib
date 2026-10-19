@@ -147,6 +147,11 @@ type
       8 Deflate, 7 JPEG (8-bit gray and RGB only), 4 Group 4 (1-bit only). }
     Compression: Integer;
     JpegQuality: Integer;     // 1..100
+    { Horizontal differencing before LZW or Deflate. Used only where
+      TiffPredictorUsable allows it. }
+    Predictor: Boolean;
+    { Value of Orientation tag, 1..8 (see SMetaTiffOrientation in ImagingTiff). }
+    Orientation: Integer;
     { Resolution is written if ResolutionUnit is 2 (inch) or 3 (cm). }
     ResolutionUnit: Integer;
     XResolution, YResolution: Double;
@@ -181,6 +186,22 @@ function SelectTiffBackend(Backend: TTiffBackend): Boolean;
   (if available) when the library can't be loaded or libtiff is not compiled in. }
 function TryLoadLibTiffLibrary(const FileName: string): Boolean;
 
+{ True if the horizontal predictor can be used for a page: LZW or Deflate
+  compression and unsigned integer samples of 8, 16 or 32 bits that are not
+  palette indices (differences of indices mean nothing and only make the data
+  harder to compress). }
+function TiffPredictorUsable(const Params: TTiffSaveParams): Boolean;
+{ Tells whether the horizontal predictor makes the page smaller. Sample holds
+  SampleRows rows of the page in the layout given to WriteRows (Imaging's
+  B, G, R order is fine, it does not change the result noticeably); they are
+  compressed with and without the predictor and the sizes compared, so the
+  sample should be small (Imaging uses about 256 KB) and representative.
+  Without PasTiff, which has the encoders (Delphi older than 2009), color
+  pages are said to profit and gray ones not: photos and color scans mostly
+  do, gray pages are often document scans, which do not. }
+function TiffPredictorHelps(const Params: TTiffSaveParams; Sample: Pointer;
+  SampleRows: Integer): Boolean;
+
 { Opens TIFF file for reading at the current position of Handle. First page
   is selected. Raises an exception when the file can't be read. }
 function TiffOpenReader(const IO: TIOFunctions; Handle: TImagingHandle): TTiffFileReader;
@@ -193,7 +214,7 @@ implementation
 
 uses
 {$IFDEF TIFF_USE_PASTIFF}
-  Classes, PasTiffTypes, PasTiffReader, PasTiffWriter, PasTiffPixels,
+  Classes, PasTiffTypes, PasTiffCodecs, PasTiffReader, PasTiffWriter, PasTiffPixels,
 {$ENDIF}
 {$IFDEF TIFF_USE_LIBTIFF}
   LibTiffDynLib,
@@ -299,6 +320,53 @@ function IsJpegForRgb(const Params: TTiffSaveParams): Boolean;
 begin
   Result := (Params.Compression = CompressionJpeg) and (Params.Photometric = PhotometricRgb);
 end;
+
+function TiffPredictorUsable(const Params: TTiffSaveParams): Boolean;
+begin
+  Result := ((Params.Compression = CompressionLzw) or (Params.Compression = CompressionAdobeDeflate)) and
+    (Params.SampleFormat = SampleFormatUInt) and (Params.BitsPerSample in [8, 16, 32]) and
+    (Params.Photometric <> PhotometricPalette);
+end;
+
+function TiffPredictorHelps(const Params: TTiffSaveParams; Sample: Pointer;
+  SampleRows: Integer): Boolean;
+{$IFDEF TIFF_USE_PASTIFF}
+var
+  Data: TDynByteArray;
+  Size: NativeInt;
+  Plain, Predicted: NativeInt;
+
+  function Compressed: NativeInt;
+  var
+    Output: TTiffOutBuffer;
+  begin
+    Output.Clear;
+    if Params.Compression = CompressionLzw then
+      TiffLzwEncode(Pointer(Data), Size, Output)
+    else
+      TiffDeflateEncode(Pointer(Data), Size, Output);
+    Result := Output.Size;
+  end;
+
+begin
+  Result := False;
+  if not TiffPredictorUsable(Params) or (SampleRows <= 0) then
+    Exit;
+
+  Size := RowSize(Params.Width, Params.BitsPerSample, Params.SamplesPerPixel) * SampleRows;
+  SetLength(Data, Size);
+  Move(Sample^, Data[0], Size);
+  Plain := Compressed;
+  TiffPredictorEncode(Pointer(Data), RowSize(Params.Width, Params.BitsPerSample, Params.SamplesPerPixel),
+                      SampleRows, Params.BitsPerSample, Params.SamplesPerPixel);
+  Predicted := Compressed;
+  Result := Predicted < Plain;
+end;
+{$ELSE}
+begin
+  Result := TiffPredictorUsable(Params) and (Params.Photometric = PhotometricRgb);
+end;
+{$ENDIF}
 
 {$IFDEF TIFF_USE_PASTIFF}
 
@@ -448,9 +516,7 @@ begin
   Page.Compression := Params.Compression;
   Page.JpegQuality := Params.JpegQuality;
   Page.RowsPerStrip := ChooseRowsPerStrip(Params);
-  // Writer ignores the predictor where it can't be used (palette, float...)
-  Page.Predictor := (Params.Compression = CompressionLzw) or
-    (Params.Compression = CompressionAdobeDeflate);
+  Page.Predictor := Params.Predictor and TiffPredictorUsable(Params);
 
   if Params.ResolutionUnit in [TiffResUnitInch, TiffResUnitCentimeter] then
   begin
@@ -472,6 +538,8 @@ begin
   end;
 
   FWriter.BeginPage(Page);
+  // Not a tag describing the pixel data, the writer keeps it as given
+  FWriter.PageDirectory.SetInt(TiffTagOrientation, ttShort, Params.Orientation);
 end;
 
 procedure TPasTiffFileWriter.WriteRows(Buffer: Pointer; RowCount: Integer);
@@ -1180,7 +1248,7 @@ var
   Red, Green, Blue: array[Byte] of Word;
   I: Integer;
   Photometric: Integer;
-  Predictor: Boolean;
+  ExtraType: Word;
 begin
   ClearLibTiffError;
   Photometric := Params.Photometric;
@@ -1193,15 +1261,15 @@ begin
   TIFFSetField(FTiff, TIFFTAG_IMAGELENGTH, Params.Height);
   TIFFSetField(FTiff, TIFFTAG_PHOTOMETRIC, Photometric);
   TIFFSetField(FTiff, TIFFTAG_PLANARCONFIG, PlanarContig);
-  TIFFSetField(FTiff, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
+  TIFFSetField(FTiff, TIFFTAG_ORIENTATION, Params.Orientation);
   TIFFSetField(FTiff, TIFFTAG_BITSPERSAMPLE, Params.BitsPerSample);
   TIFFSetField(FTiff, TIFFTAG_SAMPLESPERPIXEL, Params.SamplesPerPixel);
   TIFFSetField(FTiff, TIFFTAG_SAMPLEFORMAT, Params.SampleFormat);
   if ((Photometric = PhotometricMinIsBlack) and (Params.SamplesPerPixel = 2)) or
     (Params.SamplesPerPixel = 4) then
   begin
-    Red[0] := EXTRASAMPLE_UNASSALPHA;
-    TIFFSetField(FTiff, TIFFTAG_EXTRASAMPLES, 1, @Red[0]);
+    ExtraType := EXTRASAMPLE_UNASSALPHA;
+    TIFFSetField(FTiff, TIFFTAG_EXTRASAMPLES, 1, @ExtraType);
   end;
   TIFFSetField(FTiff, TIFFTAG_COMPRESSION, Params.Compression);
   if Params.Compression = CompressionJpeg then
@@ -1210,11 +1278,7 @@ begin
     if Photometric = PhotometricYCbCr then
       TIFFSetField(FTiff, TIFFTAG_JPEGCOLORMODE, JPEGCOLORMODE_RGB);
   end;
-  Predictor := ((Params.Compression = CompressionLzw) or
-    (Params.Compression = CompressionAdobeDeflate)) and
-    (Params.SampleFormat = SampleFormatUInt) and
-    (Params.BitsPerSample in [8, 16]) and (Photometric <> PhotometricPalette);
-  if Predictor then
+  if Params.Predictor and TiffPredictorUsable(Params) then
     TIFFSetField(FTiff, TIFFTAG_PREDICTOR, PredictorHorizontal);
   TIFFSetField(FTiff, TIFFTAG_ROWSPERSTRIP, ChooseRowsPerStrip(Params));
 

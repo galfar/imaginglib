@@ -40,12 +40,14 @@ type
     FOldBackend: TTiffBackend;
     FOldCompression: Integer;
     FOldBigTiffMode: Integer;
+    FOldPredictor: Integer;
     FImage: TImageData;
     procedure SaveToStream(const Image: TImageData; Stream: TStream);
     function LoadFromStream(Stream: TStream): Boolean;
     function LoadFromData(const Data: AnsiString): Boolean;
-    procedure CheckRoundTrip(Format: TImageFormat; Compression: Integer;
+    procedure CheckRoundTrip(Format: TImageFormat; Compression, Predictor: Integer;
       const ColorTolerance: Double);
+    function SavedTag(const Image: TImageData; Tag: Word): Integer;
     procedure CheckGray8(const Expected: array of Byte; const Msg: string);
     procedure CheckRgb8(const Expected: array of Byte; const Msg: string);
   protected
@@ -62,6 +64,8 @@ type
     procedure TestSavedImageIsNotChanged;
     procedure TestTigers;
     procedure TestOrientation;
+    procedure TestOrientationSaved;
+    procedure TestPredictorOption;
     procedure TestMinIsWhite;
     procedure TestBigEndian16;
     procedure TestTiles;
@@ -90,6 +94,7 @@ const
   TagPhotometric = 262;
   TagStripOffsets = 273;
   TagOrientation = 274;
+  TagPredictor = 317;
   TagSamplesPerPixel = 277;
   TagRowsPerStrip = 278;
   TagStripByteCounts = 279;
@@ -291,6 +296,7 @@ begin
   FOldBackend := TiffBackend;
   FOldCompression := GetOption(ImagingTiffCompression);
   FOldBigTiffMode := GetOption(ImagingTiffBigTiffWriteMode);
+  FOldPredictor := GetOption(ImagingTiffPredictor);
   if not SelectTiffBackend(Backend) then
     Fail('TIFF backend is not available');
 end;
@@ -300,6 +306,7 @@ begin
   SelectTiffBackend(FOldBackend);
   SetOption(ImagingTiffCompression, FOldCompression);
   SetOption(ImagingTiffBigTiffWriteMode, FOldBigTiffMode);
+  SetOption(ImagingTiffPredictor, FOldPredictor);
   GlobalMetadata.ClearMetaItemsForSaving;
   FreeImage(FImage);
 end;
@@ -330,7 +337,7 @@ begin
   end;
 end;
 
-procedure TTiffTestCase.CheckRoundTrip(Format: TImageFormat; Compression: Integer;
+procedure TTiffTestCase.CheckRoundTrip(Format: TImageFormat; Compression, Predictor: Integer;
   const ColorTolerance: Double);
 var
   Original: TImageData;
@@ -341,13 +348,14 @@ var
   Info: TImageFormatInfo;
   Msg: string;
 begin
-  Msg := SysUtils.Format('%s compression %d', [GetFormatName(Format), Compression]);
+  Msg := SysUtils.Format('%s compression %d predictor %d', [GetFormatName(Format), Compression, Predictor]);
   InitImage(Original);
   Stream := TMemoryStream.Create;
   try
     NewImage(37, 21, Format, Original);
     FillImage(Original, 123456789);
     SetOption(ImagingTiffCompression, Compression);
+    SetOption(ImagingTiffPredictor, Predictor);
     SaveToStream(Original, Stream);
     CheckTrue(LoadFromStream(Stream), Msg + ': image is loaded');
     CheckEquals(GetFormatName(Format), GetFormatName(FImage.Format), Msg + ': format');
@@ -412,7 +420,7 @@ end;
 procedure TTiffTestCase.TestRoundTripLossless;
 var
   Format: TImageFormat;
-  Compression: Integer;
+  Compression, Predictor: Integer;
 begin
   for Format := Low(TImageFormat) to High(TImageFormat) do
     if Format in TiffSupportedFormats then
@@ -421,8 +429,47 @@ begin
         // JPEG falls back to LZW for these, except 8-bit gray and RGB
         if (Compression = TiffCompressionOptionJpeg) and (Format in [ifGray8, ifR8G8B8]) then
           Continue;
-        CheckRoundTrip(Format, Compression, 0);
+        if Compression in [TiffCompressionOptionLzw, TiffCompressionOptionDeflate] then
+        begin
+          for Predictor := TiffPredictorOptionAuto to TiffPredictorOptionOff do
+            CheckRoundTrip(Format, Compression, Predictor, 0);
+        end
+        else
+          CheckRoundTrip(Format, Compression, TiffPredictorOptionAuto, 0);
       end;
+end;
+
+{ Saves Image as TIFF and returns the value of SHORT tag Tag of its first
+  page, -1 when the page does not have it. Both backends write classic
+  little endian TIFF for small images.}
+function TTiffTestCase.SavedTag(const Image: TImageData; Tag: Word): Integer;
+var
+  Stream: TMemoryStream;
+  Data: PBuffer;
+  DirOffset, Entry: NativeInt;
+  I, Count: Integer;
+begin
+  Result := -1;
+  Stream := TMemoryStream.Create;
+  try
+    SaveToStream(Image, Stream);
+    Data := Stream.Memory;
+    CheckEquals(Ord('I'), Data[0], 'little endian TIFF');
+    CheckEquals(42, Data[2], 'classic TIFF');
+    DirOffset := PUInt32(@Data[4])^;
+    Count := PWord(@Data[DirOffset])^;
+    for I := 0 to Count - 1 do
+    begin
+      Entry := DirOffset + 2 + I * 12;
+      if PWord(@Data[Entry])^ = Tag then
+      begin
+        CheckEquals(TypeShort, PWord(@Data[Entry + 2])^, 'tag type');
+        Result := PWord(@Data[Entry + 8])^;
+      end;
+    end;
+  finally
+    Stream.Free;
+  end;
 end;
 
 procedure TTiffTestCase.TestRoundTripJpeg;
@@ -666,6 +713,112 @@ begin
     CheckGray8([10, 20, 30], 'pixels');
   finally
     Builder.Free;
+  end;
+end;
+
+procedure TTiffTestCase.TestOrientationSaved;
+var
+  Images, Loaded: TDynImageDataArray;
+  Stream: TMemoryStream;
+begin
+  NewImage(5, 4, ifGray8, FImage);
+  // As stored unless metadata says otherwise, invalid values too
+  CheckEquals(1, SavedTag(FImage, TagOrientation), 'default');
+  GlobalMetadata.SetMetaItemForSaving(SMetaTiffOrientation, 6);
+  CheckEquals(6, SavedTag(FImage, TagOrientation), 'from metadata');
+  GlobalMetadata.SetMetaItemForSaving(SMetaTiffOrientation, 9);
+  CheckEquals(1, SavedTag(FImage, TagOrientation), 'invalid value');
+  GlobalMetadata.ClearMetaItemsForSaving;
+
+  // Per page: a page without its own value gets that of page 0
+  Stream := TMemoryStream.Create;
+  try
+    SetLength(Images, 3);
+    NewImage(5, 4, ifGray8, Images[0]);
+    NewImage(5, 4, ifGray8, Images[1]);
+    NewImage(5, 4, ifGray8, Images[2]);
+    GlobalMetadata.SetMetaItemForSaving(SMetaTiffOrientation, 3, 0);
+    GlobalMetadata.SetMetaItemForSaving(SMetaTiffOrientation, 8, 2);
+    CheckTrue(SaveMultiImageToStream('tif', Stream, Images), 'images are saved');
+    Stream.Position := 0;
+    CheckTrue(LoadMultiImageFromStream(Stream, Loaded), 'images are loaded');
+    CheckEquals(3, Integer(GlobalMetadata.MetaItemsMulti[SMetaTiffOrientation, 0]), 'page 0');
+    CheckEquals(3, Integer(GlobalMetadata.MetaItemsMulti[SMetaTiffOrientation, 1]), 'page 1');
+    CheckEquals(8, Integer(GlobalMetadata.MetaItemsMulti[SMetaTiffOrientation, 2]), 'page 2');
+  finally
+    FreeImagesInArray(Images);
+    FreeImagesInArray(Loaded);
+    Stream.Free;
+  end;
+end;
+
+procedure TTiffTestCase.TestPredictorOption;
+const
+  NoPredictor = -1;
+var
+  Smooth, Dithered: TImageData;
+  X, Y, Compression: Integer;
+  State: UInt32;
+  Msg: string;
+
+  procedure Check(const Image: TImageData; Predictor, Expected: Integer; const What: string);
+  begin
+    SetOption(ImagingTiffPredictor, Predictor);
+    CheckEquals(Expected, SavedTag(Image, TagPredictor),
+      SysUtils.Format('%s: %s with predictor option %d', [Msg, What, Predictor]));
+  end;
+
+begin
+  InitImage(Smooth);
+  InitImage(Dithered);
+  try
+    // Smooth content gains from the predictor, two levels at random
+    // (dithered) lose: differences take three values instead of two
+    NewImage(128, 96, ifGray8, Smooth);
+    NewImage(128, 96, ifGray8, Dithered);
+    State := 12345;
+    for Y := 0 to Smooth.Height - 1 do
+      for X := 0 to Smooth.Width - 1 do
+      begin
+        PBuffer(Smooth.Bits)[Y * Smooth.Width + X] := (X + Y) mod 256;
+        State := UInt32((Int64(State) * 1103515245 + 12345) and $FFFFFFFF);
+        PBuffer(Dithered.Bits)[Y * Dithered.Width + X] := 255 * ((State shr 16) and 1);
+      end;
+
+    for Compression := TiffCompressionOptionLzw to TiffCompressionOptionDeflate do
+    begin
+      if Compression = TiffCompressionOptionPackbitsRle then
+        Continue;
+      Msg := 'compression option ' + IntToStr(Compression);
+      SetOption(ImagingTiffCompression, Compression);
+    {$IFDEF TIFF_CONVERTS_LAYOUTS}
+      Check(Smooth, TiffPredictorOptionAuto, 2, 'smooth image');
+    {$ELSE}
+      // Without PasTiff's encoders Auto uses it for color images only
+      Check(Smooth, TiffPredictorOptionAuto, NoPredictor, 'smooth image');
+    {$ENDIF}
+      Check(Smooth, TiffPredictorOptionOn, 2, 'smooth image');
+      Check(Smooth, TiffPredictorOptionOff, NoPredictor, 'smooth image');
+      Check(Dithered, TiffPredictorOptionAuto, NoPredictor, 'dithered image');
+      Check(Dithered, TiffPredictorOptionOn, 2, 'dithered image');
+      // Out of range option means Auto
+      Check(Dithered, 7, NoPredictor, 'dithered image');
+
+      // Never for palette indices and floating point
+      ConvertImage(Dithered, ifIndex8);
+      Check(Dithered, TiffPredictorOptionOn, NoPredictor, 'palette image');
+      ConvertImage(Dithered, ifR32F);
+      Check(Dithered, TiffPredictorOptionOn, NoPredictor, 'float image');
+      ConvertImage(Dithered, ifGray8);
+    end;
+
+    // Only with LZW and Deflate
+    Msg := 'no compression';
+    SetOption(ImagingTiffCompression, TiffCompressionOptionNone);
+    Check(Smooth, TiffPredictorOptionOn, NoPredictor, 'smooth image');
+  finally
+    FreeImage(Smooth);
+    FreeImage(Dithered);
   end;
 end;
 

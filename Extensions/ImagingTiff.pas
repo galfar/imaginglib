@@ -31,6 +31,7 @@ type
     FCompression: Integer;
     FJpegQuality: Integer;
     FBigTiffWriteMode: Integer;
+    FPredictor: Integer;
     procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
@@ -62,6 +63,12 @@ type
       - IfSafer(1) also uses BigTIFF when compression makes the final file size uncertain.
       - Always(2) always writes BigTIFF files. }
     property BigTiffWriteMode: Integer read FBigTiffWriteMode write FBigTiffWriteMode;
+    { Controls the horizontal predictor of LZW and Deflate compression:
+      Auto(0) decides for each image by compressing a sample of its rows both
+      ways, On(1) always uses it, Off(2) never. Never used for palette images,
+      floating point and 1-bit data. Accessible trough ImagingTiffPredictor
+      option. }
+    property Predictor: Integer read FPredictor write FPredictor;
   end;
 
 const
@@ -76,6 +83,10 @@ const
   TiffBigTiffWriteModeIfSafer  = 1;
   TiffBigTiffWriteModeAlways   = 2;
 
+  TiffPredictorOptionAuto = 0;
+  TiffPredictorOptionOn   = 1;
+  TiffPredictorOptionOff  = 2;
+
   { Data formats TIFF images are saved in, others are converted. }
   TiffSupportedFormats: TImageFormats = [ifIndex8, ifGray8, ifA8Gray8,
     ifGray16, ifA16Gray16, ifGray32, ifR8G8B8, ifA8R8G8B8, ifR16G16B16,
@@ -89,9 +100,20 @@ const
     RESUNIT_INCH                        = 2;       // english
     RESUNIT_CENTIMETER                  = 3;       // metric }
   SMetaTiffResolutionUnit = 'TiffResolutionUnit';
-  { Read only metadata info - value of Orientation tag of loaded TIFF page.
-    Type is UInt, 1 (top left, the default) to 8. Pixels are loaded as
-    stored, the orientation is not applied. }
+  { Value of Orientation tag of a TIFF page: how the rows and columns as
+    stored are to be shown. Type is UInt. Pixels are loaded and saved as
+    they are, the orientation is never applied. When saving, the value
+    for the page (or page 0) is written, 1 if there is none.
+    Values (stored 0th row / 0th column, what shows the image upright):
+      1 = top / left: as stored (the default)
+      2 = top / right: mirror horizontally
+      3 = bottom / right: rotate 180 degrees
+      4 = bottom / left: mirror vertically
+      5 = left / top: transpose (mirror along the top left to bottom right diagonal)
+      6 = right / top: rotate 90 degrees clockwise
+      7 = right / bottom: transverse (mirror along the top right to bottom left diagonal)
+      8 = left / bottom: rotate 90 degrees counterclockwise
+    Values are the same as of EXIF Orientation tag. }
   SMetaTiffOrientation = 'TiffOrientation';
 
 implementation
@@ -203,6 +225,39 @@ begin
   end;
 end;
 
+{ Decides about the horizontal predictor of a page by compressing a sample
+  of its rows with and without it: the whole image when it is small, else
+  bands of rows from the top, middle and bottom (an image often starts with
+  a margin of paper, sky or no-data that is not like the rest). }
+function PredictorHelps(const Image: TImageData; RowBytes: NativeInt;
+  const Params: TTiffSaveParams): Boolean;
+const
+  SampleBytes = 256 * 1024;
+  BandCount = 3;
+var
+  Sample: TDynByteArray;
+  BandRows, Band, FirstRow: Integer;
+  BandBytes: NativeInt;
+begin
+  if NativeInt(Image.Height) * RowBytes <= SampleBytes then
+  begin
+    Result := TiffPredictorHelps(Params, Image.Bits, Image.Height);
+    Exit;
+  end;
+
+  BandRows := SampleBytes div BandCount div RowBytes;
+  if BandRows < 1 then
+    BandRows := 1;
+  BandBytes := NativeInt(BandRows) * RowBytes;
+  SetLength(Sample, BandCount * BandBytes);
+  for Band := 0 to BandCount - 1 do
+  begin
+    FirstRow := Int64(Image.Height - BandRows) * Band div (BandCount - 1);
+    Move(PBuffer(Image.Bits)[NativeInt(FirstRow) * RowBytes], Sample[Band * BandBytes], BandBytes);
+  end;
+  Result := TiffPredictorHelps(Params, Pointer(Sample), BandCount * BandRows);
+end;
+
 { Swaps the first and third channel of Count pixels from Src to Dst:
   Imaging's BGR order to TIFF's RGB. }
 procedure SwapRedBlue(Src, Dst: PByte; Count: NativeInt; const Info: TImageFormatInfo);
@@ -234,12 +289,14 @@ begin
   FCompression := TiffDefaultCompression;
   FJpegQuality := TiffDefaultJpegQuality;
   FBigTiffWriteMode := TiffBigTiffWriteModeIfNeeded;
+  FPredictor := TiffPredictorOptionAuto;
   FSupportedFormats := TiffSupportedFormats;
 
   AddMasks(STiffMasks);
   RegisterOption(ImagingTiffCompression, @FCompression);
   RegisterOption(ImagingTiffJpegQuality, @FJpegQuality);
   RegisterOption(ImagingTiffBigTiffWriteMode, @FBigTiffWriteMode);
+  RegisterOption(ImagingTiffPredictor, @FPredictor);
   RefreshBackend;
 end;
 
@@ -260,6 +317,8 @@ begin
   FJpegQuality := ClampInt(FJpegQuality, 1, 100);
   if (FBigTiffWriteMode < TiffBigTiffWriteModeIfNeeded) or (FBigTiffWriteMode > TiffBigTiffWriteModeAlways) then
     FBigTiffWriteMode := TiffBigTiffWriteModeIfNeeded;
+  if (FPredictor < TiffPredictorOptionAuto) or (FPredictor > TiffPredictorOptionOff) then
+    FPredictor := TiffPredictorOptionAuto;
 end;
 
 function TTiffFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
@@ -386,6 +445,15 @@ var
     end
     else
       Params.ResolutionUnit := 0;
+
+    // Orientation of the page, else of the main image, else as stored
+    Params.Orientation := 1;
+    if FMetadata.HasMetaItemForSaving(SMetaTiffOrientation, PageIndex) then
+      Params.Orientation := FMetadata.MetaItemsForSavingMulti[SMetaTiffOrientation, PageIndex]
+    else if FMetadata.HasMetaItemForSaving(SMetaTiffOrientation, 0) then
+      Params.Orientation := FMetadata.MetaItemsForSavingMulti[SMetaTiffOrientation, 0];
+    if (Params.Orientation < 1) or (Params.Orientation > 8) then
+      Params.Orientation := 1;
   end;
 
 begin
@@ -438,11 +506,20 @@ begin
           Params.Compression := CompressionGroup4;
 
         SaveMetadata(I);
+        RowBytes := Info.GetPixelsSize(Info.Format, ImageToSave.Width, 1);
+
+        if TiffPredictorUsable(Params) then
+        begin
+          case FPredictor of
+            TiffPredictorOptionOn:   Params.Predictor := True;
+            TiffPredictorOptionAuto: Params.Predictor := PredictorHelps(ImageToSave, RowBytes, Params);
+          end;
+        end;
+
         Writer.BeginPage(Params);
 
         // Imaging's BGR order is swapped in a scratch buffer, the image
         // given by the caller is not touched
-        RowBytes := Info.GetPixelsSize(Info.Format, ImageToSave.Width, 1);
         SwapRB := (Params.Photometric = PhotometricRgb);
         GroupRows := 1;
         if RowBytes < GroupBytes then
