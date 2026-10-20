@@ -11,6 +11,46 @@ permissions:
   contents: read
 
 jobs:
+  checks:
+    # Repository checks that need no build, reported once and right after the push
+    name: repository checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify script executable bits and line endings (Git tree)
+        shell: bash
+        run: |
+          # Errors name the file also in the message: the log shows only the message,
+          # the file property is visible just in the annotations.
+          # Check that CI and other scripts are executable. Git on Windows can break the exec flag if you edit the file there and commit.
+          FAIL=0
+          for FILE in Scripts/*.sh; do
+            MODE="$(git ls-files -s "$FILE" | awk '{print $1}')"
+            if [ "$MODE" != "100755" ]; then
+              echo "::error file=$FILE::$FILE: missing executable bit in Git tree (mode $MODE)"
+              FAIL=1
+            fi
+          done
+
+          # Check line endings of files as stored in Git (not as checked out): Pascal sources
+          # are CRLF, shell scripts LF (a CRLF script fails on Linux and macOS).
+          # Prints "<eol> <tab> <path>" for the given pathspecs whose eol is not $1.
+          wrong_eol() {
+            local WANTED="$1"; shift
+            git ls-files --eol -- "$@" | awk -F'\t' -v w="i/$WANTED" '{split($1, a, " "); if (a[1] != w) print a[1] "\t" $2}'
+          }
+          while IFS=$'\t' read -r EOL FILE; do
+            echo "::error file=$FILE::$FILE: Pascal source must have CRLF line endings (Git tree has $EOL)"
+            FAIL=1
+          done < <(wrong_eol crlf '*.pas' '*.inc' '*.inc.sample' '*.dpr' '*.lpr' '*.dpk')
+          while IFS=$'\t' read -r EOL FILE; do
+            echo "::error file=$FILE::$FILE: shell script must have LF line endings (Git tree has $EOL)"
+            FAIL=1
+          done < <(wrong_eol lf '*.sh')
+          exit $FAIL
+
   build:
     name: build (${{ matrix.operating-system }}, ${{ matrix.arch }})
     runs-on: ${{ matrix.operating-system }}
@@ -61,36 +101,6 @@ jobs:
         with:
           laz-url: ${{ matrix.laz-url }}
           fpc-url: ${{ matrix.fpc-url }}
-
-      - name: Verify script executable bits and line endings (Git tree)
-        shell: bash
-        run: |
-          # Check that CI and other scripts are executable. Git on Windows can break the exec flag if you edit the file there and commit.
-          FAIL=0
-          for FILE in Scripts/*.sh; do
-            MODE="$(git ls-files -s "$FILE" | awk '{print $1}')"
-            if [ "$MODE" != "100755" ]; then
-              echo "::error file=$FILE::Missing executable bit in Git tree (mode $MODE)"
-              FAIL=1
-            fi
-          done
-
-          # Check line endings of files as stored in Git (not as checked out): Pascal sources
-          # are CRLF, shell scripts LF (a CRLF script fails on Linux and macOS).
-          # Prints "<eol> <tab> <path>" for the given pathspecs whose eol is not $1.
-          wrong_eol() {
-            local WANTED="$1"; shift
-            git ls-files --eol -- "$@" | awk -F'\t' -v w="i/$WANTED" '{split($1, a, " "); if (a[1] != w) print a[1] "\t" $2}'
-          }
-          while IFS=$'\t' read -r EOL FILE; do
-            echo "::error file=$FILE::Pascal source must have CRLF line endings (Git tree has $EOL)"
-            FAIL=1
-          done < <(wrong_eol crlf '*.pas' '*.inc' '*.inc.sample' '*.dpr' '*.lpr' '*.dpk')
-          while IFS=$'\t' read -r EOL FILE; do
-            echo "::error file=$FILE::Shell script must have LF line endings (Git tree has $EOL)"
-            FAIL=1
-          done < <(wrong_eol lf '*.sh')
-          exit $FAIL
 
       - name: Setup Windows
         if: runner.os == 'Windows'
