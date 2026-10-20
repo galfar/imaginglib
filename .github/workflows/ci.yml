@@ -62,7 +62,7 @@ jobs:
           laz-url: ${{ matrix.laz-url }}
           fpc-url: ${{ matrix.fpc-url }}
 
-      - name: Verify script executable bits (Git tree)
+      - name: Verify script executable bits and line endings (Git tree)
         shell: bash
         run: |
           # Check that CI and other scripts are executable. Git on Windows can break the exec flag if you edit the file there and commit.
@@ -74,6 +74,22 @@ jobs:
               FAIL=1
             fi
           done
+
+          # Check line endings of files as stored in Git (not as checked out): Pascal sources
+          # are CRLF, shell scripts LF (a CRLF script fails on Linux and macOS).
+          # Prints "<eol> <tab> <path>" for the given pathspecs whose eol is not $1.
+          wrong_eol() {
+            local WANTED="$1"; shift
+            git ls-files --eol -- "$@" | awk -F'\t' -v w="i/$WANTED" '{split($1, a, " "); if (a[1] != w) print a[1] "\t" $2}'
+          }
+          while IFS=$'\t' read -r EOL FILE; do
+            echo "::error file=$FILE::Pascal source must have CRLF line endings (Git tree has $EOL)"
+            FAIL=1
+          done < <(wrong_eol crlf '*.pas' '*.inc' '*.inc.sample' '*.dpr' '*.lpr' '*.dpk')
+          while IFS=$'\t' read -r EOL FILE; do
+            echo "::error file=$FILE::Shell script must have LF line endings (Git tree has $EOL)"
+            FAIL=1
+          done < <(wrong_eol lf '*.sh')
           exit $FAIL
 
       - name: Setup Windows
