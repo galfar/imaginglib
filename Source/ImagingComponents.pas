@@ -303,36 +303,28 @@ procedure ConvertImageToBitmap(Image: TBaseImage; Bitmap: TBitmap);
   When Image is TMultiImage only the current image level is overwritten.}
 procedure ConvertBitmapToImage(Bitmap: TBitmap; Image: TBaseImage);
 
-{ Displays image onto TCanvas to rectangle DstRect. This procedure
-  draws image without converting from Imaging format to TBitmap.
-  Only [ifA8R8G8B8, ifX8R8G8B8] image formats are supported. Use this
-  when you want displaying images that change frequently (because converting to
-  TBitmap by ConvertImageDataToBitmap is generally slow).}
+{ Displays image onto TCanvas to rectangle DstRect.
+  See the overload with SrcRect for details.}
 procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData); overload;
-{ Displays image stored in TImageData structure onto TCanvas. This procedure
-  draws image without converting from Imaging format to TBitmap.
-  Only [ifA8R8G8B8, ifX8R8G8B8] image formats are supported. Use this
-  when you want displaying images that change frequently (because converting to
-  TBitmap by ConvertImageDataToBitmap is generally slow). Dest and Src
-  rectangles represent coordinates in the form (X1, Y1, X2, Y2).}
+{ Displays part SrcRect of image stored in TImageData structure onto TCanvas
+  to rectangle DstRect, scaled with nearest neighbor sampling. Dest and Src
+  rectangles represent coordinates in the form (X1, Y1, X2, Y2).
+  Images in [ifA8R8G8B8, ifX8R8G8B8] formats are drawn directly from their
+  memory without any copy or conversion to TBitmap, so this is fast
+  also for images that change frequently (e.g. view buffer of image viewer).
+  Images in other formats get only their SrcRect part converted before drawing.
+  Alpha channel is not used, the image is drawn opaque.
+  Implemented for VCL and LCL Win32, GTK2, GTK3, Qt5, Qt6, and Cocoa widget sets,
+  other LCL widget sets use slower drawing through TBitmap.}
 procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect); overload;
-{ Displays image onto TCanvas at position [DstX, DstY]. This procedure
-  draws image without converting from Imaging format to TBitmap.
-  Only [ifA8R8G8B8, ifX8R8G8B8] image formats are supported. Use this
-  when you want displaying images that change frequently (because converting to
-  TBitmap by ConvertImageDataToBitmap is generally slow).}
+{ Displays image onto TCanvas at position [DstX, DstY].
+  Behaviour is the same as of DisplayImageData.}
 procedure DisplayImage(DstCanvas: TCanvas; DstX, DstY: LongInt; Image: TBaseImage); overload;
-{ Displays image onto TCanvas to rectangle DstRect. This procedure
-  draws image without converting from Imaging format to TBitmap.
-  Only [ifA8R8G8B8, ifX8R8G8B8] image formats are supported. Use this
-  when you want displaying images that change frequently (because converting to
-  TBitmap by ConvertImageDataToBitmap is generally slow).}
+{ Displays image onto TCanvas to rectangle DstRect.
+  Behaviour is the same as of DisplayImageData.}
 procedure DisplayImage(DstCanvas: TCanvas; const DstRect: TRect; Image: TBaseImage); overload;
 { Displays part of the image specified by SrcRect onto TCanvas to rectangle DstRect.
-  This procedure draws image without converting from Imaging format to TBitmap.
-  Only [ifA8R8G8B8, ifX8R8G8B8] image formats are supported. Use this
-  when you want displaying images that change frequently (because converting to
-  TBitmap by ConvertImageDataToBitmap is generally slow).}
+  Behaviour is the same as of DisplayImageData.}
 procedure DisplayImage(DstCanvas: TCanvas; const DstRect: TRect; Image: TBaseImage; const SrcRect: TRect); overload;
 
 {$IFDEF MSWINDOWS}
@@ -349,11 +341,15 @@ uses
 {$IF Defined(LCL)}
   InterfaceBase,
   {$IF Defined(LCLGTK2)}
-    GLib2, GDK2, GTK2, GTK2Def, GTK2Proc,
+    GDK2, GTK2Def, Cairo,
+  {$ELSEIF Defined(LCLGTK3)}
+    LazCairo1, Gtk3Objects,
   {$ELSEIF Defined(LCLqt5)}
     Qt5, qtobjects,
+  {$ELSEIF Defined(LCLqt6)}
+    Qt6, qtobjects,
   {$ELSEIF Defined(LCLcocoa)}
-    CocoaAll, CocoaGDIObjects, CocoaUtils,
+    MacOSAll, CocoaGDIObjects,
   {$IFEND}
 {$IFEND}
 {$IFNDEF DONT_LINK_BITMAP}
@@ -381,7 +377,6 @@ resourcestring
   SBadFormatBitmapToData = 'Cannot find compatible data format for bitmap %p';
   SBadFormatDisplay = 'Unsupported image format passed';
   SFailedBitmapFromData = 'Failed to create TBitmap from TImageData';
-  SUnsupportedLCLWidgetSet = 'This function is not implemented for current LCL widget set';
   SImagingGraphicName = 'Imaging Graphic AllInOne';
 
 var
@@ -760,192 +755,426 @@ begin
   ConvertBitmapToData(Bitmap, Image.ImageDataPointer^);
 end;
 
+const
+  // Data formats that are drawn directly from image memory
+  DirectDisplayFormats = [ifA8R8G8B8, ifX8R8G8B8];
+
+{ Clips SrcRect to the image and moves edges of DstRect so that the scale
+  stays the same. Returns False when there is nothing to draw.}
+function ClipDisplayRects(const ImageData: TImageData; var DstRect, SrcRect: TRect): Boolean;
+var
+  ScaleX, ScaleY: Double;
+  Clipped: TRect;
+begin
+  Result := False;
+  if (RectWidth(SrcRect) <= 0) or (RectHeight(SrcRect) <= 0) or
+     (RectWidth(DstRect) <= 0) or (RectHeight(DstRect) <= 0) then
+    Exit;
+
+  ScaleX := RectWidth(DstRect) / RectWidth(SrcRect);
+  ScaleY := RectHeight(DstRect) / RectHeight(SrcRect);
+  Clipped.Left := Max(SrcRect.Left, 0);
+  Clipped.Top := Max(SrcRect.Top, 0);
+  Clipped.Right := Min(SrcRect.Right, ImageData.Width);
+  Clipped.Bottom := Min(SrcRect.Bottom, ImageData.Height);
+  if (Clipped.Left >= Clipped.Right) or (Clipped.Top >= Clipped.Bottom) then
+    Exit;
+
+  Inc(DstRect.Left, Round((Clipped.Left - SrcRect.Left) * ScaleX));
+  Inc(DstRect.Top, Round((Clipped.Top - SrcRect.Top) * ScaleY));
+  Dec(DstRect.Right, Round((SrcRect.Right - Clipped.Right) * ScaleX));
+  Dec(DstRect.Bottom, Round((SrcRect.Bottom - Clipped.Bottom) * ScaleY));
+  SrcRect := Clipped;
+  Result := (DstRect.Right > DstRect.Left) and (DstRect.Bottom > DstRect.Top);
+end;
+
+{ Clips the rectangles and returns image in one of DirectDisplayFormats to be drawn.
+  That is ImageData itself, or Region with converted SrcRect part of it (SrcRect
+  is then moved to Region coordinates). Returns nil when there is nothing to draw.}
+function PrepareDisplayData(const ImageData: TImageData; var DstRect, SrcRect: TRect;
+  var Region: TImageData): PImageData;
+var
+  Info: TImageFormatInfo;
+begin
+  Result := nil;
+  if not TestImage(ImageData) or not ClipDisplayRects(ImageData, DstRect, SrcRect) then
+    Exit;
+
+  if ImageData.Format in DirectDisplayFormats then
+  begin
+    Result := @ImageData;
+    Exit;
+  end;
+
+  if not GetImageFormatInfo(ImageData.Format, Info) then
+    raise EImagingError.Create(SBadFormatDisplay);
+
+  if Info.IsSpecial then
+  begin
+    // Compressed formats cannot be copied by pixel rectangles
+    CloneImage(ImageData, Region);
+  end
+  else
+  begin
+    NewImage(RectWidth(SrcRect), RectHeight(SrcRect), ImageData.Format, Region);
+    CopyRect(ImageData, SrcRect.Left, SrcRect.Top, RectWidth(SrcRect), RectHeight(SrcRect),
+             Region, 0, 0);
+    if Info.IsIndexed then
+      CopyPalette(ImageData.Palette, Region.Palette, 0, 0, Info.PaletteEntries);
+    SrcRect := Types.Rect(0, 0, Region.Width, Region.Height);
+  end;
+
+  if not ConvertImage(Region, ifX8R8G8B8) then
+    raise EImagingError.Create(SBadFormatDisplay);
+  Result := @Region;
+end;
+
+{$IF Defined(MSWINDOWS) or Defined(LCLGTK2) or Defined(LCLGTK3)}
+const
+  // GDI StretchDIBits draws nothing for source rectangles over 32767 pixels (and
+  // reports success). Cairo cannot create larger image surfaces and draws
+  // nothing when scaling surfaces a bit smaller than that (about 32600 pixels).
+  MaxDisplayTileSize = 16384;
+
+type
+  { Draws SrcRect of image in one of DirectDisplayFormats to DstRect of Target,
+    SrcRect is not larger than MaxDisplayTileSize.}
+  TDrawDisplayTileProc = procedure(Target: Pointer; const DstRect: TRect;
+    const ImageData: TImageData; const SrcRect: TRect);
+
+{ Returns the first destination pixel (relative to destination rectangle) whose
+  center maps to source position SrcPos or after it (relative to source
+  rectangle, Scale is destination/source size). Center of destination pixel D
+  maps to (D + 0.5) / Scale, so it is the smallest D >= SrcPos * Scale - 0.5.}
+function FirstDstPixelFrom(SrcPos: Integer; Scale: Double): Integer;
+var
+  Value: Double;
+begin
+  Value := SrcPos * Scale - 0.5;
+  Result := Trunc(Value);
+  if Result < Value then
+    Inc(Result);
+end;
+
+{ Draws image using DrawTile, source rectangles larger than MaxDisplayTileSize
+  are split to tiles. Destination rectangle of each tile has the pixels whose
+  centers map into the tile, so the tiles cover DstRect without gaps and overlaps
+  (edge shared by two tiles is computed once by the same rounding) and each
+  destination pixel is sampled from the same source pixel as it would be without
+  tiles (within one pixel, every tile has its own scale from rounded edges).}
+procedure DrawDisplayTiles(DrawTile: TDrawDisplayTileProc; Target: Pointer; const DstRect: TRect;
+  const ImageData: TImageData; const SrcRect: TRect);
+var
+  ScaleX, ScaleY: Double;
+  TileSrc, TileDst: TRect;
+begin
+  if (RectWidth(SrcRect) <= MaxDisplayTileSize) and (RectHeight(SrcRect) <= MaxDisplayTileSize) then
+  begin
+    DrawTile(Target, DstRect, ImageData, SrcRect);
+    Exit;
+  end;
+
+  ScaleX := RectWidth(DstRect) / RectWidth(SrcRect);
+  ScaleY := RectHeight(DstRect) / RectHeight(SrcRect);
+
+  TileSrc.Top := SrcRect.Top;
+  while TileSrc.Top < SrcRect.Bottom do
+  begin
+    TileSrc.Bottom := Min(SrcRect.Bottom, TileSrc.Top + MaxDisplayTileSize);
+    TileDst.Top := DstRect.Top + FirstDstPixelFrom(TileSrc.Top - SrcRect.Top, ScaleY);
+    TileDst.Bottom := DstRect.Top + FirstDstPixelFrom(TileSrc.Bottom - SrcRect.Top, ScaleY);
+
+    TileSrc.Left := SrcRect.Left;
+    while TileSrc.Left < SrcRect.Right do
+    begin
+      TileSrc.Right := Min(SrcRect.Right, TileSrc.Left + MaxDisplayTileSize);
+      TileDst.Left := DstRect.Left + FirstDstPixelFrom(TileSrc.Left - SrcRect.Left, ScaleX);
+      TileDst.Right := DstRect.Left + FirstDstPixelFrom(TileSrc.Right - SrcRect.Left, ScaleX);
+
+      if (TileDst.Right > TileDst.Left) and (TileDst.Bottom > TileDst.Top) then
+        DrawTile(Target, TileDst, ImageData, TileSrc);
+
+      TileSrc.Left := TileSrc.Right;
+    end;
+    TileSrc.Top := TileSrc.Bottom;
+  end;
+end;
+{$IFEND}
+
 {$IFDEF MSWINDOWS}
+{ Draws tile of image to device context given as Target.}
+procedure DrawDisplayTileOnDC(Target: Pointer; const DstRect: TRect; const ImageData: TImageData;
+  const SrcRect: TRect);
+var
+  DC: HDC;
+  OldMode, Lines, SrcWidth, SrcHeight, Y: Integer;
+  BitmapInfo: Windows.TBitmapInfo;
+  DibBits: Pointer;
+  Dib: HBITMAP;
+  MemDC: HDC;
+  OldObject: HGDIOBJ;
+begin
+  DC := HDC(Target);
+  SrcWidth := RectWidth(SrcRect);
+  SrcHeight := RectHeight(SrcRect);
+
+  FillChar(BitmapInfo, SizeOf(BitmapInfo), 0);
+  with BitmapInfo.bmiHeader do
+  begin
+    biSize := SizeOf(TBitmapInfoHeader);
+    biPlanes := 1;
+    biBitCount := 32;
+    biCompression := BI_RGB;
+    // Top-down DIB starting at the first row of SrcRect, its size stays
+    // small even when the image is huge and only a part of it is drawn
+    biWidth := ImageData.Width;
+    biHeight := -SrcHeight;
+  end;
+
+  OldMode := Windows.SetStretchBltMode(DC, COLORONCOLOR);
+  try
+    Lines := Windows.StretchDIBits(DC, DstRect.Left, DstRect.Top, RectWidth(DstRect),
+                                   RectHeight(DstRect), SrcRect.Left, 0, SrcWidth, SrcHeight,
+                                   GetScanlinePointer(ImageData, SrcRect.Top, 4), BitmapInfo,
+                                   DIB_RGB_COLORS, SRCCOPY);
+    if Lines <= 0 then
+    begin
+      // StretchDIBits may fail on some occasions (error 487, http://support.microsoft.com/kb/269585).
+      // This fallback is slower but works every time. Thanks to Sergey Galezdinov for the fix.
+      // Only SrcRect part of the image is copied to the DIB section.
+      BitmapInfo.bmiHeader.biWidth := SrcWidth;
+      Dib := Windows.CreateDIBSection(DC, BitmapInfo, DIB_RGB_COLORS, DibBits, 0, 0);
+      if Dib = 0 then
+        Exit;
+
+      try
+        for Y := 0 to SrcHeight - 1 do
+        begin
+          Move(GetPixelPointer(ImageData, SrcRect.Left, SrcRect.Top + Y, 4)^,
+               PColor32RecBuffer(DibBits)[PtrInt(Y) * SrcWidth], SrcWidth * 4);
+        end;
+
+        MemDC := Windows.CreateCompatibleDC(DC);
+        OldObject := Windows.SelectObject(MemDC, Dib);
+        try
+          Windows.StretchBlt(DC, DstRect.Left, DstRect.Top, RectWidth(DstRect), RectHeight(DstRect),
+                             MemDC, 0, 0, SrcWidth, SrcHeight, SRCCOPY);
+        finally
+          Windows.SelectObject(MemDC, OldObject);
+          Windows.DeleteDC(MemDC);
+        end;
+      finally
+        Windows.DeleteObject(Dib);
+      end;
+    end;
+  finally
+    Windows.SetStretchBltMode(DC, OldMode);
+  end;
+end;
+
 procedure DisplayImageDataOnDC(DC: HDC; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
 var
-  OldMode: Integer;
-  BitmapInfo: Windows.TBitmapInfo;
-  Bmp: TBitmap;
+  Dst, Src: TRect;
+  Region: TImageData;
+  Data: PImageData;
 begin
-  if TestImage(ImageData) then
-  begin
-    Assert(ImageData.Format in [ifA8R8G8B8, ifX8R8G8B8], SBadFormatDisplay);
-    OldMode := Windows.SetStretchBltMode(DC, COLORONCOLOR);
-
-    FillChar(BitmapInfo, SizeOf(BitmapInfo), 0);
-    with BitmapInfo.bmiHeader do
-    begin
-      biSize := SizeOf(TBitmapInfoHeader);
-      biPlanes := 1;
-      biBitCount := 32;
-      biCompression := BI_RGB;
-      biWidth := ImageData.Width;
-      biHeight := -ImageData.Height;
-      biSizeImage := ImageData.Size;
-      biXPelsPerMeter := 0;
-      biYPelsPerMeter := 0;
-      biClrUsed := 0;
-      biClrImportant := 0;
-    end;
-
-    try
-       with SrcRect, ImageData do
-        if Windows.StretchDIBits(DC, DstRect.Left, DstRect.Top,
-          DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top, Left,
-          Top, Right - Left, Bottom - Top, Bits, BitmapInfo, DIB_RGB_COLORS, SRCCOPY) <> Height then
-        begin
-          // StretchDIBits may fail on some occasions (error 487, http://support.microsoft.com/kb/269585).
-          // This fallback is slow but works every time. Thanks to Sergey Galezdinov for the fix.
-          Bmp := TBitmap.Create;
-          try
-            ConvertDataToBitmap(ImageData, Bmp);
-            StretchBlt(DC, DstRect.Left, DstRect.Top, DstRect.Right - DstRect.Left, DstRect.Bottom - DstRect.Top,
-              Bmp.Canvas.Handle, 0, 0, Width, Height, SRCCOPY);
-          finally
-            Bmp.Free;
-          end;
-        end;
-    finally
-      Windows.SetStretchBltMode(DC, OldMode);
-    end;
+  Dst := DstRect;
+  Src := SrcRect;
+  InitImage(Region);
+  try
+    Data := PrepareDisplayData(ImageData, Dst, Src, Region);
+    if Data <> nil then
+      DrawDisplayTiles(DrawDisplayTileOnDC, Pointer(DC), Dst, Data^, Src);
+  finally
+    FreeImage(Region);
   end;
 end;
 {$ENDIF}
 
-procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData);
+{$IF Defined(LCLGTK2) or Defined(LCLGTK3)}
+{ Draws tile of image to Cairo context given as Target. Cairo image
+  surface is made directly over image memory, no copy is made.}
+procedure DrawDisplayTileOnCairo(Target: Pointer; const DstRect: TRect; const ImageData: TImageData;
+  const SrcRect: TRect);
+var
+  Cairo: Pcairo_t;
+  Surface: Pcairo_surface_t;
 begin
-  DisplayImageData(DstCanvas, DstRect, ImageData, Rect(0, 0, ImageData.Width, ImageData.Height));
+  Cairo := Target;
+  // RGB24 format is BGRX in memory and its unused byte is ignored
+  Surface := cairo_image_surface_create_for_data(GetPixelPointer(ImageData, SrcRect.Left, SrcRect.Top, 4),
+                                                 CAIRO_FORMAT_RGB24, RectWidth(SrcRect),
+                                                 RectHeight(SrcRect), ImageData.Width * 4);
+  cairo_save(Cairo);
+  try
+    cairo_rectangle(Cairo, DstRect.Left, DstRect.Top, RectWidth(DstRect), RectHeight(DstRect));
+    cairo_clip(Cairo);
+    cairo_translate(Cairo, DstRect.Left, DstRect.Top);
+    cairo_scale(Cairo, RectWidth(DstRect) / RectWidth(SrcRect), RectHeight(DstRect) / RectHeight(SrcRect));
+    cairo_set_source_surface(Cairo, Surface, 0, 0);
+    cairo_pattern_set_filter(cairo_get_source(Cairo), CAIRO_FILTER_NEAREST);
+    cairo_paint(Cairo);
+  finally
+    cairo_restore(Cairo);
+    cairo_surface_destroy(Surface);
+  end;
 end;
+{$IFEND}
 
-procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
+{$IF Defined(LCLcocoa)}
+type
+  TCocoaContextAccess = class(TCocoaContext);
+{$IFEND}
+
+{ Draws image in one of DirectDisplayFormats, rectangles are already clipped.}
+procedure DrawDisplayData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData;
+  const SrcRect: TRect);
 {$IF Defined(DCC) or Defined(LCLWIN32)} // Delphi or LCL Win32
 begin
-  DisplayImageDataOnDC(DstCanvas.Handle, DstRect, ImageData, SrcRect);
+  DrawDisplayTiles(DrawDisplayTileOnDC, Pointer(DstCanvas.Handle), DstRect, ImageData, SrcRect);
 end;
 {$ELSEIF Defined(LCLGTK2)}
-  procedure GDKDrawBitmap(Dest: HDC; DstX, DstY: Integer; SrcX, SrcY,
-    SrcWidth, SrcHeight: Integer; ImageData: TImageData);
-  var
-    P: TPoint;
-  begin
-    P := TGtkDeviceContext(Dest).Offset;
-    Inc(DstX, P.X);
-    Inc(DstY, P.Y);
-
-    if ImageData.Format = ifR8G8B8 then
-    begin
-      gdk_draw_rgb_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
-        DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
-        @PBuffer(ImageData.Bits)[(PtrInt(SrcY) * ImageData.Width + SrcX) * 3], ImageData.Width * 3);
-    end
-    else
-    begin
-      gdk_draw_rgb_32_image(TGtkDeviceContext(Dest).Drawable, TGtkDeviceContext(Dest).GC,
-        DstX, DstY, SrcWidth, SrcHeight, GDK_RGB_DITHER_NONE,
-        @PColor32RecBuffer(ImageData.Bits)[PtrInt(SrcY) * ImageData.Width + SrcX], ImageData.Width * 4);
-    end;
-  end;
-
 var
-  DisplayImage: TImageData;
-  NewWidth, NewHeight: Integer;
-  SrcBounds, DstBounds, DstClip: TRect;
+  Context: TGtkDeviceContext;
+  Cairo: Pcairo_t;
+  Clip: TRect;
+  ClipKind: Integer;
 begin
-  if TestImage(ImageData) then
-  begin
-    if not (ImageData.Format in [ifR8G8B8, ifA8R8G8B8, ifX8R8G8B8]) then
-      raise EImagingError.Create(SBadFormatDisplay);
+  Context := TGtkDeviceContext(DstCanvas.Handle);
+  ClipKind := WidgetSet.GetClipBox(DstCanvas.Handle, @Clip);
+  if ClipKind = NULLREGION then
+    Exit;
 
-    InitImage(DisplayImage);
-    SrcBounds := RectToBounds(SrcRect);
-    DstBounds := RectToBounds(DstRect);
-    WidgetSet.GetClipBox(DstCanvas.Handle, @DstClip);
-
-    ClipStretchBounds(SrcBounds.Left, SrcBounds.Top, SrcBounds.Right, SrcBounds.Bottom,
-      DstBounds.Left, DstBounds.Top, DstBounds.Right, DstBounds.Bottom, ImageData.Width,
-      ImageData.Height, DstClip);
-
-    NewWidth := DstBounds.Right;
-    NewHeight := DstBounds.Bottom;
-
-    if (NewWidth > 0) and (NewHeight > 0) then
+  Cairo := gdk_cairo_create(Context.Drawable);
+  try
+    cairo_translate(Cairo, Context.Offset.X, Context.Offset.Y);
+    if ClipKind <> ERROR then
     begin
-      if (SrcBounds.Right = NewWidth) and (SrcBounds.Bottom = NewHeight) then
-      try
-        CloneImage(ImageData, DisplayImage);
-        // Swap R-B channels for GTK display compatibility!
-        SwapChannels(DisplayImage, ChannelRed, ChannelBlue);
-        GDKDrawBitmap(DstCanvas.Handle, DstBounds.Left, DstBounds.Top,
-          SrcBounds.Left, SrcBounds.Top, NewWidth, NewHeight, DisplayImage);
-      finally
-        FreeImage(DisplayImage);
-      end
-      else
-      try
-        // Create new image with desired dimensions
-        NewImage(NewWidth, NewHeight, ImageData.Format, DisplayImage);
-        // Stretch pixels from old image to new one  TResizeFilter = (rfNearest, rfBilinear, rfBicubic);
-        StretchRect(ImageData, SrcBounds.Left, SrcBounds.Top, SrcBounds.Right,
-          SrcBounds.Bottom, DisplayImage, 0, 0, NewWidth, NewHeight, rfNearest);
-        // Swap R-B channels for GTK display compatibility!
-        SwapChannels(DisplayImage, ChannelRed, ChannelBlue);
-        GDKDrawBitmap(DstCanvas.Handle, DstBounds.Left, DstBounds.Top, 0, 0,
-          NewWidth, NewHeight, DisplayImage);
-       finally
-        FreeImage(DisplayImage);
-      end
+      cairo_rectangle(Cairo, Clip.Left, Clip.Top, RectWidth(Clip), RectHeight(Clip));
+      cairo_clip(Cairo);
     end;
+    DrawDisplayTiles(DrawDisplayTileOnCairo, Cairo, DstRect, ImageData, SrcRect);
+  finally
+    cairo_destroy(Cairo);
   end;
 end;
-{$ELSEIF Defined(LCLqt5)}
+{$ELSEIF Defined(LCLGTK3)}
+begin
+  // Cairo context of the DC has its clipping and origin already set
+  DrawDisplayTiles(DrawDisplayTileOnCairo, TGtk3DeviceContext(DstCanvas.Handle).pcr, DstRect,
+                   ImageData, SrcRect);
+end;
+{$ELSEIF Defined(LCLqt5) or Defined(LCLqt6)}
 var
   QImage: TQtImage;
   Context: TQtDeviceContext;
+  QSrcRect: TRect;
 begin
-  if TestImage(ImageData) then
-  begin
-    if not (ImageData.Format in [ifA8R8G8B8, ifX8R8G8B8]) then
-      raise EImagingError.Create(SBadFormatDisplay);
-
-    Context := TQtDeviceContext(DstCanvas.Handle);
-
-    // QImage directly uses the image memory, there is no copy done
-    QImage := TQtImage.Create(ImageData.Bits, ImageData.Width, ImageData.Height,
-      ImageData.Width * 4, QImageFormat_ARGB32, False);
-    try
-      QPainter_drawImage(Context.Widget, PRect(@DstRect), QImage.Handle, @SrcRect, QtAutoColor);
-    finally
-      QImage.Free;
-    end;
+  Context := TQtDeviceContext(DstCanvas.Handle);
+  // QImage uses image memory directly starting at the first row of SrcRect, no copy is made.
+  // RGB32 format is BGRX in memory and its unused byte is ignored.
+  QImage := TQtImage.Create(GetScanlinePointer(ImageData, SrcRect.Top, 4), ImageData.Width,
+                            RectHeight(SrcRect), ImageData.Width * 4, QImageFormat_RGB32, False);
+  try
+    QSrcRect := Rect(SrcRect.Left, 0, SrcRect.Right, RectHeight(SrcRect));
+    QPainter_drawImage(Context.Widget, PRect(@DstRect), QImage.Handle, @QSrcRect, QtAutoColor);
+  finally
+    QImage.Free;
   end;
 end;
 {$ELSEIF Defined(LCLcocoa)}
 var
-  CocoaBmp: TCocoaBitmap;
   Context: TCocoaContext;
+  CG: CGContextRef;
+  SrcWidth, SrcHeight: Integer;
+  ColorSpace: CGColorSpaceRef;
+  Provider: CGDataProviderRef;
+  Image: CGImageRef;
 begin
-  if TestImage(ImageData) then
-  begin
-    if not (ImageData.Format in [ifA8R8G8B8, ifX8R8G8B8]) then
-      raise EImagingError.Create(SBadFormatDisplay);
+  Context := TCocoaGDIUtil.CheckDC(DstCanvas.Handle);
+  if Context = nil then
+    Exit;
 
-    Context := TCocoaGDIUtil.CheckDC(DstCanvas.Handle);
+  CG := Context.CGContext;
+  SrcWidth := RectWidth(SrcRect);
+  SrcHeight := RectHeight(SrcRect);
 
-    // We copy the data since it needs R/B swap and potentially alpha pre-multiply
-    CocoaBmp := TCocoaBitmap.Create(ImageData.Width, ImageData.Height, 32, 32,
-      cbaDWord, cbtBGRA, ImageData.Bits, True);
+  // Data provider uses image memory directly starting at the first
+  // pixel of SrcRect, no copy is made
+  Provider := CGDataProviderCreateWithData(nil, GetPixelPointer(ImageData, SrcRect.Left, SrcRect.Top, 4),
+                                           PtrInt(SrcHeight - 1) * ImageData.Width * 4 + SrcWidth * 4, nil);
+  ColorSpace := CGColorSpaceCreateDeviceRGB;
+  // BGRX in memory, the unused byte is ignored
+  Image := CGImageCreate(SrcWidth, SrcHeight, 8, 32, ImageData.Width * 4, ColorSpace,
+                         kCGImageAlphaNoneSkipFirst or kCGBitmapByteOrder32Little, Provider,
+                         nil, 0, kCGRenderingIntentDefault);
+  try
+    CGContextSaveGState(CG);
     try
-      Context.DrawImageRep(TCocoaTypeUtil.toRect(DstRect), TCocoaTypeUtil.toRect(SrcRect), CocoaBmp.ImageRep);
+      CGContextSetInterpolationQuality(CG, kCGInterpolationNone);
+      // LCL context has Y axis going down, flip it around the destination
+      // rectangle so the image is not drawn upside down
+      CGContextTranslateCTM(CG, 0, DstRect.Top + DstRect.Bottom);
+      CGContextScaleCTM(CG, 1, -1);
+      CGContextDrawImage(CG, CGRectMake(DstRect.Left, DstRect.Top, RectWidth(DstRect),
+                         RectHeight(DstRect)), Image);
     finally
-      CocoaBmp.Free;
+      CGContextRestoreGState(CG);
     end;
+  finally
+    CGImageRelease(Image);
+    CGColorSpaceRelease(ColorSpace);
+    CGDataProviderRelease(Provider);
   end;
+
+  // Canvas of TBitmap needs to know its pixels have changed
+  TCocoaContextAccess(Context).AttachedBitmap_SetModified;
 end;
 {$ELSE}
+var
+  Region: TImageData;
+  Bitmap: TBitmap;
 begin
-  raise EImagingError.Create(SUnsupportedLCLWidgetSet);
+  // Slower fallback for other widget sets, only SrcRect part
+  // of the image is converted to TBitmap
+  InitImage(Region);
+  Bitmap := TBitmap.Create;
+  try
+    NewImage(RectWidth(SrcRect), RectHeight(SrcRect), ImageData.Format, Region);
+    CopyRect(ImageData, SrcRect.Left, SrcRect.Top, Region.Width, Region.Height, Region, 0, 0);
+    // Opaque format so the unused byte of X8R8G8B8 is not taken as alpha
+    ConvertImage(Region, ifR8G8B8);
+    ConvertDataToBitmap(Region, Bitmap);
+    DstCanvas.StretchDraw(DstRect, Bitmap);
+  finally
+    Bitmap.Free;
+    FreeImage(Region);
+  end;
 end;
 {$IFEND}
+
+procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData);
+begin
+  DisplayImageData(DstCanvas, DstRect, ImageData, Types.Rect(0, 0, ImageData.Width, ImageData.Height));
+end;
+
+procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect);
+var
+  Dst, Src: TRect;
+  Region: TImageData;
+  Data: PImageData;
+begin
+  Dst := DstRect;
+  Src := SrcRect;
+  InitImage(Region);
+  try
+    Data := PrepareDisplayData(ImageData, Dst, Src, Region);
+    if Data <> nil then
+      DrawDisplayData(DstCanvas, Dst, Data^, Src);
+  finally
+    FreeImage(Region);
+  end;
+end;
 
 procedure DisplayImage(DstCanvas: TCanvas; DstX, DstY: LongInt; Image: TBaseImage);
 begin
