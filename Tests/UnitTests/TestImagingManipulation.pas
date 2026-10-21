@@ -37,6 +37,20 @@ type
     procedure TestIndexedIgnoresFilter;
   end;
 
+  { Clipped StretchRect gives the same pixels as the same part of unclipped
+    stretching, for all filters. Clipping used to shift and rescale the
+    sampled source.}
+  TTestStretchClipped = class(TImagingTestCase)
+  private
+    procedure CheckClipped(Format: TImageFormat; Filter: TResizeFilter; SrcWidth, SrcHeight,
+      DstWidth, DstHeight, OffsetX, OffsetY, PartWidth, PartHeight: Integer);
+    procedure CheckSourceOutside(Format: TImageFormat; Filter: TResizeFilter);
+  published
+    procedure TestNearest;
+    procedure TestResampling;
+    procedure TestSourceOutsideOfImage;
+  end;
+
   { Rotations by multiples of 90 degrees (counterclockwise).}
   TTestRotate = class(TImagingTestCase)
   private
@@ -59,6 +73,131 @@ implementation
 function PixelPtr(const Image: TImageData; X, Y, Bpp: Integer): PByte;
 begin
   Result := @PBuffer(Image.Bits)[(PtrInt(Y) * Image.Width + X) * Bpp];
+end;
+
+{ TTestStretchClipped }
+
+procedure TTestStretchClipped.CheckClipped(Format: TImageFormat; Filter: TResizeFilter;
+  SrcWidth, SrcHeight, DstWidth, DstHeight, OffsetX, OffsetY, PartWidth, PartHeight: Integer);
+var
+  Src, Full, Part: TImageData;
+  Info: TImageFormatInfo;
+  X, Y, Bpp: Integer;
+  Msg: string;
+begin
+  CheckTrue(GetImageFormatInfo(Format, Info), 'Format info');
+  Bpp := Info.BytesPerPixel;
+  Msg := SysUtils.Format('%s filter %d %dx%d to %dx%d, part at [%d, %d]',
+    [Info.Name, Ord(Filter), SrcWidth, SrcHeight, DstWidth, DstHeight, OffsetX, OffsetY]);
+
+  InitImage(Src);
+  InitImage(Full);
+  InitImage(Part);
+  try
+    CheckTrue(NewImage(SrcWidth, SrcHeight, Format, Src), Msg + ': NewImage');
+    FillTestImage(Src, 20261021);
+    CheckTrue(NewImage(DstWidth, DstHeight, Format, Full), Msg + ': NewImage');
+    CheckTrue(NewImage(PartWidth, PartHeight, Format, Part), Msg + ': NewImage');
+
+    CheckTrue(StretchRect(Src, 0, 0, SrcWidth, SrcHeight, Full, 0, 0, DstWidth, DstHeight, Filter),
+              Msg + ': unclipped StretchRect');
+    // The same destination rectangle, moved so that only its part fits into Part
+    CheckTrue(StretchRect(Src, 0, 0, SrcWidth, SrcHeight, Part, -OffsetX, -OffsetY,
+                          DstWidth, DstHeight, Filter), Msg + ': clipped StretchRect');
+
+    for Y := 0 to PartHeight - 1 do
+      for X := 0 to PartWidth - 1 do
+      begin
+        if not CompareMem(PixelPtr(Part, X, Y, Bpp), PixelPtr(Full, X + OffsetX, Y + OffsetY, Bpp), Bpp) then
+        begin
+          Fail(SysUtils.Format('%s: pixel [%d, %d] differs from unclipped pixel [%d, %d]',
+            [Msg, X, Y, X + OffsetX, Y + OffsetY]));
+        end;
+      end;
+  finally
+    FreeImage(Src);
+    FreeImage(Full);
+    FreeImage(Part);
+  end;
+end;
+
+procedure TTestStretchClipped.CheckSourceOutside(Format: TImageFormat; Filter: TResizeFilter);
+const
+  Width = 30;
+  Height = 20;
+  Margin = 10;
+  Zoom = 2;
+var
+  Src, Outside, Inside: TImageData;
+  Info: TImageFormatInfo;
+  Msg: string;
+begin
+  CheckTrue(GetImageFormatInfo(Format, Info), 'Format info');
+  Msg := SysUtils.Format('%s filter %d', [Info.Name, Ord(Filter)]);
+
+  InitImage(Src);
+  InitImage(Outside);
+  InitImage(Inside);
+  try
+    CheckTrue(NewImage(Width, Height, Format, Src), Msg + ': NewImage');
+    FillTestImage(Src, 20261021);
+    CheckTrue(NewImage((Width + Margin) * Zoom, (Height + Margin) * Zoom, Format, Outside), Msg + ': NewImage');
+    CheckTrue(NewImage((Width + Margin) * Zoom, (Height + Margin) * Zoom, Format, Inside), Msg + ': NewImage');
+
+    // Source rectangle starts Margin pixels before the image: destination
+    // pixels mapped there are not drawn, the rest is the same as stretching of
+    // the image itself to the matching place
+    CheckTrue(StretchRect(Src, -Margin, -Margin, Width + Margin, Height + Margin, Outside, 0, 0,
+                          (Width + Margin) * Zoom, (Height + Margin) * Zoom, Filter),
+              Msg + ': source outside');
+    CheckTrue(StretchRect(Src, 0, 0, Width, Height, Inside, Margin * Zoom, Margin * Zoom,
+                          Width * Zoom, Height * Zoom, Filter), Msg + ': source inside');
+    CheckTrue(CompareMem(Outside.Bits, Inside.Bits, Inside.Size), Msg + ': results differ');
+  finally
+    FreeImage(Src);
+    FreeImage(Outside);
+    FreeImage(Inside);
+  end;
+end;
+
+procedure TTestStretchClipped.TestNearest;
+const
+  Formats: array[0..4] of TImageFormat = (ifIndex8, ifGray8, ifR8G8B8, ifA8R8G8B8, ifA16R16G16B16);
+var
+  I: Integer;
+begin
+  for I := Low(Formats) to High(Formats) do
+  begin
+    // 10x zoom clipped by 15 pixels, 3x zoom by 1 pixel, 7.3x and downscale
+    CheckClipped(Formats[I], rfNearest, 40, 30, 400, 300, 15, 15, 200, 150);
+    CheckClipped(Formats[I], rfNearest, 40, 30, 120, 90, 1, 2, 100, 80);
+    CheckClipped(Formats[I], rfNearest, 40, 30, 292, 219, 40, 37, 120, 100);
+    CheckClipped(Formats[I], rfNearest, 200, 150, 74, 55, 3, 5, 60, 40);
+  end;
+end;
+
+procedure TTestStretchClipped.TestResampling;
+const
+  Formats: array[0..2] of TImageFormat = (ifGray8, ifA8R8G8B8, ifA32R32G32B32F);
+  Filters: array[0..2] of TResizeFilter = (rfBilinear, rfBicubic, rfLanczos);
+var
+  I, J: Integer;
+begin
+  for I := Low(Formats) to High(Formats) do
+    for J := Low(Filters) to High(Filters) do
+    begin
+      CheckClipped(Formats[I], Filters[J], 40, 30, 400, 300, 15, 15, 200, 150);
+      CheckClipped(Formats[I], Filters[J], 40, 30, 292, 219, 40, 37, 120, 100);
+      CheckClipped(Formats[I], Filters[J], 200, 150, 74, 55, 3, 5, 60, 40);
+    end;
+end;
+
+procedure TTestStretchClipped.TestSourceOutsideOfImage;
+begin
+  CheckSourceOutside(ifGray8, rfNearest);
+  CheckSourceOutside(ifA8R8G8B8, rfNearest);
+  CheckSourceOutside(ifA8R8G8B8, rfBilinear);
+  CheckSourceOutside(ifA8R8G8B8, rfBicubic);
 end;
 
 { TTestResizeNearest }
@@ -448,6 +587,7 @@ end;
 
 initialization
   RegisterImagingTest(TTestResizeNearest);
+  RegisterImagingTest(TTestStretchClipped);
   RegisterImagingTest(TTestRotate);
   RegisterImagingTest(TTestPalettes);
 end.

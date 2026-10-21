@@ -47,6 +47,7 @@ type
     procedure TestConvolution;
     procedure TestNonLinearFilters;
     procedure TestStretchDrawAlphaLongSource;
+    procedure TestStretchDrawClipped;
   end;
 
 implementation
@@ -458,6 +459,97 @@ begin
     DestCanvas.Free;
     FreeImage(Dest);
   end;
+end;
+
+procedure TTestCanvases.TestStretchDrawClipped;
+const
+  SrcWidth = 30;
+  SrcHeight = 20;
+  DestWidth = 220;
+  DestHeight = 160;
+
+  function IsZero(P: PByte; Count: Integer): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := True;
+    for I := 0 to Count - 1 do
+      if PBuffer(P)[I] <> 0 then
+        Result := False;
+  end;
+
+  procedure CheckDraw(DataFormat: TImageFormat; Filter: TResizeFilter; const DestRect, Clip: TRect);
+  var
+    Full, Clipped: TImageData;
+    FullCanvas, ClippedCanvas: TImagingCanvas;
+    Info: TImageFormatInfo;
+    X, Y, Bpp: Integer;
+    Inside: Boolean;
+    FullPix, ClippedPix: PByte;
+    Msg: string;
+  begin
+    GetImageFormatInfo(DataFormat, Info);
+    Bpp := Info.BytesPerPixel;
+    Msg := Format('%s filter %d to [%d, %d, %d, %d] clip [%d, %d, %d, %d]', [Info.Name, Ord(Filter),
+      DestRect.Left, DestRect.Top, DestRect.Right, DestRect.Bottom, Clip.Left, Clip.Top, Clip.Right, Clip.Bottom]);
+
+    NewCanvas(SrcWidth, SrcHeight, DataFormat);
+    FillTestImage(FImage, 20261021);
+    InitImage(Full);
+    InitImage(Clipped);
+    FullCanvas := nil;
+    ClippedCanvas := nil;
+    try
+      CheckTrue(NewImage(DestWidth, DestHeight, DataFormat, Full), 'NewImage');
+      CheckTrue(NewImage(DestWidth, DestHeight, DataFormat, Clipped), 'NewImage');
+      FillChar(Full.Bits^, Full.Size, 0);
+      FillChar(Clipped.Bits^, Clipped.Size, 0);
+      FullCanvas := FindBestCanvasForImage(Full).CreateForData(@Full);
+      ClippedCanvas := FindBestCanvasForImage(Clipped).CreateForData(@Clipped);
+      ClippedCanvas.ClipRect := Clip;
+
+      FCanvas.StretchDrawAlpha(Rect(0, 0, SrcWidth, SrcHeight), FullCanvas, DestRect, Filter);
+      FCanvas.StretchDrawAlpha(Rect(0, 0, SrcWidth, SrcHeight), ClippedCanvas, DestRect, Filter);
+
+      // Inside of the clip the pixels are the same as without it, outside stay zero
+      for Y := 0 to DestHeight - 1 do
+        for X := 0 to DestWidth - 1 do
+        begin
+          Inside := (X >= Clip.Left) and (X < Clip.Right) and (Y >= Clip.Top) and (Y < Clip.Bottom);
+          FullPix := @PBuffer(Full.Bits)[(PtrInt(Y) * DestWidth + X) * Bpp];
+          ClippedPix := @PBuffer(Clipped.Bits)[(PtrInt(Y) * DestWidth + X) * Bpp];
+
+          if Inside and not CompareMem(FullPix, ClippedPix, Bpp) then
+            Fail(Format('%s: pixel [%d, %d] differs from unclipped drawing', [Msg, X, Y]));
+          if not Inside and not IsZero(ClippedPix, Bpp) then
+            Fail(Format('%s: pixel [%d, %d] outside of the clip is drawn', [Msg, X, Y]));
+        end;
+    finally
+      FullCanvas.Free;
+      ClippedCanvas.Free;
+      FreeImage(Full);
+      FreeImage(Clipped);
+    end;
+  end;
+
+const
+  // TFastARGB32Canvas (own nearest and bilinear, bicubic by the base class)
+  // and the base canvas class
+  Formats: array[0..1] of TImageFormat = (ifA8R8G8B8, ifR8G8B8);
+  Filters: array[0..2] of TResizeFilter = (rfNearest, rfBilinear, rfBicubic);
+var
+  I, J: Integer;
+begin
+  for I := Low(Formats) to High(Formats) do
+    for J := Low(Filters) to High(Filters) do
+    begin
+      // 10x zoom starting before the image, clip in the middle
+      CheckDraw(Formats[I], Filters[J], Rect(-15, -7, 285, 193), Rect(13, 9, 170, 120));
+      // 7.3x zoom, clip cuts the destination rectangle on all sides
+      CheckDraw(Formats[I], Filters[J], Rect(5, 3, 224, 149), Rect(41, 37, 150, 100));
+      // Downscale
+      CheckDraw(Formats[I], Filters[J], Rect(10, 10, 21, 18), Rect(13, 11, 20, 17));
+    end;
 end;
 
 initialization

@@ -2537,23 +2537,26 @@ var
   WorkImage: TImageData;
   OldFormat: TImageFormat;
   Resampling: TSamplingFilter;
+  DrawnRect, SrcValidRect: TRect;
 begin
   Result := False;
   OldFormat := ifUnknown;
   if TestImage(SrcImage) and TestImage(DstImage) then
   try
-    // Make sure we are still copying image to image, not invalid pointer to protected memory
-    ClipStretchBounds(SrcX, SrcY, SrcWidth, SrcHeight, DstX, DstY, DstWidth, DstHeight,
-      SrcImage.Width, SrcImage.Height, Rect(0, 0, DstImage.Width, DstImage.Height));
-
     if (SrcWidth = DstWidth) and (SrcHeight = DstHeight) then
     begin
-      // If source and dest rectangles have the same size call CopyRect
+      // If source and dest rectangles have the same size call CopyRect (it clips itself)
       Result := CopyRect(SrcImage, SrcX, SrcY, SrcWidth, SrcHeight, DstImage, DstX, DstY);
     end
-    else if (SrcWidth > 0) and (SrcHeight > 0) and (DstWidth > 0) and (DstHeight > 0) then
+    else if ClipStretchRects(BoundsToRect(SrcX, SrcY, SrcWidth, SrcHeight),
+                             BoundsToRect(DstX, DstY, DstWidth, DstHeight),
+                             SrcImage.Width, SrcImage.Height,
+                             Rect(0, 0, DstImage.Width, DstImage.Height),
+                             DrawnRect, SrcValidRect) then
     begin
-      // If source and dest rectangles don't have the same size we do stretch
+      // If source and dest rectangles don't have the same size we do stretch.
+      // Only pixels in DrawnRect are written, source positions are still computed
+      // from the whole rectangles so clipping does not shift the result.
       Info := ImageFormatInfos[DstImage.Format];
 
       if Info.IsSpecial then
@@ -2581,7 +2584,7 @@ begin
       if Filter = rfNearest then
       begin
         StretchNearest(WorkImage, SrcX, SrcY, SrcWidth, SrcHeight,
-          DstImage, DstX, DstY, DstWidth, DstHeight);
+                       DstImage, DstX, DstY, DstWidth, DstHeight, DrawnRect);
       end
       else
       begin
@@ -2591,8 +2594,11 @@ begin
           rfBicubic:  Resampling := DefaultCubicFilter;
           rfLanczos:  Resampling := sfLanczos;
         end;
+
         StretchResample(WorkImage, SrcX, SrcY, SrcWidth, SrcHeight,
-          DstImage, DstX, DstY, DstWidth, DstHeight, Resampling);
+                        DstImage, DstX, DstY, DstWidth, DstHeight,
+                        SamplingFilterFunctions[Resampling], SamplingFilterRadii[Resampling],
+                        False, DrawnRect);
       end;
 
       // If dest image was in special format we convert it back

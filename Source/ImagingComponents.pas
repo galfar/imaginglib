@@ -759,35 +759,6 @@ const
   // Data formats that are drawn directly from image memory
   DirectDisplayFormats = [ifA8R8G8B8, ifX8R8G8B8];
 
-{ Clips SrcRect to the image and moves edges of DstRect so that the scale
-  stays the same. Returns False when there is nothing to draw.}
-function ClipDisplayRects(const ImageData: TImageData; var DstRect, SrcRect: TRect): Boolean;
-var
-  ScaleX, ScaleY: Double;
-  Clipped: TRect;
-begin
-  Result := False;
-  if (RectWidth(SrcRect) <= 0) or (RectHeight(SrcRect) <= 0) or
-     (RectWidth(DstRect) <= 0) or (RectHeight(DstRect) <= 0) then
-    Exit;
-
-  ScaleX := RectWidth(DstRect) / RectWidth(SrcRect);
-  ScaleY := RectHeight(DstRect) / RectHeight(SrcRect);
-  Clipped.Left := Max(SrcRect.Left, 0);
-  Clipped.Top := Max(SrcRect.Top, 0);
-  Clipped.Right := Min(SrcRect.Right, ImageData.Width);
-  Clipped.Bottom := Min(SrcRect.Bottom, ImageData.Height);
-  if (Clipped.Left >= Clipped.Right) or (Clipped.Top >= Clipped.Bottom) then
-    Exit;
-
-  Inc(DstRect.Left, Round((Clipped.Left - SrcRect.Left) * ScaleX));
-  Inc(DstRect.Top, Round((Clipped.Top - SrcRect.Top) * ScaleY));
-  Dec(DstRect.Right, Round((SrcRect.Right - Clipped.Right) * ScaleX));
-  Dec(DstRect.Bottom, Round((SrcRect.Bottom - Clipped.Bottom) * ScaleY));
-  SrcRect := Clipped;
-  Result := (DstRect.Right > DstRect.Left) and (DstRect.Bottom > DstRect.Top);
-end;
-
 { Clips the rectangles and returns image in one of DirectDisplayFormats to be drawn.
   That is ImageData itself, or Region with converted SrcRect part of it (SrcRect
   is then moved to Region coordinates). Returns nil when there is nothing to draw.}
@@ -795,10 +766,18 @@ function PrepareDisplayData(const ImageData: TImageData; var DstRect, SrcRect: T
   var Region: TImageData): PImageData;
 var
   Info: TImageFormatInfo;
+  DrawnRect, SrcValidRect: TRect;
 begin
   Result := nil;
-  if not TestImage(ImageData) or not ClipDisplayRects(ImageData, DstRect, SrcRect) then
+  // Source is clipped to the image here (destination pixels whose centers map
+  // outside of it are left out), the platform clips the destination
+  if not TestImage(ImageData) or
+     not ClipStretchRects(SrcRect, DstRect, ImageData.Width, ImageData.Height, DstRect,
+                          DrawnRect, SrcValidRect) then
     Exit;
+
+  DstRect := DrawnRect;
+  SrcRect := SrcValidRect;
 
   if ImageData.Format in DirectDisplayFormats then
   begin
