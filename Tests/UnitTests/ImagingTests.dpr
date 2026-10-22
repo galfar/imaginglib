@@ -77,7 +77,8 @@ uses
   TestImagingHuge in 'TestImagingHuge.pas',
   TestImagingFileFormats in 'TestImagingFileFormats.pas',
   TestImagingTiff in 'TestImagingTiff.pas',
-  TestImagingDynLibs in 'TestImagingDynLibs.pas';
+  TestImagingDynLibs in 'TestImagingDynLibs.pas',
+  TestImagingComponents in 'TestImagingComponents.pas';
 
 {$IFDEF FPC}
 type
