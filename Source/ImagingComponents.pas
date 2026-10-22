@@ -305,10 +305,14 @@ procedure ConvertDataToBitmap(const Data: TImageData; Bitmap: TBitmap);
   - LCL GTK3: sides up to 32767 pixels and data under 2 GB.
   - LCL Qt5, Qt6, Cocoa, and others: no limit known (Qt was tested up to sides
     of 100000 pixels and 4.5 GB of data; Qt5 canvas does not paint beyond
-    32767 pixels, the bitmap itself is fine). Bitmap creation may still fail
-    for lack of memory.}
+    32767 pixels, the bitmap itself is fine).
+  Bitmap creation may of course still fail for lack of memory.}
 function CanConvertDataToBitmap(const Data: TImageData): Boolean;
-{ Converts VCL/LCL bitmap to TImageData structure.}
+{ Converts VCL/LCL bitmap to TImageData structure. 32 bit bitmap data with
+  alpha 0 in all pixels is taken as bitmap without alpha data (as GDI and
+  canvas drawing give it) and gives ifX8R8G8B8, so a fully transparent bitmap
+  becomes opaque. Colors of VCL bitmaps with alpha (kept premultiplied by VCL)
+  are unpremultiplied.}
 procedure ConvertBitmapToData(Bitmap: TBitmap; var Data: TImageData);
 { Converts TBaseImage instance to VCL/LCL bitmap.}
 procedure ConvertImageToBitmap(Image: TBaseImage; Bitmap: TBitmap);
@@ -334,8 +338,8 @@ procedure ConvertDataToRawImage(const Data: TImageData; out RawImage: TRawImage)
   bit RGB with or without alpha, gray, R5G6B5, X1R5G5B5), rows are copied
   directly. Other layouts (palettes, unusual channels) are read through
   TLazIntfImage to ifA8R8G8B8/ifX8R8G8B8 or 16 bit per channel formats.
-  32 bit data with alpha 0 in all pixels is returned as ifX8R8G8B8.
-  Returns False for empty or too small raw image.}
+  Returns False for empty raw image or when its data is smaller than the
+  description says, Data is changed only when True is returned.}
 function ConvertRawImageToData(const RawImage: TRawImage; var Data: TImageData): Boolean;
 {$ENDIF}
 
@@ -812,6 +816,7 @@ var
   SwapRB, HasAlpha, HighPrec: Boolean;
   Y, X, SrcY: Integer;
   SrcLineBytes, DstLineBytes: PtrUInt;
+  Work: TImageData;
   Intf: TLazIntfImage;
   Color: TFPColor;
   P: PColor64Rec;
@@ -819,85 +824,97 @@ var
 begin
   Result := False;
   Desc := RawImage.Description;
-  if (Desc.Width <= 0) or (Desc.Height <= 0) or (RawImage.Data = nil) then
+  if (Desc.Width <= 0) or (Desc.Height <= 0) or (Desc.BitsPerPixel = 0) or (RawImage.Data = nil) then
     Exit;
 
-  Format := RawDescriptionToDataFormat(Desc, SwapRB);
-  if Format <> ifUnknown then
-  begin
-    // Rows are copied as they are, only padding and order of rows can differ
-    if not NewImage(Desc.Width, Desc.Height, Format, Data) then
-      Exit;
-    SrcLineBytes := GetBytesPerLine(Desc.Width, Desc.BitsPerPixel, Desc.LineEnd);
-    DstLineBytes := PtrUInt(Data.Size div Data.Height);
-    if RawImage.DataSize < SrcLineBytes * PtrUInt(Desc.Height) then
-      Exit;
+  SrcLineBytes := GetBytesPerLine(Desc.Width, Desc.BitsPerPixel, Desc.LineEnd);
+  if RawImage.DataSize < SrcLineBytes * PtrUInt(Desc.Height) then
+    Exit;
 
-    for Y := 0 to Desc.Height - 1 do
+  // Decoded to a work image, Data is replaced only when it succeeds
+  InitImage(Work);
+  try
+    Format := RawDescriptionToDataFormat(Desc, SwapRB);
+    if Format <> ifUnknown then
     begin
-      if Desc.LineOrder = riloBottomToTop then
-        SrcY := Desc.Height - 1 - Y
+      // Rows are copied as they are, only padding and order of rows can differ
+      if not NewImage(Desc.Width, Desc.Height, Format, Work) then
+        Exit;
+      DstLineBytes := PtrUInt(Work.Size div Work.Height);
+
+      for Y := 0 to Desc.Height - 1 do
+      begin
+        if Desc.LineOrder = riloBottomToTop then
+          SrcY := Desc.Height - 1 - Y
+        else
+          SrcY := Y;
+
+        Move(PBuffer(RawImage.Data)[PtrUInt(SrcY) * SrcLineBytes],
+             GetScanlinePointer(Work, Y)^, DstLineBytes);
+      end;
+
+      if SwapRB then
+        SwapChannels(Work, ChannelRed, ChannelBlue);
+    end
+    else
+    begin
+      // Other layouts (palettes, packed or unusual channels) are read by LCL
+      HasAlpha := Desc.AlphaPrec > 0;
+      HighPrec := (Desc.RedPrec > 8) or (Desc.GreenPrec > 8) or (Desc.BluePrec > 8);
+      if HighPrec then
+        Format := ifA16R16G16B16
       else
-        SrcY := Y;
-      Move(PBuffer(RawImage.Data)[PtrUInt(SrcY) * SrcLineBytes],
-           GetScanlinePointer(Data, Y)^, DstLineBytes);
+        Format := ifA8R8G8B8;
+      if not NewImage(Desc.Width, Desc.Height, Format, Work) then
+        Exit;
+
+      Intf := TLazIntfImage.Create(RawImage, False);
+      try
+        for Y := 0 to Desc.Height - 1 do
+          for X := 0 to Desc.Width - 1 do
+          begin
+            Color := Intf.Colors[X, Y];
+            if not HasAlpha then
+              Color.Alpha := $FFFF;
+            if HighPrec then
+            begin
+              P := GetPixelPointer(Work, X, Y, 8);
+              P.A := Color.Alpha;
+              P.R := Color.Red;
+              P.G := Color.Green;
+              P.B := Color.Blue;
+            end
+            else
+            begin
+              P32 := GetPixelPointer(Work, X, Y, 4);
+              P32.A := Color.Alpha shr 8;
+              P32.R := Color.Red shr 8;
+              P32.G := Color.Green shr 8;
+              P32.B := Color.Blue shr 8;
+            end;
+          end;
+      finally
+        // Data of RawImage stays with the caller
+        Intf.Free;
+      end;
+
+      if not HasAlpha then
+      begin
+        if HighPrec then
+          ConvertImage(Work, ifR16G16B16)
+        else
+          Work.Format := ifX8R8G8B8;
+      end;
     end;
 
-    if SwapRB then
-      SwapChannels(Data, ChannelRed, ChannelBlue);
-    FixBitmapAlpha(Data);
+    // Work image is handed over to Data
+    FreeImage(Data);
+    Data := Work;
+    InitImage(Work);
     Result := True;
-    Exit;
-  end;
-
-  // Other layouts (palettes, packed or unusual channels) are read by LCL
-  HasAlpha := Desc.AlphaPrec > 0;
-  HighPrec := (Desc.RedPrec > 8) or (Desc.GreenPrec > 8) or (Desc.BluePrec > 8);
-  if HighPrec then
-    Format := ifA16R16G16B16
-  else
-    Format := ifA8R8G8B8;
-  if not NewImage(Desc.Width, Desc.Height, Format, Data) then
-    Exit;
-
-  Intf := TLazIntfImage.Create(RawImage, False);
-  try
-    for Y := 0 to Desc.Height - 1 do
-      for X := 0 to Desc.Width - 1 do
-      begin
-        Color := Intf.Colors[X, Y];
-        if not HasAlpha then
-          Color.Alpha := $FFFF;
-        if HighPrec then
-        begin
-          P := GetPixelPointer(Data, X, Y, 8);
-          P.A := Color.Alpha;
-          P.R := Color.Red;
-          P.G := Color.Green;
-          P.B := Color.Blue;
-        end
-        else
-        begin
-          P32 := GetPixelPointer(Data, X, Y, 4);
-          P32.A := Color.Alpha shr 8;
-          P32.R := Color.Red shr 8;
-          P32.G := Color.Green shr 8;
-          P32.B := Color.Blue shr 8;
-        end;
-      end;
   finally
-    // Data of RawImage stays with the caller
-    Intf.Free;
+    FreeImage(Work);
   end;
-
-  if not HasAlpha then
-  begin
-    if HighPrec then
-      ConvertImage(Data, ifR16G16B16)
-    else
-      Data.Format := ifX8R8G8B8;
-  end;
-  Result := True;
 end;
 
 const
@@ -1172,6 +1189,8 @@ begin
 
   if not Converted then
     RaiseImaging(SBadFormatBitmapToData, []);
+
+  FixBitmapAlpha(Data);
 {$ENDIF}
 end;
 
