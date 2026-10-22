@@ -701,13 +701,12 @@ begin
   try
     if not MapImageDataToRawImage(Data, Mapped) then
     begin
-      CloneImage(Data, WorkData);
       GetImageFormatInfo(Data.Format, Info);
       if Info.HasAlphaChannel or Info.IsSpecial or
          (Info.IsIndexed and PaletteHasAlpha(Data.Palette, Info.PaletteEntries)) then
-        ConvertImage(WorkData, ifA8R8G8B8)
+        ConvertImageInto(Data, WorkData, ifA8R8G8B8)
       else
-        ConvertImage(WorkData, ifX8R8G8B8);
+        ConvertImageInto(Data, WorkData, ifX8R8G8B8);
       MapImageDataToRawImage(WorkData, Mapped);
     end;
 
@@ -1037,8 +1036,7 @@ begin
       WorkData := Data
     else
     begin
-      CloneImage(Data, WorkData);
-      ConvertImage(WorkData, Format);
+      ConvertImageInto(Data, WorkData, Format);
       if (Format = ifA8R8G8B8) and not DataHasAlpha(Data, Info) then
         FillAlpha255(WorkData);
     end;

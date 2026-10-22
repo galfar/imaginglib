@@ -1974,8 +1974,7 @@ begin
   if Info.IsSpecial then
   begin
     InitImage(CompatibleCopy);
-    CloneImage(BiggerLevel, CompatibleCopy);
-    ConvertImage(CompatibleCopy, ifDefault);
+    ConvertImageInto(BiggerLevel, CompatibleCopy, ifDefault);
   end
   else
     CompatibleCopy := BiggerLevel;

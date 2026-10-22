@@ -992,9 +992,7 @@ begin
         // Input image must be resized or converted to different format
         // to become valid mipmap level
         InitImage(ImageToSave);
-        CloneImage(Images[I], ImageToSave);
-        if NeedsConvert then
-          ConvertImage(ImageToSave, Format);
+        ConvertImageInto(Images[I], ImageToSave, Format);
         if NeedsResize then
           ResizeImage(ImageToSave, CurrentWidth, CurrentHeight, rfBilinear);
       end
