@@ -945,9 +945,7 @@ begin
   if Format = ifUnknown then
     Exit;
 
-  Result := CloneImage(Image1, Common1) and CloneImage(Image2, Common2) and
-    ((Common1.Format = Format) or ConvertImage(Common1, Format)) and
-    ((Common2.Format = Format) or ConvertImage(Common2, Format));
+  Result := ConvertImageInto(Image1, Common1, Format) and ConvertImageInto(Image2, Common2, Format);
 
   if not Result then
   begin

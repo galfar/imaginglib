@@ -141,10 +141,11 @@ begin
   if TestImage(ImageData) then
   begin
     InitImage(WorkData);
-    CloneImage(ImageData, WorkData);
     // Image is converted to override format
     if OverrideFormat <> ifUnknown then
-      ConvertImage(WorkData, OverrideFormat);
+      ConvertImageInto(ImageData, WorkData, OverrideFormat)
+    else
+      CloneImage(ImageData, WorkData);
 
     GetImageFormatInfo(WorkData.Format, Info);
     // Image is first converted to format supported by SDL

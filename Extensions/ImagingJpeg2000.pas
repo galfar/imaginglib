@@ -62,8 +62,7 @@ type
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-    procedure ConvertToSupported(var Image: TImageData;
-      const Info: TImageFormatInfo); override;
+    function GetConversionFormat(const Info: TImageFormatInfo): TImageFormat; override;
   public
     function TestFormat(Handle: TImagingHandle): Boolean; override;
     procedure CheckOptionsValidity; override;
@@ -581,23 +580,18 @@ begin
   end;
 end;
 
-procedure TJpeg2000FileFormat.ConvertToSupported(var Image: TImageData;
-  const Info: TImageFormatInfo);
-var
-  ConvFormat: TImageFormat;
+function TJpeg2000FileFormat.GetConversionFormat(const Info: TImageFormatInfo): TImageFormat;
 begin
   if Info.IsFloatingPoint then
-    ConvFormat := IffFormat(Info.ChannelCount = 1, ifGray16, ifA16R16G16B16)
+    Result := IffFormat(Info.ChannelCount = 1, ifGray16, ifA16R16G16B16)
   else if Info.HasGrayChannel then
-    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16Gray16, ifGray16)
+    Result := IffFormat(Info.HasAlphaChannel, ifA16Gray16, ifGray16)
   else if Info.IsIndexed then
-    ConvFormat := ifA8R8G8B8
+    Result := ifA8R8G8B8
   else if Info.BytesPerPixel div Info.ChannelCount > 1 then
-    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16R16G16B16, ifR16G16B16)
+    Result := IffFormat(Info.HasAlphaChannel, ifA16R16G16B16, ifR16G16B16)
   else
-    ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8R8G8B8, ifR8G8B8);
-
-  ConvertImage(Image, ConvFormat);
+    Result := IffFormat(Info.HasAlphaChannel, ifA8R8G8B8, ifR8G8B8);
 end;
 
 function TJpeg2000FileFormat.TestFormat(Handle: TImagingHandle): Boolean;

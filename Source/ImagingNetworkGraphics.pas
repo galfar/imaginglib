@@ -1692,12 +1692,13 @@ begin
   if FmtInfo.HasAlphaChannel then
   begin
     // Create new image for alpha channel and color image without alpha
-    CloneImage(Image, ColorImage);
-    NewImage(Image.Width, Image.Height, ifGray8, AlphaImage);
     case Image.Format of
-      ifA8Gray8:  ConvertImage(ColorImage, ifGray8);
-      ifA8R8G8B8: ConvertImage(ColorImage, ifR8G8B8);
+      ifA8Gray8:  ConvertImageInto(Image, ColorImage, ifGray8);
+      ifA8R8G8B8: ConvertImageInto(Image, ColorImage, ifR8G8B8);
+    else
+      CloneImage(Image, ColorImage);
     end;
+    NewImage(Image.Width, Image.Height, ifGray8, AlphaImage);
 
     // Store source image's alpha to separate image
     AlphaPtr := AlphaImage.Bits;
@@ -2528,8 +2529,7 @@ begin
               ConvertImage(ImageToSave, DefaultFormat)
             else
             begin
-              CloneImage(Images[I], ImageToSave);
-              ConvertImage(ImageToSave, DefaultFormat);
+              ConvertImageInto(Images[I], ImageToSave, DefaultFormat);
               MustBeFreed := True;
             end;
           end;
