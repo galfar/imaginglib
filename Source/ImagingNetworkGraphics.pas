@@ -40,8 +40,7 @@ type
     FProgressive: LongBool;
     FZLibStrategy: Integer;
     function GetSupportedFormats: TImageFormats; override;
-    procedure ConvertToSupported(var Image: TImageData;
-      const Info: TImageFormatInfo); override;
+    function GetConversionFormat(const Info: TImageFormatInfo): TImageFormat; override;
     procedure Define; override;
   public
     function TestFormat(Handle: TImagingHandle): Boolean; override;
@@ -2343,10 +2342,7 @@ begin
     Result := NGLosslessFormats;
 end;
 
-procedure TNetworkGraphicsFileFormat.ConvertToSupported(var Image: TImageData;
-  const Info: TImageFormatInfo);
-var
-  ConvFormat: TImageFormat;
+function TNetworkGraphicsFileFormat.GetConversionFormat(const Info: TImageFormatInfo): TImageFormat;
 begin
   if not FLossyCompression then
   begin
@@ -2357,36 +2353,34 @@ begin
       begin
         if Info.BytesPerPixel <= 2 then
           // Convert <= 16bit grayscale images with alpha to ifA8Gray8
-          ConvFormat := ifA8Gray8
+          Result := ifA8Gray8
         else
           // Convert > 16bit grayscale images with alpha to ifA16Gray16
-          ConvFormat := ifA16Gray16
+          Result := ifA16Gray16
       end
       else
         // Convert grayscale images without alpha to ifGray16
-        ConvFormat := ifGray16;
+        Result := ifGray16;
     end
     else
       if Info.IsFloatingPoint then
         // Convert floating point images to 64 bit ARGB (or RGB if no alpha)
-        ConvFormat := IffFormat(Info.HasAlphaChannel, ifA16B16G16R16, ifB16G16R16)
+        Result := IffFormat(Info.HasAlphaChannel, ifA16B16G16R16, ifB16G16R16)
       else if Info.HasAlphaChannel or Info.IsSpecial then
         // Convert all other images with alpha or special images to A8R8G8B8
-        ConvFormat := ifA8R8G8B8
+        Result := ifA8R8G8B8
       else
         // Convert images without alpha to R8G8B8
-        ConvFormat := ifR8G8B8;
+        Result := ifR8G8B8;
   end
   else
   begin
     // Convert formats for lossy compression
     if Info.HasGrayChannel then
-      ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8Gray8, ifGray8)
+      Result := IffFormat(Info.HasAlphaChannel, ifA8Gray8, ifGray8)
     else
-      ConvFormat := IffFormat(Info.HasAlphaChannel, ifA8R8G8B8, ifR8G8B8);
+      Result := IffFormat(Info.HasAlphaChannel, ifA8R8G8B8, ifR8G8B8);
   end;
-
-  ConvertImage(Image, ConvFormat);
 end;
 
 function TNetworkGraphicsFileFormat.TestFormat(Handle: TImagingHandle): Boolean;

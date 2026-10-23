@@ -41,8 +41,7 @@ type
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-    procedure ConvertToSupported(var Image: TImageData;
-      const Info: TImageFormatInfo); override;
+    function GetConversionFormat(const Info: TImageFormatInfo): TImageFormat; override;
   public
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   end;
@@ -444,10 +443,9 @@ begin
   end;
 end;
 
-procedure THdrFileFormat.ConvertToSupported(var Image: TImageData;
-  const Info: TImageFormatInfo);
+function THdrFileFormat.GetConversionFormat(const Info: TImageFormatInfo): TImageFormat;
 begin
-  ConvertImage(Image, ifR32G32B32F);
+  Result := ifR32G32B32F;
 end;
 
 function THdrFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
