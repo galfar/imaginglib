@@ -473,9 +473,18 @@ type
       to get all images that are to be saved.}
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; virtual;
-    { This method is called internally by MakeCompatible when input image
-      is in format not supported by this file format. Image is clone of
-      MakeCompatible's input and Info is its extended format info.}
+    { Returns data format (one of SupportedFormats) that an image in data
+      format of Info is converted to before saving. MakeCompatible converts
+      the image straight to it with ConvertImageInto, without a clone. Returns
+      ifUnknown when saving needs more than conversion of data format (resizing,
+      mapping to a fixed palette, ...): ConvertToSupported is then called on
+      a clone of the image. The base class returns ifUnknown.}
+    function GetConversionFormat(const Info: TImageFormatInfo): TImageFormat; virtual;
+    { Called by MakeCompatible when the input image is in format not supported
+      by this file format and GetConversionFormat returns ifUnknown. Image is
+      clone of MakeCompatible's input and Info is its extended format info.
+      The base class converts the image to format given by GetConversionFormat.
+      Override it only when GetConversionFormat cannot describe the needed changes.}
     procedure ConvertToSupported(var Image: TImageData;
       const Info: TImageFormatInfo); virtual;
     { Returns True if given image is supported for saving by this file format.
@@ -522,10 +531,11 @@ type
       in supported format then Compatible just use value from input
       (Compatible := Image) so must not free it after you are done with it
       (image bits pointer points to input image's bits).
-      If input is not in supported format then it is cloned to Compatible
-      and converted to one of supported formats (what exact format depends on
-      this file format). If image is cloned MustBeFreed is set to True
-      to indicated that you must free Compatible after you are done with it.}
+      If input is not in supported format then it is converted to one of
+      supported formats into Compatible (what exact format depends on this file
+      format, see GetConversionFormat and ConvertToSupported). MustBeFreed is
+      set to True then to indicated that you must free Compatible after you are
+      done with it.}
     function MakeCompatible(const Image: TImageData; var Compatible: TImageData;
       out MustBeFreed: Boolean): Boolean;
     { Returns True if data located in source identified by Handle
@@ -3814,9 +3824,19 @@ begin
   RaiseImaging(SFileFormatCanNotSave, [FName]);
 end;
 
+function TImageFileFormat.GetConversionFormat(const Info: TImageFormatInfo): TImageFormat;
+begin
+  Result := ifUnknown;
+end;
+
 procedure TImageFileFormat.ConvertToSupported(var Image: TImageData;
   const Info: TImageFormatInfo);
+var
+  ConvFormat: TImageFormat;
 begin
+  ConvFormat := GetConversionFormat(Info);
+  if ConvFormat <> ifUnknown then
+    ConvertImage(Image, ConvFormat);
 end;
 
 function TImageFileFormat.IsSupported(const Image: TImageData): Boolean;
@@ -4063,14 +4083,15 @@ end;
 
 function TImageFileFormat.MakeCompatible(const Image: TImageData;
   var Compatible: TImageData; out MustBeFreed: Boolean): Boolean;
+var
+  ConvFormat: TImageFormat;
 begin
   InitImage(Compatible);
 
   if SaveOverrideFormat <> ifUnknown then
   begin
-    // Save format override is active. Clone input and convert it to override format.
-    CloneImage(Image, Compatible);
-    ConvertImage(Compatible, SaveOverrideFormat);
+    // Save format override is active. Convert input to override format.
+    ConvertImageInto(Image, Compatible, SaveOverrideFormat);
     // Now check if override format is supported by file format. If it is not
     // then file format specific conversion (virtual method) is called.
     Result := IsSupported(Compatible);
@@ -4090,9 +4111,16 @@ begin
   else
   begin
     // No override and input's format is not compatible with file format.
-    // Clone it and the call file format specific conversion (virtual method).
-    CloneImage(Image, Compatible);
-    ConvertToSupported(Compatible, GetFormatInfo(Compatible.Format));
+    // Convert it straight to the format file format wants, when it needs more
+    // than that clone it and call file format specific conversion.
+    ConvFormat := GetConversionFormat(GetFormatInfo(Image.Format));
+    if ConvFormat <> ifUnknown then
+      ConvertImageInto(Image, Compatible, ConvFormat)
+    else
+    begin
+      CloneImage(Image, Compatible);
+      ConvertToSupported(Compatible, GetFormatInfo(Compatible.Format));
+    end;
     Result := IsSupported(Compatible);
   end;
   // Tell the user that he must free Compatible after he's done with it
