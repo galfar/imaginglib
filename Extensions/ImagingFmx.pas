@@ -233,8 +233,7 @@ begin
   else
   begin
     InitImage(TempImage);
-    CloneImage(Image, TempImage);
-    ConvertImage(TempImage, ifA8R8G8B8);
+    ConvertImageInto(Image, TempImage, ifA8R8G8B8);
     try
       CopyRectToFmxBitmap(TempImage, Bitmap, SrcX, SrcY, Width, Height, DstX, DstY);
     finally

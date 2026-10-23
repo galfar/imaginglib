@@ -40,6 +40,11 @@ type
     procedure TestFreeImage;
     procedure TestCloneImage;
     procedure TestCloneImageIndexed;
+    procedure TestConvertImageInto;
+    procedure TestConvertImageIntoSameRecord;
+    procedure TestConvertImageIntoSharedBits;
+    procedure TestConvertImageIntoSpecialFormats;
+    procedure TestConvertImageIntoInvalidSource;
   end;
 
   TTestPixelAccess = class(TImagingTestCase)
@@ -277,6 +282,118 @@ begin
   finally
     FreeImage(Clone);
   end;
+end;
+
+procedure TTestImageLifetime.TestConvertImageInto;
+var
+  Original, Expected, Converted: TImageData;
+  I: NativeInt;
+begin
+  CheckTrue(NewImage(9, 6, ifR8G8B8, FImage), 'NewImage');
+  for I := 0 to FImage.Size - 1 do
+    PBuffer(FImage.Bits)[I] := Byte(I * 7 + 1);
+
+  InitImage(Original);
+  InitImage(Expected);
+  InitImage(Converted);
+  try
+    CheckTrue(CloneImage(FImage, Original), 'CloneImage of original');
+    CheckTrue(CloneImage(FImage, Expected) and ConvertImage(Expected, ifIndex8), 'Expected result');
+
+    // Image held by destination is replaced (and freed, heaptrc would report a leak)
+    CheckTrue(NewImage(16, 16, ifA16R16G16B16, Converted), 'NewImage for destination');
+    CheckTrue(ConvertImageInto(FImage, Converted, ifIndex8), 'ConvertImageInto');
+    CheckImagesEqual(Expected, Converted, 'Converted image');
+    CheckImagesEqual(Original, FImage, 'Source image');
+  finally
+    FreeImage(Original);
+    FreeImage(Expected);
+    FreeImage(Converted);
+  end;
+end;
+
+procedure TTestImageLifetime.TestConvertImageIntoSameRecord;
+var
+  Expected: TImageData;
+begin
+  CheckTrue(NewImage(5, 4, ifA8R8G8B8, FImage), 'NewImage');
+  FillChar(FImage.Bits^, FImage.Size, $5A);
+
+  InitImage(Expected);
+  try
+    CheckTrue(CloneImage(FImage, Expected) and ConvertImage(Expected, ifGray16), 'Expected result');
+    // Same record as source and destination is converted in place
+    CheckTrue(ConvertImageInto(FImage, FImage, ifGray16), 'ConvertImageInto');
+    CheckImagesEqual(Expected, FImage, 'Converted image');
+  finally
+    FreeImage(Expected);
+  end;
+end;
+
+procedure TTestImageLifetime.TestConvertImageIntoSharedBits;
+var
+  Shallow: TImageData;
+begin
+  CheckTrue(NewImage(5, 4, ifGray8, FImage), 'NewImage');
+  FillChar(FImage.Bits^, FImage.Size, 77);
+
+  // Destination record is a copy of the source record: memory of the
+  // source must not be freed
+  Shallow := FImage;
+  try
+    CheckTrue(ConvertImageInto(FImage, Shallow, ifA8R8G8B8), 'ConvertImageInto');
+    CheckTrue(Shallow.Bits <> FImage.Bits, 'Destination has its own bits');
+    CheckTrue(TestImage(FImage), 'Source is still valid');
+    CheckEquals(77, PBuffer(FImage.Bits)[FImage.Size - 1], 'Source pixels');
+    CheckEquals(77, GetPixel32(Shallow, 4, 3).R, 'Converted pixel');
+  finally
+    FreeImage(Shallow);
+  end;
+end;
+
+procedure TTestImageLifetime.TestConvertImageIntoSpecialFormats;
+var
+  Compressed, Expected, Converted: TImageData;
+  I: NativeInt;
+begin
+  CheckTrue(NewImage(16, 8, ifA8R8G8B8, FImage), 'NewImage');
+  for I := 0 to FImage.Size - 1 do
+    PBuffer(FImage.Bits)[I] := Byte(I * 13);
+
+  InitImage(Compressed);
+  InitImage(Expected);
+  InitImage(Converted);
+  try
+    // To special format
+    CheckTrue(CloneImage(FImage, Expected) and ConvertImage(Expected, ifDXT1), 'Expected DXT1');
+    CheckTrue(ConvertImageInto(FImage, Compressed, ifDXT1), 'ConvertImageInto DXT1');
+    CheckImagesEqual(Expected, Compressed, 'DXT1 image');
+
+    // From special format
+    CheckTrue(CloneImage(Compressed, Expected) and ConvertImage(Expected, ifA8R8G8B8), 'Expected A8R8G8B8');
+    CheckTrue(ConvertImageInto(Compressed, Converted, ifA8R8G8B8), 'ConvertImageInto A8R8G8B8');
+    CheckImagesEqual(Expected, Converted, 'Image from DXT1');
+  finally
+    FreeImage(Compressed);
+    FreeImage(Expected);
+    FreeImage(Converted);
+  end;
+end;
+
+procedure TTestImageLifetime.TestConvertImageIntoInvalidSource;
+var
+  Invalid: TImageData;
+  OldBits: Pointer;
+begin
+  CheckTrue(NewImage(3, 2, ifGray8, FImage), 'NewImage');
+  OldBits := FImage.Bits;
+  InitImage(Invalid);
+
+  // Destination stays as it was
+  CheckFalse(ConvertImageInto(Invalid, FImage, ifA8R8G8B8), 'ConvertImageInto of invalid image');
+  CheckTrue(FImage.Bits = OldBits, 'Destination bits');
+  CheckEquals(Ord(ifGray8), Ord(FImage.Format), 'Destination format');
+  CheckEquals(3, FImage.Width, 'Destination width');
 end;
 
 procedure TTestImageLifetime.TestCloneImageIndexed;

@@ -690,9 +690,7 @@ begin
         begin
           // Input image must be resized or converted to different format
           // to become valid mipmap level
-          CloneImage(Images[I], LevelsArray[I]);
-          if NeedsConvert then
-            ConvertImage(LevelsArray[I], ConvTo);
+          ConvertImageInto(Images[I], LevelsArray[I], ConvTo);
           if NeedsResize then
           begin
             if (not PasteNonPow2ImagesIntoPow2) or (LevelsArray[I].Width > CurrentWidth) or

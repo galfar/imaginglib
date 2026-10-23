@@ -47,6 +47,7 @@ type
     procedure TestRBSwapPairsAreExact;
     procedure TestOddSizedImage;
     procedure TestSameFormatIsNoOp;
+    procedure TestConvertImageIntoSameAsConvertImage;
     procedure TestDefaultFormat;
     procedure TestFloatClamping;
   end;
@@ -837,6 +838,67 @@ begin
       FreeImage(Image);
       FreeImage(Copy);
     end;
+  end;
+end;
+
+procedure TTestConversionMatrix.TestConvertImageIntoSameAsConvertImage;
+var
+  Failures: TStringList;
+  S, D: Integer;
+  Src, SrcCopy, Expected, Actual: TImageData;
+  Name: string;
+
+  function SameImages(const A, B: TImageData): Boolean;
+  var
+    Info: TImageFormatInfo;
+  begin
+    Result := (A.Width = B.Width) and (A.Height = B.Height) and (A.Format = B.Format) and
+              (A.Size = B.Size) and CompareMem(A.Bits, B.Bits, A.Size) and
+              ((A.Palette = nil) = (B.Palette = nil)) and GetImageFormatInfo(A.Format, Info);
+    if Result and (A.Palette <> nil) then
+      Result := CompareMem(A.Palette, B.Palette, Info.PaletteEntries * SizeOf(TColor32Rec));
+  end;
+
+begin
+  // Every pair, including the same format and formats with swapped channels
+  CollectFormats;
+  Failures := TStringList.Create;
+  try
+    for S := 0 to High(Formats) do
+    begin
+      NewTestImage(Formats[S], MatrixWidth, MatrixHeight, Src);
+      InitImage(SrcCopy);
+      try
+        CloneImage(Src, SrcCopy);
+        for D := 0 to High(Formats) do
+        begin
+          Name := PairName(Infos[S], Infos[D]);
+          InitImage(Expected);
+          InitImage(Actual);
+          try
+            if not (CloneImage(Src, Expected) and ConvertImage(Expected, Formats[D])) then
+              Failures.Add(Name + ': CloneImage + ConvertImage failed')
+            else if not ConvertImageInto(Src, Actual, Formats[D]) then
+              Failures.Add(Name + ': ConvertImageInto returned False')
+            else if not SameImages(Expected, Actual) then
+              Failures.Add(Name + ': result differs from CloneImage + ConvertImage')
+            else if not SameImages(SrcCopy, Src) then
+              Failures.Add(Name + ': source image changed');
+          finally
+            FreeImage(Expected);
+            FreeImage(Actual);
+          end;
+        end;
+      finally
+        FreeImage(Src);
+        FreeImage(SrcCopy);
+      end;
+    end;
+
+    if Failures.Count > 0 then
+      Fail(JoinFailures(Failures, 'ConvertImageInto'));
+  finally
+    Failures.Free;
   end;
 end;
 

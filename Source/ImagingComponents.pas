@@ -292,23 +292,61 @@ function DataFormatToPixelFormat(Format: TImageFormat): TPixelFormat;
 { Returns data format with closest match with given bitmap pixel format.}
 function PixelFormatToDataFormat(Format: TPixelFormat): TImageFormat;
 
-{ Converts TImageData structure to VCL/CLX/LCL bitmap.}
+{ Converts TImageData structure to VCL/LCL bitmap. Raises EImagingError
+  when the bitmap cannot be created, also before any conversion when the
+  image is too large for bitmaps of the platform (see CanConvertDataToBitmap).}
 procedure ConvertDataToBitmap(const Data: TImageData; Bitmap: TBitmap);
-{ Converts VCL/CLX/LCL bitmap to TImageData structure.}
+{ Returns False when the image is too large to be converted to TBitmap on this
+  platform. Limits measured for 32 bit data (Lazarus 4.8, GTK3 also 5.0 RC1):
+  - Windows (VCL, LCL): bitmap data (rows aligned to 4 bytes, 8 to 32 bits
+    per pixel by data format) under 2 GB; processes with 32 bit address
+    space may fail with less.
+  - LCL GTK2: width up to 16383, height up to 32767 pixels.
+  - LCL GTK3: sides up to 32767 pixels and data under 2 GB.
+  - LCL Qt5, Qt6, Cocoa, and others: no limit known (Qt was tested up to sides
+    of 100000 pixels and 4.5 GB of data; Qt5 canvas does not paint beyond
+    32767 pixels, the bitmap itself is fine).
+  Bitmap creation may of course still fail for lack of memory.}
+function CanConvertDataToBitmap(const Data: TImageData): Boolean;
+{ Converts VCL/LCL bitmap to TImageData structure. 32 bit bitmap data with
+  alpha 0 in all pixels is taken as bitmap without alpha data (as GDI and
+  canvas drawing give it) and gives ifX8R8G8B8, so a fully transparent bitmap
+  becomes opaque. Colors of VCL bitmaps with alpha (kept premultiplied by VCL)
+  are unpremultiplied.}
 procedure ConvertBitmapToData(Bitmap: TBitmap; var Data: TImageData);
-{ Converts TBaseImage instance to VCL/CLX/LCL bitmap.}
+{ Converts TBaseImage instance to VCL/LCL bitmap.}
 procedure ConvertImageToBitmap(Image: TBaseImage; Bitmap: TBitmap);
-{ Converts VCL/CLX/LCL bitmap to TBaseImage. Image must exist before
+{ Converts VCL/LCL bitmap to TBaseImage. Image must exist before
   procedure is called. It overwrites its current image data.
   When Image is TMultiImage only the current image level is overwritten.}
 procedure ConvertBitmapToImage(Bitmap: TBitmap; Image: TBaseImage);
 
-{ Displays image onto TCanvas to rectangle DstRect.
-  See the overload with SrcRect for details.}
+{$IFDEF COMPONENT_SET_LCL}
+{ Describes image as LCL raw image without copying its pixels: RawImage.Data
+  points to the memory of Data, so Data must stay valid and unchanged while
+  RawImage is used, and RawImage.FreeData must not be called. Supported data
+  formats are ifA8R8G8B8, ifX8R8G8B8 (described without alpha), ifR8G8B8,
+  ifA16R16G16B16, ifR16G16B16, ifGray8, ifGray16, ifR5G6B5, and ifX1R5G5B5,
+  returns False for others. Use the result with TLazIntfImage
+  (TLazIntfImage.Create(RawImage, False)) or RawImage_CreateBitmaps.}
+function MapImageDataToRawImage(const Data: TImageData; out RawImage: TRawImage): Boolean;
+{ Converts image to LCL raw image that owns a copy of the pixels (free it with
+  RawImage.FreeData). Data formats not supported by MapImageDataToRawImage are
+  converted to ifA8R8G8B8 when they have alpha, to ifX8R8G8B8 otherwise.}
+procedure ConvertDataToRawImage(const Data: TImageData; out RawImage: TRawImage);
+{ Converts LCL raw image to image in data format matching its layout (8 and 16
+  bit RGB with or without alpha, gray, R5G6B5, X1R5G5B5), rows are copied
+  directly. Other layouts (palettes, unusual channels) are read through
+  TLazIntfImage to ifA8R8G8B8/ifX8R8G8B8 or 16 bit per channel formats.
+  Returns False for empty raw image or when its data is smaller than the
+  description says, Data is changed only when True is returned.}
+function ConvertRawImageToData(const RawImage: TRawImage; var Data: TImageData): Boolean;
+{$ENDIF}
+
+{ Displays image onto TCanvas to rectangle DstRect. See the overload with SrcRect for details.}
 procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData); overload;
 { Displays part SrcRect of image stored in TImageData structure onto TCanvas
-  to rectangle DstRect, scaled with nearest neighbor sampling. Dest and Src
-  rectangles represent coordinates in the form (X1, Y1, X2, Y2).
+  to rectangle DstRect, scaled with nearest neighbor sampling.
   Images in [ifA8R8G8B8, ifX8R8G8B8] formats are drawn directly from their
   memory without any copy or conversion to TBitmap, so this is fast
   also for images that change frequently (e.g. view buffer of image viewer).
@@ -316,7 +354,8 @@ procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const Image
   Alpha channel is not used, the image is drawn opaque.
   Implemented for VCL and LCL Win32, GTK2, GTK3, Qt5, Qt6, and Cocoa widget sets,
   other LCL widget sets use slower drawing through TBitmap.}
-procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect; const ImageData: TImageData; const SrcRect: TRect); overload;
+procedure DisplayImageData(DstCanvas: TCanvas; const DstRect: TRect;
+  const ImageData: TImageData; const SrcRect: TRect); overload;
 { Displays image onto TCanvas at position [DstX, DstY].
   Behaviour is the same as of DisplayImageData.}
 procedure DisplayImage(DstCanvas: TCanvas; DstX, DstY: LongInt; Image: TBaseImage); overload;
@@ -339,7 +378,7 @@ implementation
 
 uses
 {$IF Defined(LCL)}
-  InterfaceBase,
+  InterfaceBase, IntfGraphics, FPImage, LCLVersion,
   {$IF Defined(LCLGTK2)}
     GDK2, GTK2Def, Cairo,
   {$ELSEIF Defined(LCLGTK3)}
@@ -376,7 +415,8 @@ resourcestring
   SBadFormatDataToBitmap = 'Cannot find compatible bitmap format for image %s';
   SBadFormatBitmapToData = 'Cannot find compatible data format for bitmap %p';
   SBadFormatDisplay = 'Unsupported image format passed';
-  SFailedBitmapFromData = 'Failed to create TBitmap from TImageData';
+  SFailedBitmapFromData = 'Failed to create TBitmap of %dx%d pixels from image in %s format';
+  SBitmapTooLarge = 'Image of %dx%d pixels in %s format is too large for TBitmap on this platform';
   SImagingGraphicName = 'Imaging Graphic AllInOne';
 
 var
@@ -508,7 +548,7 @@ function PixelFormatToDataFormat(Format: TPixelFormat): TImageFormat;
 begin
   case Format of
     pf8bit: Result := ifIndex8;
-    pf15bit: Result := ifA1R5G5B5;
+    pf15bit: Result := ifX1R5G5B5;
     pf16bit: Result := ifR5G6B5;
     pf24bit: Result := ifR8G8B8;
     pf32bit: Result := ifA8R8G8B8;
@@ -517,12 +557,463 @@ begin
   end;
 end;
 
+{ Returns True when all pixels of A8R8G8B8 image have alpha 0, such image
+  comes from 32 bit bitmap that has no alpha data.}
+function AlphaAllZero(const Data: TImageData): Boolean;
+var
+  I, Count: NativeInt;
+begin
+  Result := False;
+  Count := GetPixelCount(Data);
+  for I := 0 to Count - 1 do
+  begin
+    if PColor32RecBuffer(Data.Bits)[I].A <> 0 then
+      Exit;
+  end;
+  Result := True;
+end;
+
+{ Converts colors of A8R8G8B8 image with premultiplied alpha to straight alpha.}
+procedure UnpremultiplyAlpha(var Data: TImageData);
+var
+  I, Count: NativeInt;
+  P: PColor32Rec;
+begin
+  Count := GetPixelCount(Data);
+  for I := 0 to Count - 1 do
+  begin
+    P := @PColor32RecBuffer(Data.Bits)[I];
+    if (P.A > 0) and (P.A < 255) then
+    begin
+      P.R := ClampToByte((P.R * 255 + P.A div 2) div P.A);
+      P.G := ClampToByte((P.G * 255 + P.A div 2) div P.A);
+      P.B := ClampToByte((P.B * 255 + P.A div 2) div P.A);
+    end;
+  end;
+end;
+
+{ Sets data format of A8R8G8B8 image read from 32 bit bitmap: X8R8G8B8 when
+  alpha is 0 everywhere (bitmap without alpha data, drawn by GDI etc.).}
+procedure FixBitmapAlpha(var Data: TImageData);
+begin
+  if (Data.Format = ifA8R8G8B8) and AlphaAllZero(Data) then
+    Data.Format := ifX8R8G8B8;
+end;
+
+procedure FillAlpha255(var Data: TImageData);
+var
+  I, Count: NativeInt;
+begin
+  Count := GetPixelCount(Data);
+  for I := 0 to Count - 1 do
+    PColor32RecBuffer(Data.Bits)[I].A := 255;
+end;
+
+{ Returns True when image in data format of Info (with given palette) has
+  alpha that must be kept in the bitmap.}
+function DataHasAlpha(const Data: TImageData; const Info: TImageFormatInfo): Boolean;
+begin
+  Result := Info.HasAlphaChannel or Info.IsSpecial or
+            (Info.IsIndexed and PaletteHasAlpha(Data.Palette, Info.PaletteEntries));
+end;
+
+{$IFDEF COMPONENT_SET_LCL}
+{ Initializes raw image description of Width x Height image with given pixel
+  layout, rows without padding (32 bit rows are always DWord aligned), first
+  byte in memory is the lowest one.}
+procedure InitRawDescription(var Desc: TRawImageDescription; Width, Height: Integer;
+  ColorFormat: TRawImageColorFormat; BitsPerPixel, Depth, Prec, AlphaPrec, RedShift,
+  GreenShift, BlueShift, AlphaShift: Byte);
+begin
+  Desc.Init;
+  Desc.Format := ColorFormat;
+  Desc.Width := Width;
+  Desc.Height := Height;
+  Desc.BitsPerPixel := BitsPerPixel;
+  Desc.Depth := Depth;
+  Desc.BitOrder := riboBitsInOrder;
+  Desc.ByteOrder := riboLSBFirst;
+  Desc.LineOrder := riloTopToBottom;
+  if BitsPerPixel = 32 then
+    Desc.LineEnd := rileDWordBoundary
+  else
+    Desc.LineEnd := rileTight;
+  Desc.RedPrec := Prec;
+  Desc.RedShift := RedShift;
+  if ColorFormat = ricfRGBA then
+  begin
+    Desc.GreenPrec := Prec;
+    Desc.GreenShift := GreenShift;
+    Desc.BluePrec := Prec;
+    Desc.BlueShift := BlueShift;
+  end;
+  Desc.AlphaPrec := AlphaPrec;
+  Desc.AlphaShift := AlphaShift;
+end;
+
+function MapImageDataToRawImage(const Data: TImageData; out RawImage: TRawImage): Boolean;
+var
+  Desc: TRawImageDescription;
+  W, H: Integer;
+begin
+  RawImage.Init;
+  Result := TestImage(Data);
+  if not Result then
+    Exit;
+
+  W := Data.Width;
+  H := Data.Height;
+  case Data.Format of
+    ifA8R8G8B8:     InitRawDescription(Desc, W, H, ricfRGBA, 32, 32, 8, 8, 16, 8, 0, 24);
+    ifX8R8G8B8:     InitRawDescription(Desc, W, H, ricfRGBA, 32, 24, 8, 0, 16, 8, 0, 0);
+    ifR8G8B8:       InitRawDescription(Desc, W, H, ricfRGBA, 24, 24, 8, 0, 16, 8, 0, 0);
+    ifA16R16G16B16: InitRawDescription(Desc, W, H, ricfRGBA, 64, 64, 16, 16, 32, 16, 0, 48);
+    ifR16G16B16:    InitRawDescription(Desc, W, H, ricfRGBA, 48, 48, 16, 0, 32, 16, 0, 0);
+    ifGray8:        InitRawDescription(Desc, W, H, ricfGray, 8, 8, 8, 0, 0, 0, 0, 0);
+    ifGray16:       InitRawDescription(Desc, W, H, ricfGray, 16, 16, 16, 0, 0, 0, 0, 0);
+    ifR5G6B5:
+      begin
+        InitRawDescription(Desc, W, H, ricfRGBA, 16, 16, 5, 0, 11, 5, 0, 0);
+        Desc.GreenPrec := 6;
+      end;
+    ifX1R5G5B5:     InitRawDescription(Desc, W, H, ricfRGBA, 16, 15, 5, 0, 10, 5, 0, 0);
+  else
+    Result := False;
+    Exit;
+  end;
+
+  RawImage.Description := Desc;
+  RawImage.Data := Data.Bits;
+  RawImage.DataSize := Data.Size;
+end;
+
+procedure ConvertDataToRawImage(const Data: TImageData; out RawImage: TRawImage);
+var
+  WorkData: TImageData;
+  Info: TImageFormatInfo;
+  Mapped: TRawImage;
+begin
+  RawImage.Init;
+  if not TestImage(Data) then
+    Exit;
+
+  InitImage(WorkData);
+  try
+    if not MapImageDataToRawImage(Data, Mapped) then
+    begin
+      GetImageFormatInfo(Data.Format, Info);
+      if Info.HasAlphaChannel or Info.IsSpecial or
+         (Info.IsIndexed and PaletteHasAlpha(Data.Palette, Info.PaletteEntries)) then
+        ConvertImageInto(Data, WorkData, ifA8R8G8B8)
+      else
+        ConvertImageInto(Data, WorkData, ifX8R8G8B8);
+      MapImageDataToRawImage(WorkData, Mapped);
+    end;
+
+    // Raw image gets its own copy of pixels, freed by RawImage.FreeData
+    RawImage.Description := Mapped.Description;
+    RawImage.DataSize := Mapped.DataSize;
+    ReAllocMem(RawImage.Data, RawImage.DataSize);
+    Move(Mapped.Data^, RawImage.Data^, RawImage.DataSize);
+  finally
+    FreeImage(WorkData);
+  end;
+end;
+
+{ Returns data format whose memory layout matches raw image description, which
+  rows can be copied directly (swapped red and blue are allowed, SwapRB tells).
+  Returns ifUnknown for other descriptions.}
+function RawDescriptionToDataFormat(const Desc: TRawImageDescription; out SwapRB: Boolean): TImageFormat;
+var
+  RedShift, GreenShift, BlueShift, AlphaShift: Integer;
+
+  function ByteShift(Shift, Prec: Integer): Integer;
+  begin
+    // Shift of channel counted from the first byte in memory
+    if Desc.ByteOrder = riboMSBFirst then
+      Result := Desc.BitsPerPixel - Prec - Shift
+    else
+      Result := Shift;
+  end;
+
+  function IsRGB(R, G, B: Integer): Boolean;
+  begin
+    Result := (RedShift = R) and (GreenShift = G) and (BlueShift = B);
+  end;
+
+begin
+  Result := ifUnknown;
+  SwapRB := False;
+
+  if Desc.Format = ricfGray then
+  begin
+    if (Desc.AlphaPrec = 0) and (Desc.RedShift = 0) then
+    begin
+      if (Desc.BitsPerPixel = 8) and (Desc.RedPrec = 8) then
+        Result := ifGray8
+      else if (Desc.BitsPerPixel = 16) and (Desc.RedPrec = 16) and (Desc.ByteOrder = riboLSBFirst) then
+        Result := ifGray16;
+    end;
+    Exit;
+  end;
+
+  if (Desc.Format <> ricfRGBA) or (Desc.PaletteColorCount > 0) then
+    Exit;
+
+  if (Desc.BitsPerPixel = 16) and (Desc.ByteOrder = riboLSBFirst) and (Desc.AlphaPrec = 0) and
+     (Desc.RedPrec = 5) and (Desc.BluePrec = 5) and (Desc.BlueShift = 0) then
+  begin
+    if (Desc.GreenPrec = 6) and (Desc.GreenShift = 5) and (Desc.RedShift = 11) then
+      Result := ifR5G6B5
+    else if (Desc.GreenPrec = 5) and (Desc.GreenShift = 5) and (Desc.RedShift = 10) then
+      Result := ifX1R5G5B5;
+    Exit;
+  end;
+
+  // Whole-byte channels with any byte order
+  if not (Desc.RedPrec in [8, 16]) or (Desc.GreenPrec <> Desc.RedPrec) or
+     (Desc.BluePrec <> Desc.RedPrec) or not (Desc.AlphaPrec in [0, Desc.RedPrec]) then
+    Exit;
+
+  RedShift := ByteShift(Desc.RedShift, Desc.RedPrec);
+  GreenShift := ByteShift(Desc.GreenShift, Desc.GreenPrec);
+  BlueShift := ByteShift(Desc.BlueShift, Desc.BluePrec);
+  AlphaShift := ByteShift(Desc.AlphaShift, Desc.AlphaPrec);
+  if (Desc.RedPrec = 16) and (Desc.ByteOrder <> riboLSBFirst) then
+    Exit; // Bytes of 16 bit channels would be swapped too
+
+  if Desc.RedPrec = 8 then
+  begin
+    if IsRGB(16, 8, 0) or IsRGB(0, 8, 16) then
+    begin
+      SwapRB := RedShift = 0;
+      if Desc.BitsPerPixel = 24 then
+        Result := ifR8G8B8
+      else if (Desc.BitsPerPixel = 32) and (Desc.AlphaPrec = 0) then
+        Result := ifX8R8G8B8
+      else if (Desc.BitsPerPixel = 32) and (AlphaShift = 24) then
+        Result := ifA8R8G8B8;
+    end;
+  end
+  else
+  begin
+    if IsRGB(32, 16, 0) or IsRGB(0, 16, 32) then
+    begin
+      SwapRB := RedShift = 0;
+      if (Desc.BitsPerPixel = 48) and (Desc.AlphaPrec = 0) then
+        Result := ifR16G16B16
+      else if (Desc.BitsPerPixel = 64) and (Desc.AlphaPrec = 16) and (AlphaShift = 48) then
+        Result := ifA16R16G16B16;
+    end;
+  end;
+end;
+
+function ConvertRawImageToData(const RawImage: TRawImage; var Data: TImageData): Boolean;
+var
+  Desc: TRawImageDescription;
+  Format: TImageFormat;
+  SwapRB, HasAlpha, HighPrec: Boolean;
+  Y, X, SrcY: Integer;
+  SrcLineBytes, DstLineBytes: PtrUInt;
+  Work: TImageData;
+  Intf: TLazIntfImage;
+  Color: TFPColor;
+  P: PColor64Rec;
+  P32: PColor32Rec;
+begin
+  Result := False;
+  Desc := RawImage.Description;
+  if (Desc.Width <= 0) or (Desc.Height <= 0) or (Desc.BitsPerPixel = 0) or (RawImage.Data = nil) then
+    Exit;
+
+  SrcLineBytes := GetBytesPerLine(Desc.Width, Desc.BitsPerPixel, Desc.LineEnd);
+  if RawImage.DataSize < SrcLineBytes * PtrUInt(Desc.Height) then
+    Exit;
+
+  // Decoded to a work image, Data is replaced only when it succeeds
+  InitImage(Work);
+  try
+    Format := RawDescriptionToDataFormat(Desc, SwapRB);
+    if Format <> ifUnknown then
+    begin
+      // Rows are copied as they are, only padding and order of rows can differ
+      if not NewImage(Desc.Width, Desc.Height, Format, Work) then
+        Exit;
+      DstLineBytes := PtrUInt(Work.Size div Work.Height);
+
+      for Y := 0 to Desc.Height - 1 do
+      begin
+        if Desc.LineOrder = riloBottomToTop then
+          SrcY := Desc.Height - 1 - Y
+        else
+          SrcY := Y;
+
+        Move(PBuffer(RawImage.Data)[PtrUInt(SrcY) * SrcLineBytes],
+             GetScanlinePointer(Work, Y)^, DstLineBytes);
+      end;
+
+      if SwapRB then
+        SwapChannels(Work, ChannelRed, ChannelBlue);
+    end
+    else
+    begin
+      // Other layouts (palettes, packed or unusual channels) are read by LCL
+      HasAlpha := Desc.AlphaPrec > 0;
+      HighPrec := (Desc.RedPrec > 8) or (Desc.GreenPrec > 8) or (Desc.BluePrec > 8);
+      if HighPrec then
+        Format := ifA16R16G16B16
+      else
+        Format := ifA8R8G8B8;
+      if not NewImage(Desc.Width, Desc.Height, Format, Work) then
+        Exit;
+
+      Intf := TLazIntfImage.Create(RawImage, False);
+      try
+        for Y := 0 to Desc.Height - 1 do
+          for X := 0 to Desc.Width - 1 do
+          begin
+            Color := Intf.Colors[X, Y];
+            if not HasAlpha then
+              Color.Alpha := $FFFF;
+            if HighPrec then
+            begin
+              P := GetPixelPointer(Work, X, Y, 8);
+              P.A := Color.Alpha;
+              P.R := Color.Red;
+              P.G := Color.Green;
+              P.B := Color.Blue;
+            end
+            else
+            begin
+              P32 := GetPixelPointer(Work, X, Y, 4);
+              P32.A := Color.Alpha shr 8;
+              P32.R := Color.Red shr 8;
+              P32.G := Color.Green shr 8;
+              P32.B := Color.Blue shr 8;
+            end;
+          end;
+      finally
+        // Data of RawImage stays with the caller
+        Intf.Free;
+      end;
+
+      if not HasAlpha then
+      begin
+        if HighPrec then
+          ConvertImage(Work, ifR16G16B16)
+        else
+          Work.Format := ifX8R8G8B8;
+      end;
+    end;
+
+    // Work image is handed over to Data
+    FreeImage(Data);
+    Data := Work;
+    InitImage(Work);
+    Result := True;
+  finally
+    FreeImage(Work);
+  end;
+end;
+
+const
+  // Data format of opaque images that LCL bitmaps are created from. LCL GTK3
+  // before Lazarus 5.0 creates bitmaps right only from data with alpha
+  // (no alpha byte is read from a wrong position), opaque images get alpha
+  // 255 there.
+{$IF Defined(LCLGTK3) and (LCL_FULLVERSION < 5000000)}
+  OpaqueBitmapFormat = ifA8R8G8B8;
+{$ELSE}
+  OpaqueBitmapFormat = ifX8R8G8B8;
+{$IFEND}
+{$ENDIF}
+
+{ Returns data format the TBitmap is created from, Data is converted to it
+  when it is in another format.}
+function BitmapDataFormat(const Data: TImageData): TImageFormat;
+var
+  Info: TImageFormatInfo;
+{$IFDEF COMPONENT_SET_VCL}
+  PF: TPixelFormat;
+{$ENDIF}
+begin
+  GetImageFormatInfo(Data.Format, Info);
+{$IFDEF COMPONENT_SET_VCL}
+  PF := DataFormatToPixelFormat(Data.Format);
+  // Some indexed images may have valid alpha data, don't lose it!
+  // (e.g. transparent 8bit PNG or GIF images)
+  if (PF <> pfCustom) and not ((PF = pf8bit) and DataHasAlpha(Data, Info)) then
+    Result := Data.Format
+  else if Info.IsFloatingPoint or DataHasAlpha(Data, Info) or Info.IsIndexed then
+    Result := ifA8R8G8B8
+  else if Info.HasGrayChannel then
+    Result := ifIndex8
+  else if Info.UsePixelFormat then
+    Result := ifR5G6B5
+  else
+    Result := ifR8G8B8;
+{$ENDIF}
+{$IFDEF COMPONENT_SET_LCL}
+  // LCL bitmaps are created from 32 bit data: with alpha channel only
+  // when the image has alpha, X8R8G8B8 is described without alpha
+  // (see OpaqueBitmapFormat for LCL GTK3 before Lazarus 5.0)
+  if (Data.Format = ifA8R8G8B8) or DataHasAlpha(Data, Info) then
+    Result := ifA8R8G8B8
+  else
+    Result := OpaqueBitmapFormat;
+{$ENDIF}
+end;
+
+function CanConvertDataToBitmap(const Data: TImageData): Boolean;
+{$IF Defined(DCC) or Defined(LCLWIN32)}
+const
+  // GDI cannot create DIB sections of 2 GB and more
+  MaxDibSize = High(Int32);
+var
+  BitsPerPixel: Integer;
+  RowBytes: Int64;
+{$IFEND}
+begin
+  Result := (Data.Width > 0) and (Data.Height > 0);
+  if not Result then
+    Exit;
+
+{$IF Defined(DCC) or Defined(LCLWIN32)}
+  // Bitmaps are DIB sections, rows are aligned to 4 bytes. Process with 32 bit
+  // address space may not get even that much, there is no check for that.
+  case BitmapDataFormat(Data) of
+    ifIndex8: BitsPerPixel := 8;
+    ifR5G6B5: BitsPerPixel := 16;
+    ifR8G8B8: BitsPerPixel := 24;
+  {$IFDEF LCLWIN32}
+    // LCL makes 24 bit DIB from data without alpha
+    ifX8R8G8B8: BitsPerPixel := 24;
+  {$ENDIF}
+  else
+    BitsPerPixel := 32;
+  end;
+  RowBytes := (Int64(Data.Width) * BitsPerPixel + 31) div 32 * 4;
+  Result := RowBytes * Data.Height <= MaxDibSize;
+{$ELSEIF Defined(LCLGTK2)}
+  // Measured under Xvfb: wider bitmaps are not created, higher ones end
+  // the program with X error
+  Result := (Data.Width <= 16383) and (Data.Height <= 32767);
+{$ELSEIF Defined(LCLGTK3)}
+  // Larger sides give bitmaps without content (Cairo surface limit), data
+  // of 2 GB and more gives empty bitmap or access violation in LCL (Lazarus
+  // 4.8), range check error in Lazarus 5.0 RC1
+  Result := (Data.Width <= 32767) and (Data.Height <= 32767) and
+            (Int64(Data.Width) * Data.Height * 4 <= High(Int32));
+{$IFEND}
+end;
+
 procedure ConvertDataToBitmap(const Data: TImageData; Bitmap: TBitmap);
 var
-  PF: TPixelFormat;
   Info: TImageFormatInfo;
   WorkData: TImageData;
+  Format: TImageFormat;
 {$IFDEF COMPONENT_SET_VCL}
+  PF: TPixelFormat;
   I: NativeInt;
   LineBytes: LongInt;
   LogPalette: TMaxLogPalette;
@@ -532,216 +1023,172 @@ var
   ImgHandle, ImgMaskHandle: HBitmap;
 {$ENDIF}
 begin
-  PF := DataFormatToPixelFormat(Data.Format);
+  if not TestImage(Data) then
+    RaiseImaging(SBadFormatDataToBitmap, [ImageToStr(Data)]);
+  if not CanConvertDataToBitmap(Data) then
+    RaiseImaging(SBitmapTooLarge, [Data.Width, Data.Height, GetFormatName(Data.Format)]);
+
   GetImageFormatInfo(Data.Format, Info);
-
-  if (PF = pf8bit) and PaletteHasAlpha(Data.Palette, Info.PaletteEntries) then
-  begin
-    // Some indexed images may have valid alpha data, don't lose it!
-    // (e.g. transparent 8bit PNG or GIF images)
-    PF := pfCustom;
-  end;
-
-  if PF = pfCustom then
-  begin
-    // Convert from formats not supported by Graphics unit
-    Imaging.InitImage(WorkData);
-    Imaging.CloneImage(Data, WorkData);
-    if Info.IsFloatingPoint or Info.HasAlphaChannel or Info.IsSpecial then
-      Imaging.ConvertImage(WorkData, ifA8R8G8B8)
+  Format := BitmapDataFormat(Data);
+  InitImage(WorkData);
+  try
+    if Format = Data.Format then
+      WorkData := Data
     else
     begin
-{$IFDEF COMPONENT_SET_VCL}
-      if Info.IsIndexed or Info.HasGrayChannel then
-        Imaging.ConvertImage(WorkData, ifIndex8)
-      else if Info.UsePixelFormat then
-        Imaging.ConvertImage(WorkData, ifR5G6B5)
-      else
-        Imaging.ConvertImage(WorkData, ifR8G8B8);
-{$ELSE}
-        Imaging.ConvertImage(WorkData, ifA8R8G8B8);
-{$ENDIF}
+      ConvertImageInto(Data, WorkData, Format);
+      if (Format = ifA8R8G8B8) and not DataHasAlpha(Data, Info) then
+        FillAlpha255(WorkData);
     end;
-
-    PF := DataFormatToPixelFormat(WorkData.Format);
     GetImageFormatInfo(WorkData.Format, Info);
-  end
-  else
-    WorkData := Data;
-    
-  if PF = pfCustom then
-    RaiseImaging(SBadFormatDataToBitmap, [ImageToStr(WorkData)]);
 
 {$IFDEF COMPONENT_SET_VCL}
-  Bitmap.Width := WorkData.Width;
-  Bitmap.Height := WorkData.Height;
-  Bitmap.PixelFormat := PF;
+    PF := DataFormatToPixelFormat(WorkData.Format);
+    if PF = pfCustom then
+      RaiseImaging(SBadFormatDataToBitmap, [ImageToStr(WorkData)]);
 
-  if (PF = pf8bit) and (WorkData.Palette <> nil) then
-  begin
-    // Copy palette, this must be done before copying bits
-    FillChar(LogPalette, SizeOf(LogPalette), 0);
-    LogPalette.palVersion := $300;
-    LogPalette.palNumEntries := Info.PaletteEntries;
-    for I := 0 to Info.PaletteEntries - 1 do
-    with LogPalette do
+    Bitmap.Width := WorkData.Width;
+    Bitmap.Height := WorkData.Height;
+    Bitmap.PixelFormat := PF;
+
+    if (PF = pf8bit) and (WorkData.Palette <> nil) then
     begin
-      palPalEntry[I].peRed := WorkData.Palette[I].R;
-      palPalEntry[I].peGreen := WorkData.Palette[I].G;
-      palPalEntry[I].peBlue := WorkData.Palette[I].B;
+      // Copy palette, this must be done before copying bits
+      FillChar(LogPalette, SizeOf(LogPalette), 0);
+      LogPalette.palVersion := $300;
+      LogPalette.palNumEntries := Info.PaletteEntries;
+      for I := 0 to Info.PaletteEntries - 1 do
+      with LogPalette do
+      begin
+        palPalEntry[I].peRed := WorkData.Palette[I].R;
+        palPalEntry[I].peGreen := WorkData.Palette[I].G;
+        palPalEntry[I].peBlue := WorkData.Palette[I].B;
+      end;
+      Bitmap.Palette := CreatePalette(PLogPalette(@LogPalette)^);
     end;
-    Bitmap.Palette := CreatePalette(PLogPalette(@LogPalette)^);
-  end;
 
-  // Copy scanlines
-  LineBytes := WorkData.Width * Info.BytesPerPixel;
-  for I := 0 to WorkData.Height - 1 do
-    Move(PBuffer(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
+    // Copy scanlines
+    LineBytes := WorkData.Width * Info.BytesPerPixel;
+    for I := 0 to WorkData.Height - 1 do
+      Move(PBuffer(WorkData.Bits)[I * LineBytes], Bitmap.Scanline[I]^, LineBytes);
 
-  // Delphi 2009 and newer support alpha transparency for TBitmap
+    // Delphi 2009 and newer support alpha transparency for TBitmap, the unused
+    // byte of X8R8G8B8 must not be taken as alpha
 {$IF Defined(DELPHI) and (CompilerVersion >= 20.0)}
-  if Bitmap.PixelFormat = pf32bit then
-    Bitmap.AlphaFormat := afDefined;
+    if WorkData.Format = ifA8R8G8B8 then
+      Bitmap.AlphaFormat := afDefined;
 {$IFEND}
 {$ENDIF}
 
 {$IFDEF COMPONENT_SET_LCL}
-  // Create 32bit raw image from image data
-  FillChar(RawImage, SizeOf(RawImage), 0);
-  with RawImage.Description do
-  begin
-    Width := WorkData.Width;
-    Height := WorkData.Height;
-    BitsPerPixel := 32;
-    Format := ricfRGBA;
-    LineEnd := rileDWordBoundary;
-    BitOrder := riboBitsInOrder;
-    ByteOrder := riboLSBFirst;
-    LineOrder := riloTopToBottom;
-    AlphaPrec := 8;
-    RedPrec := 8;
-    GreenPrec := 8;
-    BluePrec := 8;
-    AlphaShift := 24;
-    RedShift := 16;
-    GreenShift := 8;
-    BlueShift := 0;
-    Depth := 32; // Must be 32 for alpha blending (and for working in MacOSX Carbon)
-  end;
-  RawImage.Data := WorkData.Bits;
-  RawImage.DataSize := WorkData.Size;
+    MapImageDataToRawImage(WorkData, RawImage);
+    Bitmap.Clear;
+    // Create bitmap from raw image (makes its own copy of pixels)
+    if not RawImage_CreateBitmaps(RawImage, ImgHandle, ImgMaskHandle) then
+      RaiseImaging(SFailedBitmapFromData, [Data.Width, Data.Height, GetFormatName(Data.Format)]);
 
-  Bitmap.Clear;
-  // Create bitmap from raw image
-  if RawImage_CreateBitmaps(RawImage, ImgHandle, ImgMaskHandle) then
-  begin
     Bitmap.Handle := ImgHandle;
     Bitmap.MaskHandle := ImgMaskHandle;
-  end;
 {$ENDIF}
-
-  if WorkData.Bits <> Data.Bits then
-    Imaging.FreeImage(WorkData);
+  finally
+    if WorkData.Bits <> Data.Bits then
+      FreeImage(WorkData);
+  end;
 
   if Bitmap.Empty then
-    RaiseImaging(SFailedBitmapFromData, []);
+    RaiseImaging(SFailedBitmapFromData, [Data.Width, Data.Height, GetFormatName(Data.Format)]);
 end;
 
 procedure ConvertBitmapToData(Bitmap: TBitmap; var Data: TImageData);
 var
+{$IFDEF COMPONENT_SET_VCL}
   I: NativeInt;
   LineBytes: LongInt;
   Format: TImageFormat;
   Info: TImageFormatInfo;
-{$IFDEF COMPONENT_SET_VCL}
   Colors: Word;
   LogPalette: TMaxLogPalette;
+  WorkBitmap: TBitmap;
 {$ENDIF}
 {$IFDEF COMPONENT_SET_LCL}
   RawImage: TRawImage;
-  LineLazBytes: LongInt;
+  Converted: Boolean;
 {$ENDIF}
 begin
-  Format := ifUnknown;
-{$IFDEF COMPONENT_SET_LCL}
-  // In the current Lazarus 0.9.10 Bitmap.PixelFormat property is useless.
-  // We cannot change bitmap's format by changing it (it will just release
-  // old image but not convert it to new format) nor we can determine bitmaps's
-  // current format (it is usually set to pfDevice). So bitmap's format is obtained
-  // trough RawImage api and cannot be changed to mirror some Imaging format
-  // (so formats with no corresponding Imaging format cannot be saved now).
-
-  if RawImage_DescriptionFromBitmap(Bitmap.Handle, RawImage.Description) then
-    case RawImage.Description.BitsPerPixel of
-      8: Format := ifIndex8;
-      16:
-        if RawImage.Description.Depth = 15 then
-          Format := ifA1R5G5B5
-        else
-          Format := ifR5G6B5;
-      24: Format := ifR8G8B8;
-      32: Format := ifA8R8G8B8;
-      48: Format := ifR16G16B16;
-      64: Format := ifA16R16G16B16;
-    end;
-{$ELSE}
+{$IFDEF COMPONENT_SET_VCL}
+  WorkBitmap := Bitmap;
   Format := PixelFormatToDataFormat(Bitmap.PixelFormat);
   if Format = ifUnknown then
   begin
-    // Convert from formats not supported by Imaging (1/4 bit)
-    if Bitmap.PixelFormat < pf8bit then
-       Bitmap.PixelFormat := pf8bit
+    // Pixel formats not supported by Imaging (1/4 bit, device dependent, custom)
+    // are converted in a copy, the bitmap passed in stays as it is
+    WorkBitmap := TBitmap.Create;
+    WorkBitmap.Assign(Bitmap);
+    if Bitmap.PixelFormat in [pf1bit, pf4bit] then
+      WorkBitmap.PixelFormat := pf8bit
     else
-      Bitmap.PixelFormat := pf32bit;
-    Format := PixelFormatToDataFormat(Bitmap.PixelFormat);
+      WorkBitmap.PixelFormat := pf24bit;
+    Format := PixelFormatToDataFormat(WorkBitmap.PixelFormat);
   end;
-{$ENDIF}
 
-  if Format = ifUnknown then
-    RaiseImaging(SBadFormatBitmapToData, []);
+  try
+    if Format = ifUnknown then
+      RaiseImaging(SBadFormatBitmapToData, []);
 
-  Imaging.NewImage(Bitmap.Width, Bitmap.Height, Format, Data);
-  GetImageFormatInfo(Data.Format, Info);
-  LineBytes := Data.Width * Info.BytesPerPixel;
+    NewImage(WorkBitmap.Width, WorkBitmap.Height, Format, Data);
+    GetImageFormatInfo(Data.Format, Info);
+    LineBytes := Data.Width * Info.BytesPerPixel;
 
-{$IFDEF COMPONENT_SET_VCL}
-  if (Format = ifIndex8) and (GetObject(Bitmap.Palette, SizeOf(Colors),
-    @Colors) <> 0) then
-  begin
-    // Copy palette
-    GetPaletteEntries(Bitmap.Palette, 0, Colors, LogPalette.palPalEntry);
-    if Colors > Info.PaletteEntries  then
-      Colors := Info.PaletteEntries;
-    for I := 0 to Colors - 1 do
-    with LogPalette do
+    if (Format = ifIndex8) and (GetObject(WorkBitmap.Palette, SizeOf(Colors), @Colors) <> 0) then
     begin
-      Data.Palette[I].A := $FF;
-      Data.Palette[I].R := palPalEntry[I].peRed;
-      Data.Palette[I].G := palPalEntry[I].peGreen;
-      Data.Palette[I].B := palPalEntry[I].peBlue;
+      // Copy palette
+      GetPaletteEntries(WorkBitmap.Palette, 0, Colors, LogPalette.palPalEntry);
+      if Colors > Info.PaletteEntries then
+        Colors := Info.PaletteEntries;
+      for I := 0 to Colors - 1 do
+      with LogPalette do
+      begin
+        Data.Palette[I].A := $FF;
+        Data.Palette[I].R := palPalEntry[I].peRed;
+        Data.Palette[I].G := palPalEntry[I].peGreen;
+        Data.Palette[I].B := palPalEntry[I].peBlue;
+      end;
     end;
-  end;
-  // Copy scanlines
-  for I := 0 to Data.Height - 1 do
-    Move(Bitmap.ScanLine[I]^, PBuffer(Data.Bits)[I * LineBytes], LineBytes);
-{$ENDIF}
-{$IFDEF COMPONENT_SET_LCL}
-  // Get raw image from bitmap (mask handle must be 0 or expect violations)
-  if RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, nil) then
-  begin
-    LineLazBytes := GetBytesPerLine(Data.Width, RawImage.Description.BitsPerPixel,
-      RawImage.Description.LineEnd);
+
     // Copy scanlines
     for I := 0 to Data.Height - 1 do
-    begin
-      Move(PBuffer(RawImage.Data)[I * LineLazBytes], PBuffer(Data.Bits)[I * LineBytes], LineBytes);
-    end;
-    // May need to swap RB order, depends on widget set
-    if RawImage.Description.BlueShift > RawImage.Description.RedShift then
-      SwapChannels(Data, ChannelRed, ChannelBlue);
+      Move(WorkBitmap.ScanLine[I]^, PBuffer(Data.Bits)[I * LineBytes], LineBytes);
 
+    if Format = ifA8R8G8B8 then
+    begin
+{$IF Defined(DELPHI) and (CompilerVersion >= 20.0)}
+      // Bitmap with alpha keeps colors premultiplied
+      if WorkBitmap.AlphaFormat <> afIgnored then
+        UnpremultiplyAlpha(Data)
+      else
+{$IFEND}
+        FixBitmapAlpha(Data);
+    end;
+  finally
+    if WorkBitmap <> Bitmap then
+      WorkBitmap.Free;
+  end;
+{$ENDIF}
+
+{$IFDEF COMPONENT_SET_LCL}
+  // Get raw image from bitmap (mask handle must be 0 or expect violations)
+  if not RawImage_FromBitmap(RawImage, Bitmap.Handle, 0, nil) then
+    RaiseImaging(SBadFormatBitmapToData, []);
+  try
+    Converted := ConvertRawImageToData(RawImage, Data);
+  finally
     RawImage.FreeData;
   end;
+
+  if not Converted then
+    RaiseImaging(SBadFormatBitmapToData, []);
+
+  FixBitmapAlpha(Data);
 {$ENDIF}
 end;
 
@@ -759,35 +1206,6 @@ const
   // Data formats that are drawn directly from image memory
   DirectDisplayFormats = [ifA8R8G8B8, ifX8R8G8B8];
 
-{ Clips SrcRect to the image and moves edges of DstRect so that the scale
-  stays the same. Returns False when there is nothing to draw.}
-function ClipDisplayRects(const ImageData: TImageData; var DstRect, SrcRect: TRect): Boolean;
-var
-  ScaleX, ScaleY: Double;
-  Clipped: TRect;
-begin
-  Result := False;
-  if (RectWidth(SrcRect) <= 0) or (RectHeight(SrcRect) <= 0) or
-     (RectWidth(DstRect) <= 0) or (RectHeight(DstRect) <= 0) then
-    Exit;
-
-  ScaleX := RectWidth(DstRect) / RectWidth(SrcRect);
-  ScaleY := RectHeight(DstRect) / RectHeight(SrcRect);
-  Clipped.Left := Max(SrcRect.Left, 0);
-  Clipped.Top := Max(SrcRect.Top, 0);
-  Clipped.Right := Min(SrcRect.Right, ImageData.Width);
-  Clipped.Bottom := Min(SrcRect.Bottom, ImageData.Height);
-  if (Clipped.Left >= Clipped.Right) or (Clipped.Top >= Clipped.Bottom) then
-    Exit;
-
-  Inc(DstRect.Left, Round((Clipped.Left - SrcRect.Left) * ScaleX));
-  Inc(DstRect.Top, Round((Clipped.Top - SrcRect.Top) * ScaleY));
-  Dec(DstRect.Right, Round((SrcRect.Right - Clipped.Right) * ScaleX));
-  Dec(DstRect.Bottom, Round((SrcRect.Bottom - Clipped.Bottom) * ScaleY));
-  SrcRect := Clipped;
-  Result := (DstRect.Right > DstRect.Left) and (DstRect.Bottom > DstRect.Top);
-end;
-
 { Clips the rectangles and returns image in one of DirectDisplayFormats to be drawn.
   That is ImageData itself, or Region with converted SrcRect part of it (SrcRect
   is then moved to Region coordinates). Returns nil when there is nothing to draw.}
@@ -795,10 +1213,18 @@ function PrepareDisplayData(const ImageData: TImageData; var DstRect, SrcRect: T
   var Region: TImageData): PImageData;
 var
   Info: TImageFormatInfo;
+  DrawnRect, SrcValidRect: TRect;
 begin
   Result := nil;
-  if not TestImage(ImageData) or not ClipDisplayRects(ImageData, DstRect, SrcRect) then
+  // Source is clipped to the image here (destination pixels whose centers map
+  // outside of it are left out), the platform clips the destination
+  if not TestImage(ImageData) or
+     not ClipStretchRects(SrcRect, DstRect, ImageData.Width, ImageData.Height, DstRect,
+                          DrawnRect, SrcValidRect) then
     Exit;
+
+  DstRect := DrawnRect;
+  SrcRect := SrcValidRect;
 
   if ImageData.Format in DirectDisplayFormats then
   begin

@@ -38,6 +38,19 @@ type
       Width, Height: Integer; const ColorTolerance: Double);
   end;
 
+  TTestFormatArray = array of TImageFormat;
+
+  { Conversion of images to the data formats file formats save
+    (GetConversionFormat, ConvertToSupported, MakeCompatible).}
+  TTestSaveConversion = class(TImagingTestCase)
+  private
+    procedure CollectRegularFormats(var Formats: TTestFormatArray);
+  published
+    procedure TestConversionFormatIsSupported;
+    procedure TestMakeCompatibleSameAsConvertToSupported;
+    procedure TestSupportedFormatIsNotCopied;
+  end;
+
   { Portable maps (PGM, PPM, PAM) with samples scaled by max value from
     the file header.}
   TTestPortableMaps = class(TImagingFileFormatTestCase)
@@ -1413,7 +1426,198 @@ begin
   end;
 end;
 
+{ TTestSaveConversion }
+
+// Protected methods of file formats are called through a descendant class,
+// object checks of test builds (-CR) would refuse calls on other instances
+{$IFDEF FPC}
+  {$PUSH}
+  {$OBJECTCHECKS OFF}
+{$ENDIF}
+
+type
+  { Access to protected methods of file formats.}
+  TFileFormatAccess = class(TImageFileFormat);
+
+procedure TTestSaveConversion.CollectRegularFormats(var Formats: TTestFormatArray);
+var
+  Fmt: TImageFormat;
+  Info: TImageFormatInfo;
+begin
+  SetLength(Formats, 0);
+  for Fmt := Low(TImageFormat) to High(TImageFormat) do
+  begin
+    if (Fmt <> ifDefault) and GetImageFormatInfo(Fmt, Info) and not Info.IsSpecial then
+    begin
+      SetLength(Formats, Length(Formats) + 1);
+      Formats[High(Formats)] := Fmt;
+    end;
+  end;
+end;
+
+procedure TTestSaveConversion.TestConversionFormatIsSupported;
+var
+  Formats: TTestFormatArray;
+  Failures: TStringList;
+  I, J: Integer;
+  FileFormat: TImageFileFormat;
+  Info: TImageFormatInfo;
+  ConvFormat: TImageFormat;
+begin
+  CollectRegularFormats(Formats);
+  Failures := TStringList.Create;
+  try
+    for I := 0 to GetFileFormatCount - 1 do
+    begin
+      FileFormat := GetFileFormatAtIndex(I);
+      if not FileFormat.CanSave then
+        Continue;
+
+      for J := 0 to High(Formats) do
+      begin
+        GetImageFormatInfo(Formats[J], Info);
+        ConvFormat := TFileFormatAccess(FileFormat).GetConversionFormat(Info);
+        if (ConvFormat <> ifUnknown) and not (ConvFormat in FileFormat.SupportedFormats) then
+        begin
+          Failures.Add(Format('%s: %s is converted to unsupported %s', [FileFormat.Name,
+                       GetFormatName(Formats[J]), GetFormatName(ConvFormat)]));
+        end;
+      end;
+    end;
+
+    if Failures.Count > 0 then
+      Fail(Failures.Text);
+  finally
+    Failures.Free;
+  end;
+end;
+
+procedure TTestSaveConversion.TestMakeCompatibleSameAsConvertToSupported;
+var
+  Formats: TTestFormatArray;
+  Failures: TStringList;
+  I, J: Integer;
+  FileFormat: TImageFileFormat;
+  Image, Compatible, Expected: TImageData;
+  MustBeFreed, Supported, ExpectedSupported: Boolean;
+  Name: string;
+  Compared: Integer;
+begin
+  CollectRegularFormats(Formats);
+  Compared := 0;
+  Failures := TStringList.Create;
+  try
+    for I := 0 to GetFileFormatCount - 1 do
+    begin
+      FileFormat := GetFileFormatAtIndex(I);
+      if not FileFormat.CanSave then
+        Continue;
+
+      for J := 0 to High(Formats) do
+      begin
+        Name := FileFormat.Name + ' from ' + GetFormatName(Formats[J]);
+        InitImage(Image);
+        InitImage(Compatible);
+        InitImage(Expected);
+        MustBeFreed := False;
+        try
+          NewImage(16, 6, Formats[J], Image);
+          FillTestImage(Image, 1234);
+          if TFileFormatAccess(FileFormat).IsSupported(Image) then
+            Continue;
+
+          // Conversion as before GetConversionFormat: a clone converted by
+          // ConvertToSupported
+          CloneImage(Image, Expected);
+          TFileFormatAccess(FileFormat).ConvertToSupported(Expected,
+            TFileFormatAccess(FileFormat).GetFormatInfo(Expected.Format));
+          ExpectedSupported := TFileFormatAccess(FileFormat).IsSupported(Expected);
+
+          Supported := FileFormat.MakeCompatible(Image, Compatible, MustBeFreed);
+          Inc(Compared);
+          if Supported <> ExpectedSupported then
+            Failures.Add(Name + ': MakeCompatible result differs')
+          else if not MustBeFreed then
+            Failures.Add(Name + ': converted image must be freed by caller')
+          else if (Compatible.Format <> Expected.Format) or (Compatible.Size <> Expected.Size) or
+                  (Compatible.Width <> Expected.Width) or (Compatible.Height <> Expected.Height) or
+                  not CompareMem(Compatible.Bits, Expected.Bits, Expected.Size) then
+          begin
+            Failures.Add(Format('%s: MakeCompatible gives %s, ConvertToSupported %s', [Name,
+                         ImageToStr(Compatible), ImageToStr(Expected)]));
+          end
+          else if (Expected.Palette <> nil) and
+                  ((Compatible.Palette = nil) or not CompareMem(Compatible.Palette, Expected.Palette,
+                    TFileFormatAccess(FileFormat).GetFormatInfo(Expected.Format).PaletteEntries * SizeOf(TColor32Rec))) then
+          begin
+            Failures.Add(Name + ': palettes differ');
+          end;
+        finally
+          FreeImage(Image);
+          FreeImage(Expected);
+          if MustBeFreed then
+            FreeImage(Compatible);
+        end;
+      end;
+    end;
+
+    if Failures.Count > 0 then
+      Fail(Failures.Text);
+    // Formats with saving times data formats they need to convert
+    CheckTrue(Compared > 100, Format('Only %d conversions compared', [Compared]));
+  finally
+    Failures.Free;
+  end;
+end;
+
+procedure TTestSaveConversion.TestSupportedFormatIsNotCopied;
+var
+  Formats: TTestFormatArray;
+  I, J: Integer;
+  FileFormat: TImageFileFormat;
+  Image, Compatible: TImageData;
+  MustBeFreed: Boolean;
+  Name: string;
+  Checked: Integer;
+begin
+  CollectRegularFormats(Formats);
+  Checked := 0;
+  for I := 0 to GetFileFormatCount - 1 do
+  begin
+    FileFormat := GetFileFormatAtIndex(I);
+    if not FileFormat.CanSave then
+      Continue;
+
+    for J := 0 to High(Formats) do
+    begin
+      if not (Formats[J] in FileFormat.SupportedFormats) then
+        Continue;
+
+      Name := FileFormat.Name + ' from ' + GetFormatName(Formats[J]);
+      InitImage(Image);
+      try
+        NewImage(16, 6, Formats[J], Image);
+        if not TFileFormatAccess(FileFormat).IsSupported(Image) then
+          Continue;
+
+        CheckTrue(FileFormat.MakeCompatible(Image, Compatible, MustBeFreed), Name + ': MakeCompatible');
+        CheckFalse(MustBeFreed, Name + ': nothing to free');
+        CheckTrue(Compatible.Bits = Image.Bits, Name + ': image is not copied');
+        Inc(Checked);
+      finally
+        FreeImage(Image);
+      end;
+    end;
+  end;
+  CheckTrue(Checked > 20, Format('Only %d supported formats checked', [Checked]));
+end;
+
+{$IFDEF FPC}
+  {$POP}
+{$ENDIF}
+
 initialization
+  RegisterImagingTest(TTestSaveConversion);
   RegisterImagingTest(TTestPortableMaps);
   RegisterImagingTest(TTestBitmap);
   RegisterImagingTest(TTestJpeg2000);

@@ -57,7 +57,7 @@ type
     procedure TestRectRelations;
     procedure TestClipRectBounds;
     procedure TestClipCopyBounds;
-    procedure TestClipStretchBounds;
+    procedure TestClipStretchRects;
     procedure TestScaleToFit;
   end;
 
@@ -612,52 +612,63 @@ begin
   CheckBounds(50, 50, 50, 30, 50, 50, 'Clip with non zero origin');
 end;
 
-procedure TTestUtilityRects.TestClipStretchBounds;
+procedure TTestUtilityRects.TestClipStretchRects;
 const
   SrcImageWidth = 100;
   SrcImageHeight = 100;
 var
-  SrcX, SrcY, SrcW, SrcH, DstX, DstY, DstW, DstH: LongInt;
-  DstClip: TRect;
+  Drawn, Valid: TRect;
+  Clipped: Boolean;
 
-  procedure DoClip(ASrcX, ASrcY, ASrcW, ASrcH, ADstX, ADstY, ADstW, ADstH: LongInt);
+  procedure DoClip(const Src, Dst, Clip: TRect);
   begin
-    SrcX := ASrcX;
-    SrcY := ASrcY;
-    SrcW := ASrcW;
-    SrcH := ASrcH;
-    DstX := ADstX;
-    DstY := ADstY;
-    DstW := ADstW;
-    DstH := ADstH;
-    ClipStretchBounds(SrcX, SrcY, SrcW, SrcH, DstX, DstY, DstW, DstH,
-                      SrcImageWidth, SrcImageHeight, DstClip);
+    Clipped := ClipStretchRects(Src, Dst, SrcImageWidth, SrcImageHeight, Clip, Drawn, Valid);
   end;
 
 begin
-  DstClip := Rect(0, 0, 400, 400);
+  DoClip(Rect(0, 0, 100, 100), Rect(0, 0, 200, 200), Rect(0, 0, 400, 400));
+  CheckTrue(Clipped, 'Nothing to clip: result');
+  CheckEqualsRect(Rect(0, 0, 200, 200), Drawn, 'Nothing to clip: drawn');
+  CheckEqualsRect(Rect(0, 0, 100, 100), Valid, 'Nothing to clip: valid source');
 
-  DoClip(0, 0, 100, 100, 0, 0, 200, 200);
-  CheckEqualsRect(Rect(0, 0, 100, 100), Rect(SrcX, SrcY, SrcW, SrcH), 'Nothing to clip: source');
-  CheckEqualsRect(Rect(0, 0, 200, 200), Rect(DstX, DstY, DstW, DstH), 'Nothing to clip: destination');
+  // 10x zoom with destination starting 15 pixels before the clip: only the
+  // drawn part changes, source stays whole (former ClipStretchBounds moved it by 2
+  // pixels, a shift of 5 destination pixels)
+  DoClip(Rect(0, 0, 100, 100), Rect(-15, -15, 985, 985), Rect(0, 0, 500, 500));
+  CheckTrue(Clipped, 'Clipped destination: result');
+  CheckEqualsRect(Rect(0, 0, 500, 500), Drawn, 'Clipped destination: drawn');
+  CheckEqualsRect(Rect(0, 0, 100, 100), Valid, 'Clipped destination: valid source');
 
-  // Destination is two times larger, so each clipped destination pixel
-  // removes half a pixel from source
-  DoClip(0, 0, 100, 100, -100, -50, 200, 200);
-  CheckEqualsRect(Rect(50, 25, 50, 75), Rect(SrcX, SrcY, SrcW, SrcH), 'Negative destination: source');
-  CheckEqualsRect(Rect(0, 0, 100, 150), Rect(DstX, DstY, DstW, DstH), 'Negative destination: destination');
+  DoClip(Rect(0, 0, 100, 100), Rect(300, 300, 500, 500), Rect(0, 0, 400, 400));
+  CheckEqualsRect(Rect(300, 300, 400, 400), Drawn, 'Destination over the clip: drawn');
 
-  DoClip(0, 0, 100, 100, 300, 300, 200, 200);
-  CheckEqualsRect(Rect(0, 0, 50, 50), Rect(SrcX, SrcY, SrcW, SrcH), 'Destination over the clip: source');
-  CheckEqualsRect(Rect(300, 300, 100, 100), Rect(DstX, DstY, DstW, DstH), 'Destination over the clip: destination');
+  // 2x zoom, source starts 10 pixels before the image: destination pixels
+  // 0..19 have centers mapped to source -10 .. -0.25
+  DoClip(Rect(-10, 0, 90, 100), Rect(0, 0, 200, 200), Rect(0, 0, 400, 400));
+  CheckTrue(Clipped, 'Source before the image: result');
+  CheckEqualsRect(Rect(20, 0, 200, 200), Drawn, 'Source before the image: drawn');
+  CheckEqualsRect(Rect(0, 0, 90, 100), Valid, 'Source before the image: valid source');
 
-  DoClip(50, 50, 100, 100, 0, 0, 200, 200);
-  CheckEqualsRect(Rect(50, 50, 50, 50), Rect(SrcX, SrcY, SrcW, SrcH), 'Source over the image: source');
-  CheckEqualsRect(Rect(0, 0, 100, 100), Rect(DstX, DstY, DstW, DstH), 'Source over the image: destination');
+  // 10x downscale, source reaches 5 pixels over the image: center of the
+  // last destination pixel maps to source 100 (outside)
+  DoClip(Rect(5, 0, 105, 100), Rect(0, 0, 10, 10), Rect(0, 0, 400, 400));
+  CheckEqualsRect(Rect(0, 0, 9, 10), Drawn, 'Source over the image: drawn');
+  CheckEqualsRect(Rect(5, 0, 100, 100), Valid, 'Source over the image: valid source');
 
-  DoClip(-50, -50, 100, 100, 0, 0, 200, 200);
-  CheckEqualsRect(Rect(0, 0, 50, 50), Rect(SrcX, SrcY, SrcW, SrcH), 'Negative source: source');
-  CheckEqualsRect(Rect(100, 100, 100, 100), Rect(DstX, DstY, DstW, DstH), 'Negative source: destination');
+  // Center of destination pixel maps exactly to the edge of the image: it is
+  // sampled from the pixel after the edge, so it is drawn
+  DoClip(Rect(-1, 0, 1, 2), Rect(0, 0, 1, 1), Rect(0, 0, 400, 400));
+  CheckTrue(Clipped, 'Center on the edge: result');
+  CheckEqualsRect(Rect(0, 0, 1, 1), Drawn, 'Center on the edge: drawn');
+
+  DoClip(Rect(-20, 0, -10, 10), Rect(0, 0, 20, 20), Rect(0, 0, 400, 400));
+  CheckFalse(Clipped, 'Source outside of the image');
+  DoClip(Rect(0, 0, 100, 100), Rect(500, 0, 600, 100), Rect(0, 0, 400, 400));
+  CheckFalse(Clipped, 'Destination outside of the clip');
+  DoClip(Rect(0, 0, 100, 100), Rect(100, 0, 0, 100), Rect(0, 0, 400, 400));
+  CheckFalse(Clipped, 'Inverted destination');
+  DoClip(Rect(0, 0, 0, 100), Rect(0, 0, 100, 100), Rect(0, 0, 400, 400));
+  CheckFalse(Clipped, 'Empty source');
 end;
 
 procedure TTestUtilityRects.TestScaleToFit;

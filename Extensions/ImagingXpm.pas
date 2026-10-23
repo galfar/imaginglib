@@ -31,8 +31,7 @@ type
       OnlyFirstLevel: Boolean): Boolean; override;
     function SaveData(Handle: TImagingHandle; const Images: TDynImageDataArray;
       Index: LongInt): Boolean; override;
-    procedure ConvertToSupported(var Image: TImageData;
-      const Info: TImageFormatInfo); override;
+    function GetConversionFormat(const Info: TImageFormatInfo): TImageFormat; override;
   public
     function TestFormat(Handle: TImagingHandle): Boolean; override;
   end;
@@ -528,10 +527,9 @@ begin
   end;
 end;
 
-procedure TXPMFileFormat.ConvertToSupported(var Image: TImageData;
-  const Info: TImageFormatInfo);
+function TXPMFileFormat.GetConversionFormat(const Info: TImageFormatInfo): TImageFormat;
 begin
-  ConvertImage(Image, ifA8R8G8B8)
+  Result := ifA8R8G8B8
 end;
 
 function TXPMFileFormat.TestFormat(Handle: TImagingHandle): Boolean;
