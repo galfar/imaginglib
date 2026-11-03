@@ -46,8 +46,8 @@ jobs:
         uses: ollydev/setup-lazarus@v4.1
         with:
           fpclazup-url: ${{ env.FPCLAZUP_URL }}
-          fpclazup-lazcommit: a3e4c43c3d # Lazarus 4.99-5622 2026-07-16
-          fpclazup-fpccommit: ad4da509ba # FPC trunk 3.3.1-20578 2026-07-16
+          fpclazup-lazcommit: 121cf87c51 # Lazarus trunk 2026-11-03
+          fpclazup-fpccommit: 4cb8012b64 # FPC trunk 3.3.1 2026-11-03
 
       - name: Setup QEMU
         shell: bash
