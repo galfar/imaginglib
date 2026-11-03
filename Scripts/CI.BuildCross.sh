@@ -23,16 +23,21 @@ fi
 
 TARGET=(--cpu="$CPU" --os="$OS")
 
-printf '\n===== Unit tests (%s-%s) =====\n' "$CPU" "$OS"
-cd "$REPO_ROOT/Tests/UnitTests"
-lazbuild "${TARGET[@]}" --bm="Debug" --opt="-o$REPO_ROOT/Bin/ImagingTests-$SUFFIX$EXT" "ImagingTests.lpi"
-
-# FPC trunk (2026-07) crashed with access violation when linking WASM demos
-# with smart linking (Release mode -CX -XX), so build them without it
+TEST_OPTS=()
 DEMO_OPTS=()
 if [[ "$CPU" == "wasm32" ]]; then
+  # Workarounds for FPC trunk (2026-11) WASM issues:
+  # - Debug mode of tests uses external debug info (-Xg), which produces a WASM
+  #   module that wasmtime fails to parse ("section size mismatch")
+  # - FPC crashes with access violation when linking demos with smart linking
+  #   (Release mode -CX -XX)
+  TEST_OPTS=(--opt="-Xg-")
   DEMO_OPTS=(--opt="-CX-" --opt="-XX-")
 fi
+
+printf '\n===== Unit tests (%s-%s) =====\n' "$CPU" "$OS"
+cd "$REPO_ROOT/Tests/UnitTests"
+lazbuild "${TARGET[@]}" --bm="Debug" "${TEST_OPTS[@]}" --opt="-o$REPO_ROOT/Bin/ImagingTests-$SUFFIX$EXT" "ImagingTests.lpi"
 
 printf '\n===== Demos (%s-%s) =====\n' "$CPU" "$OS"
 cd "$REPO_ROOT/Demos/ObjectPascal"
