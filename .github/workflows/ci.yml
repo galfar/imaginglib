@@ -189,14 +189,18 @@ jobs:
   build-fpc-trunk:
     runs-on: ubuntu-latest
     continue-on-error: true
-    timeout-minutes: 30
+    timeout-minutes: 45
+    env:
+      # Also used by CI.InstallFPCCross.sh (setup-lazarus does not download fpclazup when FPC comes from cache)
+      FPCLAZUP_URL: https://github.com/LongDirtyAnimAlf/Reiniero-fpcup/releases/download/v2.4.0i/fpclazup-x86_64-linux
     steps:
       - uses: actions/checkout@v7
 
+      # Keep in sync with build-other-archs.yml
       - name: Install Lazarus + FPC trunk (fpclazup)
         uses: ollydev/setup-lazarus@v4.1
         with:
-          fpclazup-url: https://github.com/LongDirtyAnimAlf/Reiniero-fpcup/releases/download/v2.4.0i/fpclazup-x86_64-linux
+          fpclazup-url: ${{ env.FPCLAZUP_URL }}
           fpclazup-lazcommit: a3e4c43c3d # Lazarus 4.99-5622 2026-07-16
           fpclazup-fpccommit: ad4da509ba # FPC trunk 3.3.1-20578 2026-07-16
 
@@ -225,6 +229,15 @@ jobs:
         shell: bash
         run: ./Scripts/CI.RunTests.sh
 
+      - name: Install FPC cross compiler for WASM (wasip1)
+        shell: bash
+        run: ./Scripts/CI.InstallFPCCross.sh wasm32 wasip1
+
+      # Build only, not run (would need a WASI runtime like wasmtime)
+      - name: Build for WASM (wasip1)
+        shell: bash
+        run: ./Scripts/CI.BuildCross.sh wasm32 wasip1 wasm32 .wasm
+
       - name: Report trunk build outcome
         if: always()
         run: |
@@ -239,6 +252,7 @@ jobs:
             Demos
             !Demos/ObjectPascal
             !Demos/Bin/Dcu
+            Bin/*.wasm
           if-no-files-found: error
 
 

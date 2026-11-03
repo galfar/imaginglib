@@ -1,0 +1,90 @@
+name: Build on other architectures (QEMU)
+
+on:
+  # Manual trigger only. Builds and tests on CPU architectures without GitHub hosted
+  # runners. Native x86_64 and ARM64 builds run in the main CI workflow (ci.yml).
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Also used by CI.InstallFPCCross.sh (setup-lazarus does not download fpclazup when FPC comes from cache)
+  FPCLAZUP_URL: https://github.com/LongDirtyAnimAlf/Reiniero-fpcup/releases/download/v2.4.0i/fpclazup-x86_64-linux
+
+jobs:
+  build_job:
+    # These targets need FPC trunk. There are no FPC trunk builds for them and building it
+    # under emulation would take too long, so FPC trunk cross compilers are built with
+    # fpclazup on x86_64 runner and the resulting executables are run with QEMU user mode emulation.
+    name: Build on ${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Non-critical, failure of these builds does not fail the workflow
+    continue-on-error: true
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 64-bit POWER, little endian (FPC powerpc64 + -Cb- -Caelfv2 set by fpclazup for Linux)
+          - arch: ppc64le
+            fpc-cpu: powerpc64
+            libc: libc6-ppc64el-cross
+            sysroot: /usr/powerpc64le-linux-gnu
+          # 64-bit RISC-V
+          - arch: riscv64
+            fpc-cpu: riscv64
+            libc: libc6-riscv64-cross
+            sysroot: /usr/riscv64-linux-gnu
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Keep in sync with build-fpc-trunk job in ci.yml
+      - name: Install Lazarus + FPC trunk (fpclazup)
+        uses: ollydev/setup-lazarus@v4.1
+        with:
+          fpclazup-url: ${{ env.FPCLAZUP_URL }}
+          fpclazup-lazcommit: a3e4c43c3d # Lazarus 4.99-5622 2026-07-16
+          fpclazup-fpccommit: ad4da509ba # FPC trunk 3.3.1-20578 2026-07-16
+
+      - name: Setup QEMU
+        shell: bash
+        run: |
+          # QEMU user mode emulation and target libc (executables link libc dynamically)
+          sudo apt-get install -y qemu-user ${{ matrix.libc }}
+          qemu-${{ matrix.arch }} --version
+
+      - name: Print info
+        shell: bash
+        run: ./Scripts/CI.PrintInfo.sh
+
+      - name: Install FPC cross compiler
+        shell: bash
+        run: ./Scripts/CI.InstallFPCCross.sh ${{ matrix.fpc-cpu }} linux
+
+      - name: Build
+        shell: bash
+        run: ./Scripts/CI.BuildCross.sh ${{ matrix.fpc-cpu }} linux ${{ matrix.arch }}
+
+      - name: Run unit tests and demos
+        shell: bash
+        run: ./Scripts/CI.RunQemu.sh ${{ matrix.arch }} ${{ matrix.arch }} ${{ matrix.sysroot }}
+
+      - name: Report build outcome
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "failure" ]; then
+            echo "::warning::Build on ${{ matrix.arch }} failed."
+          fi
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ci-artifacts-qemu-${{ matrix.arch }}
+          path: |
+            Bin
+            !Bin/Dcu
+            Demos/Bin
+            !Demos/Bin/Dcu
+          if-no-files-found: error
