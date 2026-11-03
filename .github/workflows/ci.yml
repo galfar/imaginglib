@@ -193,6 +193,8 @@ jobs:
     env:
       # Also used by CI.InstallFPCCross.sh (setup-lazarus does not download fpclazup when FPC comes from cache)
       FPCLAZUP_URL: https://github.com/LongDirtyAnimAlf/Reiniero-fpcup/releases/download/v2.4.0i/fpclazup-x86_64-linux
+      # WASI runtime to run WASM builds
+      WASMTIME_VERSION: v36.0.0
     steps:
       - uses: actions/checkout@v7
 
@@ -233,10 +235,21 @@ jobs:
         shell: bash
         run: ./Scripts/CI.InstallFPCCross.sh wasm32 wasip1
 
-      # Build only, not run (would need a WASI runtime like wasmtime)
       - name: Build for WASM (wasip1)
         shell: bash
         run: ./Scripts/CI.BuildCross.sh wasm32 wasip1 wasm32 .wasm
+
+      - name: Install wasmtime
+        shell: bash
+        run: |
+          NAME="wasmtime-$WASMTIME_VERSION-x86_64-linux"
+          curl -sSfL "https://github.com/bytecodealliance/wasmtime/releases/download/$WASMTIME_VERSION/$NAME.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/$NAME" >> $GITHUB_PATH
+          "$RUNNER_TEMP/$NAME/wasmtime" --version
+
+      - name: Run WASM unit tests and demos
+        shell: bash
+        run: ./Scripts/CI.RunWasm.sh wasm32
 
       - name: Report trunk build outcome
         if: always()
