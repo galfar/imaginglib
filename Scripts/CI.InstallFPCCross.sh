@@ -65,4 +65,5 @@ else
     --installdir="$INSTALL_DIR"
 fi
 
-echo "FPC cross compiler:" $(fpc -P"$CPU" -T"$OS" -iVTPTO)
+INFO=$("$FPC" -P"$CPU" -T"$OS" -iVTPTO)
+echo "FPC cross compiler: $INFO"

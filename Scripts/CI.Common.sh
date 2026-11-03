@@ -31,3 +31,14 @@ if [ -z "$RUNNER_ARCH" ]; then
   esac
   echo "RUNNER_ARCH not set, auto-detected: $RUNNER_ARCH"
 fi
+
+# FPC command: fpc from PATH, or the fpc.sh wrapper of an fpclazup install
+# (setup-lazarus in fpclazup mode puts only the Lazarus directory on PATH)
+if [ -z "$FPC" ]; then
+  FPC=fpc
+  if ! command -v fpc > /dev/null && [ -n "$RUNNER_TEMP" ]; then
+    for F in "$RUNNER_TEMP"/fpclazup/fpc/bin/*/fpc.sh; do
+      if [ -x "$F" ]; then FPC="$F"; break; fi
+    done
+  fi
+fi

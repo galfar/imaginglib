@@ -30,10 +30,13 @@ uses
   ZLibDynLib,
 {$ENDIF}
 {$IFNDEF DONT_LINK_EXT_FILE_FORMATS}
-  ImagingLibWebP, LibWebPDynLib, ImagingTiffBackend,
-  {$IFDEF TIFF_USE_LIBTIFF_DYNLIB}
-  LibTiffDynLib,
+  ImagingLibWebP, ImagingTiffBackend,
+  {$IFDEF HAS_DYNLIBS}
+  LibWebPDynLib,
   {$ENDIF}
+  {$IF Defined(TIFF_USE_LIBTIFF_DYNLIB) and Defined(HAS_DYNLIBS)}
+  LibTiffDynLib,
+  {$IFEND}
 {$ENDIF}
   ImagingTestCase;
 
@@ -87,17 +90,17 @@ end;
 
 procedure TTestDynLibs.TestLibWebP;
 begin
-{$IFNDEF DONT_LINK_EXT_FILE_FORMATS}
+{$IF not Defined(DONT_LINK_EXT_FILE_FORMATS) and Defined(HAS_DYNLIBS)}
   CheckTrue(WebPBackend = wbLibWebP, 'libwebp library is found and used');
   Report('libwebp', GetLibWebPVersion);
 {$ELSE}
-  Fail('Built without extension file formats');
-{$ENDIF}
+  Fail('Built without extension file formats or dynamic libraries support');
+{$IFEND}
 end;
 
 procedure TTestDynLibs.TestLibTiff;
 begin
-{$IF not Defined(DONT_LINK_EXT_FILE_FORMATS) and Defined(TIFF_USE_LIBTIFF_DYNLIB)}
+{$IF not Defined(DONT_LINK_EXT_FILE_FORMATS) and Defined(TIFF_USE_LIBTIFF_DYNLIB) and Defined(HAS_DYNLIBS)}
   CheckTrue(TiffBackend = tbLibTiff, 'libtiff library (4.0+) is found and used');
   Report('libtiff', GetLibTiffVersion);
 {$ELSE}
