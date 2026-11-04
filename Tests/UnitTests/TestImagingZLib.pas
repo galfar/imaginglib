@@ -83,17 +83,20 @@ var
   Expected: TZLibBackend;
   Version: string;
 begin
-  // Selection rules of ImagingZLib
+  // Selection rules of ImagingZLib for the compiled-in backend
 {$IF Defined(ZLIB_USE_BUNDLED)}
   Expected := zbBundled;
-{$ELSEIF Defined(ZLIB_USE_DYNLIB) and Defined(HAS_DYNLIBS)}
-  Expected := zbDynLib;
 {$ELSEIF Defined(FPC)}
   Expected := zbFpc;
 {$ELSEIF Defined(DCC) and (CompilerVersion > 23)}
   Expected := zbDelphi;
 {$ELSE}
   Expected := zbBundled;
+{$IFEND}
+{$IF Defined(ZLIB_USE_DYNLIB) and Defined(HAS_DYNLIBS)}
+  // Shared library is used when it is found
+  if ZLibBackend = zbDynLib then
+    Expected := zbDynLib;
 {$IFEND}
   CheckEquals(Ord(Expected), Ord(ZLibBackend), 'Backend');
 
