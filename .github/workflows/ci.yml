@@ -251,13 +251,6 @@ jobs:
         shell: bash
         run: ./Scripts/CI.RunWasm.sh wasm32
 
-      - name: Report trunk build outcome
-        if: always()
-        run: |
-          if [ "${{ job.status }}" = "failure" ]; then
-            echo "::warning::Build with FPC + Lazarus trunk failed."
-          fi
-
       - uses: actions/upload-artifact@v7
         with:
           name: ci-artifacts-trunk-build-${{ runner.os }}-${{ runner.arch }}
