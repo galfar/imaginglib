@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # 64-bit POWER, little endian (FPC powerpc64 + -Cb- -Caelfv2 set by fpclazup for Linux)
+          # 64-bit POWER, little endian (FPC powerpc64 with -Cb- -Caelfv2, passed by CI.BuildCross.sh)
           - arch: ppc64le
             fpc-cpu: powerpc64
             libc: libc6-ppc64el-cross
