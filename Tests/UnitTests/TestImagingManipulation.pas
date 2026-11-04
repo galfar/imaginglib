@@ -198,6 +198,7 @@ begin
   CheckSourceOutside(ifA8R8G8B8, rfNearest);
   CheckSourceOutside(ifA8R8G8B8, rfBilinear);
   CheckSourceOutside(ifA8R8G8B8, rfBicubic);
+  CheckSourceOutside(ifA8R8G8B8, rfLanczos);
 end;
 
 { TTestResizeNearest }
