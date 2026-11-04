@@ -23,6 +23,12 @@ fi
 
 TARGET=(--cpu="$CPU" --os="$OS")
 
+# Options the target needs (e.g. little endian ELFv2 for powerpc64-linux), the
+# RTL is built with them by CI.InstallFPCCross.sh but they are not in fpc.cfg
+for OPT in $(crossOptions "$CPU" "$OS"); do
+  TARGET+=(--opt="$OPT")
+done
+
 TEST_OPTS=()
 DEMO_OPTS=()
 if [[ "$CPU" == "wasm32" ]]; then

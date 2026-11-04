@@ -42,3 +42,13 @@ if [ -z "$FPC" ]; then
     done
   fi
 fi
+
+# Prints FPC options a cross target needs, for both building its RTL and
+# compiling programs (fpclazup does not put them into fpc.cfg).
+# Usage: crossOptions <cpu> <os>
+function crossOptions {
+  if [[ "$1" == "powerpc64" && "$2" == "linux" ]]; then
+    # Little endian ELFv2 (ppc64le), FPC cross compiler defaults to big endian ELFv1
+    echo "-Cb- -Caelfv2"
+  fi
+}
