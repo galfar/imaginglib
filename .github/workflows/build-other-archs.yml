@@ -55,15 +55,14 @@ jobs:
           # QEMU user mode emulation and target libc, for linking (-dev) and running
           # (executables link libc dynamically)
           sudo apt-get install -y qemu-user ${{ matrix.libc }}
-          qemu-${{ matrix.arch }} --version
-
-      - name: Print info
-        shell: bash
-        run: ./Scripts/CI.PrintInfo.sh
 
       - name: Install FPC cross compiler
         shell: bash
         run: ./Scripts/CI.InstallFPCCross.sh ${{ matrix.fpc-cpu }} linux
+
+      - name: Print info
+        shell: bash
+        run: ./Scripts/CI.PrintCrossInfo.sh ${{ matrix.fpc-cpu }} linux ${{ matrix.arch }} ${{ matrix.sysroot }}
 
       - name: Build
         shell: bash
@@ -72,13 +71,6 @@ jobs:
       - name: Run unit tests and demos
         shell: bash
         run: ./Scripts/CI.RunQemu.sh ${{ matrix.arch }} ${{ matrix.arch }} ${{ matrix.sysroot }}
-
-      - name: Report build outcome
-        if: always()
-        run: |
-          if [ "${{ job.status }}" = "failure" ]; then
-            echo "::warning::Build on ${{ matrix.arch }} failed."
-          fi
 
       - uses: actions/upload-artifact@v7
         with:
