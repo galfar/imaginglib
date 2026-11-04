@@ -26,9 +26,6 @@ interface
 
 uses
   SysUtils, ImagingTypes, Imaging, ImagingJpegLib, ImagingZLib,
-{$IFDEF ZLIB_USE_DYNLIB}
-  ZLibDynLib,
-{$ENDIF}
 {$IFNDEF DONT_LINK_EXT_FILE_FORMATS}
   ImagingLibWebP, LibWebPDynLib, ImagingTiffBackend,
   {$IFDEF TIFF_USE_LIBTIFF_DYNLIB}
@@ -66,10 +63,8 @@ end;
 procedure TTestDynLibs.TestZLib;
 begin
 {$IFDEF ZLIB_USE_DYNLIB}
-  // The library is loaded at start, the program does not run without it
-  CheckTrue(Assigned(zlibVersion), 'zlib library is loaded');
-  CheckTrue(ZLibBackend = zbDynLib, 'zlib library is the backend');
-  Report('zlib', string(AnsiString(zlibVersion)));
+  CheckTrue(ZLibBackend = zbDynLib, 'zlib library is found and used');
+  Report('zlib', GetZLibVersion);
 {$ELSE}
   Fail('Built without ZLIB_USE_DYNLIB');
 {$ENDIF}

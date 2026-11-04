@@ -43,7 +43,7 @@
 
 // ZLib
 {.$DEFINE ZLIB_USE_BUNDLED}       // bundled Pascal ZLib instead of FPC's or Delphi's
-{.$DEFINE ZLIB_USE_DYNLIB}        // ZLib shared library (must be present at run time)
+{.$DEFINE ZLIB_USE_DYNLIB}        // ZLib shared library when found at run time
 
 // JPEG
 {.$DEFINE JPEG_USE_BUNDLED}       // bundled Pascal JpegLib (also in LCL applications)
