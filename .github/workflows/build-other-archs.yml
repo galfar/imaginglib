@@ -30,12 +30,12 @@ jobs:
           # 64-bit POWER, little endian (FPC powerpc64 with -Cb- -Caelfv2, passed by CI.BuildCross.sh)
           - arch: ppc64le
             fpc-cpu: powerpc64
-            libc: libc6-ppc64el-cross
+            libc: libc6-dev-ppc64el-cross
             sysroot: /usr/powerpc64le-linux-gnu
           # 64-bit RISC-V
           - arch: riscv64
             fpc-cpu: riscv64
-            libc: libc6-riscv64-cross
+            libc: libc6-dev-riscv64-cross
             sysroot: /usr/riscv64-linux-gnu
 
     steps:
@@ -52,7 +52,8 @@ jobs:
       - name: Setup QEMU
         shell: bash
         run: |
-          # QEMU user mode emulation and target libc (executables link libc dynamically)
+          # QEMU user mode emulation and target libc, for linking (-dev) and running
+          # (executables link libc dynamically)
           sudo apt-get install -y qemu-user ${{ matrix.libc }}
           qemu-${{ matrix.arch }} --version
 

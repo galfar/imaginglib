@@ -52,3 +52,15 @@ function crossOptions {
     echo "-Cb- -Caelfv2"
   fi
 }
+
+# Prints directory with target libc for linking (from Ubuntu libc6-dev-*-cross
+# packages), empty when the target does not need one.
+# Usage: crossLibDir <cpu> <os>
+function crossLibDir {
+  if [[ "$2" == "linux" ]]; then
+    case "$1" in
+      powerpc64) echo "/usr/powerpc64le-linux-gnu/lib" ;;  # libc6-dev-ppc64el-cross
+      riscv64)   echo "/usr/riscv64-linux-gnu/lib" ;;      # libc6-dev-riscv64-cross
+    esac
+  fi
+}

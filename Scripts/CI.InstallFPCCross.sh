@@ -10,7 +10,9 @@ set -eo pipefail
 #        CI.InstallFPCCross.sh wasm32 wasip1
 #
 # Needs FPCLAZUP_URL env variable with the same URL as used by setup-lazarus.
-# Cross binutils and libraries are downloaded by fpclazup (--autotools).
+# Cross binutils are downloaded by fpclazup (--autotools). Target libc for
+# Linux targets comes from Ubuntu libc6-dev-*-cross packages (see crossLibDir
+# in CI.Common.sh), which must be installed.
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 source "$SCRIPT_DIR/CI.Common.sh"
@@ -39,9 +41,15 @@ case "$CPU" in
 esac
 
 CROSS_OPT="$(crossOptions "$CPU" "$OS")"
+CROSS_LIB_DIR="$(crossLibDir "$CPU" "$OS")"
+if [[ -n "$CROSS_LIB_DIR" ]] && [[ ! -e "$CROSS_LIB_DIR/libc.so" ]]; then
+  echo "ERROR: Target libc not found in $CROSS_LIB_DIR (install libc6-dev-*-cross package)" >&2
+  exit 2
+fi
+
 # Records options the installed cross compiler and its RTL were built with
 MARKER="$INSTALL_DIR/ci-cross-$CPU-$OS.txt"
-MARKER_TEXT="crossopt=$CROSS_OPT"
+MARKER_TEXT="crossopt=$CROSS_OPT crosslibdir=$CROSS_LIB_DIR"
 
 # Cached FPC installation may already have the cross compiler (cache is saved
 # at the end of the job that built it). Reused only when it was built by this
@@ -67,6 +75,12 @@ else
   # are not used by fpclazup, options must be passed explicitly
   if [[ -n "$CROSS_OPT" ]]; then
     ARGS+=(--crossOPT="$CROSS_OPT")
+  fi
+  # Libraries downloaded by --autotools are not found by fpclazup on Linux
+  # hosts (the archive is extracted into a nested cross/lib/<target>/cross/lib/<target>
+  # directory), so use the ones from the system
+  if [[ -n "$CROSS_LIB_DIR" ]]; then
+    ARGS+=(--crosslibdir="$CROSS_LIB_DIR")
   fi
 
   echo "Building FPC cross compiler for $CPU-$OS ($MARKER_TEXT)"
