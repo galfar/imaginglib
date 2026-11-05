@@ -76,6 +76,9 @@ const
   RgbeSignature: TSignature = '#?RGBE';
   SFmtRgbeRle = '32-bit_rle_rgbe';
   SFmtXyzeRle = '32-bit_rle_xyze';
+  // Scanlines of other widths are stored flat, without RLE
+  MinRleWidth = 8;
+  MaxRleWidth = $7FFF;
 
 resourcestring
   SErrorBadHeader = 'Bad HDR/RGBE header format.';
@@ -250,7 +253,7 @@ var
     Buffer: TDynRgbeArray;
   begin
     Dest := Image.Bits;
-    Compressed := not ((Image.Width < 8) or (Image.Width > $7FFFF));
+    Compressed := (Image.Width >= MinRleWidth) and (Image.Width <= MaxRleWidth);
     SrcLineLen := Image.Width * SizeOf(TRgbe);
 
     IO.Read(Handle, @Rgbe, SizeOf(Rgbe));
@@ -319,8 +322,8 @@ var
 
   procedure EncodeRgbe(const Src: TColor96FPRec; var DestR, DestG, DestB, DestE: Byte); {$IFDEF USE_INLINE}inline;{$ENDIF}
   var
-    V, M: {$IFDEF FPC}Float{$ELSE}Extended{$ENDIF};
-    E: Integer;
+    V, M, Scale: Extended;
+    E, R, G, B: Integer;
   begin
     V := Src.R;
     if (Src.G > V) then
@@ -338,10 +341,27 @@ var
     else
     begin
       Frexp(V, M, E);
-      V := M * 256.0 / V;
-      DestR := ClampToByte(Round(Src.R * V));
-      DestG := ClampToByte(Round(Src.G * V));
-      DestB := ClampToByte(Round(Src.B * V));
+      Scale := M * 256.0 / V;
+      R := Round(Src.R * Scale);
+      G := Round(Src.G * Scale);
+      B := Round(Src.B * Scale);
+
+      // A mantissa that rounds to 256 must be renormalized by increasing
+      // the exponent and recomputing all channels. E = 127 is the largest
+      // exponent representable in the RGBE exponent byte, so keep saturation
+      // at that limit.
+      if ((R >= 256) or (G >= 256) or (B >= 256)) and (E < 127) then
+      begin
+        Inc(E);
+        Scale := Scale * 0.5;
+        R := Round(Src.R * Scale);
+        G := Round(Src.G * Scale);
+        B := Round(Src.B * Scale);
+      end;
+
+      DestR := ClampToByte(R);
+      DestG := ClampToByte(G);
+      DestB := ClampToByte(B);
       DestE := ClampToByte(E + 128);
     end;
   end;
@@ -397,9 +417,30 @@ var
     Y, X, I, Width: Integer;
     SrcPtr: PColor96FPRecBuffer;
     Components: array of array of Byte;
+    FlatLine: TDynRgbeArray;
     StartLine: array[0..3] of Byte;
   begin
     Width := ImageToSave.Width;
+
+    if (Width < MinRleWidth) or (Width > MaxRleWidth) then
+    begin
+      // RLE scanlines cannot be used, readers take lines of these widths as flat
+      SetLength(FlatLine, Width);
+
+      for Y := 0 to ImageToSave.Height - 1 do
+      begin
+        SrcPtr := @PColor96FPRecBuffer(ImageToSave.Bits)[PtrInt(Y) * Width];
+        for X := 0 to Width - 1 do
+        begin
+          EncodeRgbe(SrcPtr[X], FlatLine[X].R, FlatLine[X].G,
+                     FlatLine[X].B, FlatLine[X].E);
+        end;
+        IO.Write(Handle, Pointer(FlatLine), Width * SizeOf(TRgbe));
+      end;
+
+      Exit;
+    end;
+
     // Save using RLE, each component is compressed separately
     SetLength(Components, 4, Width);
 
@@ -434,7 +475,7 @@ begin
   try
     // Save header
     SaveHeader;
-    // Save uncompressed pixels
+    // Save pixels
     SavePixels;
     Result := True;
   finally

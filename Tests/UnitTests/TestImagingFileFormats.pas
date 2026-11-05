@@ -153,6 +153,8 @@ type
   published
     procedure TestDecodedValues;
     procedure TestSavedValuesAreKept;
+    procedure TestMantissaRoundingCarriesExponent;
+    procedure TestFlatAndRleLineWidths;
     procedure TestResaveIsStable;
   end;
 
@@ -683,6 +685,94 @@ begin
       begin
         CheckEquals(Expected.Channels[Ch], Actual.Channels[Ch], Tolerance,
                     Format('Pixel %d %s', [I, ChannelNames[Ch]]));
+      end;
+    end;
+  finally
+    Stream.Free;
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestRadiance.TestMantissaRoundingCarriesExponent;
+var
+  Original: TImageData;
+  Stream: TMemoryStream;
+  Pixel: TIdealPixel;
+begin
+  InitImage(Original);
+  Stream := TMemoryStream.Create;
+  try
+    NewImage(1, 1, ifR32G32B32F, Original);
+    PColor96FPRec(Original.Bits)^.R := 3.99999976;
+    PColor96FPRec(Original.Bits)^.G := 1.0;
+    PColor96FPRec(Original.Bits)^.B := 0.5;
+
+    CheckTrue(SaveImageToStream('hdr', Stream, Original), 'Image is saved');
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, FImage), 'Image is loaded');
+    Pixel := ReadIdealPixel(FImage, 0);
+
+    // The red mantissa rounds to 256 at exponent 2, so it must be
+    // renormalized to 128 at exponent 3 rather than clamped to 255.
+    CheckEquals(3.99999976, Pixel.R, 0.001, 'Red');
+    CheckEquals(1.0, Pixel.G, 0.001, 'Green');
+    CheckEquals(0.5, Pixel.B, 0.001, 'Blue');
+  finally
+    Stream.Free;
+    FreeImage(Original);
+  end;
+end;
+
+procedure TTestRadiance.TestFlatAndRleLineWidths;
+const
+  // Lines narrower than 8 and wider than 32767 pixels cannot use RLE
+  Widths: array[0..4] of Integer = (1, 7, 8, 32767, 32768);
+  Height = 2;
+var
+  Original: TImageData;
+  Stream: TMemoryStream;
+  W, I: Integer;
+  Ch: TPixelChannel;
+  Expected, Actual: TIdealPixel;
+  Tolerance: Double;
+  Msg: string;
+begin
+  InitImage(Original);
+  Stream := TMemoryStream.Create;
+  try
+    for W := 0 to High(Widths) do
+    begin
+      Msg := Format('Width %d ', [Widths[W]]);
+      NewImage(Widths[W], Height, ifR32G32B32F, Original);
+      FillFloatImage(Original, HdrValues);
+
+      Stream.Clear;
+      CheckTrue(SaveImageToStream('hdr', Stream, Original), Msg + 'saved');
+      Stream.Position := 0;
+      CheckTrue(LoadImageFromStream(Stream, FImage), Msg + 'loaded');
+      CheckEquals(Widths[W], FImage.Width, Msg + 'width');
+      CheckEquals(Height, FImage.Height, Msg + 'height');
+
+      for I := 0 to Widths[W] * Height - 1 do
+      begin
+        Expected := ReadIdealPixel(Original, I);
+        Actual := ReadIdealPixel(FImage, I);
+        // Channels share the exponent of the largest one
+        Tolerance := Expected.R;
+        if Expected.G > Tolerance then
+          Tolerance := Expected.G;
+        if Expected.B > Tolerance then
+          Tolerance := Expected.B;
+        Tolerance := Tolerance / 256;
+
+        for Ch := chRed to chBlue do
+        begin
+          if Abs(Expected.Channels[Ch] - Actual.Channels[Ch]) > Tolerance then
+          begin
+            CheckEquals(Expected.Channels[Ch], Actual.Channels[Ch], Tolerance,
+                        Msg + Format('pixel %d %s', [I, ChannelNames[Ch]]));
+          end;
+        end;
       end;
     end;
   finally
