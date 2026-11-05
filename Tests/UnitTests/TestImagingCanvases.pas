@@ -48,6 +48,7 @@ type
     procedure TestNonLinearFilters;
     procedure TestStretchDrawAlphaLongSource;
     procedure TestStretchDrawClipped;
+    procedure TestStretchDrawFlat;
   end;
 
 implementation
@@ -550,6 +551,67 @@ begin
       // Downscale
       CheckDraw(Formats[I], Filters[J], Rect(10, 10, 21, 18), Rect(13, 11, 20, 17));
     end;
+end;
+
+procedure TTestCanvases.TestStretchDrawFlat;
+
+  procedure CheckDraw(DataFormat: TImageFormat; Filter: TResizeFilter; Color: TColor32;
+    SrcWidth, SrcHeight, DestWidth, DestHeight: Integer);
+  var
+    Dest: TImageData;
+    DestCanvas: TImagingCanvas;
+    X, Y: Integer;
+    Expected, Actual: TColor32;
+    Msg: string;
+  begin
+    Msg := Format('format %d filter %d color %.8x %dx%d to %dx%d', [Ord(DataFormat), Ord(Filter),
+      Color, SrcWidth, SrcHeight, DestWidth, DestHeight]);
+    NewCanvas(SrcWidth, SrcHeight, DataFormat);
+    FCanvas.FillColor32 := Color;
+    FCanvas.FillRect(Rect(0, 0, SrcWidth, SrcHeight));
+    Expected := GetColor(0, 0);
+
+    InitImage(Dest);
+    DestCanvas := nil;
+    try
+      CheckTrue(NewImage(DestWidth, DestHeight, DataFormat, Dest), 'NewImage');
+      DestCanvas := FindBestCanvasForImage(Dest).CreateForData(@Dest);
+      // Destination has the same color: blending of fast canvas makes 254 of
+      // opaque 255 drawn over transparent black
+      DestCanvas.FillColor32 := Color;
+      DestCanvas.FillRect(Rect(0, 0, DestWidth, DestHeight));
+      FCanvas.StretchDrawAlpha(Rect(0, 0, SrcWidth, SrcHeight), DestCanvas,
+                               Rect(0, 0, DestWidth, DestHeight), Filter);
+
+      for Y := 0 to DestHeight - 1 do
+        for X := 0 to DestWidth - 1 do
+        begin
+          Actual := GetPixel32(Dest, X, Y).Color;
+          if Actual <> Expected then
+            Fail(Format('%s: pixel [%d, %d] is %.8x, expected %.8x', [Msg, X, Y, Actual, Expected]));
+        end;
+    finally
+      DestCanvas.Free;
+      FreeImage(Dest);
+    end;
+  end;
+
+const
+  // TFastARGB32Canvas (own bilinear) and the base canvas class
+  Formats: array[0..1] of TImageFormat = (ifA8R8G8B8, ifR8G8B8);
+  Filters: array[0..2] of TResizeFilter = (rfBilinear, rfBicubic, rfLanczos);
+  Colors: array[0..1] of TColor32 = ($FFFFFFFF, $FF806040);
+var
+  I, J, K: Integer;
+begin
+  for I := Low(Formats) to High(Formats) do
+    for J := Low(Filters) to High(Filters) do
+      for K := Low(Colors) to High(Colors) do
+      begin
+        CheckDraw(Formats[I], Filters[J], Colors[K], 40, 30, 97, 61);
+        CheckDraw(Formats[I], Filters[J], Colors[K], 200, 150, 130, 97);
+        CheckDraw(Formats[I], Filters[J], Colors[K], 200, 150, 77, 61);
+      end;
 end;
 
 initialization

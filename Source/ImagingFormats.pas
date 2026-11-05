@@ -1698,6 +1698,25 @@ begin
                               WrapEdges, DstLow, DstHigh, SrcLow, SrcHigh);
 end;
 
+{ Divides weights of one destination pixel by their sum: filter values at
+  the sample positions add up to 1 only in some cases (and depend on where
+  the pixel falls when downsampling), flat areas would change brightness.}
+procedure NormalizeCluster(var Cluster: TCluster);
+var
+  K: Integer;
+  Sum: Double;
+begin
+  Sum := 0;
+  for K := 0 to Length(Cluster) - 1 do
+    Sum := Sum + Cluster[K].Weight;
+
+  if Sum <> 0 then
+  begin
+    for K := 0 to Length(Cluster) - 1 do
+      Cluster[K].Weight := Cluster[K].Weight / Sum;
+  end;
+end;
+
 function BuildMappingTable(DstLow, DstHigh, SrcLow, SrcHigh, SrcImageWidth: LongInt;
   Filter: TFilterFunction; Radius: Single; WrapEdges: Boolean;
   DrawnLow, DrawnHigh, ClampLow, ClampHigh: Integer): TMappingTable;
@@ -1765,12 +1784,15 @@ begin
           Result[I][K].Weight := Weight;
         end;
       end;
+
       if Length(Result[I]) = 0 then
       begin
         SetLength(Result[I], 1);
         Result[I][0].Pos := ClampInt(Floor(Center), ClampLow, ClampHigh - 1);
         Result[I][0].Weight := 1.0;
-      end;
+      end
+      else
+        NormalizeCluster(Result[I]);
     end;
   end
   else // if Scale > 1.0 then
@@ -1810,6 +1832,8 @@ begin
           Result[I][K].Weight := Weight;
         end;
       end;
+
+      NormalizeCluster(Result[I]);
     end;
   end;
 end;
