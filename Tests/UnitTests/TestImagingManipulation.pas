@@ -11,7 +11,7 @@
 
 { Tests of image manipulation functions that move pixels without changing
   them: resizing with nearest filter, rotations by right angles, and mapping
-  of images to palettes.}
+  of images to palettes. Also resampling filters keeping flat areas.}
 unit TestImagingManipulation;
 
 {$I ImagingOptions.inc}
@@ -49,6 +49,20 @@ type
     procedure TestNearest;
     procedure TestResampling;
     procedure TestSourceOutsideOfImage;
+  end;
+
+  { Resampling of an image of one color gives the same color for all
+    filters, enlarging and shrinking by integer and non-integer factors.
+    Weights of filters used to be not normalized: shrinking with bilinear
+    filter made rows and columns up to 17 % darker, Lanczos darkened a bit
+    everywhere.}
+  TTestResampleFlat = class(TImagingTestCase)
+  private
+    procedure CheckFlat(Format: TImageFormat; Filter: TSamplingFilter; SrcWidth, SrcHeight,
+      DstWidth, DstHeight: Integer; Value: Byte);
+  published
+    procedure TestAllFilters;
+    procedure TestResizeImage;
   end;
 
   { Rotations by multiples of 90 degrees (counterclockwise).}
@@ -324,6 +338,116 @@ begin
   CheckResize(ifIndex8, 40000, 2, 20000, 3, rfLanczos);
 end;
 
+{ TTestResampleFlat }
+
+procedure TTestResampleFlat.CheckFlat(Format: TImageFormat; Filter: TSamplingFilter;
+  SrcWidth, SrcHeight, DstWidth, DstHeight: Integer; Value: Byte);
+const
+  Tolerance = 1e-5;
+var
+  Src, Dst: TImageData;
+  Info: TImageFormatInfo;
+  Color, Actual: TColorFPRec;
+  X, Y, Bpp: Integer;
+  Msg: string;
+begin
+  CheckTrue(GetImageFormatInfo(Format, Info), 'Format info');
+  Bpp := Info.BytesPerPixel;
+  Msg := SysUtils.Format('%s filter %d value %d %dx%d to %dx%d', [Info.Name, Ord(Filter), Value,
+    SrcWidth, SrcHeight, DstWidth, DstHeight]);
+
+  Color.A := Value / 255;
+  Color.R := Color.A;
+  Color.G := Color.A;
+  Color.B := Color.A;
+
+  InitImage(Src);
+  InitImage(Dst);
+  try
+    CheckTrue(NewImage(SrcWidth, SrcHeight, Format, Src), Msg + ': NewImage');
+    CheckTrue(NewImage(DstWidth, DstHeight, Format, Dst), Msg + ': NewImage');
+    for Y := 0 to SrcHeight - 1 do
+      for X := 0 to SrcWidth - 1 do
+        SetPixelFP(Src, X, Y, Color);
+
+    StretchResample(Src, 0, 0, SrcWidth, SrcHeight, Dst, 0, 0, DstWidth, DstHeight, Filter);
+
+    for Y := 0 to DstHeight - 1 do
+      for X := 0 to DstWidth - 1 do
+      begin
+        if Info.IsFloatingPoint then
+        begin
+          Actual := GetPixelFP(Dst, X, Y);
+          if (Abs(Actual.A - Color.A) > Tolerance) or (Abs(Actual.R - Color.R) > Tolerance) or
+             (Abs(Actual.G - Color.G) > Tolerance) or (Abs(Actual.B - Color.B) > Tolerance) then
+          begin
+            Fail(SysUtils.Format('%s: pixel [%d, %d] is %.6f %.6f %.6f %.6f', [Msg, X, Y,
+              Actual.A, Actual.R, Actual.G, Actual.B]));
+          end;
+        end
+        else if not CompareMem(PixelPtr(Src, 0, 0, Bpp), PixelPtr(Dst, X, Y, Bpp), Bpp) then
+          Fail(SysUtils.Format('%s: pixel [%d, %d] changed', [Msg, X, Y]));
+      end;
+  finally
+    FreeImage(Src);
+    FreeImage(Dst);
+  end;
+end;
+
+procedure TTestResampleFlat.TestAllFilters;
+const
+  Formats: array[0..2] of TImageFormat = (ifGray8, ifA16R16G16B16, ifA32R32G32B32F);
+  Values: array[0..2] of Byte = (255, 128, 1);
+var
+  Filter: TSamplingFilter;
+  I, J: Integer;
+begin
+  for Filter := Succ(sfNearest) to High(TSamplingFilter) do
+    for I := Low(Formats) to High(Formats) do
+      for J := Low(Values) to High(Values) do
+      begin
+        // Enlarging, also by an integer factor and only slightly
+        CheckFlat(Formats[I], Filter, 200, 150, 317, 229, Values[J]);
+        CheckFlat(Formats[I], Filter, 40, 30, 80, 90, Values[J]);
+        CheckFlat(Formats[I], Filter, 40, 30, 41, 31, Values[J]);
+        // Shrinking, also by an integer factor and only slightly
+        CheckFlat(Formats[I], Filter, 200, 150, 130, 97, Values[J]);
+        CheckFlat(Formats[I], Filter, 200, 150, 77, 61, Values[J]);
+        CheckFlat(Formats[I], Filter, 200, 150, 100, 50, Values[J]);
+        CheckFlat(Formats[I], Filter, 40, 30, 39, 29, Values[J]);
+        // Enlarging in one direction, shrinking in the other
+        CheckFlat(Formats[I], Filter, 60, 50, 23, 87, Values[J]);
+      end;
+end;
+
+procedure TTestResampleFlat.TestResizeImage;
+const
+  Filters: array[0..2] of TResizeFilter = (rfBilinear, rfBicubic, rfLanczos);
+var
+  Img: TImageData;
+  I, J: Integer;
+  Msg: string;
+begin
+  InitImage(Img);
+  try
+    for I := Low(Filters) to High(Filters) do
+    begin
+      Msg := SysUtils.Format('ResizeImage filter %d', [Ord(Filters[I])]);
+      CheckTrue(NewImage(200, 150, ifGray8, Img), Msg + ': NewImage');
+      FillChar(Img.Bits^, Img.Size, 255);
+      CheckTrue(ResizeImage(Img, 130, 97, Filters[I]), Msg + ': ResizeImage');
+
+      for J := 0 to Img.Size - 1 do
+      begin
+        if PBuffer(Img.Bits)[J] <> 255 then
+          Fail(SysUtils.Format('%s: pixel %d is %d', [Msg, J, PBuffer(Img.Bits)[J]]));
+      end;
+    end;
+  finally
+    FreeImage(Img);
+  end;
+end;
+
 { TTestRotate }
 
 procedure TTestRotate.CheckRotation(Format: TImageFormat; Angle: Integer;
@@ -589,6 +713,7 @@ end;
 initialization
   RegisterImagingTest(TTestResizeNearest);
   RegisterImagingTest(TTestStretchClipped);
+  RegisterImagingTest(TTestResampleFlat);
   RegisterImagingTest(TTestRotate);
   RegisterImagingTest(TTestPalettes);
 end.
