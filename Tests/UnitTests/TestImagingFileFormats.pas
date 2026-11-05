@@ -136,6 +136,7 @@ type
     procedure TestInterlaced;
     procedure TestManyDataChunks;
     procedure TestTruncatedData;
+    procedure TestInputEndsInChunkHeader;
     procedure TestBadDataChunkCrc;
     procedure TestBadAncillaryChunkCrc;
     procedure TestLargeDataInMoreChunks;
@@ -1237,6 +1238,50 @@ begin
   finally
     FreeImage(Original);
   end;
+end;
+
+procedure TTestPng.TestInputEndsInChunkHeader;
+var
+  Data: AnsiString;
+  Stream: TMemoryStream;
+  N, I: Integer;
+  Raised: Boolean;
+begin
+  // Zero bytes read as empty chunks of 12 bytes, the last one goes past the
+  // end of input: loading used to never return
+  for N := 0 to 40 do
+  begin
+    Data := PngSignature + StringOfChar(AnsiChar(#0), N);
+    CheckFalse(LoadFromData(Data), Format('Signature and %d zero bytes', [N]));
+  end;
+
+  Data := PngSignature + StringOfChar(AnsiChar(#0), 200);
+  Stream := TMemoryStream.Create;
+  try
+    Stream.WriteBuffer(Data[1], Length(Data));
+    Stream.Position := 0;
+    CheckFalse(LoadImageFromStream(Stream, FImage), 'Signature and 200 zero bytes in stream');
+  finally
+    Stream.Free;
+  end;
+
+  // MNG header is read on its own: zero bytes are a critical chunk with bad CRC
+  Raised := False;
+  try
+    LoadFromData(#$8A'MNG'#13#10#26#10 + StringOfChar(AnsiChar(#0), 200));
+  except
+    on E: EImagingError do
+      Raised := True;
+  end;
+  CheckTrue(Raised, 'MNG signature and zero bytes');
+  CheckFalse(LoadFromData(#$8A'MNG'#13#10#26#10), 'MNG signature only');
+
+  // Header of a chunk longer than the rest of input after image header:
+  // image without any image data is black
+  Data := PngSignature + PngIHDR(4, 3, 8, 0, 0) + BE32(1000) + 'tEXt';
+  CheckLoaded(Data, 4, 3, ifGray8, 'Chunk longer than input');
+  for I := 0 to FImage.Size - 1 do
+    CheckEquals(0, PBuffer(FImage.Bits)[I], Format('Chunk longer than input: byte %d', [I]));
 end;
 
 procedure TTestPng.TestBadDataChunkCrc;
