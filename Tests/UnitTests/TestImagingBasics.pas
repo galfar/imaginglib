@@ -81,6 +81,7 @@ type
     procedure TestSaveAndLoadMemory;
     procedure TestStreamSeekOver4GB;
     procedure TestReadRestOfInput;
+    procedure TestEofPastEnd;
   end;
 
 implementation
@@ -820,6 +821,57 @@ begin
     end;
   finally
     Stream.Free;
+  end;
+end;
+
+procedure TTestImageFiles.TestEofPastEnd;
+const
+  DataSize = 100;
+var
+  Data: TDynByteArray;
+  MemRec: TMemoryIORec;
+  Stream: TMemoryStream;
+  Handle: TImagingHandle;
+
+  procedure CheckEof(const IO: TIOFunctions; Handle: TImagingHandle; Size: Int64;
+    const Msg: string);
+  begin
+    IO.Seek(Handle, 0, smFromBeginning);
+    CheckFalse(IO.Eof(Handle), Msg + ': at the start');
+    IO.Seek(Handle, Size - 1, smFromBeginning);
+    CheckFalse(IO.Eof(Handle), Msg + ': before the end');
+    IO.Seek(Handle, 0, smFromEnd);
+    CheckTrue(IO.Eof(Handle), Msg + ': at the end');
+    // Skipping data of a chunk longer than the rest of input
+    IO.Seek(Handle, 4, smFromCurrent);
+    CheckTrue(IO.Eof(Handle), Msg + ': past the end');
+    CheckEquals(0, IO.Read(Handle, Pointer(Data), 1), Msg + ': nothing read past the end');
+    CheckTrue(IO.Eof(Handle), Msg + ': still past the end after read');
+    IO.Seek(Handle, 1, smFromBeginning);
+    CheckFalse(IO.Eof(Handle), Msg + ': back inside');
+  end;
+
+begin
+  SetLength(Data, DataSize);
+
+  MemRec := PrepareMemIO(Pointer(Data), DataSize);
+  CheckEof(MemoryIO, @MemRec, DataSize, 'Memory');
+  MemoryIO.Seek(@MemRec, 4, smFromEnd);
+  CheckEquals(0, MemoryIO.Write(@MemRec, Pointer(Data), 1), 'Memory: nothing written past the end');
+
+  Stream := TMemoryStream.Create;
+  try
+    Stream.WriteBuffer(Pointer(Data)^, DataSize);
+    CheckEof(StreamIO, Pointer(Stream), DataSize, 'Stream');
+  finally
+    Stream.Free;
+  end;
+
+  Handle := OriginalFileIO.Open(PChar(GetTestDataFile('Tigers.bmp')), omReadOnly);
+  try
+    CheckEof(OriginalFileIO, Handle, GetInputSize(OriginalFileIO, Handle), 'File');
+  finally
+    OriginalFileIO.Close(Handle);
   end;
 end;
 
