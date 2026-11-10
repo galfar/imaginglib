@@ -2225,6 +2225,244 @@ begin
   Move(Pointer(Residuals)^, Img^, W * H * SizeOf(UInt32));
 end;
 
+{ Cross color transform: in each tile of 2^Bits pixels red gets a multiple
+  of green subtracted, blue multiples of green and red. Multipliers (signed,
+  in 1/32) are searched for so that entropy of red and of blue is the lowest
+  (ColorSpaceTransform of libwebp). Used on residuals of the predictor.
+  Nothing is written when no tile gains. }
+procedure CrossColorTransform(var BW: TBitWriter; Img: PUInt32; W, H, Bits: Integer;
+  const Params: TEncoderParams);
+const
+  SameBias: Double = 3.0;        // multiplier of a neighbor tile or zero is preferred
+  SpatialStart: Double = 2.4;
+  SpatialDecay: Double = 0.6;
+  SpatialWeight: Double = -0.1;
+  SpatialWeightOfZero: Double = 3.0;
+  RedSteps = 4;
+  BlueDeltas: array[0..6] of Integer = (16, 16, 8, 4, 2, 2, 2);
+  BlueOffsets: array[0..7, 0..1] of Integer =
+    ((0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1));
+var
+  TilesX, TilesY, TileSize, TX, TY, X0, X1, Y0, Y1, I, Iter, Axis, Delta: Integer;
+  GreenToRed, GreenToBlue, RedToBlue, Cand, CandB, BlueIters: Integer;
+  LeftData, UpData: UInt32;
+  Data: TUInt32Array;
+  AccRed, AccBlue, Histo, BestHisto: array[0..255] of UInt32;
+  Cost, BestCost: Double;
+  AnyUsed: Boolean;
+
+  function Multiply(Multiplier, Color: Integer): Integer; {$IFDEF FPC}inline;{$ENDIF}
+  begin
+    // Arithmetic shift of the signed product
+    if Multiplier * Color >= 0 then
+      Result := (Multiplier * Color) shr 5
+    else
+      Result := -((-(Multiplier * Color) + 31) shr 5);
+  end;
+
+  function SpatialCost: Double;
+  var
+    I: Integer;
+    Sum, Weight: Double;
+  begin
+    Sum := SpatialWeightOfZero * Histo[0];
+    Weight := SpatialStart;
+    for I := 1 to 15 do
+    begin
+      Sum := Sum + Weight * (Histo[I] + Histo[256 - I]);
+      Weight := Weight * SpatialDecay;
+    end;
+    Result := SpatialWeight * Sum;
+  end;
+
+  function RedCost(G2R: Integer): Double;
+  var
+    X, Y: Integer;
+    Px: UInt32;
+    Row: PUInt32;
+  begin
+    FillChar(Histo, SizeOf(Histo), 0);
+    for Y := Y0 to Y1 - 1 do
+    begin
+      Row := Img + Y * W;
+      for X := X0 to X1 - 1 do
+      begin
+        Px := Row[X];
+        Inc(Histo[(Integer(Px shr 16) - Multiply(G2R, ShortInt(Px shr 8))) and $FF]);
+      end;
+    end;
+
+    Result := CombinedEntropy(@Histo[0], @AccRed[0]) + SpatialCost;
+    if G2R = ShortInt(LeftData and $FF) then Result := Result - SameBias;
+    if G2R = ShortInt(UpData and $FF) then Result := Result - SameBias;
+    if G2R = 0 then Result := Result - SameBias;
+  end;
+
+  function BlueCost(G2B, R2B: Integer): Double;
+  var
+    X, Y: Integer;
+    Px: UInt32;
+    Row: PUInt32;
+  begin
+    FillChar(Histo, SizeOf(Histo), 0);
+    for Y := Y0 to Y1 - 1 do
+    begin
+      Row := Img + Y * W;
+      for X := X0 to X1 - 1 do
+      begin
+        Px := Row[X];
+        Inc(Histo[(Integer(Px) - Multiply(G2B, ShortInt(Px shr 8)) -
+                   Multiply(R2B, ShortInt(Px shr 16))) and $FF]);
+      end;
+    end;
+
+    Result := CombinedEntropy(@Histo[0], @AccBlue[0]) + SpatialCost;
+    if G2B = ShortInt((LeftData shr 8) and $FF) then Result := Result - SameBias;
+    if G2B = ShortInt((UpData shr 8) and $FF) then Result := Result - SameBias;
+    if R2B = ShortInt((LeftData shr 16) and $FF) then Result := Result - SameBias;
+    if R2B = ShortInt((UpData shr 16) and $FF) then Result := Result - SameBias;
+    if G2B = 0 then Result := Result - SameBias;
+    if R2B = 0 then Result := Result - SameBias;
+  end;
+
+  procedure ApplyToTile(G2R, G2B, R2B: Integer);
+  var
+    X, Y, Red, Blue: Integer;
+    Px: UInt32;
+    Row: PUInt32;
+  begin
+    for Y := Y0 to Y1 - 1 do
+    begin
+      Row := Img + Y * W;
+      for X := X0 to X1 - 1 do
+      begin
+        Px := Row[X];
+        Red := (Integer(Px shr 16) - Multiply(G2R, ShortInt(Px shr 8))) and $FF;
+        Blue := (Integer(Px) - Multiply(G2B, ShortInt(Px shr 8)) -
+                 Multiply(R2B, ShortInt(Px shr 16))) and $FF;
+        Row[X] := (Px and $FF00FF00) or (UInt32(Red) shl 16) or UInt32(Blue);
+      end;
+    end;
+  end;
+
+begin
+  TilesX := SubSampleSize(W, Bits);
+  TilesY := SubSampleSize(H, Bits);
+  TileSize := 1 shl Bits;
+  SetLength(Data, TilesX * TilesY);
+  FillChar(AccRed, SizeOf(AccRed), 0);
+  FillChar(AccBlue, SizeOf(AccBlue), 0);
+  AnyUsed := False;
+  if Params.ChainSearch >= 160 then BlueIters := 7 else BlueIters := 4;
+
+  // Multipliers of all tiles first: the transform is written before
+  // the image of them, only when it is of use
+  for TY := 0 to TilesY - 1 do
+    for TX := 0 to TilesX - 1 do
+    begin
+      X0 := TX shl Bits;
+      X1 := X0 + TileSize;
+      if X1 > W then X1 := W;
+      Y0 := TY shl Bits;
+      Y1 := Y0 + TileSize;
+      if Y1 > H then Y1 := H;
+      LeftData := 0;
+      UpData := 0;
+      if TX > 0 then LeftData := Data[TY * TilesX + TX - 1];
+      if TY > 0 then UpData := Data[(TY - 1) * TilesX + TX];
+
+      // Green to red: steps of 32, 16, 8, 4 to both sides of the best one
+      GreenToRed := 0;
+      BestCost := RedCost(0);
+      BestHisto := Histo;
+
+      for Iter := 0 to RedSteps - 1 do
+      begin
+        Delta := 32 shr Iter;
+        Cand := GreenToRed;
+        for Axis := 0 to 1 do
+        begin
+          I := Cand - Delta + Axis * 2 * Delta;
+          if (I < -128) or (I > 127) then
+            Continue;
+          Cost := RedCost(I);
+          if Cost < BestCost then
+          begin
+            BestCost := Cost;
+            GreenToRed := I;
+            BestHisto := Histo;
+          end;
+        end;
+      end;
+
+      for I := 0 to 255 do
+        Inc(AccRed[I], BestHisto[I]);
+
+      // Green to blue and red to blue together: eight directions around
+      // the best pair, by smaller and smaller steps
+      GreenToBlue := 0;
+      RedToBlue := 0;
+      BestCost := BlueCost(0, 0);
+      BestHisto := Histo;
+
+      for Iter := 0 to BlueIters - 1 do
+      begin
+        Delta := BlueDeltas[Iter];
+        Cand := GreenToBlue;
+        CandB := RedToBlue;
+
+        for Axis := 0 to 7 do
+        begin
+          I := Cand + BlueOffsets[Axis, 0] * Delta;
+          if (I < -128) or (I > 127) or (CandB + BlueOffsets[Axis, 1] * Delta < -128) or
+             (CandB + BlueOffsets[Axis, 1] * Delta > 127) then
+            Continue;
+          Cost := BlueCost(I, CandB + BlueOffsets[Axis, 1] * Delta);
+          if Cost < BestCost then
+          begin
+            BestCost := Cost;
+            GreenToBlue := I;
+            RedToBlue := CandB + BlueOffsets[Axis, 1] * Delta;
+            BestHisto := Histo;
+          end;
+        end;
+
+        // Nothing better around at the smallest step
+        if (Delta = 2) and (GreenToBlue = Cand) and (RedToBlue = CandB) then
+          Break;
+      end;
+
+      for I := 0 to 255 do
+        Inc(AccBlue[I], BestHisto[I]);
+
+      Data[TY * TilesX + TX] := ARGB_BLACK or (UInt32(RedToBlue and $FF) shl 16) or
+                                (UInt32(GreenToBlue and $FF) shl 8) or UInt32(GreenToRed and $FF);
+      if (GreenToRed <> 0) or (GreenToBlue <> 0) or (RedToBlue <> 0) then
+        AnyUsed := True;
+    end;
+
+  if not AnyUsed then
+    Exit;
+
+  for TY := 0 to TilesY - 1 do
+    for TX := 0 to TilesX - 1 do
+    begin
+      X0 := TX shl Bits;
+      X1 := X0 + TileSize;
+      if X1 > W then X1 := W;
+      Y0 := TY shl Bits;
+      Y1 := Y0 + TileSize;
+      if Y1 > H then Y1 := H;
+      LeftData := Data[TY * TilesX + TX];
+      ApplyToTile(ShortInt(LeftData and $FF), ShortInt((LeftData shr 8) and $FF),
+                  ShortInt((LeftData shr 16) and $FF));
+    end;
+
+  WriteTransformHeader(BW, TRANSFORM_CROSS_COLOR);
+  PutBits(BW, Bits - 2, 3);
+  EncodeImage(BW, Pointer(Data), TilesX, TilesY, False, Params);
+end;
+
 { Palette }
 
 const
@@ -2473,7 +2711,7 @@ begin
   Params.ChainSearch := ChainSearch[Effort];
   Params.LazyMatching := Effort >= 2;
   Params.OptimalParse := Effort >= 4;
-  if Effort >= 7 then Params.PredictorBits := 3
+  if Effort >= 5 then Params.PredictorBits := 3
   else if Effort >= 2 then Params.PredictorBits := 4
   else Params.PredictorBits := 5;
   Params.PredictorModes := PredictorModes[Effort];
@@ -2514,6 +2752,14 @@ begin
           (SubSampleSize(CodedWidth, Bits) * SubSampleSize(H, Bits) > 16384) do
       Inc(Bits);
     PredictorTransform(BW, Img, CodedWidth, H, Bits, Params);
+    // Multipliers of the color transform cost more than a predictor:
+    // its tiles are twice the size
+    if Config.CrossColor and Params.CrossColor then
+    begin
+      if Bits < MAX_TILE_BITS then
+        Inc(Bits);
+      CrossColorTransform(BW, Img, CodedWidth, H, Bits, Params);
+    end;
   end;
 
   // No more transforms
