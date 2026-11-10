@@ -73,20 +73,17 @@ unit PasWebPDec;
 
 interface
 
-// All output buffers allocated with GetMem; caller frees with FreeMem.
-function WebPGetInfo(Data: PByte; DataSize: NativeUInt;
+{ Returns size of still WebP image stored in memory (not of animations). }
+function PasWebPGetInfo(Data: PByte; DataSize: NativeUInt;
   out Width, Height: Integer): Boolean;
-function WebPDecodeRGBA(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-function WebPDecodeARGB(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-function WebPDecodeBGRA(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-function WebPDecodeRGB(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-function WebPDecodeBGR(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-procedure WebPFree(ptr: Pointer);
+{ Decodes still WebP image stored in memory to caller's buffer: rows of
+  Width pixels, DestStride bytes apart. Pixels are B, G, R, A bytes when
+  WithAlpha is True (alpha is 255 for images without it), B, G, R otherwise
+  (alpha of the image is dropped). Width and Height must be the size of
+  the image as returned by PasWebPGetInfo. Returns False when the data cannot
+  be decoded, contents of the buffer is undefined then. }
+function PasWebPDecodeInto(Data: PByte; DataSize: NativeUInt; Dest: PByte;
+  DestStride: NativeInt; Width, Height: Integer; WithAlpha: Boolean): Boolean;
 
 implementation
 {$POINTERMATH ON}
@@ -101,7 +98,7 @@ type
   {$IF NOT DECLARED(PUInt32)}
   PUInt32 = ^UInt32;
   {$IFEND}
-  TCSMode = (csmRGBA, csmARGB, csmBGRA, csmRGB, csmBGR);
+  TCSMode = (csmBGRA, csmBGR);
 
 // ============================================================
 // CONSTANTS
@@ -950,7 +947,7 @@ type
 
     // Decoded output row (YUV -> RGB, written row by row)
     OutputMode:  TCSMode;
-    OutStride:   Integer;   // bytes per output row
+    OutStride:   NativeInt; // bytes per output row
     OutBpp:      Integer;   // bytes per pixel
 
     // YUV reconstruction buffer for current MB row
@@ -1944,40 +1941,6 @@ begin
 end;
 
 // ============================================================
-// YUV -> RGB OUTPUT CONVERSION
-// ============================================================
-
-// Output one row of pixels from the YUV buffer into the output buffer.
-// OutputRow: destination (pre-positioned)
-// Y, U, V: source row pointers (Y has 'width' pixels, U/V have width/2)
-// Width: number of Y pixels
-procedure EmitRGBRow(Y, U, V: PByte; Width: Integer;
-  Dst: PByte; Mode: TCSMode; Bpp: Integer);
-var x: Integer;
-    yv, uv, vv: Integer;
-    r, g, b: Byte;
-    p: PByte;
-begin
-  for x := 0 to Width-1 do
-  begin
-    yv := Y[x];
-    uv := U[x shr 1];
-    vv := V[x shr 1];
-    r := YuvToR(yv, vv);
-    g := YuvToG(yv, uv, vv);
-    b := YuvToB(yv, uv);
-    p := Dst + x * Bpp;
-    case Mode of
-      csmRGBA: begin p[0]:=r; p[1]:=g; p[2]:=b; p[3]:=255; end;
-      csmARGB: begin p[0]:=255; p[1]:=r; p[2]:=g; p[3]:=b; end;
-      csmBGRA: begin p[0]:=b; p[1]:=g; p[2]:=r; p[3]:=255; end;
-      csmRGB:  begin p[0]:=r; p[1]:=g; p[2]:=b; end;
-      csmBGR:  begin p[0]:=b; p[1]:=g; p[2]:=r; end;
-    end;
-  end;
-end;
-
-// ============================================================
 // VP8 IN-LOOP FILTER  (port of dsp/dec.c + frame_dec.c)
 // ============================================================
 
@@ -2259,10 +2222,7 @@ begin
   g := YuvToG(yv, uv, vv);
   b := YuvToB(yv, uv);
   case Mode of
-    csmRGBA: begin p[0]:=r; p[1]:=g; p[2]:=b; p[3]:=255; end;
-    csmARGB: begin p[0]:=255; p[1]:=r; p[2]:=g; p[3]:=b; end;
     csmBGRA: begin p[0]:=b; p[1]:=g; p[2]:=r; p[3]:=255; end;
-    csmRGB:  begin p[0]:=r; p[1]:=g; p[2]:=b; end;
     csmBGR:  begin p[0]:=b; p[1]:=g; p[2]:=r; end;
   end;
 end;
@@ -2312,7 +2272,8 @@ end;
 // libwebp-compatible fancy upsampling for the chroma planes.
 procedure VP8EmitFrame(var D: TVP8Decoder);
 var
-  y, cu, W, H, bpp, ys, uvs, os: Integer;
+  y, cu, W, H, bpp, ys, uvs: Integer;
+  os: NativeInt;
   fy, fu, fv, ob: PByte;
 begin
   W := D.PicWidth; H := D.PicHeight;
@@ -2331,8 +2292,8 @@ begin
     UpsamplePair(fy + (y+1)*ys, fy + (y+2)*ys,
                  fu + cu*uvs, fv + cu*uvs,
                  fu + (cu+1)*uvs, fv + (cu+1)*uvs,
-                 ob + NativeUInt(y+1)*NativeUInt(os),
-                 ob + NativeUInt(y+2)*NativeUInt(os),
+                 ob + NativeInt(y+1)*os,
+                 ob + NativeInt(y+2)*os,
                  W, bpp, D.OutputMode);
     Inc(cu);
     Inc(y, 2);
@@ -2341,7 +2302,7 @@ begin
   if (H and 1) = 0 then
     UpsamplePair(fy + (H-1)*ys, nil,
                  fu + cu*uvs, fv + cu*uvs, fu + cu*uvs, fv + cu*uvs,
-                 ob + NativeUInt(H-1)*NativeUInt(os), nil, W, bpp, D.OutputMode);
+                 ob + NativeInt(H-1)*os, nil, W, bpp, D.OutputMode);
 end;
 
 // ============================================================
@@ -3449,7 +3410,7 @@ begin
     Exit;
   end;
   nPx    := SW * SH;
-  Pixels := AllocMem(nPx * SizeOf(Cardinal));
+  GetMem(Pixels, nPx * SizeOf(Cardinal));
   Result := VP8LDecodePixels(S, Pixels, SW, SH);
   if not Result then begin FreeMem(Pixels); Pixels := nil; end;
   BR := S.BR;
@@ -3459,9 +3420,10 @@ end;
 // ---- Full VP8L decode ----
 // Core VP8L decode: from transforms through inverse transforms.
 // BR must be positioned right after the (already-read) image dimensions.
-// Returns internal ARGB pixels (0xAARRGGBB), NOT R/B swapped. Caller frees.
+// Fills pixels (buffer of w * h values given by the caller) with ARGB values
+// (0xAARRGGBB, bytes B, G, R, A in memory).
 function VP8LDecodeBody(var BR: TVP8LBitReader; w, h: Integer;
-  out pixels: PCardinal): Boolean;
+  pixels: PCardinal): Boolean;
 var
   encW:        Integer;  // encoded (possibly packed) width
   i, t:        Integer;
@@ -3472,11 +3434,9 @@ var
   numColors:   Integer;
   subPix:      PCardinal;
   S:           TVP8LState;
-  nPix:        Integer;
   ok:          Boolean;
 begin
   Result := False;
-  pixels := nil;
   encW   := w;
   numT   := 0;
   FillChar(transforms, SizeOf(transforms), 0);
@@ -3543,15 +3503,12 @@ begin
     Exit;
   end;
 
-  // Decode pixels at encoded width (allocate w*h for COLOR_INDEX expansion)
-  nPix   := w * h;
-  pixels := AllocMem(nPix * SizeOf(Cardinal));
+  // Decode pixels at encoded width (buffer has w*h for COLOR_INDEX expansion)
   ok     := VP8LDecodePixels(S, pixels, encW, h);
   VP8LFreeState(S);
 
   if not ok then
   begin
-    FreeMem(pixels); pixels := nil;
     for i := 0 to numT-1 do
       if transforms[i].Data <> nil then FreeMem(transforms[i].Data);
     Exit;
@@ -3579,18 +3536,20 @@ begin
   Result := True;
 end;
 
-function VP8LDecode(Data: PByte; Size: NativeUInt;
-  out PixBuf: PByte; out Width, Height: Integer): Boolean;
+// Decodes VP8L image to rows of BGRA (WithAlpha) or BGR pixels.
+function VP8LDecode(Data: PByte; Size: NativeUInt; Dest: PByte;
+  DestStride: NativeInt; Width, Height: Integer; WithAlpha: Boolean): Boolean;
 var
   BR:        TVP8LBitReader;
-  w, h, i:   Integer;
-  pixels:    PCardinal;
+  w, h, x, y: Integer;
+  i, nPix:   Integer;
+  pixels, src: PCardinal;
+  line:      PByte;
+  px:        Cardinal;
+  direct:    Boolean;
   alphaUsed: Integer;
 begin
   Result := False;
-  PixBuf := nil;
-  Width  := 0;
-  Height := 0;
   if Size < 5 then Exit;
   if Data[0] <> $2F then Exit;
 
@@ -3599,27 +3558,63 @@ begin
   h := Integer(VP8LReadBits(BR, 14)) + 1;
   alphaUsed := Integer(VP8LReadBits(BR, 1)); // alpha_is_used
   if VP8LReadBits(BR, 3) <> 0 then Exit; // version
-  Width  := w; Height := h;
+  if (w <> Width) or (h <> Height) then Exit;
+  nPix := w * h;
 
-  if not VP8LDecodeBody(BR, w, h, pixels) then Exit;
-
-  // Convert internal ARGB (0xAARRGGBB, memory B,G,R,A) to RGBA byte order
-  // by swapping the R and B bytes, so the returned buffer is true RGBA.
-  // If alpha_is_used = 0, the image is opaque: force alpha to 0xFF.
-  if alphaUsed = 0 then
-    for i := 0 to w * h - 1 do
-      pixels[i] := $FF000000
-                or (pixels[i] and $0000FF00)
-                or ((pixels[i] and $000000FF) shl 16)
-                or ((pixels[i] shr 16) and $000000FF)
+  // Decoder works with ARGB values (0xAARRGGBB), which are BGRA bytes in
+  // memory: caller's buffer of BGRA pixels without gaps is used as it is.
+  direct := WithAlpha and (DestStride = NativeInt(w) * 4);
+  if direct then
+    pixels := PCardinal(Dest)
   else
-    for i := 0 to w * h - 1 do
-      pixels[i] := (pixels[i] and $FF00FF00)
-                or ((pixels[i] and $000000FF) shl 16)
-                or ((pixels[i] shr 16) and $000000FF);
+    GetMem(pixels, nPix * SizeOf(Cardinal));
 
-  PixBuf := PByte(pixels);
-  Result := True;
+  try
+    if not VP8LDecodeBody(BR, w, h, pixels) then Exit;
+
+    if direct then
+    begin
+      // If alpha_is_used = 0, the image is opaque: force alpha to 0xFF.
+      if alphaUsed = 0 then
+        for i := 0 to nPix - 1 do
+          pixels[i] := pixels[i] or $FF000000;
+    end
+    else
+    begin
+      src := pixels;
+
+      for y := 0 to h - 1 do
+      begin
+        line := Dest + y * DestStride;
+
+        if not WithAlpha then
+        begin
+          for x := 0 to w - 1 do
+          begin
+            px := src[x];
+            line[0] := Byte(px);
+            line[1] := Byte(px shr 8);
+            line[2] := Byte(px shr 16);
+            Inc(line, 3);
+          end;
+        end
+        else if alphaUsed = 0 then
+        begin
+          for x := 0 to w - 1 do
+            PCardinal(line)[x] := src[x] or $FF000000;
+        end
+        else
+          Move(src^, line^, w * 4);
+
+        Inc(src, w);
+      end;
+    end;
+
+    Result := True;
+  finally
+    if not direct then
+      FreeMem(pixels);
+  end;
 end;
 
 // ---- Alpha plane decode (ALPH chunk) ----
@@ -3696,9 +3691,13 @@ begin
   begin
     // VP8L lossless: headerless stream, alpha = green channel
     VP8LInitBitReader(BR, bitData, bitSize);
-    if not VP8LDecodeBody(BR, W, H, pixels) then Exit;
-    for i := 0 to n - 1 do AlphaOut[i] := Byte((pixels[i] shr 8) and $FF);
-    FreeMem(pixels);
+    GetMem(pixels, n * SizeOf(Cardinal));
+    try
+      if not VP8LDecodeBody(BR, W, H, pixels) then Exit;
+      for i := 0 to n - 1 do AlphaOut[i] := Byte((pixels[i] shr 8) and $FF);
+    finally
+      FreeMem(pixels);
+    end;
   end else
     Exit;
 
@@ -3852,42 +3851,36 @@ end;
 // VP8 LOSSY DECODE (FULL DRIVER)
 // ============================================================
 
-function VP8Decode(Data: PByte; DataSize: NativeUInt;
-  Mode: TCSMode; out Width, Height: Integer): PByte;
+function VP8Decode(Data: PByte; DataSize: NativeUInt; Mode: TCSMode;
+  Dest: PByte; DestStride: NativeInt; Width, Height: Integer): Boolean;
 var
   D:          TVP8Decoder;
-  outSize:    NativeUInt;
   topBufSize: NativeUInt;
   topBuf:     PByte;
   mbInfoSz:   NativeUInt;
   i:          Integer;
 begin
-  Result := nil;
-  Width  := 0;
-  Height := 0;
+  Result := False;
 
   FillChar(D, SizeOf(D), 0);
   D.OutputMode := Mode;
-  case Mode of
-    csmRGB, csmBGR:     D.OutBpp := 3;
-    else                D.OutBpp := 4;
-  end;
+  if Mode = csmBGR then
+    D.OutBpp := 3
+  else
+    D.OutBpp := 4;
   D.SegHdr.UseSegment := False;
   D.SegHdr.AbsoluteDelta := True;
 
   if not VP8ParseHeaders(D, Data, DataSize) then Exit;
-  Width  := D.PicWidth;
-  Height := D.PicHeight;
+  if (D.PicWidth <> Width) or (D.PicHeight <> Height) then Exit;
 
   // Determine in-loop filter type (0=none, 1=simple, 2=complex)
   if D.FilterLevel = 0 then D.FilterType := 0
   else if D.FilterSimple then D.FilterType := 1
   else D.FilterType := 2;
 
-  // Allocate output buffer
-  D.OutStride := D.PicWidth * D.OutBpp;
-  outSize  := NativeUInt(D.PicHeight) * NativeUInt(D.OutStride);
-  D.OutBuf := AllocMem(outSize);
+  D.OutStride := DestStride;
+  D.OutBuf := Dest;
 
   // Allocate full-frame YUV planes (size = MB-aligned dimensions)
   D.FYStride  := D.MbW * 16;
@@ -3927,12 +3920,7 @@ begin
   begin
     VP8FilterFrame(D);   // in-loop deblocking filter
     VP8EmitFrame(D);     // YUV planes -> RGB output
-    Result := D.OutBuf;
-  end
-  else
-  begin
-    FreeMem(D.OutBuf);
-    D.OutBuf := nil;
+    Result := True;
   end;
 
   FreeMem(topBuf);
@@ -3948,7 +3936,7 @@ end;
 // PUBLIC API
 // ============================================================
 
-function WebPGetInfo(Data: PByte; DataSize: NativeUInt;
+function PasWebPGetInfo(Data: PByte; DataSize: NativeUInt;
   out Width, Height: Integer): Boolean;
 var
   chunkData: PByte;
@@ -3991,145 +3979,62 @@ begin
   end;
 end;
 
-function InternalDecode(Data: PByte; DataSize: NativeUInt;
-  Mode: TCSMode; out Width, Height: Integer): PByte;
+function PasWebPDecodeInto(Data: PByte; DataSize: NativeUInt; Dest: PByte;
+  DestStride: NativeInt; Width, Height: Integer; WithAlpha: Boolean): Boolean;
 var
   chunkData: PByte;
   chunkSize: NativeUInt;
   isLossless, hasAlpha: Boolean;
-  riffType: Integer;
-  lsBuf: PByte;
-  lsW, lsH: Integer;
-  outBuf: PByte;
-  i: Integer;
   alphaData: PByte;
   alphaSize: NativeUInt;
-  alphaPlane: PByte;
-  aOff: Integer;
+  alphaPlane, src, dst: PByte;
+  x, y: Integer;
+  mode: TCSMode;
 begin
-  Result := nil;
-  Width  := 0;
-  Height := 0;
-
-  riffType := ParseRIFF(Data, DataSize, chunkData, chunkSize, isLossless, hasAlpha, alphaData, alphaSize);
-  if riffType = 0 then Exit;
+  Result := False;
+  if (Dest = nil) or (Width <= 0) or (Height <= 0) then Exit;
+  if ParseRIFF(Data, DataSize, chunkData, chunkSize, isLossless, hasAlpha,
+               alphaData, alphaSize) = 0 then Exit;
 
   if isLossless then
   begin
-    if not VP8LDecode(chunkData, chunkSize, lsBuf, lsW, lsH) then Exit;
-    Width  := lsW;
-    Height := lsH;
-    // lsBuf is RGBA; convert to requested mode if needed
-    if Mode = csmRGBA then
-    begin
-      Result := lsBuf;
-      Exit;
-    end;
-    // Convert RGBA to target mode
-    case Mode of
-      csmARGB:
-      begin
-        outBuf := AllocMem(lsW * lsH * 4);
-        for i := 0 to lsW * lsH - 1 do
-        begin
-          outBuf[i*4+0] := lsBuf[i*4+3]; // A
-          outBuf[i*4+1] := lsBuf[i*4+0]; // R
-          outBuf[i*4+2] := lsBuf[i*4+1]; // G
-          outBuf[i*4+3] := lsBuf[i*4+2]; // B
-        end;
-        FreeMem(lsBuf);
-        Result := outBuf;
-      end;
-      csmBGRA:
-      begin
-        outBuf := AllocMem(lsW * lsH * 4);
-        for i := 0 to lsW * lsH - 1 do
-        begin
-          outBuf[i*4+0] := lsBuf[i*4+2]; // B
-          outBuf[i*4+1] := lsBuf[i*4+1]; // G
-          outBuf[i*4+2] := lsBuf[i*4+0]; // R
-          outBuf[i*4+3] := lsBuf[i*4+3]; // A
-        end;
-        FreeMem(lsBuf);
-        Result := outBuf;
-      end;
-      csmRGB:
-      begin
-        outBuf := AllocMem(lsW * lsH * 3);
-        for i := 0 to lsW * lsH - 1 do
-        begin
-          outBuf[i*3+0] := lsBuf[i*4+0];
-          outBuf[i*3+1] := lsBuf[i*4+1];
-          outBuf[i*3+2] := lsBuf[i*4+2];
-        end;
-        FreeMem(lsBuf);
-        Result := outBuf;
-      end;
-      csmBGR:
-      begin
-        outBuf := AllocMem(lsW * lsH * 3);
-        for i := 0 to lsW * lsH - 1 do
-        begin
-          outBuf[i*3+0] := lsBuf[i*4+2];
-          outBuf[i*3+1] := lsBuf[i*4+1];
-          outBuf[i*3+2] := lsBuf[i*4+0];
-        end;
-        FreeMem(lsBuf);
-        Result := outBuf;
-      end;
-    end;
-  end else
+    Result := VP8LDecode(chunkData, chunkSize, Dest, DestStride, Width, Height, WithAlpha);
+    Exit;
+  end;
+
+  if WithAlpha then
+    mode := csmBGRA
+  else
+    mode := csmBGR;
+
+  Result := VP8Decode(chunkData, chunkSize, mode, Dest, DestStride, Width, Height);
+
+  // Decode and apply the alpha plane (VP8X + ALPH chunk), if present.
+  if Result and WithAlpha and hasAlpha and (alphaData <> nil) then
   begin
-    Result := VP8Decode(chunkData, chunkSize, Mode, Width, Height);
-    // Decode and apply the alpha plane (VP8X + ALPH chunk), if present.
-    if (Result <> nil) and hasAlpha and (alphaData <> nil) and
-       (Mode in [csmRGBA, csmBGRA, csmARGB]) then
-    begin
-      alphaPlane := AllocMem(Width * Height);
+    GetMem(alphaPlane, Width * Height);
+    try
       if DecodeAlpha(alphaData, alphaSize, Width, Height, alphaPlane) then
       begin
-        if Mode = csmARGB then aOff := 0 else aOff := 3;  // alpha byte offset
-        for i := 0 to Width * Height - 1 do
-          Result[i*4 + aOff] := alphaPlane[i];
+        src := alphaPlane;
+
+        for y := 0 to Height - 1 do
+        begin
+          dst := Dest + y * DestStride + 3;
+
+          for x := 0 to Width - 1 do
+          begin
+            dst^ := src[x];
+            Inc(dst, 4);
+          end;
+
+          Inc(src, Width);
+        end;
       end;
+    finally
       FreeMem(alphaPlane);
     end;
   end;
-end;
-
-function WebPDecodeRGBA(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-begin
-  Result := InternalDecode(Data, DataSize, csmRGBA, Width, Height);
-end;
-
-function WebPDecodeARGB(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-begin
-  Result := InternalDecode(Data, DataSize, csmARGB, Width, Height);
-end;
-
-function WebPDecodeBGRA(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-begin
-  Result := InternalDecode(Data, DataSize, csmBGRA, Width, Height);
-end;
-
-function WebPDecodeRGB(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-begin
-  Result := InternalDecode(Data, DataSize, csmRGB, Width, Height);
-end;
-
-function WebPDecodeBGR(Data: PByte; DataSize: NativeUInt;
-  out Width, Height: Integer): PByte;
-begin
-  Result := InternalDecode(Data, DataSize, csmBGR, Width, Height);
-end;
-
-procedure WebPFree(ptr: Pointer);
-begin
-  FreeMemory(ptr);
 end;
 
 end.

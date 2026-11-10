@@ -264,42 +264,30 @@ function PascalGetImageInfo(Data: Pointer; Size: Int64; out Info: TWebPImageInfo
 begin
   Result := ParseWebPContainer(Data, Size, Info);
   if Result and not Info.Animated then
-    Result := PasWebPDec.WebPGetInfo(Data, Size, Info.Width, Info.Height);
+    Result := PasWebPGetInfo(Data, Size, Info.Width, Info.Height);
 end;
 
 function PascalLoadImage(Data: Pointer; Size: Int64; var Image: TImageData;
   const Info: TWebPImageInfo): Boolean;
-var
-  Pixels: PByte;
-  Width, Height: Integer;
-  Format: TImageFormat;
 begin
   Result := False;
 
+  // Decoder writes straight to the memory of the image
   if Info.HasAlpha then
   begin
-    Format := ifA8R8G8B8;
-    Pixels := PasWebPDec.WebPDecodeBGRA(Data, Size, Width, Height);
+    if NewImage(Info.Width, Info.Height, ifA8R8G8B8, Image) then
+      Result := PasWebPDecodeInto(Data, Size, Image.Bits, NativeInt(Info.Width) * 4,
+                                  Info.Width, Info.Height, True);
   end
   else
   begin
-    Format := ifR8G8B8;
-    Pixels := PasWebPDec.WebPDecodeBGR(Data, Size, Width, Height);
+    if NewImage(Info.Width, Info.Height, ifR8G8B8, Image) then
+      Result := PasWebPDecodeInto(Data, Size, Image.Bits, NativeInt(Info.Width) * 3,
+                                  Info.Width, Info.Height, False);
   end;
 
-  if Pixels = nil then
-    Exit;
-
-  try
-    if (Width = Info.Width) and (Height = Info.Height) and
-       NewImage(Width, Height, Format, Image) then
-    begin
-      Move(Pixels^, Image.Bits^, Image.Size);
-      Result := True;
-    end;
-  finally
-    PasWebPDec.WebPFree(Pixels);
-  end;
+  if not Result then
+    FreeImage(Image);
 end;
 {$ENDIF}
 
