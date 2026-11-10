@@ -2598,6 +2598,9 @@ begin
       if not mb^.Skip then
       begin
         VP8ParseResiduals(D, mbx, D.Parts[partIdx], partIdx);
+        // Data of the partition ended too early (as libwebp, checked only
+        // with more partitions: a cut one is found here, not at the end)
+        if (D.NumParts > 1) and D.Parts[partIdx].Eof then Exit;
       end else
       begin
         FillChar(mb^.Coeffs[0], SizeOf(mb^.Coeffs), 0);
@@ -2636,6 +2639,9 @@ begin
              (D.FVPlane + (mby*8 + y)*D.FUVStride + mbx*8)^, 8);
       end;
     end;
+
+    // Modes of the row are read: the first partition must not be over
+    if D.BR.Eof then Exit;
   end;
   Result := True;
 end;
@@ -2652,7 +2658,7 @@ var
   w, h: Integer;
   partData: PByte;
   szPtr:    PByte;
-  partSize: NativeUInt;
+  partSize, sizeLeft: NativeUInt;
   i: Integer;
 begin
   Result := False;
@@ -2674,11 +2680,14 @@ begin
   // Width/Height
   w := (Data[6] or (Cardinal(Data[7]) shl 8)) and $3FFF;
   h := (Data[8] or (Cardinal(Data[9]) shl 8)) and $3FFF;
+  if (w = 0) or (h = 0) then Exit;
   D.PicWidth  := w;
   D.PicHeight := h;
   D.MbW       := (w + 15) shr 4;
   D.MbH       := (h + 15) shr 4;
 
+  // The first partition must be whole
+  if partLen > Size - 10 then Exit;
   D.PartLen0 := partLen;
 
   // Partition 0: starts at Data+10 (after 3-byte frame tag + 7-byte picture header)
@@ -2700,23 +2709,27 @@ begin
   // Token partition data starts immediately after partition 0.
   // Layout: [(NumParts-1) x 3-byte sizes][part0 data][part1 data]...
   // partData -> size table entries; szPtr -> pointer advancing through sizes
+  // Sizes that go beyond the data are cut to what is there (libwebp
+  // ParsePartitions), the decoder then stops at the end of such partition.
   partData := Data + 10 + partLen;           // start of token area (= size table)
   szPtr    := partData;                       // walks through 3-byte size entries
+  sizeLeft := Size - 10 - partLen;
+  if sizeLeft < NativeUInt(D.NumParts - 1) * 3 then Exit;  // no room for the sizes
+  Dec(sizeLeft, NativeUInt(D.NumParts - 1) * 3);
   partData := partData + NativeUInt(D.NumParts - 1) * 3;  // start of actual data
   for i := 0 to D.NumParts - 2 do
   begin
     partSize := szPtr[0] or (Cardinal(szPtr[1]) shl 8) or
                 (Cardinal(szPtr[2]) shl 16);
+    if partSize > sizeLeft then partSize := sizeLeft;
     Inc(szPtr, 3);
     VP8RdInit(D.Parts[i], partData, partSize);
     Inc(partData, partSize);
+    Dec(sizeLeft, partSize);
   end;
   // Last partition: rest of the VP8 chunk
-  if NativeUInt(partData) < NativeUInt(Data + Size) then
-    partSize := NativeUInt(Data + Size) - NativeUInt(partData)
-  else
-    partSize := 0;
-  VP8RdInit(D.Parts[D.NumParts-1], partData, partSize);
+  if sizeLeft = 0 then Exit;
+  VP8RdInit(D.Parts[D.NumParts-1], partData, sizeLeft);
 
   Result := True;
 end;
@@ -3593,11 +3606,9 @@ begin
     S.HuffBits := Integer(VP8LReadBits(S.BR, 3)) + 2;
     S.HuffW    := (W + (1 shl S.HuffBits) - 1) shr S.HuffBits;
     huffH      := (H + (1 shl S.HuffBits) - 1) shr S.HuffBits;
+    // What is allocated by now is released by VP8LFreeState of the caller
     if not VP8LDecodeSubImage(S.BR, S.HuffW, huffH, S.HuffImage) then
-    begin
-      if S.ColorCache <> nil then FreeMem(S.ColorCache);
       Exit;
-    end;
     numPix := S.HuffW * huffH;
     S.NumGroups := 0;
     for i := 0 to numPix - 1 do
@@ -3616,13 +3627,7 @@ begin
   grpsBuf := AllocMem(S.NumGroups * SizeOf(TVP8LHuffGroup));
   S.Groups := grpsBuf;
   if not VP8LReadGroups(S.BR, S.NumGroups, greenAlpha, S.Groups) then
-  begin
-    for gi := 0 to S.NumGroups - 1 do VP8LFreeGroupTables(@S.Groups[gi]);
-    FreeMem(grpsBuf); S.Groups := nil;
-    if S.ColorCache <> nil then begin FreeMem(S.ColorCache); S.ColorCache := nil; end;
-    if S.HuffImage  <> nil then begin FreeMem(S.HuffImage);  S.HuffImage  := nil; end;
     Exit;
-  end;
 
   BR := S.BR;
   Result := True;
@@ -3683,8 +3688,10 @@ var
   subPix:      PCardinal;
   S:           TVP8LState;
   ok:          Boolean;
+  usedTypes:   Integer;
 begin
   Result := False;
+  usedTypes := 0;
   encW   := w;
   numT   := 0;
   FillChar(transforms, SizeOf(transforms), 0);
@@ -3698,6 +3705,14 @@ begin
       Exit;
     end;
     ttType := Integer(VP8LReadBits(BR, 2));
+    // Each transform can be used once
+    if (usedTypes and (1 shl ttType)) <> 0 then
+    begin
+      for i := 0 to numT-1 do
+        if transforms[i].Data <> nil then FreeMem(transforms[i].Data);
+      Exit;
+    end;
+    usedTypes := usedTypes or (1 shl ttType);
     transforms[numT].TType := ttType;
     transforms[numT].XSize := encW;
     transforms[numT].YSize := h;
@@ -3993,6 +4008,8 @@ begin
     sz := ReadLE32(p + 4);
     if cc = tagCC then
     begin
+      // Chunk of a cut file ends where the data does
+      if sz > left - 8 then sz := left - 8;
       Chunk.FourCC := cc;
       Chunk.Size   := sz;
       Chunk.Data   := p + 8;
@@ -4103,6 +4120,9 @@ end;
 // VP8 LOSSY DECODE (FULL DRIVER)
 // ============================================================
 
+const
+  PLANE_PADDING = 8;
+
 function VP8Decode(Data: PByte; DataSize: NativeUInt; WithAlpha: Boolean;
   Dest: PByte; DestStride: NativeInt; Width, Height: Integer): Boolean;
 var
@@ -4136,9 +4156,11 @@ begin
   // Allocate full-frame YUV planes (size = MB-aligned dimensions)
   D.FYStride  := D.MbW * 16;
   D.FUVStride := D.MbW * 8;
-  D.FYPlane := AllocMem(D.FYStride * D.MbH * 16);
-  D.FUPlane := AllocMem(D.FUVStride * D.MbH * 8);
-  D.FVPlane := AllocMem(D.FUVStride * D.MbH * 8);
+  // A few bytes more: FPC can read a whole word where the code takes
+  // a byte (seen for the last samples in UpsamplePair)
+  D.FYPlane := AllocMem(D.FYStride * D.MbH * 16 + PLANE_PADDING);
+  D.FUPlane := AllocMem(D.FUVStride * D.MbH * 8 + PLANE_PADDING);
+  D.FVPlane := AllocMem(D.FUVStride * D.MbH * 8 + PLANE_PADDING);
   D.FInfo   := PVP8FInfo(AllocMem(D.MbW * D.MbH * SizeOf(TVP8FInfo)));
 
   VP8PrecomputeFilterStrengths(D);
