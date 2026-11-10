@@ -148,12 +148,14 @@ type
   TEncoderParams = record
     ChainSearch: Integer;    // positions of the hash chain tried for a match
     LazyMatching: Boolean;   // look for a better match at the next pixel
+    OptimalParse: Boolean;   // second pass: the cheapest literals and copies by cost
     PredictorBits: Integer;  // size of predictor tiles (2^n), the smallest tried
     PredictorModes: Integer; // number of predictors tried for a tile
     CrossColor: Boolean;     // color transform after the predictor
     MaxCacheBits: Integer;   // largest color cache tried (0 = no cache)
     MetaCodes: Boolean;      // more groups of Huffman codes
     MaxTiles: Integer;       // tiles of the Huffman image
+    TileSizesTried: Integer; // sizes of these tiles tried, from the smallest allowed
     MaxGroups: Integer;      // groups of Huffman codes
     RefineGroups: Integer;   // rounds of moving tiles between groups
     TryVariants: Boolean;    // encode with other transforms too, keep the smallest
@@ -660,6 +662,52 @@ end;
 
 { Cost estimates }
 
+{ Entropy of symbols with given counts in bits, corrected for distributions of
+  few symbols, where a Huffman code cannot go below one bit per symbol
+  (VP8LBitsEntropy of libwebp). }
+function BitsEntropy(Counts: PUInt32; NumSymbols: Integer): Double;
+var
+  I, NonZeros: Integer;
+  Sum, MaxCount: UInt32;
+  MinLimit, Mix: Double;
+begin
+  NonZeros := 0;
+  Sum := 0;
+  MaxCount := 0;
+  Result := 0;
+
+  for I := 0 to NumSymbols - 1 do
+    if Counts[I] <> 0 then
+    begin
+      Inc(NonZeros);
+      Inc(Sum, Counts[I]);
+      if Counts[I] > MaxCount then
+        MaxCount := Counts[I];
+      Result := Result - SLog2(Counts[I]);
+    end;
+
+  if NonZeros <= 1 then
+  begin
+    Result := 0;
+    Exit;
+  end;
+
+  Result := Result + SLog2(Sum);
+
+  case NonZeros of
+    2: Mix := 0.99;
+    3: Mix := 0.95;
+    4: Mix := 0.7;
+  else
+    Mix := 0.627;
+  end;
+
+  MinLimit := 2.0 * Sum - MaxCount;
+  MinLimit := Mix * MinLimit + (1.0 - Mix) * Result;
+  if Result < MinLimit then
+    Result := MinLimit;
+end;
+
 { Estimate of bits that symbols with given counts take when Huffman coded:
   entropy, corrected for distributions of few symbols where a code cannot
   go below one bit per symbol (VP8LBitsEntropy of libwebp), plus what the
@@ -933,81 +981,109 @@ begin
     Result := Distance + 120;
 end;
 
-{ Finds repeated runs of pixels (LZ77 with hash chains of pixel pairs)
-  and gives the image as literals and copies. }
-procedure FindTokens(Img: PUInt32; W, N: Integer; const Params: TEncoderParams;
-  var Tokens: TTokens; out Count: Integer);
-const
-  LazyLimit = 64;  // matches this long are taken without looking further
+{ Search for earlier occurrences of the pixels at a position: hash chains
+  of pixel pairs. Positions must be inserted in order. }
+type
+  TMatcher = record
+    Img: PUInt32;
+    W, N: Integer;
+    Head, Chain: TIntArray;
+    HashShift: Integer;
+    NextInsert: Integer;   // all positions before this one are in the chains
+    ChainSearch: Integer;
+  end;
+
+procedure MatcherInit(out M: TMatcher; Img: PUInt32; W, N, ChainSearch: Integer);
 var
-  Head, Chain: TIntArray;
-  HashShift, I, Len, Dist, Len2, Dist2, NextInsert: Integer;
+  Bits, I: Integer;
+begin
+  M.Img := Img;
+  M.W := W;
+  M.N := N;
+  M.ChainSearch := ChainSearch;
+  M.NextInsert := 0;
+  Bits := Log2Floor(N) + 1;
+  if Bits < 10 then Bits := 10;
+  if Bits > 18 then Bits := 18;
+  M.HashShift := 32 - Bits;
+  SetLength(M.Head, 1 shl Bits);
+  for I := 0 to High(M.Head) do
+    M.Head[I] := -1;
+  SetLength(M.Chain, N);
+end;
 
-  function HashAt(Pos: Integer): Integer;
+function MatcherHash(const M: TMatcher; Pos: Integer): Integer; {$IFDEF FPC}inline;{$ENDIF}
+begin
+  // Products are cut to 32 bits (they are computed in 64 bits in 64-bit programs)
+  Result := Integer(UInt32(M.Img[Pos] * UInt32($9E3779B1) +
+                           M.Img[Pos + 1] * UInt32($85EBCA6B)) shr M.HashShift);
+end;
+
+procedure MatcherInsertUpTo(var M: TMatcher; Last: Integer);
+var
+  H: Integer;
+begin
+  // The last pixel has no pair to hash
+  while M.NextInsert <= Last do
   begin
-    // Products are cut to 32 bits (they are computed in 64 bits in 64-bit programs)
-    Result := Integer(UInt32(Img[Pos] * UInt32($9E3779B1) + Img[Pos + 1] * UInt32($85EBCA6B)) shr HashShift);
+    if M.NextInsert + 1 < M.N then
+    begin
+      H := MatcherHash(M, M.NextInsert);
+      M.Chain[M.NextInsert] := M.Head[H];
+      M.Head[H] := M.NextInsert;
+    end;
+    Inc(M.NextInsert);
+  end;
+end;
+
+function MatchLength(A, B: PUInt32; MaxLen: Integer): Integer; {$IFDEF FPC}inline;{$ENDIF}
+begin
+  Result := 0;
+  while (Result < MaxLen) and (A[Result] = B[Result]) do
+    Inc(Result);
+end;
+
+{ The longest run of pixels before Pos that repeats at Pos (0 = none
+  of three pixels or more), the nearest one of that length. }
+procedure MatcherFind(const M: TMatcher; Pos: Integer; out BestLen, BestDist: Integer);
+const
+  BitsPerPixel = 2;  // what a pixel of a longer match is taken to save, at least
+var
+  MaxLen, Cand, L, Tries, Bits, BestBits: Integer;
+  Img: PUInt32;
+begin
+  Img := M.Img;
+  BestLen := 0;
+  BestDist := 0;
+  MaxLen := M.N - Pos;
+  if MaxLen > MAX_COPY_LENGTH then
+    MaxLen := MAX_COPY_LENGTH;
+  if MaxLen < 3 then
+    Exit;
+
+  // The cheapest distances first: previous pixel and the pixel above
+  if Pos >= 1 then
+  begin
+    BestLen := MatchLength(Img + Pos - 1, Img + Pos, MaxLen);
+    BestDist := 1;
   end;
 
-  procedure InsertUpTo(Last: Integer);
-  var
-    H: Integer;
+  if (Pos >= M.W) and (M.W > 1) and (BestLen < MaxLen) and
+     (Img[Pos - M.W + BestLen] = Img[Pos + BestLen]) then
   begin
-    // The last pixel has no pair to hash
-    while NextInsert <= Last do
+    L := MatchLength(Img + Pos - M.W, Img + Pos, MaxLen);
+    if L > BestLen then
     begin
-      if NextInsert + 1 < N then
-      begin
-        H := HashAt(NextInsert);
-        Chain[NextInsert] := Head[H];
-        Head[H] := NextInsert;
-      end;
-      Inc(NextInsert);
+      BestLen := L;
+      BestDist := M.W;
     end;
   end;
 
-  function MatchLength(A, B: Integer; MaxLen: Integer): Integer;
+  if (BestLen < MaxLen) and (Pos + 1 < M.N) then
   begin
-    Result := 0;
-    while (Result < MaxLen) and (Img[A + Result] = Img[B + Result]) do
-      Inc(Result);
-  end;
-
-  procedure FindMatch(Pos: Integer; out BestLen, BestDist: Integer);
-  var
-    MaxLen, Cand, L, Tries: Integer;
-  begin
-    BestLen := 0;
-    BestDist := 0;
-    MaxLen := N - Pos;
-    if MaxLen > MAX_COPY_LENGTH then
-      MaxLen := MAX_COPY_LENGTH;
-    if MaxLen < 3 then
-      Exit;
-
-    // The cheapest distances first: previous pixel and the pixel above
-    if Pos >= 1 then
-    begin
-      BestLen := MatchLength(Pos - 1, Pos, MaxLen);
-      BestDist := 1;
-    end;
-
-    if (Pos >= W) and (W > 1) and (BestLen < MaxLen) and
-       (Img[Pos - W + BestLen] = Img[Pos + BestLen]) then
-    begin
-      L := MatchLength(Pos - W, Pos, MaxLen);
-      if L > BestLen then
-      begin
-        BestLen := L;
-        BestDist := W;
-      end;
-    end;
-
-    if (BestLen >= MaxLen) or (Pos + 1 >= N) then
-      Exit;
-
-    Cand := Head[HashAt(Pos)];
-    Tries := Params.ChainSearch;
+    Cand := M.Head[MatcherHash(M, Pos)];
+    Tries := M.ChainSearch;
+    BestBits := 0;
 
     while (Cand >= 0) and (Tries > 0) do
     begin
@@ -1016,20 +1092,41 @@ var
 
       if Img[Cand + BestLen] = Img[Pos + BestLen] then
       begin
-        L := MatchLength(Cand, Pos, MaxLen);
+        L := MatchLength(Img + Cand, Img + Pos, MaxLen);
         if L > BestLen then
         begin
-          BestLen := L;
-          BestDist := Pos - Cand;
-          if L >= MaxLen then
-            Break;
+          // Candidates get farther and their distances take more bits:
+          // a longer match must be worth them
+          Bits := Log2Floor(DistanceToCode(M.W, Pos - Cand));
+          if (BestLen < 3) or ((L - BestLen) * BitsPerPixel > Bits - BestBits) then
+          begin
+            BestLen := L;
+            BestDist := Pos - Cand;
+            BestBits := Bits;
+            if L >= MaxLen then
+              Break;
+          end;
         end;
       end;
 
-      Cand := Chain[Cand];
+      Cand := M.Chain[Cand];
       Dec(Tries);
     end;
   end;
+
+  if BestLen < 3 then
+    BestLen := 0;
+end;
+
+{ Gives the image as literals and copies of earlier pixels: the longest
+  match is taken, unless a longer one starts at the next pixel. }
+procedure FindTokens(Img: PUInt32; W, N: Integer; const Params: TEncoderParams;
+  var Tokens: TTokens; out Count: Integer);
+const
+  LazyLimit = 64;  // matches this long are taken without looking further
+var
+  M: TMatcher;
+  I, Len, Dist, Len2, Dist2: Integer;
 
   function WorthCopying(L, D: Integer): Boolean;
   begin
@@ -1051,21 +1148,12 @@ begin
   if N = 0 then
     Exit;
 
-  I := Log2Floor(N) + 1;
-  if I < 10 then I := 10;
-  if I > 18 then I := 18;
-  HashShift := 32 - I;
-  SetLength(Head, 1 shl I);
-  for I := 0 to High(Head) do
-    Head[I] := -1;
-  SetLength(Chain, N);
-
-  NextInsert := 0;
+  MatcherInit(M, Img, W, N, Params.ChainSearch);
   I := 0;
 
   while I < N do
   begin
-    FindMatch(I, Len, Dist);
+    MatcherFind(M, I, Len, Dist);
 
     if WorthCopying(Len, Dist) then
     begin
@@ -1074,8 +1162,8 @@ begin
         // A longer match can start at the next pixel
         while (Len < LazyLimit) and (I + 1 < N) do
         begin
-          InsertUpTo(I);
-          FindMatch(I + 1, Len2, Dist2);
+          MatcherInsertUpTo(M, I);
+          MatcherFind(M, I + 1, Len2, Dist2);
           if (Len2 > Len) and WorthCopying(Len2, Dist2) then
           begin
             AddLiteral(I);
@@ -1092,13 +1180,13 @@ begin
       Tokens[Count].Len := Len;
       Tokens[Count].Value := DistanceToCode(W, Dist);
       Inc(Count);
-      InsertUpTo(I + Len - 1);
+      MatcherInsertUpTo(M, I + Len - 1);
       Inc(I, Len);
     end
     else
     begin
       AddLiteral(I);
-      InsertUpTo(I);
+      MatcherInsertUpTo(M, I);
       Inc(I);
     end;
   end;
@@ -1563,96 +1651,180 @@ begin
       TileGroup[T] := Last;
 end;
 
-{ Coding of an image }
-
-{ Writes image of W x H pixels: color cache size, groups of Huffman codes
-  with the image that tells which tile uses which group (only the main
-  image has that, images of transform data are coded with one group and
-  without the cache), and the pixels. }
-procedure EncodeImage(var BW: TBitWriter; Img: PUInt32; W, H: Integer; IsMain: Boolean;
-  const Params: TEncoderParams);
+{ Second pass of backward references: with costs of symbols known from the
+  first pass (Histo: its symbols, one group), finds the cheapest way to give
+  the image as literals, cache references and copies. Cost of reaching each
+  pixel is kept; from each pixel a literal and copies of the longest match
+  there (cut to shorter lengths too) are tried. Tokens are literals and
+  copies, the cache is to be applied to them. }
+procedure OptimalTokens(Img: PUInt32; W, N, CacheBits: Integer; const Layout: THistoLayout;
+  Histo: PUInt32; const Params: TEncoderParams; var Tokens: TTokens; out Count: Integer);
+const
+  Infinity: Single = 1.0e30;
+  ReuseLength = 32;   // match of the previous pixel this long is good here too
+  AllLengths = 128;   // every length up to this one is tried
 var
-  Tokens: TTokens;
-  Count, CacheBits, TileBits, TilesX, TilesY, NumTiles, NumGroups: Integer;
-  T, G, S, X, Y, Tile, Code, ExtraBits, Size: Integer;
-  ExtraValue, Argb: UInt32;
-  Layout: THistoLayout;
-  Histos: TUInt32Array;
-  TileGroup: TIntArray;
-  GroupImage: TUInt32Array;
-  Codes: array of THuffmanCode;  // five per group
-  C: ^THuffmanCode;
+  SymCost: array of Single;
+  LenCost: array[0..MAX_COPY_LENGTH] of Single;
+  Cost: array of Single;
+  FromLen: array of Word;
+  FromCode: TIntArray;
+  MatchLen: array of Word;
+  MatchCode: TIntArray;
+  Cache: TUInt32Array;
+  M: TMatcher;
+  S, I, K, Len, Dist, Code, ExtraBits, MaxK, Key, Pos: Integer;
+  ExtraValue, Sum, Argb: UInt32;
+  LogSum, C, Base: Single;
 begin
-  FindTokens(Img, W, W * H, Params, Tokens, Count);
-
-  CacheBits := 0;
-  if IsMain and (Params.MaxCacheBits > 0) then
-    CacheBits := ChooseCacheBits(Img, Tokens, Count, Params.MaxCacheBits);
-
-  if CacheBits > 0 then
+  // Bits a symbol takes: log2(total / count); symbols not seen yet
+  // are taken as seen once
+  SetLength(SymCost, Layout.Size);
+  for S := 0 to HISTO_SEGMENTS - 1 do
   begin
-    PutBits(BW, 1, 1);
-    PutBits(BW, CacheBits, 4);
-    ApplyCache(Img, Tokens, Count, CacheBits);
-  end
-  else
-    PutBits(BW, 0, 1);
-
-  InitHistoLayout(Layout, CacheBits);
-  NumGroups := 1;
-  TileBits := 0;
-  TilesX := 1;
-
-  if IsMain then
-  begin
-    if Params.MetaCodes then
-    begin
-      // The smallest tiles that do not make too many of them
-      TileBits := MIN_TILE_BITS;
-      while (TileBits < MAX_TILE_BITS) and
-            (SubSampleSize(W, TileBits) * SubSampleSize(H, TileBits) > Params.MaxTiles) do
-        Inc(TileBits);
-      TilesX := SubSampleSize(W, TileBits);
-      TilesY := SubSampleSize(H, TileBits);
-      NumTiles := TilesX * TilesY;
-
-      if NumTiles > 1 then
-      begin
-        SetLength(Histos, NumTiles * Layout.Size);
-        X := 0;
-        Y := 0;
-
-        for T := 0 to Count - 1 do
-        begin
-          Tile := (Y shr TileBits) * TilesX + (X shr TileBits);
-          AddTokenToHisto(@Histos[Tile * Layout.Size], Layout, Tokens[T]);
-          Inc(X, Tokens[T].Len);
-          while X >= W do
-          begin
-            Dec(X, W);
-            Inc(Y);
-          end;
-        end;
-
-        NumGroups := GroupTiles(Histos, NumTiles, Layout, Params, TileGroup);
-      end;
-    end;
-
-    if NumGroups > 1 then
-    begin
-      PutBits(BW, 1, 1);
-      PutBits(BW, TileBits - 2, 3);
-      // Number of the group is in red and green
-      SetLength(GroupImage, NumTiles);
-      for T := 0 to NumTiles - 1 do
-        GroupImage[T] := UInt32(TileGroup[T]) shl 8;
-      EncodeImage(BW, Pointer(GroupImage), TilesX, TilesY, False, Params);
-    end
+    Sum := 0;
+    for I := Layout.Start[S] to Layout.Start[S + 1] - 1 do
+      Inc(Sum, Histo[I]);
+    if Sum = 0 then
+      LogSum := 0
     else
-      PutBits(BW, 0, 1);
+      LogSum := SLog2(Sum) / Sum;
+
+    for I := Layout.Start[S] to Layout.Start[S + 1] - 1 do
+      if Histo[I] = 0 then
+        SymCost[I] := LogSum
+      else
+        SymCost[I] := LogSum - SLog2(Histo[I]) / Histo[I];
   end;
 
-  // Histograms of the groups and codes made of them
+  LenCost[0] := 0;
+  for I := 1 to MAX_COPY_LENGTH do
+  begin
+    PrefixEncode(I, Code, ExtraBits, ExtraValue);
+    LenCost[I] := SymCost[NUM_LITERAL_CODES + Code] + ExtraBits;
+  end;
+
+  // The longest match at every pixel
+  SetLength(MatchLen, N);
+  SetLength(MatchCode, N);
+  MatcherInit(M, Img, W, N, Params.ChainSearch);
+  Len := 0;
+  Dist := 0;
+
+  for I := 0 to N - 1 do
+  begin
+    if Len - 1 >= ReuseLength then
+      Dec(Len)
+    else
+      MatcherFind(M, I, Len, Dist);
+
+    MatchLen[I] := Len;
+    if Len > 0 then
+      MatchCode[I] := DistanceToCode(W, Dist);
+    MatcherInsertUpTo(M, I);
+  end;
+
+  SetLength(Cost, N + 1);
+  SetLength(FromLen, N + 1);
+  SetLength(FromCode, N + 1);
+  for I := 1 to N do
+    Cost[I] := Infinity;
+  Cost[0] := 0;
+  if CacheBits > 0 then
+    SetLength(Cache, 1 shl CacheBits);
+
+  for I := 0 to N - 1 do
+  begin
+    Base := Cost[I];
+    Argb := Img[I];
+    Key := 0;
+
+    // What is in the cache does not depend on the tokens: every pixel
+    // gets there
+    if CacheBits > 0 then
+      Key := CacheKey(Argb, CacheBits);
+    if (CacheBits > 0) and (Cache[Key] = Argb) then
+      C := SymCost[NUM_LITERAL_CODES + NUM_LENGTH_CODES + Key]
+    else
+      C := SymCost[(Argb shr 8) and $FF] + SymCost[Layout.Start[1] + Integer((Argb shr 16) and $FF)] +
+           SymCost[Layout.Start[2] + Integer(Argb and $FF)] + SymCost[Layout.Start[3] + Integer(Argb shr 24)];
+    if CacheBits > 0 then
+      Cache[Key] := Argb;
+
+    if Base + C < Cost[I + 1] then
+    begin
+      Cost[I + 1] := Base + C;
+      FromLen[I + 1] := 1;
+      FromCode[I + 1] := 0;
+    end;
+
+    Len := MatchLen[I];
+    if Len >= 3 then
+    begin
+      PrefixEncode(MatchCode[I], Code, ExtraBits, ExtraValue);
+      Base := Base + SymCost[Layout.Start[4] + Code] + ExtraBits;
+      MaxK := Len;
+      if MaxK > AllLengths then
+        MaxK := AllLengths;
+
+      for K := 3 to MaxK do
+        if Base + LenCost[K] < Cost[I + K] then
+        begin
+          Cost[I + K] := Base + LenCost[K];
+          FromLen[I + K] := K;
+          FromCode[I + K] := MatchCode[I];
+        end;
+
+      if (Len > MaxK) and (Base + LenCost[Len] < Cost[I + Len]) then
+      begin
+        Cost[I + Len] := Base + LenCost[Len];
+        FromLen[I + Len] := Len;
+        FromCode[I + Len] := MatchCode[I];
+      end;
+    end;
+  end;
+
+  // The cheapest path, from the end
+  Count := 0;
+  Pos := N;
+  while Pos > 0 do
+  begin
+    Inc(Count);
+    Dec(Pos, FromLen[Pos]);
+  end;
+
+  SetLength(Tokens, Count);
+  Pos := N;
+  I := Count;
+
+  while Pos > 0 do
+  begin
+    Dec(I);
+    Len := FromLen[Pos];
+    Tokens[I].Len := Len;
+
+    if FromCode[Pos] = 0 then
+    begin
+      Tokens[I].Kind := TOKEN_LITERAL;
+      Tokens[I].Value := Img[Pos - 1];
+    end
+    else
+    begin
+      Tokens[I].Kind := TOKEN_COPY;
+      Tokens[I].Value := FromCode[Pos];
+    end;
+
+    Dec(Pos, Len);
+  end;
+end;
+
+{ Histograms of groups: each token is counted in the group of the tile
+  where it starts. With one group TileGroup is not used. }
+procedure CountGroupSymbols(const Tokens: TTokens; Count, W, TileBits, TilesX, NumGroups: Integer;
+  const TileGroup: TIntArray; const Layout: THistoLayout; var Histos: TUInt32Array);
+var
+  T, G, X, Y: Integer;
+begin
   Histos := nil;
   SetLength(Histos, NumGroups * Layout.Size);
   X := 0;
@@ -1671,6 +1843,158 @@ begin
       Inc(Y);
     end;
   end;
+end;
+
+{ Coding of an image }
+
+{ Writes image of W x H pixels: color cache size, groups of Huffman codes
+  with the image that tells which tile uses which group (only the main
+  image has that, images of transform data are coded with one group and
+  without the cache), and the pixels. }
+procedure EncodeImage(var BW: TBitWriter; Img: PUInt32; W, H: Integer; IsMain: Boolean;
+  const Params: TEncoderParams);
+const
+  // Estimate of the image of groups: part of the entropy of group numbers
+  // (tiles of a group are next to each other, so copies are used) and its codes
+  GroupImageShare: Double = 0.75;
+  GroupImageBase: Double = 60.0;
+var
+  Tokens: TTokens;
+  Count, CacheBits, TileBits, TilesX, TilesY, NumTiles, NumGroups: Integer;
+  T, G, S, X, Y, Tile, Code, ExtraBits, Size: Integer;
+  ExtraValue, Argb: UInt32;
+  Layout: THistoLayout;
+  Histos: TUInt32Array;
+  TileGroup: TIntArray;
+  GroupImage: TUInt32Array;
+  Codes: array of THuffmanCode;  // five per group
+  C: ^THuffmanCode;
+  FirstBits, Cand, CandBits, CandTilesX, CandTiles, CandGroups: Integer;
+  CandTileGroup: TIntArray;
+  GroupCounts: TUInt32Array;
+  Cost, BestCost: Double;
+begin
+  FindTokens(Img, W, W * H, Params, Tokens, Count);
+
+  CacheBits := 0;
+  if IsMain and (Params.MaxCacheBits > 0) then
+    CacheBits := ChooseCacheBits(Img, Tokens, Count, Params.MaxCacheBits);
+
+  InitHistoLayout(Layout, CacheBits);
+
+  if CacheBits > 0 then
+  begin
+    PutBits(BW, 1, 1);
+    PutBits(BW, CacheBits, 4);
+    ApplyCache(Img, Tokens, Count, CacheBits);
+  end
+  else
+    PutBits(BW, 0, 1);
+
+  if IsMain and Params.OptimalParse then
+  begin
+    SetLength(Histos, Layout.Size);
+    for T := 0 to Count - 1 do
+      AddTokenToHisto(Pointer(Histos), Layout, Tokens[T]);
+    OptimalTokens(Img, W, W * H, CacheBits, Layout, Pointer(Histos), Params, Tokens, Count);
+    if CacheBits > 0 then
+      ApplyCache(Img, Tokens, Count, CacheBits);
+    Histos := nil;
+  end;
+
+  NumGroups := 1;
+  TileBits := 0;
+  TilesX := 1;
+
+  if IsMain then
+  begin
+    if Params.MetaCodes then
+    begin
+      // The smallest tiles that do not make too many of them
+      FirstBits := MIN_TILE_BITS;
+      while (FirstBits < MAX_TILE_BITS) and
+            (SubSampleSize(W, FirstBits) * SubSampleSize(H, FirstBits) > Params.MaxTiles) do
+        Inc(FirstBits);
+
+      // One group for everything is what the others must beat
+      CountGroupSymbols(Tokens, Count, W, 0, 1, 1, nil, Layout, Histos);
+      BestCost := HistoCost(Pointer(Histos), Layout);
+
+      // Smaller tiles follow the image better, but the image of groups
+      // costs more: a few sizes are tried, estimated costs compared
+      for Cand := 0 to Params.TileSizesTried - 1 do
+      begin
+        CandBits := FirstBits + Cand;
+        if CandBits > MAX_TILE_BITS then
+          Break;
+        CandTilesX := SubSampleSize(W, CandBits);
+        CandTiles := CandTilesX * SubSampleSize(H, CandBits);
+        if CandTiles <= 1 then
+          Break;
+
+        Histos := nil;
+        SetLength(Histos, CandTiles * Layout.Size);
+        X := 0;
+        Y := 0;
+
+        for T := 0 to Count - 1 do
+        begin
+          Tile := (Y shr CandBits) * CandTilesX + (X shr CandBits);
+          AddTokenToHisto(@Histos[Tile * Layout.Size], Layout, Tokens[T]);
+          Inc(X, Tokens[T].Len);
+          while X >= W do
+          begin
+            Dec(X, W);
+            Inc(Y);
+          end;
+        end;
+
+        CandGroups := GroupTiles(Histos, CandTiles, Layout, Params, CandTileGroup);
+        if CandGroups <= 1 then
+          Continue;
+
+        CountGroupSymbols(Tokens, Count, W, CandBits, CandTilesX, CandGroups, CandTileGroup,
+                          Layout, Histos);
+        Cost := 0;
+        for G := 0 to CandGroups - 1 do
+          Cost := Cost + HistoCost(@Histos[G * Layout.Size], Layout);
+
+        // And the image of groups
+        GroupCounts := nil;
+        SetLength(GroupCounts, CandGroups);
+        for T := 0 to CandTiles - 1 do
+          Inc(GroupCounts[CandTileGroup[T]]);
+        Cost := Cost + GroupImageShare * BitsEntropy(Pointer(GroupCounts), CandGroups) + GroupImageBase;
+
+        if Cost < BestCost then
+        begin
+          BestCost := Cost;
+          NumGroups := CandGroups;
+          TileBits := CandBits;
+          TilesX := CandTilesX;
+          TilesY := SubSampleSize(H, CandBits);
+          NumTiles := CandTiles;
+          TileGroup := Copy(CandTileGroup, 0, CandTiles);
+        end;
+      end;
+    end;
+
+    if NumGroups > 1 then
+    begin
+      PutBits(BW, 1, 1);
+      PutBits(BW, TileBits - 2, 3);
+      // Number of the group is in red and green
+      SetLength(GroupImage, NumTiles);
+      for T := 0 to NumTiles - 1 do
+        GroupImage[T] := UInt32(TileGroup[T]) shl 8;
+      EncodeImage(BW, Pointer(GroupImage), TilesX, TilesY, False, Params);
+    end
+    else
+      PutBits(BW, 0, 1);
+  end;
+
+  // Histograms of the groups and codes made of them
+  CountGroupSymbols(Tokens, Count, W, TileBits, TilesX, NumGroups, TileGroup, Layout, Histos);
 
   SetLength(Codes, NumGroups * HISTO_SEGMENTS);
 
@@ -2037,50 +2361,6 @@ end;
 
 { Choice of transforms }
 
-{ Entropy of symbols with given counts in bits, corrected as in PopulationCost. }
-function BitsEntropy(Counts: PUInt32; NumSymbols: Integer): Double;
-var
-  I, NonZeros: Integer;
-  Sum, MaxCount: UInt32;
-  MinLimit, Mix: Double;
-begin
-  NonZeros := 0;
-  Sum := 0;
-  MaxCount := 0;
-  Result := 0;
-
-  for I := 0 to NumSymbols - 1 do
-    if Counts[I] <> 0 then
-    begin
-      Inc(NonZeros);
-      Inc(Sum, Counts[I]);
-      if Counts[I] > MaxCount then
-        MaxCount := Counts[I];
-      Result := Result - SLog2(Counts[I]);
-    end;
-
-  if NonZeros <= 1 then
-  begin
-    Result := 0;
-    Exit;
-  end;
-
-  Result := Result + SLog2(Sum);
-
-  case NonZeros of
-    2: Mix := 0.99;
-    3: Mix := 0.95;
-    4: Mix := 0.7;
-  else
-    Mix := 0.627;
-  end;
-
-  MinLimit := 2.0 * Sum - MaxCount;
-  MinLimit := Mix * MinLimit + (1.0 - Mix) * Result;
-  if Result < MinLimit then
-    Result := MinLimit;
-end;
-
 { Estimates which transforms make the image the cheapest (AnalyzeEntropy
   of libwebp): entropies of the channels as they are, as differences from
   the previous pixel (stands for the predictor), with green subtracted,
@@ -2192,6 +2472,7 @@ begin
 
   Params.ChainSearch := ChainSearch[Effort];
   Params.LazyMatching := Effort >= 2;
+  Params.OptimalParse := Effort >= 4;
   if Effort >= 7 then Params.PredictorBits := 3
   else if Effort >= 2 then Params.PredictorBits := 4
   else Params.PredictorBits := 5;
@@ -2202,6 +2483,9 @@ begin
   Params.MaxTiles := MaxTiles[Effort];
   Params.MaxGroups := MaxGroups[Effort];
   Params.RefineGroups := RefineGroups[Effort];
+  if Effort >= 9 then Params.TileSizesTried := 3
+  else if Effort >= 6 then Params.TileSizesTried := 2
+  else Params.TileSizesTried := 1;
   Params.TryVariants := Effort >= 9;
 end;
 
