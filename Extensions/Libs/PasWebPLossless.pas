@@ -781,35 +781,74 @@ begin
     Result := Entropy + CostOfCode + CostOfLength * NonZeros + CostOfZeroRun * ZeroRuns;
 end;
 
-{ Entropy of X plus entropy of X + Y, in bits (CombinedShannonEntropy
-  of libwebp): how well X is coded alone and together with Y. }
-function CombinedEntropy(X, Y: PUInt32): Double;
+{ Sums of a histogram that CombinedEntropy needs of its second one: they
+  are computed once for many calls. }
+type
+  THistoSums = record
+    Sum: UInt32;
+    SLogSum: Double;  // sum of count * log2(count)
+  end;
+
+procedure GetHistoSums(Counts: PUInt32; out Sums: THistoSums);
 var
   I: Integer;
-  SumX, SumXY, VX, VXY: UInt32;
 begin
-  Result := 0;
+  Sums.Sum := 0;
+  Sums.SLogSum := 0;
+  for I := 0 to 255 do
+    if Counts[I] <> 0 then
+    begin
+      Inc(Sums.Sum, Counts[I]);
+      Sums.SLogSum := Sums.SLogSum + SLog2(Counts[I]);
+    end;
+end;
+
+{ Entropy of X plus entropy of X + Y, in bits (CombinedShannonEntropy
+  of libwebp): how well X is coded alone and together with Y. X is
+  a histogram of a tile with few values, Y of the tiles before it: only
+  values that X has are worked with, the rest of Y is in YSums. }
+function CombinedEntropy(X, Y: PUInt32; const YSums: THistoSums): Double;
+var
+  I: Integer;
+  SumX, VX, VY: UInt32;
+begin
+  Result := -YSums.SLogSum;
   SumX := 0;
-  SumXY := 0;
 
   for I := 0 to 255 do
   begin
     VX := X[I];
     if VX <> 0 then
     begin
-      VXY := VX + Y[I];
+      VY := Y[I];
       Inc(SumX, VX);
-      Inc(SumXY, VXY);
-      Result := Result - SLog2(VX) - SLog2(VXY);
-    end
-    else if Y[I] <> 0 then
-    begin
-      Inc(SumXY, Y[I]);
-      Result := Result - SLog2(Y[I]);
+      // Value of Y is replaced by the one of X + Y
+      Result := Result - SLog2(VX) - SLog2(VX + VY) + SLog2(VY);
     end;
   end;
 
-  Result := Result + SLog2(SumX) + SLog2(SumXY);
+  Result := Result + SLog2(SumX) + SLog2(SumX + YSums.Sum);
+end;
+
+{ The same when values that X has are listed. }
+function CombinedEntropyOfList(X, Y: PUInt32; const YSums: THistoSums; List: PByte;
+  Count: Integer): Double;
+var
+  I: Integer;
+  SumX, VX, VY: UInt32;
+begin
+  Result := -YSums.SLogSum;
+  SumX := 0;
+
+  for I := 0 to Count - 1 do
+  begin
+    VX := X[List[I]];
+    VY := Y[List[I]];
+    Inc(SumX, VX);
+    Result := Result - SLog2(VX) - SLog2(VX + VY) + SLog2(VY);
+  end;
+
+  Result := Result + SLog2(SumX) + SLog2(SumX + YSums.Sum);
 end;
 
 { Pixels }
@@ -2103,10 +2142,28 @@ var
   Modes, Residuals: TUInt32Array;
   Histo: TUInt32Array;  // per predictor: alpha, red, green, blue residuals
   Acc: array[0..HistoSize - 1] of UInt32;  // residuals of the tiles done
+  AccSums: array[0..3] of THistoSums;
+  Used: array of Byte;  // values each histogram has, 256 per histogram
+  UsedCount: array[0..NUM_PREDICTORS * 4 - 1] of Integer;
+
   P: TPredictions;
   Row, H4: PUInt32;
   Px, Res, Pred: UInt32;
   Cost, BestCost, Weight, Sum: Double;
+
+  procedure CountValue(Slot: Integer; Value: UInt32); {$IFDEF FPC}inline;{$ENDIF}
+  var
+    Bin: PUInt32;
+  begin
+    Bin := @Histo[Slot * 256 + Integer(Value)];
+    if Bin^ = 0 then
+    begin
+      Used[Slot * 256 + UsedCount[Slot]] := Value;
+      Inc(UsedCount[Slot]);
+    end;
+    Inc(Bin^);
+  end;
+
 begin
   TilesX := SubSampleSize(W, Bits);
   TilesY := SubSampleSize(H, Bits);
@@ -2114,6 +2171,9 @@ begin
   SetLength(Modes, TilesX * TilesY);
   SetLength(Histo, NUM_PREDICTORS * HistoSize);
   FillChar(Acc, SizeOf(Acc), 0);
+  FillChar(AccSums, SizeOf(AccSums), 0);
+  SetLength(Used, NUM_PREDICTORS * HistoSize);
+  FillChar(UsedCount, SizeOf(UsedCount), 0);
   NumModes := Params.PredictorModes;
 
   for TY := 0 to TilesY - 1 do
@@ -2123,7 +2183,15 @@ begin
 
       if NumModes > 1 then
       begin
-        FillChar(Pointer(Histo)^, Length(Histo) * SizeOf(UInt32), 0);
+        // Histograms are cleared and read by lists of the values they have:
+        // a tile has few of them
+        for K := 0 to NUM_PREDICTORS * 4 - 1 do
+        begin
+          for I := 0 to UsedCount[K] - 1 do
+            Histo[K * 256 + Used[K * 256 + I]] := 0;
+          UsedCount[K] := 0;
+        end;
+
         X0 := TX shl Bits;
         X1 := X0 + TileSize;
         if X1 > W then X1 := W;
@@ -2145,11 +2213,10 @@ begin
             begin
               Mode := ModeOrder[M];
               Res := SubPixels(Px, P[Mode]);
-              H4 := @Histo[Mode * HistoSize];
-              Inc(H4[Res shr 24]);
-              Inc(H4[256 + ((Res shr 16) and $FF)]);
-              Inc(H4[512 + ((Res shr 8) and $FF)]);
-              Inc(H4[768 + (Res and $FF)]);
+              CountValue(Mode * 4, Res shr 24);
+              CountValue(Mode * 4 + 1, (Res shr 16) and $FF);
+              CountValue(Mode * 4 + 2, (Res shr 8) and $FF);
+              CountValue(Mode * 4 + 3, Res and $FF);
             end;
           end;
         end;
@@ -2172,7 +2239,9 @@ begin
               Sum := Sum + Weight * (H4[I] + H4[256 - I]);
               Weight := Weight * SpatialDecay;
             end;
-            Cost := Cost + SpatialWeight * Sum + CombinedEntropy(H4, @Acc[Ch * 256]);
+            Cost := Cost + SpatialWeight * Sum +
+                    CombinedEntropyOfList(H4, @Acc[Ch * 256], AccSums[Ch],
+                                          @Used[(Mode * 4 + Ch) * 256], UsedCount[Mode * 4 + Ch]);
           end;
 
           if (TX > 0) and (Integer(Modes[TY * TilesX + TX - 1] shr 8) and $F = Mode) then
@@ -2187,9 +2256,14 @@ begin
           end;
         end;
 
-        H4 := @Histo[BestMode * HistoSize];
-        for K := 0 to HistoSize - 1 do
-          Inc(Acc[K], H4[K]);
+        for Ch := 0 to 3 do
+        begin
+          K := BestMode * 4 + Ch;
+          for I := 0 to UsedCount[K] - 1 do
+            Inc(Acc[Ch * 256 + Used[K * 256 + I]], Histo[K * 256 + Used[K * 256 + I]]);
+        end;
+        for Ch := 0 to 3 do
+          GetHistoSums(@Acc[Ch * 256], AccSums[Ch]);
       end;
 
       Modes[TY * TilesX + TX] := ARGB_BLACK or (UInt32(BestMode) shl 8);
@@ -2248,6 +2322,7 @@ var
   LeftData, UpData: UInt32;
   Data: TUInt32Array;
   AccRed, AccBlue, Histo, BestHisto: array[0..255] of UInt32;
+  AccRedSums, AccBlueSums: THistoSums;
   Cost, BestCost: Double;
   AnyUsed: Boolean;
 
@@ -2292,7 +2367,7 @@ var
       end;
     end;
 
-    Result := CombinedEntropy(@Histo[0], @AccRed[0]) + SpatialCost;
+    Result := CombinedEntropy(@Histo[0], @AccRed[0], AccRedSums) + SpatialCost;
     if G2R = ShortInt(LeftData and $FF) then Result := Result - SameBias;
     if G2R = ShortInt(UpData and $FF) then Result := Result - SameBias;
     if G2R = 0 then Result := Result - SameBias;
@@ -2316,7 +2391,7 @@ var
       end;
     end;
 
-    Result := CombinedEntropy(@Histo[0], @AccBlue[0]) + SpatialCost;
+    Result := CombinedEntropy(@Histo[0], @AccBlue[0], AccBlueSums) + SpatialCost;
     if G2B = ShortInt((LeftData shr 8) and $FF) then Result := Result - SameBias;
     if G2B = ShortInt((UpData shr 8) and $FF) then Result := Result - SameBias;
     if R2B = ShortInt((LeftData shr 16) and $FF) then Result := Result - SameBias;
@@ -2352,6 +2427,8 @@ begin
   SetLength(Data, TilesX * TilesY);
   FillChar(AccRed, SizeOf(AccRed), 0);
   FillChar(AccBlue, SizeOf(AccBlue), 0);
+  FillChar(AccRedSums, SizeOf(AccRedSums), 0);
+  FillChar(AccBlueSums, SizeOf(AccBlueSums), 0);
   AnyUsed := False;
   if Params.ChainSearch >= 160 then BlueIters := 7 else BlueIters := 4;
 
@@ -2397,6 +2474,7 @@ begin
 
       for I := 0 to 255 do
         Inc(AccRed[I], BestHisto[I]);
+      GetHistoSums(@AccRed[0], AccRedSums);
 
       // Green to blue and red to blue together: eight directions around
       // the best pair, by smaller and smaller steps
@@ -2434,6 +2512,7 @@ begin
 
       for I := 0 to 255 do
         Inc(AccBlue[I], BestHisto[I]);
+      GetHistoSums(@AccBlue[0], AccBlueSums);
 
       Data[TY * TilesX + TX] := ARGB_BLACK or (UInt32(RedToBlue and $FF) shl 16) or
                                 (UInt32(GreenToBlue and $FF) shl 8) or UInt32(GreenToRed and $FF);
