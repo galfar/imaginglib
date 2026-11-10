@@ -12,9 +12,11 @@
 { Tests of the Pascal WebP codec (PasWebP units in Extensions/Libs), called
   directly so they do not depend on which WebP backend Imaging has selected.
 
-  Small WebP files are stored here as arrays. They were made by cwebp 1.3.2
+  Decoder: small WebP files are stored here as arrays. They were made by cwebp 1.3.2
   from 37x29 pixel crops of Demos/Data images, expected CRC32 of the pixels
-  is of what dwebp 1.3.2 (libwebp) decodes from them.}
+  is of what dwebp 1.3.2 (libwebp) decodes from them.
+
+  Lossless encoder: what it writes must decode to the same pixels.}
 unit TestImagingWebP;
 
 {$I ImagingOptions.inc}
@@ -32,9 +34,9 @@ unit TestImagingWebP;
 interface
 
 uses
-  SysUtils, Classes, ImagingTypes, ImagingUtility,
+  SysUtils, Classes, ImagingTypes, Imaging, ImagingUtility,
 {$IFDEF TEST_PASWEBP}
-  PasWebPDec,
+  PasWebPDec, PasWebPLossless, ImagingLibWebP, ImagingExtFileFormats,
 {$ENDIF}
 {$IFDEF TEST_PASWEBP_WITH_LIBWEBP}
   LibWebPDynLib,
@@ -57,6 +59,27 @@ type
     procedure TestCutData;
     procedure TestChangedData;
     procedure TestSameAsLibWebP;
+  end;
+
+  TTestWebPLossless = class(TImagingTestCase)
+  private
+    { Encodes the pixels (B, G, R, A or B, G, R bytes), decodes the result
+      and checks that it is what went in. Returns size of the file. }
+    function CheckRoundTrip(const Name: string; const Pixels: TDynByteArray;
+      Width, Height: Integer; WithAlpha: Boolean; Effort: Integer): Integer;
+  published
+    procedure TestSizes;
+    procedure TestEfforts;
+    procedure TestFewColors;
+    procedure TestRunsAndNoise;
+    procedure TestInvisiblePixelsKept;
+    procedure TestStride;
+    procedure TestWrongParameters;
+    procedure TestWidestImage;
+    procedure TestAlphaPlane;
+    procedure TestSizeOfDemoImages;
+    procedure TestImagingSaveLoad;
+    procedure TestDecodedByLibWebP;
   end;
 {$ENDIF}
 
@@ -656,8 +679,490 @@ begin
 end;
 {$ENDIF}
 
+{ TTestWebPLossless }
+
+type
+  TTestContent = (
+    tcPhoto,     // smooth gradients with some texture, as photographs have
+    tcDrawing,   // flat areas, lines and a repeated pattern
+    tcNoise,     // every pixel different
+    tcFlat);     // one color
+
+{ Deterministic test images: B, G, R, A bytes. Alpha is 255 unless
+  WithAlpha, then it changes over the image. }
+function MakePixels(Content: TTestContent; Width, Height: Integer; WithAlpha: Boolean): TDynByteArray;
+var
+  X, Y, Bpp, R, G, B, A: Integer;
+  State: UInt32;
+  P: PByte;
+
+  function Next: Integer;
+  begin
+    State := UInt32((UInt64(State) * 1664525 + 1013904223) and $FFFFFFFF);
+    Result := Integer(State shr 24);
+  end;
+
+begin
+  Result := nil;
+  if WithAlpha then Bpp := 4 else Bpp := 3;
+  SetLength(Result, Width * Height * Bpp);
+  State := UInt32(Width * 7919 + Height * 104729 + Ord(Content));
+  P := Pointer(Result);
+
+  for Y := 0 to Height - 1 do
+    for X := 0 to Width - 1 do
+    begin
+      A := 255;
+
+      case Content of
+        tcPhoto:
+          begin
+            R := (X * 3 + Y) and 255;
+            G := (X + Y * 2 + (Next and 3)) and 255;
+            B := ((X * X + Y * Y) shr 4 + (Next and 1)) and 255;
+            if WithAlpha then A := (X * 5 + Y * 3) and 255;
+          end;
+        tcDrawing:
+          begin
+            if (X mod 16 = 0) or (Y mod 11 = 0) then
+            begin
+              R := 0; G := 0; B := 0;
+            end
+            else if ((X div 8) + (Y div 8)) mod 3 = 0 then
+            begin
+              R := 240; G := 200; B := 40;
+            end
+            else
+            begin
+              R := 30 + (X mod 4) * 20; G := 90; B := 200 - (Y mod 4) * 10;
+            end;
+            if WithAlpha and (X div 8 mod 4 = 1) then A := 0;
+          end;
+        tcNoise:
+          begin
+            R := Next; G := Next; B := Next;
+            if WithAlpha then A := Next;
+          end;
+      else
+        R := 17; G := 130; B := 201;
+        if WithAlpha then A := 77;
+      end;
+
+      P^ := B; Inc(P);
+      P^ := G; Inc(P);
+      P^ := R; Inc(P);
+      if WithAlpha then
+      begin
+        P^ := A;
+        Inc(P);
+      end;
+    end;
+end;
+
+function TTestWebPLossless.CheckRoundTrip(const Name: string; const Pixels: TDynByteArray;
+  Width, Height: Integer; WithAlpha: Boolean; Effort: Integer): Integer;
+var
+  Data: TPasWebPBytes;
+  Decoded: TDynByteArray;
+  W, H, Bpp: Integer;
+  Msg: string;
+begin
+  Msg := Format('%s %dx%d, alpha %d, effort %d: ', [Name, Width, Height, Ord(WithAlpha), Effort]);
+  if WithAlpha then Bpp := 4 else Bpp := 3;
+
+  CheckTrue(PasWebPEncodeLossless(Pointer(Pixels), Width * Bpp, Width, Height, WithAlpha,
+                                  Effort, Data), Msg + 'encoding');
+  Result := Length(Data);
+  CheckTrue(Result > 0, Msg + 'encoded data');
+  CheckEquals(0, Result and 1, Msg + 'even size of the file');
+  // Size in the RIFF header
+  CheckEquals(Result - 8, Integer(Data[4]) or (Integer(Data[5]) shl 8) or (Integer(Data[6]) shl 16) or
+                          (Integer(Data[7]) shl 24), Msg + 'size in RIFF header');
+
+  CheckTrue(PasWebPGetInfo(Pointer(Data), Length(Data), W, H), Msg + 'PasWebPGetInfo');
+  CheckEquals(Width, W, Msg + 'width');
+  CheckEquals(Height, H, Msg + 'height');
+  Decoded := nil;
+  SetLength(Decoded, Length(Pixels));
+  CheckTrue(PasWebPDecodeInto(Pointer(Data), Length(Data), Pointer(Decoded), Width * Bpp,
+                              Width, Height, WithAlpha), Msg + 'decoding');
+  CheckSameMem(Pointer(Pixels), Pointer(Decoded), Length(Pixels), Msg + 'decoded pixels');
+end;
+
+procedure TTestWebPLossless.TestSizes;
+const
+  Sizes: array[0..11, 0..1] of Integer = ((1, 1), (2, 1), (1, 2), (1, 9), (9, 1), (2, 2), (3, 5),
+    (16, 16), (17, 33), (33, 17), (64, 5), (100, 75));
+var
+  I: Integer;
+  Content: TTestContent;
+  WithAlpha: Boolean;
+begin
+  // Sizes around the sizes of tiles, single rows and columns
+  for I := Low(Sizes) to High(Sizes) do
+    for Content := Low(TTestContent) to High(TTestContent) do
+      for WithAlpha := False to True do
+        CheckRoundTrip('content ' + IntToStr(Ord(Content)),
+                       MakePixels(Content, Sizes[I, 0], Sizes[I, 1], WithAlpha),
+                       Sizes[I, 0], Sizes[I, 1], WithAlpha, PasWebPDefaultEffort);
+end;
+
+procedure TTestWebPLossless.TestEfforts;
+var
+  Effort: Integer;
+  Content: TTestContent;
+  WithAlpha: Boolean;
+begin
+  // Efforts outside of the range are taken as the nearest one
+  for Effort := PasWebPMinEffort - 1 to PasWebPMaxEffort + 1 do
+    for Content := Low(TTestContent) to High(TTestContent) do
+      for WithAlpha := False to True do
+        CheckRoundTrip('content ' + IntToStr(Ord(Content)), MakePixels(Content, 150, 93, WithAlpha),
+                       150, 93, WithAlpha, Effort);
+end;
+
+procedure TTestWebPLossless.TestFewColors;
+const
+  Counts: array[0..10] of Integer = (1, 2, 3, 4, 5, 16, 17, 100, 255, 256, 257);
+  Width = 67;   // not a multiple of the pixels packed to one
+  Height = 41;
+var
+  I, J, Effort: Integer;
+  Pixels: TDynByteArray;
+  Color: UInt32;
+begin
+  // Palette with 8, 4, 2 and 1 pixel in a byte, and the first size without it
+  SetLength(Pixels, Width * Height * 4);
+
+  for I := Low(Counts) to High(Counts) do
+  begin
+    for J := 0 to Width * Height - 1 do
+    begin
+      // Runs and scattered pixels of colors that differ in all channels
+      Color := UInt32((J div 5 + (J mod Width) * (J div Width)) mod Counts[I]);
+      Pixels[J * 4] := (Color * 37) and $FF;
+      Pixels[J * 4 + 1] := (Color xor $FF) and $FF;
+      Pixels[J * 4 + 2] := (Color * 101) and $FF;
+      Pixels[J * 4 + 3] := 255 - (Color and 3) * 60;
+    end;
+
+    for Effort := 0 to 2 do
+      CheckRoundTrip(IntToStr(Counts[I]) + ' colors', Pixels, Width, Height, True, Effort * 4);
+  end;
+end;
+
+procedure TTestWebPLossless.TestRunsAndNoise;
+var
+  Pixels: TDynByteArray;
+  Size, I: Integer;
+begin
+  // Runs longer than the longest copy (4096 pixels)
+  Pixels := MakePixels(tcFlat, 300, 200, False);
+  Size := CheckRoundTrip('flat', Pixels, 300, 200, False, PasWebPDefaultEffort);
+  CheckTrue(Size < 200, 'Flat image of 60000 pixels takes ' + IntToStr(Size) + ' bytes');
+
+  // The same with single different pixels far from each other
+  I := 5000 * 3;
+  while I < Length(Pixels) do
+  begin
+    Pixels[I] := Pixels[I] xor $55;
+    Inc(I, 7001 * 3);
+  end;
+  CheckRoundTrip('flat with dots', Pixels, 300, 200, False, PasWebPDefaultEffort);
+
+  // Rows repeated from far above
+  Pixels := MakePixels(tcNoise, 64, 200, True);
+  for I := 100 * 64 * 4 to Length(Pixels) - 1 do
+    Pixels[I] := Pixels[I - 97 * 64 * 4];
+  Size := CheckRoundTrip('repeated noise', Pixels, 64, 200, True, PasWebPDefaultEffort);
+  CheckTrue(Size < 64 * 105 * 4, 'Repeated rows are found: ' + IntToStr(Size) + ' bytes');
+
+  // Noise cannot be made smaller, it must not get much larger either
+  Pixels := MakePixels(tcNoise, 128, 128, False);
+  Size := CheckRoundTrip('noise', Pixels, 128, 128, False, PasWebPDefaultEffort);
+  CheckTrue(Size < 128 * 128 * 3 + 1024, 'Noise takes ' + IntToStr(Size) + ' bytes');
+end;
+
+procedure TTestWebPLossless.TestInvisiblePixelsKept;
+var
+  Pixels: TDynByteArray;
+  I: Integer;
+begin
+  // Colors of transparent pixels are data as any other
+  Pixels := MakePixels(tcPhoto, 40, 30, True);
+  for I := 0 to 40 * 30 - 1 do
+    if I mod 3 <> 0 then
+      Pixels[I * 4 + 3] := 0;
+  CheckRoundTrip('alpha 0', Pixels, 40, 30, True, PasWebPDefaultEffort);
+
+  // Fully transparent image
+  for I := 0 to 40 * 30 - 1 do
+    Pixels[I * 4 + 3] := 0;
+  CheckRoundTrip('all alpha 0', Pixels, 40, 30, True, PasWebPDefaultEffort);
+end;
+
+procedure TTestWebPLossless.TestStride;
+const
+  Width = 45;
+  Height = 31;
+  Gap = 5;
+var
+  Tight, Padded: TDynByteArray;
+  FromTight, FromPadded: TPasWebPBytes;
+  WithAlpha: Boolean;
+  Y, Bpp: Integer;
+begin
+  for WithAlpha := False to True do
+  begin
+    if WithAlpha then Bpp := 4 else Bpp := 3;
+    Tight := MakePixels(tcPhoto, Width, Height, WithAlpha);
+    Padded := nil;
+    SetLength(Padded, (Width * Bpp + Gap) * Height);
+    FillChar(Pointer(Padded)^, Length(Padded), $EE);
+    for Y := 0 to Height - 1 do
+      Move(Tight[Y * Width * Bpp], Padded[Y * (Width * Bpp + Gap)], Width * Bpp);
+
+    CheckTrue(PasWebPEncodeLossless(Pointer(Tight), Width * Bpp, Width, Height, WithAlpha,
+                                    PasWebPDefaultEffort, FromTight), 'Rows without gaps');
+    CheckTrue(PasWebPEncodeLossless(Pointer(Padded), Width * Bpp + Gap, Width, Height, WithAlpha,
+                                    PasWebPDefaultEffort, FromPadded), 'Rows with gaps');
+    CheckEquals(Length(FromTight), Length(FromPadded), 'Size of files of the same pixels');
+    CheckSameMem(Pointer(FromTight), Pointer(FromPadded), Length(FromTight), 'Files of the same pixels');
+  end;
+end;
+
+procedure TTestWebPLossless.TestWrongParameters;
+var
+  Pixels: TDynByteArray;
+  Data: TPasWebPBytes;
+begin
+  Pixels := MakePixels(tcFlat, 4, 4, True);
+  CheckFalse(PasWebPEncodeLossless(nil, 16, 4, 4, True, 6, Data), 'No pixels');
+  CheckFalse(PasWebPEncodeLossless(Pointer(Pixels), 16, 0, 4, True, 6, Data), 'Zero width');
+  CheckFalse(PasWebPEncodeLossless(Pointer(Pixels), 16, 4, 0, True, 6, Data), 'Zero height');
+  CheckFalse(PasWebPEncodeLossless(Pointer(Pixels), 16, PasWebPMaxSize + 1, 1, True, 6, Data),
+    'Width over the limit of WebP');
+  CheckFalse(PasWebPEncodeLossless(Pointer(Pixels), 16, 1, PasWebPMaxSize + 1, True, 6, Data),
+    'Height over the limit of WebP');
+  CheckEquals(0, Length(Data), 'No data when encoding fails');
+end;
+
+procedure TTestWebPLossless.TestWidestImage;
+begin
+  // The largest width and height WebP can have
+  CheckRoundTrip('widest', MakePixels(tcPhoto, PasWebPMaxSize, 3, False), PasWebPMaxSize, 3, False, 2);
+  CheckRoundTrip('tallest', MakePixels(tcDrawing, 3, PasWebPMaxSize, True), 3, PasWebPMaxSize, True, 2);
+end;
+
+procedure TTestWebPLossless.TestAlphaPlane;
+const
+  ChunkHeaderSize = 8;
+var
+  Sample: PByte;
+  SampleSize, W, H, Pos, ChunkSize, AlphPos, AlphEnd, I, Effort: Integer;
+  Plane, FileData, Pixels: TDynByteArray;
+  Stream: TPasWebPBytes;
+
+  function ReadUInt32(Offset: Integer): Integer;
+  begin
+    Result := Integer(Sample[Offset]) or (Integer(Sample[Offset + 1]) shl 8) or
+              (Integer(Sample[Offset + 2]) shl 16) or (Integer(Sample[Offset + 3]) shl 24);
+  end;
+
+  procedure WriteUInt32(Offset, Value: Integer);
+  begin
+    FileData[Offset] := Byte(Value);
+    FileData[Offset + 1] := Byte(Value shr 8);
+    FileData[Offset + 2] := Byte(Value shr 16);
+    FileData[Offset + 3] := Byte(Value shr 24);
+  end;
+
+begin
+  // Alpha plane of a lossy image is a lossless stream without the header.
+  // The one of the sample with raw alpha is replaced by an encoded plane:
+  // the decoder must give its values as alpha.
+  Sample := Samples[4].Data;
+  SampleSize := Samples[4].Size;
+  CheckEquals('LossyAlphaRaw', Samples[4].Name, 'Sample with ALPH chunk');
+  W := Samples[4].Width;
+  H := Samples[4].Height;
+
+  AlphPos := -1;
+  AlphEnd := 0;
+  Pos := 12;
+  while Pos + ChunkHeaderSize <= SampleSize do
+  begin
+    ChunkSize := ReadUInt32(Pos + 4);
+    if (Sample[Pos] = Ord('A')) and (Sample[Pos + 1] = Ord('L')) and (Sample[Pos + 2] = Ord('P')) and
+       (Sample[Pos + 3] = Ord('H')) then
+    begin
+      AlphPos := Pos;
+      AlphEnd := Pos + ChunkHeaderSize + ChunkSize + (ChunkSize and 1);
+    end;
+    Inc(Pos, ChunkHeaderSize + ChunkSize + (ChunkSize and 1));
+  end;
+  CheckTrue(AlphPos > 0, 'ALPH chunk of the sample');
+
+  SetLength(Plane, W * H);
+  for I := 0 to W * H - 1 do
+    Plane[I] := ((I mod W) * 6 + (I div W) * 2) and $FF;
+
+  for Effort := 0 to 2 do
+  begin
+    CheckTrue(PasWebPEncodePlane(Pointer(Plane), W, W, H, Effort * 4, Stream), 'Encoding of a plane');
+
+    // Chunk data: byte with compression method 1 (lossless) and no filter,
+    // then the stream
+    ChunkSize := 1 + Length(Stream);
+    FileData := nil;
+    SetLength(FileData, AlphPos + ChunkHeaderSize + ChunkSize + (ChunkSize and 1) + SampleSize - AlphEnd);
+    Move(Sample^, FileData[0], AlphPos + 4);
+    WriteUInt32(AlphPos + 4, ChunkSize);
+    FileData[AlphPos + ChunkHeaderSize] := 1;
+    Move(Stream[0], FileData[AlphPos + ChunkHeaderSize + 1], Length(Stream));
+    Move(Sample[AlphEnd], FileData[AlphPos + ChunkHeaderSize + ChunkSize + (ChunkSize and 1)],
+         SampleSize - AlphEnd);
+    WriteUInt32(4, Length(FileData) - 8);
+
+    Pixels := nil;
+    SetLength(Pixels, W * H * 4);
+    CheckTrue(PasWebPDecodeInto(Pointer(FileData), Length(FileData), Pointer(Pixels), W * 4, W, H, True),
+      'Decoding of the image with the new alpha plane');
+    for I := 0 to W * H - 1 do
+      if Pixels[I * 4 + 3] <> Plane[I] then
+        Fail(Format('Alpha of pixel %d is %d, plane has %d (effort %d)',
+                    [I, Pixels[I * 4 + 3], Plane[I], Effort * 4]));
+  end;
+end;
+
+procedure TTestWebPLossless.TestSizeOfDemoImages;
+
+  procedure CheckImage(const FileName: string; MaxSize: Integer);
+  var
+    Image: TImageData;
+    Info: TImageFormatInfo;
+    Pixels: TDynByteArray;
+    WithAlpha: Boolean;
+    Size: Integer;
+  begin
+    InitImage(Image);
+    CheckTrue(LoadImageFromFile(GetTestDataFile(FileName), Image), 'Loading of ' + FileName);
+    try
+      GetImageFormatInfo(Image.Format, Info);
+      WithAlpha := Info.HasAlphaChannel;
+      if WithAlpha then
+        CheckTrue(ConvertImage(Image, ifA8R8G8B8), 'Conversion')
+      else
+        CheckTrue(ConvertImage(Image, ifR8G8B8), 'Conversion');
+      SetLength(Pixels, Image.Size);
+      Move(Image.Bits^, Pointer(Pixels)^, Image.Size);
+      Size := CheckRoundTrip(FileName, Pixels, Image.Width, Image.Height, WithAlpha,
+                             PasWebPDefaultEffort);
+      CheckTrue(Size <= MaxSize, Format('%s takes %d bytes, limit is %d', [FileName, Size, MaxSize]));
+    finally
+      FreeImage(Image);
+    end;
+  end;
+
+begin
+  // Limits are a few percent over what the encoder gives now (and that is
+  // about what cwebp -lossless gives): to notice when it gets worse.
+  // The files are PNG of 117844, 32902 and 32027 bytes.
+  CheckImage('Tigers.png', 52000);     // 32 colors: 49622
+  CheckImage('LogoAlpha.png', 20500);  // 19256
+  CheckImage('Logo.png', 20500);       // 19204
+end;
+
+procedure TTestWebPLossless.TestImagingSaveLoad;
+var
+  Previous: TWebPBackend;
+  Image, Loaded: TImageData;
+  Stream: TMemoryStream;
+  Pixels: TDynByteArray;
+begin
+  // Through the file format class with the Pascal codec, also where
+  // libwebp is found
+  Previous := WebPBackend;
+  CheckTrue(SelectWebPBackend(wbPascal), 'Pascal WebP codec is available');
+  InitImage(Image);
+  InitImage(Loaded);
+  Stream := TMemoryStream.Create;
+  PushOptions;
+  try
+    CheckTrue(SetOption(ImagingWebPLossless, 1), 'ImagingWebPLossless');
+    CheckTrue(SetOption(ImagingWebPEffort, 3), 'ImagingWebPEffort');
+    CheckEquals(3, GetOption(ImagingWebPEffort), 'ImagingWebPEffort value');
+
+    Pixels := MakePixels(tcPhoto, 90, 70, True);
+    CheckTrue(NewImage(90, 70, ifA8R8G8B8, Image), 'NewImage');
+    Move(Pointer(Pixels)^, Image.Bits^, Image.Size);
+    CheckTrue(SaveImageToStream('webp', Stream, Image), 'Saving');
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, Loaded), 'Loading');
+    CheckImagesEqual(Image, Loaded, 'Image saved and loaded as lossless WebP');
+
+    // An image in other format is converted, without alpha when it has none
+    FreeImage(Loaded);
+    CheckTrue(ConvertImage(Image, ifR5G6B5), 'Conversion');
+    Stream.Clear;
+    CheckTrue(SaveImageToStream('webp', Stream, Image), 'Saving of R5G6B5');
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, Loaded), 'Loading');
+    CheckTrue(Loaded.Format = ifR8G8B8, 'Image without alpha is loaded as R8G8B8');
+    CheckTrue(ConvertImage(Image, ifR8G8B8), 'Conversion');
+    CheckImagesEqual(Image, Loaded, 'R5G6B5 image saved and loaded as lossless WebP');
+  finally
+    PopOptions;
+    SelectWebPBackend(Previous);
+    Stream.Free;
+    FreeImage(Image);
+    FreeImage(Loaded);
+  end;
+end;
+
+procedure TTestWebPLossless.TestDecodedByLibWebP;
+{$IFDEF TEST_PASWEBP_WITH_LIBWEBP}
+var
+  Content: TTestContent;
+  WithAlpha: Boolean;
+  Effort, Bpp: Integer;
+  Pixels, ByLib: TDynByteArray;
+  Data: TPasWebPBytes;
+  Ok: Boolean;
+  Msg: string;
+begin
+  // Only where libwebp is installed (CI: Linux)
+  if not LoadLibWebP then
+    Exit;
+
+  for Content := Low(TTestContent) to High(TTestContent) do
+    for WithAlpha := False to True do
+      for Effort := 0 to 3 do
+      begin
+        Msg := Format('content %d, alpha %d, effort %d: ', [Ord(Content), Ord(WithAlpha), Effort * 3]);
+        if WithAlpha then Bpp := 4 else Bpp := 3;
+        Pixels := MakePixels(Content, 131, 77, WithAlpha);
+        CheckTrue(PasWebPEncodeLossless(Pointer(Pixels), 131 * Bpp, 131, 77, WithAlpha,
+                                        Effort * 3, Data), Msg + 'encoding');
+        ByLib := nil;
+        SetLength(ByLib, Length(Pixels));
+        if WithAlpha then
+          Ok := WebPDecodeBGRAInto(Pointer(Data), Length(Data), Pointer(ByLib), Length(ByLib), 131 * 4) <> nil
+        else
+          Ok := WebPDecodeBGRInto(Pointer(Data), Length(Data), Pointer(ByLib), Length(ByLib), 131 * 3) <> nil;
+        CheckTrue(Ok, Msg + 'decoding by libwebp');
+        CheckSameMem(Pointer(Pixels), Pointer(ByLib), Length(Pixels), Msg + 'pixels decoded by libwebp');
+      end;
+end;
+{$ELSE}
+begin
+  // Built without the binding of libwebp
+end;
+{$ENDIF}
+
 initialization
   RegisterImagingTest(TTestWebPDecoder);
+  RegisterImagingTest(TTestWebPLossless);
 
 {$ENDIF}
 
