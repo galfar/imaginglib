@@ -18,10 +18,11 @@
     and encodes (lossy and lossless) and is the only option for Delphi older
     than 2009. Define WEBP_NO_DYNLIB to never look for it.
 
-  - PasWebPDec, pure Pascal decoder (fork of WebPDec by Xelitan, which is
-    a port of libwebp decoder).
-    Used when libwebp is not found, decoding only. Needs FPC or Delphi 2009+.
-    Define WEBP_NO_BUNDLED to leave it out.
+  - PasWebP, pure Pascal codec: decoder PasWebPDec (fork of WebPDec by
+    Xelitan, which is a port of libwebp decoder) and lossless encoder
+    PasWebPLossless. Used when libwebp is not found. It has no lossy encoder
+    yet: images are saved lossless whatever was asked for.
+    Needs FPC or Delphi 2009+. Define WEBP_NO_BUNDLED to leave it out.
 
   In Delphi older than 2009, if libwebp is not found, there is no WebP support.
 
@@ -46,13 +47,13 @@ unit ImagingLibWebP;
 interface
 
 uses
-  ImagingTypes;
+  ImagingTypes, ImagingUtility;
 
 type
   { WebP codec implementation in use. }
   TWebPBackend = (
     wbNone,     // nothing available, WebP can't be loaded nor saved
-    wbPascal,   // Pascal decoder, loading only
+    wbPascal,   // Pascal codec: loading, lossless saving
     wbLibWebP   // libwebp shared library, loading and saving
   );
 
@@ -67,6 +68,9 @@ type
   TWebPSaveParams = record
     Quality: Integer;  // Quality of lossy compression, 0..100
     Lossless: Boolean;
+    { Time spent to make lossless image smaller, 0 (fast) .. 9 (smallest).
+      Used by the Pascal encoder only. }
+    Effort: Integer;
   end;
 
 { Returns WebP implementation in use. Looks for libwebp (in default locations)
@@ -74,6 +78,9 @@ type
 function WebPBackend: TWebPBackend;
 function WebPCanLoad: Boolean;
 function WebPCanSave: Boolean;
+{ Makes the given backend current (e.g. the Pascal codec although libwebp is
+  loaded). Returns False and keeps the current one if it is not available. }
+function SelectWebPBackend(ABackend: TWebPBackend): Boolean;
 
 { Loads libwebp from the given file and uses it from now on (instead of
   looking for it in the default locations) - updates the current backend.
@@ -87,11 +94,9 @@ function WebPGetImageInfo(Data: Pointer; Size: Int64; out Info: TWebPImageInfo):
   first frame is loaded (placed on the canvas of the animation). }
 function WebPLoadImage(Data: Pointer; Size: Int64; var Image: TImageData;
   out Info: TWebPImageInfo): Boolean;
-{ Encodes Image (ifR8G8B8 or ifA8R8G8B8) to WebP file in memory. Encoded data
-  must be released by WebPFreeData. }
+{ Encodes Image (ifR8G8B8 or ifA8R8G8B8) to WebP file in memory. }
 function WebPSaveImage(const Image: TImageData; const Params: TWebPSaveParams;
-  out Data: Pointer; out Size: Int64): Boolean;
-procedure WebPFreeData(Data: Pointer);
+  out Data: TDynByteArray): Boolean;
 
 implementation
 
@@ -100,7 +105,7 @@ uses
   LibWebPDynLib,
 {$ENDIF}
 {$IFDEF WEBP_USE_BUNDLED}
-  PasWebPDec,
+  PasWebPDec, PasWebPLossless,
 {$ENDIF}
   SysUtils, Imaging;
 
@@ -178,7 +183,25 @@ end;
 
 function WebPCanSave: Boolean;
 begin
-  Result := WebPBackend = wbLibWebP;
+  Result := WebPBackend <> wbNone;
+end;
+
+function SelectWebPBackend(ABackend: TWebPBackend): Boolean;
+begin
+  WebPBackend;
+  case ABackend of
+  {$IFDEF WEBP_USE_BUNDLED}
+    wbPascal: Result := True;
+  {$ENDIF}
+  {$IFDEF WEBP_USE_DYNLIB}
+    wbLibWebP: Result := IsLibWebPLoaded;
+  {$ENDIF}
+  else
+    Result := False;
+  end;
+
+  if Result then
+    Backend := ABackend;
 end;
 
 function TryLoadWebPLibrary(const FileName: string): Boolean;
@@ -542,63 +565,68 @@ begin
     Result := LoadStillImage(Data, Size, Image, Info);
 end;
 
-function WebPSaveImage(const Image: TImageData; const Params: TWebPSaveParams;
-  out Data: Pointer; out Size: Int64): Boolean;
 {$IFDEF WEBP_USE_DYNLIB}
+function LibSaveImage(const Image: TImageData; const Params: TWebPSaveParams;
+  out Data: TDynByteArray): Boolean;
 var
   Output: PByte;
+  Size: Int64;
+begin
+  Result := False;
+  Output := nil;
+
+  if Image.Format = ifA8R8G8B8 then
+  begin
+    if Params.Lossless then
+      Size := WebPEncodeLosslessBGRA(Image.Bits, Image.Width, Image.Height,
+                                     Image.Width * 4, @Output)
+    else
+      Size := WebPEncodeBGRA(Image.Bits, Image.Width, Image.Height,
+                             Image.Width * 4, Params.Quality, @Output);
+  end
+  else
+  begin
+    if Params.Lossless then
+      Size := WebPEncodeLosslessBGR(Image.Bits, Image.Width, Image.Height,
+                                    Image.Width * 3, @Output)
+    else
+      Size := WebPEncodeBGR(Image.Bits, Image.Width, Image.Height,
+                            Image.Width * 3, Params.Quality, @Output);
+  end;
+
+  // Data of the library is copied so the caller needs not know who made it
+  if Output <> nil then
+  try
+    if Size > 0 then
+    begin
+      SetLength(Data, Size);
+      Move(Output^, Pointer(Data)^, Size);
+      Result := True;
+    end;
+  finally
+    LibWebPDynLib.WebPFree(Output);
+  end;
+end;
 {$ENDIF}
+
+function WebPSaveImage(const Image: TImageData; const Params: TWebPSaveParams;
+  out Data: TDynByteArray): Boolean;
 begin
   Result := False;
   Data := nil;
-  Size := 0;
+  if not (Image.Format in [ifR8G8B8, ifA8R8G8B8]) then
+    Exit;
+
 {$IFDEF WEBP_USE_DYNLIB}
-  if WebPBackend <> wbLibWebP then
-    Exit;
-
-  Output := nil;
-
-  case Image.Format of
-    ifA8R8G8B8:
-      begin
-        if Params.Lossless then
-          Size := WebPEncodeLosslessBGRA(Image.Bits, Image.Width, Image.Height,
-                                         Image.Width * 4, @Output)
-        else
-          Size := WebPEncodeBGRA(Image.Bits, Image.Width, Image.Height,
-                                 Image.Width * 4, Params.Quality, @Output);
-      end;
-    ifR8G8B8:
-      begin
-        if Params.Lossless then
-          Size := WebPEncodeLosslessBGR(Image.Bits, Image.Width, Image.Height,
-                                        Image.Width * 3, @Output)
-        else
-          Size := WebPEncodeBGR(Image.Bits, Image.Width, Image.Height,
-                                Image.Width * 3, Params.Quality, @Output);
-      end;
-  else
-    Exit;
-  end;
-
-  Result := (Size > 0) and (Output <> nil);
-
-  if Result then
-    Data := Output
-  else
-  begin
-    Size := 0;
-    if Output <> nil then
-      LibWebPDynLib.WebPFree(Output);
-  end;
+  if WebPBackend = wbLibWebP then
+    Result := LibSaveImage(Image, Params, Data);
 {$ENDIF}
-end;
-
-procedure WebPFreeData(Data: Pointer);
-begin
-{$IFDEF WEBP_USE_DYNLIB}
-  if (Data <> nil) and IsLibWebPLoaded then
-    LibWebPDynLib.WebPFree(Data);
+{$IFDEF WEBP_USE_BUNDLED}
+  // The Pascal codec has only the lossless encoder so far
+  if WebPBackend = wbPascal then
+    Result := PasWebPEncodeLossless(Image.Bits, GetPixelsSize(Image.Format, Image.Width, 1),
+                                    Image.Width, Image.Height, Image.Format = ifA8R8G8B8,
+                                    Params.Effort, TPasWebPBytes(Data));
 {$ENDIF}
 end;
 

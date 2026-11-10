@@ -90,6 +90,10 @@ const
   { Specifies whether WebP images are saved using lossless compression,
     can be 0 or 1. Default value is 0. }
   ImagingWebPLossless                = 76;
+  { Time spent to make lossless WebP images smaller: 0 (fast) to 9 (the
+    smallest files, slow). Used by the Pascal encoder (when libwebp library
+    is not found). Default value is 6. }
+  ImagingWebPEffort                  = 77;
 
 implementation
 

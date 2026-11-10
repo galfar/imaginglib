@@ -33,7 +33,7 @@
     <Description Value="Vampyre Imaging Library Package for Lazarus - Extensions. Imaging is image loading, saving, and manipulation library."/>
     <License Value="MPL 2.0 (GPL compatible) "/>
     <Version Minor="82"/>
-    <Files Count="30">
+    <Files Count="31">
       <Item1>
         <Filename Value="..\Extensions\ElderImagery.pas"/>
         <UnitName Value="ElderImagery"/>
@@ -169,6 +169,11 @@
         <AddToUsesPkgSection Value="False"/>
         <UnitName Value="PasTiffExif"/>
       </Item30>
+      <Item31>
+        <Filename Value="..\Extensions\Libs\PasWebPLossless.pas"/>
+        <AddToUsesPkgSection Value="False"/>
+        <UnitName Value="PasWebPLossless"/>
+      </Item31>
     </Files>
     <CompatibilityMode Value="True"/>
     <RequiredPkgs Count="2">

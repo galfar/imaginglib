@@ -43,7 +43,7 @@ Loading and saving of these image file formats:
 - TGA, BMP
 - PCX, XPM, PNM/PPM, PSD
 - TIFF, JPEG2000 (not native Pascal, depends on platform)
-- WebP (loading by native Pascal decoder in FPC and Delphi 2009+, saving needs libwebp library)
+- WebP (native Pascal codec in FPC and Delphi 2009+: loading, lossless saving; lossy saving needs libwebp library)
 - and more
 
 Supported platforms are:

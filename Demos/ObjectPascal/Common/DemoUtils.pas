@@ -224,7 +224,7 @@ begin
 
 {$IFDEF LIBS_INFO_WEBP}
   case WebPBackend of
-    wbPascal: S := 'Pascal (load only)';
+    wbPascal: S := 'Pascal';
   {$IFDEF HAS_DYNLIBS}
     wbLibWebP: S := 'libwebp ' + GetLibWebPVersion + ' dynlib';
   {$ENDIF}

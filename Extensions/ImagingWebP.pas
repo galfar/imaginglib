@@ -24,14 +24,16 @@ uses
 type
   { Class for loading and saving WebP images (lossy and lossless, with or
     without alpha channel).
-    Loading works when libwebp shared library is found or when the Pascal
-    decoder is compiled in (FPC, Delphi 2009+). Saving needs libwebp.
+    Works when libwebp shared library is found or when the Pascal codec is
+    compiled in (FPC, Delphi 2009+). The Pascal codec has no lossy encoder
+    yet: without libwebp images are always saved lossless.
     Only the first frame of animated WebP files is loaded.
     Note that WebP has a maximum size of 16383 x 16383 pixel.}
   TWebPFileFormat = class(TImageFileFormat)
   protected
     FQuality: LongInt;
     FLossless: LongBool;
+    FEffort: LongInt;
     procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
@@ -53,6 +55,10 @@ type
     { If True images are saved using lossless compression.
       Accessible trough ImagingWebPLossless option. }
     property Lossless: LongBool read FLossless write FLossless;
+    { Time spent to make lossless images smaller: 0 (fast) to 9 (smallest
+      files, slow). Used by the Pascal encoder only.
+      Accessible trough ImagingWebPEffort option. }
+    property Effort: LongInt read FEffort write FEffort;
   end;
 
 implementation
@@ -66,6 +72,8 @@ const
   WebPSupportedFormats: TImageFormats = [ifR8G8B8, ifA8R8G8B8];
   WebPDefaultQuality = 85;
   WebPDefaultLossless = False;
+  WebPDefaultEffort = 6;
+  WebPMaxEffort = 9;
 
 resourcestring
   SWebPDecodingFailed = 'WebP image could not be decoded';
@@ -97,10 +105,12 @@ begin
 
   FQuality := WebPDefaultQuality;
   FLossless := WebPDefaultLossless;
+  FEffort := WebPDefaultEffort;
 
   AddMasks(SWebPMasks);
   RegisterOption(ImagingWebPQuality, @FQuality);
   RegisterOption(ImagingWebPLossless, @FLossless);
+  RegisterOption(ImagingWebPEffort, @FEffort);
 end;
 
 procedure TWebPFileFormat.RefreshBackend;
@@ -118,6 +128,8 @@ procedure TWebPFileFormat.CheckOptionsValidity;
 begin
   if (FQuality < 0) or (FQuality > 100) then
     FQuality := WebPDefaultQuality;
+  if (FEffort < 0) or (FEffort > WebPMaxEffort) then
+    FEffort := WebPDefaultEffort;
 end;
 
 function TWebPFileFormat.LoadData(Handle: TImagingHandle;
@@ -169,8 +181,7 @@ var
   ImageToSave: TImageData;
   MustBeFreed: Boolean;
   Params: TWebPSaveParams;
-  Data: Pointer;
-  DataSize: Int64;
+  Data: TDynByteArray;
 begin
   Result := False;
 
@@ -179,13 +190,10 @@ begin
     FillChar(Params, SizeOf(Params), 0);
     Params.Quality := FQuality;
     Params.Lossless := FLossless;
+    Params.Effort := FEffort;
 
-    if WebPSaveImage(ImageToSave, Params, Data, DataSize) then
-    try
-      Result := (GetIO.Write(Handle, Data, DataSize) = DataSize);
-    finally
-      WebPFreeData(Data);
-    end;
+    if WebPSaveImage(ImageToSave, Params, Data) then
+      Result := GetIO.Write(Handle, Pointer(Data), Length(Data)) = Length(Data);
   finally
     if MustBeFreed then
       FreeImage(ImageToSave);
