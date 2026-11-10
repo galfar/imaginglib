@@ -83,6 +83,7 @@ const
 resourcestring
   SErrorBadHeader = 'Bad HDR/RGBE header format.';
   SWrongScanLineWidth = 'Wrong scanline width.';
+  SWrongScanLineData = 'Wrong data of compressed scanline.';
   SXyzNotSupported = 'XYZ color space not supported.';
 
 { THdrFileFormat }
@@ -200,7 +201,8 @@ var
     end;
   end;
 
-  procedure ReadCompressedLine(Width, Y: Integer; var DestBuffer: TDynRgbeArray);
+  { Returns False when the input ends before the whole line is read.}
+  function ReadCompressedLine(Width, Y: Integer; var DestBuffer: TDynRgbeArray): Boolean;
   var
     Pos: Integer;
     I, X, Count: Integer;
@@ -209,8 +211,10 @@ var
     Rgbe: TRgbe;
     Ptr: PByte;
   begin
+    Result := False;
     SetLength(LineBuff, Width);
-    IO.Read(Handle, @Rgbe, SizeOf(Rgbe));
+    if IO.Read(Handle, @Rgbe, SizeOf(Rgbe)) <> SizeOf(Rgbe) then
+      Exit;
 
     if ((Rgbe.B shl 8) or Rgbe.E) <> Width  then
       RaiseImaging(SWrongScanLineWidth);
@@ -220,18 +224,28 @@ var
       Pos := 0;
       while Pos < Width do
       begin
-        IO.Read(Handle, @Code, SizeOf(Byte));
+        if IO.Read(Handle, @Code, SizeOf(Byte)) <> SizeOf(Byte) then
+          Exit;
+
+        if Code > 128 then
+          Count := Code - 128
+        else
+          Count := Code;
+
+        // Run must not be empty (the loop would never end) and must
+        // fit into the scanline
+        if (Count = 0) or (Pos + Count > Width) then
+          RaiseImaging(SWrongScanLineData);
+
         if Code > 128 then
         begin
-          Count := Code - 128;
-          IO.Read(Handle, @Value, SizeOf(Byte));
+          if IO.Read(Handle, @Value, SizeOf(Byte)) <> SizeOf(Byte) then
+            Exit;
           FillMemoryByte(@LineBuff[Pos], Count, Value);
         end
-        else
-        begin
-          Count := Code;
-          IO.Read(Handle, @LineBuff[Pos], Count * SizeOf(Byte));
-        end;
+        else if IO.Read(Handle, @LineBuff[Pos], Count * SizeOf(Byte)) <> Count then
+          Exit;
+
         Inc(Pos, Count);
       end;
 
@@ -242,6 +256,8 @@ var
         Inc(Ptr, 4);
       end;
     end;
+
+    Result := True;
   end;
 
   procedure ReadPixels(var Image: TImageData);
@@ -266,10 +282,14 @@ var
 
     for Y := 0 to Image.Height - 1 do
     begin
+      // Lines after the end of truncated input are left black
       if Compressed then
-        ReadCompressedLine(Image.Width, Y, Buffer)
-      else
-        IO.Read(Handle, @Buffer[0], SrcLineLen);
+      begin
+        if not ReadCompressedLine(Image.Width, Y, Buffer) then
+          Break;
+      end
+      else if IO.Read(Handle, @Buffer[0], SrcLineLen) <> SrcLineLen then
+        Break;
 
       for X := 0 to Image.Width - 1 do
       begin

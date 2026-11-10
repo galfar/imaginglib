@@ -177,16 +177,26 @@ var
   Info: TImageFormatInfo;
   LineBuffer: array[0..LineBufferCapacity - 1] of AnsiChar;
   LineEnd, LinePos: LongInt;
+  EndOfInput: Boolean;
   MapInfo: TPortableMapInfo;
   LineBreak: string;
 
   procedure CheckBuffer;
   begin
-    if (LineEnd = 0) or (LinePos = LineEnd) then
+    if (LineEnd = 0) or (LinePos >= LineEnd) then
     begin
       // Reload buffer if its is empty or its end was reached
       LineEnd := GetIO.Read(Handle, @LineBuffer[0], LineBufferCapacity);
       LinePos := 0;
+
+      if LineEnd <= 0 then
+      begin
+        // End of input: there is nothing more to read, loops reading
+        // the characters must end (they get null character now)
+        LineEnd := 0;
+        EndOfInput := True;
+        LineBuffer[0] := #0;
+      end;
     end;
   end;
 
@@ -200,7 +210,12 @@ var
     end;
   end;
 
-  function ReadString: string;
+  { Reads the next string delimited by white space. LastBeforeData is set
+    for the last value of header of binary files: it is followed by a single
+    white space character (or CR+LF line break) and then by binary data.
+    They must not be skipped even when they look like white space
+    (pixels with values 9, 10, 13, or 32).}
+  function ReadString(LastBeforeData: Boolean = False): string;
   var
     S: AnsiString;
     C: AnsiChar;
@@ -217,8 +232,8 @@ var
         CheckBuffer;
         S[1] := LineBuffer[LinePos];
         Inc(LinePos);
-      until S[1] = #10;
-    until not(S[1] in WhiteSpaces);
+      until (S[1] = #10) or EndOfInput;
+    until not(S[1] in WhiteSpaces) or EndOfInput;
     // Now we have reached some chars other than white space, read them until
     // there is whitespace again
     repeat
@@ -230,39 +245,95 @@ var
       // (Line buffer has 0 bytes which happens only on EOF)
     until (S[Length(S)] in WhiteSpaces) or (LineEnd = 0);
     // Get rid of last char - whitespace or null
+    C := S[Length(S)];
     SetLength(S, Length(S) - 1);
-    // Move position to the beginning of next string (skip white space - needed
-    // to make the loader stop at the right input position)
+
+    if not LastBeforeData then
+    begin
+      // Move position to the beginning of next string (skip white space - needed
+      // to make the loader stop at the right input position)
+      repeat
+        CheckBuffer;
+        C := LineBuffer[LinePos];
+        Inc(LinePos);
+      until not (C in WhiteSpaces) or (LineEnd = 0);
+      // Dec pos, current is the beginning of the the string
+      Dec(LinePos);
+    end
+    else if C = #13 then
+    begin
+      // The one white space character was already read, only LF of
+      // CR+LF line break is skipped
+      CheckBuffer;
+      if (LineEnd > 0) and (LineBuffer[LinePos] = #10) then
+        Inc(LinePos);
+    end;
+
+    Result := string(S);
+  end;
+
+  function ReadIntValue(LastBeforeData: Boolean = False): LongInt;
+  begin
+    // Anything that is not a number (also missing values of truncated
+    // file) is zero: invalid value in header, black pixel in image
+    Result := StrToIntDef(ReadString(LastBeforeData), 0);
+  end;
+
+  { Reads one pixel of text bitmap: digits 0 and 1 that do not have to be
+    separated by white space.}
+  function ReadBitValue: LongInt;
+  var
+    C: AnsiChar;
+  begin
+    repeat
+      CheckBuffer;
+      C := LineBuffer[LinePos];
+      Inc(LinePos);
+      if C = '#' then
+      repeat
+        // Comment detected, skip everything until next line is reached
+        CheckBuffer;
+        C := LineBuffer[LinePos];
+        Inc(LinePos);
+      until (C = #10) or EndOfInput;
+    until not (C in WhiteSpaces) or EndOfInput;
+
+    Result := Ord(C = '1');
+  end;
+
+  { Moves to the first character after white space, so that the loader
+    stops at the right input position.}
+  procedure SkipWhiteSpace;
+  var
+    C: AnsiChar;
+  begin
     repeat
       CheckBuffer;
       C := LineBuffer[LinePos];
       Inc(LinePos);
     until not (C in WhiteSpaces) or (LineEnd = 0);
-    // Dec pos, current is the beginning of the the string
     Dec(LinePos);
-
-    Result := string(S);
   end;
 
-  function ReadIntValue: LongInt; {$IFDEF USE_INLINE}inline;{$ENDIF}
-  begin
-    Result := StrToInt(ReadString);
-  end;
-
+  { Finds out what line breaks the file uses. Nothing is consumed: the first
+    line can hold more than the file ID, even the whole header
+    ("P6 640 480 255").}
   procedure FindLineBreak;
   var
-    C: AnsiChar;
+    I: LongInt;
   begin
     LineBreak := #10;
-    repeat
-      CheckBuffer;
-      C := LineBuffer[LinePos];
-      Inc(LinePos);
+    CheckBuffer;
 
-      if C = #13 then
-        LineBreak := #13#10;
-
-    until C = #10;
+    for I := LinePos to LineEnd - 1 do
+    begin
+      if LineBuffer[I] = #10 then
+      begin
+        if (I > LinePos) and (LineBuffer[I - 1] = #13) then
+          LineBreak := #13#10;
+        Break;
+      end;
+    end;
   end;
 
   function ParseHeader: Boolean;
@@ -283,7 +354,8 @@ var
       begin
         // Read header for PBM, PGM, and PPM files
         MapInfo.Width := ReadIntValue;
-        MapInfo.Height := ReadIntValue;
+        // Height is the last value in header of binary bitmaps
+        MapInfo.Height := ReadIntValue(Id[1] = '4');
 
         if Id[1] in ['1', '4'] then
         begin
@@ -294,7 +366,7 @@ var
         begin
           // Read channel max value, <=255 for 8bit images, >255 for 16bit images
           // but some programs think its max colors so put <=256 here
-          MapInfo.MaxVal := ReadIntValue;
+          MapInfo.MaxVal := ReadIntValue(Id[1] in ['5', '6']);
           MapInfo.BitCount := Iff(MapInfo.MaxVal <= 256, 8, 16);
         end;
 
@@ -335,14 +407,14 @@ var
             Break;
           end;
         // ENDHDR
-        if (ReadString <> SPAMEndHdr) then Exit;
+        if (ReadString(True) <> SPAMEndHdr) then Exit;
       end
       else if Id[1] in ['F', 'f'] then
       begin
         // Read header of PFM file
         MapInfo.Width := ReadIntValue;
         MapInfo.Height := ReadIntValue;
-        Scale := StrToFloatDef(ReadString, 0, FUSFormat);
+        Scale := StrToFloatDef(ReadString(True), 0, FUSFormat);
         MapInfo.IsBigEndian := Scale > 0.0;
         if Id[1] = 'F' then
           MapInfo.TupleType := ttRGBFP
@@ -389,6 +461,7 @@ begin
   Result := False;
   LineEnd := 0;
   LinePos := 0;
+  EndOfInput := False;
   SetLength(Images, 1);
 
   with GetIO, Images[0] do
@@ -422,30 +495,34 @@ begin
         case Format of
           ifGray8:
             begin
-              Dest^ := ReadIntValue;
               if MapInfo.BitCount = 1 then
                 // If source is 1bit mono image (where 0=white, 1=black)
                 // we must scale it to 8bits
-                Dest^ := 255 - Dest^ * 255;
+                Dest^ := 255 - ReadBitValue * 255
+              else
+                Dest^ := ClampToByte(ReadIntValue);
             end;
-          ifGray16: PWord(Dest)^ := ReadIntValue;
+          ifGray16: PWord(Dest)^ := ClampToWord(ReadIntValue);
           ifR8G8B8:
             with PColor24Rec(Dest)^ do
             begin
-              R := ReadIntValue;
-              G := ReadIntValue;
-              B := ReadIntValue;
+              R := ClampToByte(ReadIntValue);
+              G := ClampToByte(ReadIntValue);
+              B := ClampToByte(ReadIntValue);
             end;
           ifR16G16B16:
             with PColor48Rec(Dest)^ do
             begin
-              R := ReadIntValue;
-              G := ReadIntValue;
-              B := ReadIntValue;
+              R := ClampToWord(ReadIntValue);
+              G := ClampToWord(ReadIntValue);
+              B := ClampToWord(ReadIntValue);
             end;
         end;
         Inc(Dest, Info.BytesPerPixel);
       end;
+
+      if MapInfo.BitCount = 1 then
+        SkipWhiteSpace;
     end
     else
     begin
@@ -472,7 +549,10 @@ begin
           // Black and white PAM files must be scaled to 8bits. Note that
           // in PAM files 1=white, 0=black (reverse of PBM)
           for I := 0 to GetPixelCount(Images[0]) * Iff(MapInfo.TupleType = ttBlackAndWhiteAlpha, 2, 1) - 1 do
-            PBuffer(Bits)[I] := PBuffer(Bits)[I] * 255;
+          begin
+            if PBuffer(Bits)[I] <> 0 then
+              PBuffer(Bits)[I] := 255;
+          end;
         end
         else if MapInfo.TupleType in [ttRGB, ttRGBAlpha] then
         begin
@@ -491,7 +571,8 @@ begin
         // Get total binary data size, read it from file to temp
         // buffer and convert the data to Gray8
         MonoSize := NativeInt(ScanLineSize) * Height;
-        GetMem(MonoData, MonoSize);
+        // Zeroed, file can have less data
+        MonoData := AllocMem(MonoSize);
         try
           Read(Handle, MonoData, MonoSize);
           Convert1To8(MonoData, Bits, Width, Height, ScanLineSize, False);

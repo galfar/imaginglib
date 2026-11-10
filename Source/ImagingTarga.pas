@@ -235,13 +235,23 @@ begin
         24: Format := ifR8G8B8;
         32: Format := ifA8R8G8B8;
       end;
+
+    // Refuse images that cannot be loaded: unknown pixel size, indexed
+    // images with indices other than 8-bit, and images without pixels
+    if (Format = ifUnknown) or (Hdr.Width = 0) or (Hdr.Height = 0) or
+       ((Format = ifIndex8) and (Hdr.PixelSize <> 8)) then
+    begin
+      Result := False;
+      Exit;
+    end;
+
     NewImage(Hdr.Width, Hdr.Height, Format, Images[0]);
     FmtInfo := GetFormatInfo(Format);
 
     if (Hdr.ColorMapType = 1) and (Hdr.ImageType in [1, 9]) then
     begin
       // Read palette
-      PSize := Hdr.ColorMapLength * (Hdr.ColorEntrySize shr 3);
+      PSize := Hdr.ColorMapLength * ((Hdr.ColorEntrySize + 7) shr 3);
       SetLength(Pal, PSize);
       Read(Handle, Pointer(Pal), PSize);
       // Process palette
@@ -258,12 +268,13 @@ begin
               G := PPalette24(Pal)[I].G;
               B := PPalette24(Pal)[I].B;
             end;
-          // I've never seen TGA with these palettes so they are untested
-          16:
+          // X1R5G5B5 entries. The top bit is an attribute bit that is zero
+          // in most files, palette is taken as opaque like by other readers.
+          15, 16:
             with Palette[I] do
             begin
-              A := (PWordArray(Pal)[I] and $8000) shr 12;
-              R := (PWordArray(Pal)[I] and $FC00) shr 7;
+              A := $FF;
+              R := (PWordArray(Pal)[I] and $7C00) shr 7;
               G := (PWordArray(Pal)[I] and $03E0) shr 2;
               B := (PWordArray(Pal)[I] and $001F) shl 3;
             end;
@@ -323,9 +334,13 @@ begin
       end;
     until (not ExtFound) and (not FooterFound);
 
-    // Some editors save Targas flipped
-    if Hdr.Desc < 31 then
+    // Bit 5 of the descriptor is set for images stored top to bottom,
+    // bottom to top is the default
+    if Hdr.Desc and $20 = 0 then
       FlipImage(Images[0]);
+    // Bit 4 is set for (rare) images stored right to left
+    if Hdr.Desc and $10 <> 0 then
+      MirrorImage(Images[0]);
 
     Result := True;
   end;
@@ -603,7 +618,7 @@ begin
     Result := (ReadCount >= SizeOf(Hdr)) and
       (Hdr.ImageType in [0, 1, 2, 3, 9, 10, 11]) and
       (Hdr.PixelSize in [1, 8, 15, 16, 24, 32]) and
-      (Hdr.ColorEntrySize in [0, 16, 24, 32]);
+      (Hdr.ColorEntrySize in [0, 15, 16, 24, 32]);
   end;
 end;
 

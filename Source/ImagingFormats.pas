@@ -1818,12 +1818,11 @@ begin
 
           if WrapEdges then
           begin
-            if J < 0 then
-              N := SrcImageWidth + J
-            else if J >= SrcImageWidth then
-              N := J - SrcImageWidth
-            else
-              N := ClampInt(J, ClampLow, ClampHigh - 1);
+            // Position wraps around the image, also more than once: filter
+            // can be wider than a small image
+            N := J mod SrcImageWidth;
+            if N < 0 then
+              Inc(N, SrcImageWidth);
           end
           else
             N := ClampInt(J, ClampLow, ClampHigh - 1);
@@ -2077,25 +2076,27 @@ begin
   SetPixelFPGeneric(DstPixel, DstInfo, DstPalette, PixFP);
 end;
 
+{ Clamps channel value to [0.0, 1.0] range. Infinities are clamped as well
+  and NaN gives zero. NaN is recognized by its bits: comparing it (and rounding
+  it or infinity later) would raise invalid floating point operation exception.}
+function ClampFloatChannel(Value: Single): Single;
+begin
+  if (PUInt32(@Value)^ and $7FFFFFFF) > $7F800000 then
+    Result := 0.0
+  else if Value > 1.0 then
+    Result := 1.0
+  else if Value < 0.0 then
+    Result := 0.0
+  else
+    Result := Value;
+end;
+
 procedure ClampFloatPixel(var PixF: TColorFPRec);
 begin
-  if PixF.A > 1.0 then
-    PixF.A := 1.0;
-  if PixF.R > 1.0 then
-    PixF.R := 1.0;
-  if PixF.G > 1.0 then
-    PixF.G := 1.0;
-  if PixF.B > 1.0 then
-    PixF.B := 1.0;
-
-  if PixF.A < 0.0 then
-    PixF.A := 0.0;
-  if PixF.R < 0.0 then
-    PixF.R := 0.0;
-  if PixF.G < 0.0 then
-    PixF.G := 0.0;
-  if PixF.B < 0.0 then
-    PixF.B := 0.0;
+  PixF.A := ClampFloatChannel(PixF.A);
+  PixF.R := ClampFloatChannel(PixF.R);
+  PixF.G := ClampFloatChannel(PixF.G);
+  PixF.B := ClampFloatChannel(PixF.B);
 end;
 
 { Scaling of channel values between 8 and 16 bits. The largest value stays
@@ -2423,8 +2424,10 @@ begin
 
   if (Exp > 0) and (Exp < 30) then
   begin
-    // Simple case - round the significand and combine it with the sign and exponent
-    Result := (Sign shl 15) or (Exp shl 10) or ((Mantissa + $00001000) shr 13);
+    // Simple case - round the significand and combine it with the sign and exponent.
+    // Significand is added to the exponent: when it is rounded up to the next
+    // power of two it must carry to the exponent (1.9999 -> 2.0).
+    Result := (Sign shl 15) or ((Exp shl 10) + ((Mantissa + $00001000) shr 13));
   end
   else if Src = 0 then
   begin
@@ -2876,6 +2879,8 @@ begin
   else if Info.IsFloatingPoint then
   begin
     FloatGetSrcPixel(Bits, Info, PixF);
+    // HDR pixels can have any values including infinity and NaN
+    ClampFloatPixel(PixF);
     Result.A := ClampToByte(Round(PixF.A * 255.0));
     Result.R := ClampToByte(Round(PixF.R * 255.0));
     Result.G := ClampToByte(Round(PixF.G * 255.0));
@@ -2964,6 +2969,7 @@ begin
   else if Info.IsFloatingPoint then
   begin
     FloatGetSrcPixel(Bits, Info, PixF);
+    ClampFloatPixel(PixF);
     Result.A := ClampToWord(Round(PixF.A * 65535.0));
     Result.R := ClampToWord(Round(PixF.R * 65535.0));
     Result.G := ClampToWord(Round(PixF.G * 65535.0));
@@ -3077,34 +3083,41 @@ procedure SetPixelFPGeneric(Bits: Pointer; Info: PImageFormatInfo; Palette: PPal
 var
   Pix32: TColor32Rec;
   Pix64: TColor64Rec;
+  PixF: TColorFPRec;
   Alpha: Word;
   Index: UInt32;
 begin
   if Info.IsFloatingPoint then
   begin
     FloatSetDstPixel(Bits, Info, Color);
-  end
-  else if Info.HasGrayChannel then
+    Exit;
+  end;
+
+  // Integer formats: values out of range (also infinity and NaN) are clamped
+  PixF := Color;
+  ClampFloatPixel(PixF);
+
+  if Info.HasGrayChannel then
   begin
-    Alpha := ClampToWord(Round(Color.A * 65535.0));
-    SetGray64(Pix64, GrayWeightR * Color.R + GrayWeightG * Color.G + GrayWeightB * Color.B, Info);
+    Alpha := ClampToWord(Round(PixF.A * 65535.0));
+    SetGray64(Pix64, GrayWeightR * PixF.R + GrayWeightG * PixF.G + GrayWeightB * PixF.B, Info);
     GraySetDstPixel(Bits, Info, Pix64, Alpha);
   end
   else if Info.IsIndexed then
   begin
-    Pix32.A := ClampToByte(Round(Color.A * 255.0));
-    Pix32.R := ClampToByte(Round(Color.R * 255.0));
-    Pix32.G := ClampToByte(Round(Color.G * 255.0));
-    Pix32.B := ClampToByte(Round(Color.B * 255.0));
+    Pix32.A := ClampToByte(Round(PixF.A * 255.0));
+    Pix32.R := ClampToByte(Round(PixF.R * 255.0));
+    Pix32.G := ClampToByte(Round(PixF.G * 255.0));
+    Pix32.B := ClampToByte(Round(PixF.B * 255.0));
     Index := FindColor(Palette, Info.PaletteEntries, Pix32.Color);
     IndexSetDstPixel(Bits, Info, Index);
   end
   else
   begin
-    Pix64.A := ClampToWord(Round(Color.A * 65535.0));
-    Pix64.R := ClampToWord(Round(Color.R * 65535.0));
-    Pix64.G := ClampToWord(Round(Color.G * 65535.0));
-    Pix64.B := ClampToWord(Round(Color.B * 65535.0));
+    Pix64.A := ClampToWord(Round(PixF.A * 65535.0));
+    Pix64.R := ClampToWord(Round(PixF.R * 65535.0));
+    Pix64.G := ClampToWord(Round(PixF.G * 65535.0));
+    Pix64.B := ClampToWord(Round(PixF.B * 65535.0));
     ChannelSetDstPixel(Bits, Info, Pix64);
   end;
 end;
@@ -4474,10 +4487,10 @@ end;
 
 procedure SetPixelFPifA8R8G8B8(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32; const Color: TColorFPRec);
 begin
-  PColor32Rec(Bits).A := ClampToByte(Round(Color.A * 255.0));
-  PColor32Rec(Bits).R := ClampToByte(Round(Color.R * 255.0));
-  PColor32Rec(Bits).G := ClampToByte(Round(Color.G * 255.0));
-  PColor32Rec(Bits).B := ClampToByte(Round(Color.B * 255.0));
+  PColor32Rec(Bits).A := Round(ClampFloatChannel(Color.A) * 255.0);
+  PColor32Rec(Bits).R := Round(ClampFloatChannel(Color.R) * 255.0);
+  PColor32Rec(Bits).G := Round(ClampFloatChannel(Color.G) * 255.0);
+  PColor32Rec(Bits).B := Round(ClampFloatChannel(Color.B) * 255.0);
 end;
 
 function GetPixel32Channel8Bit(Bits: Pointer; Info: PImageFormatInfo; Palette: PPalette32): TColor32Rec;
@@ -4546,16 +4559,16 @@ begin
   case Info.Format of
     ifR8G8B8, ifX8R8G8B8:
       begin
-        PColor24Rec(Bits).R := ClampToByte(Round(Color.R * 255.0));
-        PColor24Rec(Bits).G := ClampToByte(Round(Color.G * 255.0));
-        PColor24Rec(Bits).B := ClampToByte(Round(Color.B * 255.0));
+        PColor24Rec(Bits).R := Round(ClampFloatChannel(Color.R) * 255.0);
+        PColor24Rec(Bits).G := Round(ClampFloatChannel(Color.G) * 255.0);
+        PColor24Rec(Bits).B := Round(ClampFloatChannel(Color.B) * 255.0);
       end;
     ifGray8, ifA8Gray8:
       begin
         if Info.HasAlphaChannel then
-          PWordRec(Bits).High := ClampToByte(Round(Color.A * 255.0));
-        PWordRec(Bits).Low := ClampToByte(Round((GrayConv.R * Color.R + GrayConv.G * Color.G +
-          GrayConv.B * Color.B) * 255.0));
+          PWordRec(Bits).High := Round(ClampFloatChannel(Color.A) * 255.0);
+        PWordRec(Bits).Low := ClampToByte(Round((GrayConv.R * ClampFloatChannel(Color.R) +
+          GrayConv.G * ClampFloatChannel(Color.G) + GrayConv.B * ClampFloatChannel(Color.B)) * 255.0));
       end;
   end;
 end;

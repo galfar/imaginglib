@@ -17,7 +17,7 @@ unit ImagingDds;
 interface
 
 uses
-  ImagingTypes, Imaging, ImagingUtility, ImagingFormats;
+  ImagingTypes, Imaging, ImagingUtility, ImagingFormats, ImagingIO;
 
 type
   { Class for loading and saving Microsoft DirectDraw surfaces.
@@ -376,6 +376,9 @@ begin
     FSaveDepth := 1;
   if FSaveMipMapCount < 1 then
     FSaveMipMapCount := 1;
+  // Cube map has six faces at most
+  if FSaveCubeMap and (FSaveDepth > 6) then
+    FSaveDepth := 6;
 end;
 
 procedure TDDSFileFormat.ComputeSubDimensions(Idx, Width, Height, MipMaps, Depth: LongInt;
@@ -442,11 +445,10 @@ var
   SrcFormat: TImageFormat;
   FmtInfo: TImageFormatInfo;
   NeedsSwapChannels: Boolean;
-  CurrentWidth, CurrentHeight, ImageCount, LoadSize, I,
-    PitchOrLinear, MainImageLinearSize: LongInt;
-  Data: PByte;
+  CurrentWidth, CurrentHeight, ImageCount, MipMapCount, Depth, I, Y: LongInt;
+  TotalCount, RestOfInput, Pitch: Int64;
+  RowBytes: NativeInt;
   UseAsPitch: Boolean;
-  UseAsLinear: Boolean;
 
   function MasksEqual(const DDPF: TDDPixelFormat; PF: PPixelFormatInfo): Boolean;
   begin
@@ -707,25 +709,50 @@ begin
     if SrcFormat = ifUnknown then
       Exit;
 
+    // Refuse images without pixels (dimensions are unsigned in the file)
+    if (Desc.Width = 0) or (Desc.Height = 0) or
+       (Desc.Width > UInt32(MaxInt)) or (Desc.Height > UInt32(MaxInt)) then
+      Exit;
+
+    // File stores volume texture
+    Depth := 1;
+    if ((Desc.Caps.Caps2 and DDSCAPS2_VOLUME) = DDSCAPS2_VOLUME) and
+      ((Desc.Flags and DDSD_DEPTH) = DDSD_DEPTH) then
+    begin
+      if (Desc.Depth = 0) or (Desc.Depth > UInt32(MaxInt)) then
+        Exit;
+      FLoadedVolume := True;
+      Depth := Desc.Depth;
+      FLoadedDepth := Depth;
+    end;
+
     // File contains mipmaps for each subimage.
     { Some DDS writers ignore setting proper Caps and Flags so
       this check is not usable:
     if ((Desc.Caps.Caps1 and DDSCAPS_MIPMAP) = DDSCAPS_MIPMAP) and
       ((Desc.Flags and DDSD_MIPMAPCOUNT) = DDSD_MIPMAPCOUNT) then}
+    MipMapCount := 1;
     if Desc.MipMaps > 1 then
     begin
-      FLoadedMipMapCount := Desc.MipMaps;
-      FMetadata.SetMetaItem(SMetaDdsMipMapCount, Desc.MipMaps);
-      ImageCount := Desc.MipMaps;
+      // There cannot be more levels than the largest dimension allows,
+      // the file can say anything
+      MipMapCount := GetNumMipMapLevels(Max(Max(Desc.Width, Desc.Height), Depth), 1);
+      if Desc.MipMaps < UInt32(MipMapCount) then
+        MipMapCount := Desc.MipMaps;
+
+      FLoadedMipMapCount := MipMapCount;
+      FMetadata.SetMetaItem(SMetaDdsMipMapCount, MipMapCount);
     end;
 
-    // File stores volume texture
-    if ((Desc.Caps.Caps2 and DDSCAPS2_VOLUME) = DDSCAPS2_VOLUME) and
-      ((Desc.Flags and DDSD_DEPTH) = DDSD_DEPTH) then
+    // Number of images in the file
+    TotalCount := MipMapCount;
+
+    if FLoadedVolume then
     begin
-      FLoadedVolume := True;
-      FLoadedDepth := Desc.Depth;
-      ImageCount := GetVolumeLevelCount(Desc.Depth, ImageCount);
+      // Depth is halved with each mipmap level too
+      TotalCount := 0;
+      for I := 0 to MipMapCount - 1 do
+        Inc(TotalCount, Max(Depth shr I, 1));
     end;
 
     // File stores cube texture
@@ -740,70 +767,63 @@ begin
       if (Desc.Caps.Caps2 and DDSCAPS2_NEGATIVEY) = DDSCAPS2_NEGATIVEY then Inc(I);
       if (Desc.Caps.Caps2 and DDSCAPS2_NEGATIVEZ) = DDSCAPS2_NEGATIVEZ then Inc(I);
       FLoadedDepth := I;
-      ImageCount := ImageCount * I;
+      TotalCount := TotalCount * I;
     end;
+
+    // Every image takes at least one byte of the file: more images than
+    // there are bytes left cannot be there (a few bytes of garbage in the
+    // header could ask for billions of them)
+    RestOfInput := GetInputSize(GetIO, Handle) - Tell(Handle);
+    if (TotalCount <= 0) or (TotalCount > MaxInt) or
+       ((RestOfInput > 0) and (TotalCount > RestOfInput)) then
+      Exit;
+    ImageCount := TotalCount;
 
     // Allocate and load all images in file
     FmtInfo := GetFormatInfo(SrcFormat);
     SetLength(Images, ImageCount);
 
-    // Compute the pitch or get if from file if present
-    UseAsPitch := (Desc.Flags and DDSD_PITCH) = DDSD_PITCH;
-    UseAsLinear := (Desc.Flags and DDSD_LINEARSIZE) = DDSD_LINEARSIZE;
-    // Use linear as default if none is set
-    if not UseAsPitch and not UseAsLinear then
-      UseAsLinear := True;
-    // Main image pitch or linear size
-    PitchOrLinear := Desc.PitchOrLinearSize;
-
-    // Check: some writers just write garbage to pitch/linear size fields and flags
-    MainImageLinearSize := FmtInfo.GetPixelsSize(SrcFormat, Desc.Width, Desc.Height);
-    if UseAsLinear and ((PitchOrLinear < MainImageLinearSize) or
-      (PitchOrLinear * Integer(Desc.Height) = MainImageLinearSize)) then
-    begin
-      // Explicitly set linear size
-      PitchOrLinear := MainImageLinearSize;
-    end;
+    // Scanlines of images in formats with whole pixels can be padded when
+    // the header has pitch, otherwise the pixels are stored without any padding
+    UseAsPitch := ((Desc.Flags and DDSD_PITCH) = DDSD_PITCH) and
+      ((Desc.Flags and DDSD_LINEARSIZE) = 0) and not FmtInfo.IsSpecial;
 
     for I := 0 to ImageCount - 1 do
     begin
       // Compute dimensions of surrent subimage based on texture type and
       // number of mipmaps
-      ComputeSubDimensions(I, Desc.Width, Desc.Height, Desc.MipMaps, Desc.Depth,
+      ComputeSubDimensions(I, Desc.Width, Desc.Height, MipMapCount, Depth,
         FLoadedCubeMap, FLoadedVolume, CurrentWidth, CurrentHeight);
       NewImage(CurrentWidth, CurrentHeight, SrcFormat, Images[I]);
 
-      if (I > 0) or (PitchOrLinear = 0) then
+      RowBytes := NativeInt(CurrentWidth) * FmtInfo.BytesPerPixel;
+      Pitch := RowBytes;
+
+      if UseAsPitch then
       begin
-        // Compute pitch or linear size for mipmap levels, or even for main image
-        // since some formats do not fill pitch nor size
-        if UseAsLinear then
-          PitchOrLinear := FmtInfo.GetPixelsSize(SrcFormat, CurrentWidth, CurrentHeight)
+        // Pitch of the main image is taken from the file if it can hold the
+        // scanline (some writers just write garbage there), pitch of other
+        // levels is DWORD aligned
+        if (I = 0) and (Desc.PitchOrLinearSize >= RowBytes) then
+          Pitch := Desc.PitchOrLinearSize
         else
-          PitchOrLinear := (CurrentWidth * FmtInfo.BytesPerPixel + 3) div 4 * 4; // must be DWORD aligned
+          Pitch := (RowBytes + 3) div 4 * 4;
       end;
 
-      if UseAsLinear then
-        LoadSize := PitchOrLinear
-      else
-        LoadSize := CurrentHeight * PitchOrLinear;
-
-      if UseAsLinear or (LoadSize = Images[I].Size) then
+      if Pitch = RowBytes then
       begin
-        // If DDS does not use Pitch we can simply copy data
-        Read(Handle, Images[I].Bits, LoadSize)
+        // No padding: pixels are simply read. The size of image is always used,
+        // not the linear size from the header: that can be anything and
+        // more data than the image holds must never be read into it.
+        Read(Handle, Images[I].Bits, Images[I].Size);
       end
       else
       begin
-        // If DDS uses Pitch we must load aligned scanlines
-        // and then remove padding
-        GetMem(Data, LoadSize);
-        try
-          Read(Handle, Data, LoadSize);
-          RemovePadBytes(Data, Images[I].Bits, CurrentWidth, CurrentHeight,
-            FmtInfo.BytesPerPixel, PitchOrLinear);
-       finally
-          FreeMem(Data);
+        // Scanlines are read one by one and the padding is skipped
+        for Y := 0 to CurrentHeight - 1 do
+        begin
+          Read(Handle, GetScanlinePointer(Images[I], Y, FmtInfo.BytesPerPixel), RowBytes);
+          Seek(Handle, Pitch - RowBytes, smFromCurrent);
         end;
       end;
 
@@ -979,7 +999,7 @@ begin
     for I := MainIdx + 1 to MainIdx + ImageCount - 1 do
     begin
       // Get proper dimensions for this level
-      ComputeSubDimensions(I, Desc.Width, Desc.Height, Desc.MipMaps, Desc.Depth,
+      ComputeSubDimensions(I - MainIdx, Desc.Width, Desc.Height, Desc.MipMaps, Desc.Depth,
         IsCubeMap, IsVolume, CurrentWidth, CurrentHeight);
 
       // Check if input image for this level has the right size and format

@@ -138,8 +138,8 @@ var
   BC: TBitmapCoreHeader;
   IsOS2: Boolean;
   PalRGB: PPalette24;
-  I, FPalSize, HeaderSize, AlignedWidthBytes, WidthBytes: LongInt;
-  AlignedSize: NativeInt;
+  I, FPalSize, HeaderSize: LongInt;
+  AlignedWidthBytes, WidthBytes, AlignedSize: NativeInt;
   StartPos: Int64;
   Info: TImageFormatInfo;
   Data: Pointer;
@@ -158,8 +158,8 @@ var
       if BI.BitCount < 8 then
       begin
         // For 1 and 4 bit images load aligned data, they will be converted to
-        // 8 bit and unaligned later
-        GetMem(Data, AlignedSize);
+        // 8 bit and unaligned later (zeroed: the file can have less data)
+        Data := AllocMem(AlignedSize);
 
         if BI.Height < 0 then
           Read(Handle, Data, AlignedSize)
@@ -189,21 +189,50 @@ var
     end;
   end;
 
+  { Reads compressed data of the image. Their size given by the header can be
+    anything (also gigabytes for a tiny file), so they are read in growing blocks
+    and only what is really in the input is returned and decoded.}
+  function ReadRleData(out RleData: TDynByteArray): NativeInt;
+  const
+    FirstBlock = 1024 * 1024;
+  var
+    Remaining: Int64;
+    ToRead, Done: NativeInt;
+  begin
+    Result := 0;
+    RleData := nil;
+
+    while Result < BI.SizeImage do
+    begin
+      Remaining := Int64(BI.SizeImage) - Result;
+      ToRead := FirstBlock;
+      if ToRead < Result then
+        ToRead := Result;
+      if ToRead > Remaining then
+        ToRead := Remaining;
+
+      SetLength(RleData, Result + ToRead);
+      Done := GetIO.Read(Handle, @RleData[Result], ToRead);
+      if Done > 0 then
+        Inc(Result, Done);
+      if Done < ToRead then
+        Break;
+    end;
+  end;
+
   procedure LoadRLE4;
   var
-    RLESrc: PByteArray;
-    Row, Col, I: Integer;
-    WriteRow: NativeInt;
-    SrcPos: UInt32;
+    RLESrc: TDynByteArray;
+    Row, Col, I, Count, SrcCount: Integer;
+    WriteRow, SrcPos, SrcSize: NativeInt;
     DeltaX, DeltaY, Low, High: Byte;
     Pixels: PBuffer;
     OpCode: TRLEOpcode;
     NegHeightBitmap: Boolean;
   begin
-    GetMem(RLESrc, BI.SizeImage);
-    GetIO.Read(Handle, RLESrc, BI.SizeImage);
+    SrcSize := ReadRleData(RLESrc);
     with Images[0] do
-    try
+    begin
       Low := 0;
       Pixels := Bits;
       SrcPos := 0;
@@ -212,7 +241,7 @@ var
       Col := 0; // Current column in dest image
       // Row in dest image where actual writing will be done
       WriteRow := Iff(NegHeightBitmap, Row, Height - 1 - Row);
-      while (Row < Height) and (SrcPos < BI.SizeImage) do
+      while (Row < Height) and (SrcPos + SizeOf(OpCode) <= SrcSize) do
       begin
         // Read RLE op-code
         OpCode := PRLEOpcode(@RLESrc[SrcPos])^;
@@ -233,46 +262,52 @@ var
             2:
               begin
                 // Move to a new relative position
+                if SrcPos + 2 > SrcSize then
+                  Break;
                 DeltaX := RLESrc[SrcPos];
                 DeltaY := RLESrc[SrcPos + 1];
                 Inc(SrcPos, 2);
                 Inc(Col, DeltaX);
                 Inc(Row, DeltaY);
+                WriteRow := Iff(NegHeightBitmap, Row, Height - 1 - Row);
               end
           else
+            // Store absolute data. Command code is the number of pixels
+            // (nibbles) to store
+            SrcCount := OpCode.Command;
+            Count := SrcCount;
             // Do not read data after EOF
-            if SrcPos + OpCode.Command > BI.SizeImage then
-              OpCode.Command := BI.SizeImage - SrcPos;
-            // Take padding bytes and nibbles into account
-            if Col + OpCode.Command > Width then
-              OpCode.Command := Width - Col;
-            // Store absolute data. Command code is the
-            // number of absolute bytes to store
-            for I := 0 to OpCode.Command - 1 do
+            if SrcPos + (Count + 1) div 2 > SrcSize then
+              Count := (SrcSize - SrcPos) * 2;
+            // Take padding bytes and nibbles into account (Col can be also
+            // past the end of row after a delta)
+            if Col + Count > Width then
+              Count := Width - Col;
+
+            for I := 0 to Count - 1 do
             begin
               if (I and 1) = 0 then
               begin
-                High := RLESrc[SrcPos] shr 4;
-                Low := RLESrc[SrcPos] and $F;
+                High := RLESrc[SrcPos + I shr 1] shr 4;
+                Low := RLESrc[SrcPos + I shr 1] and $F;
                 Pixels[WriteRow * Width + Col] := High;
-                Inc(SrcPos);
               end
               else
                 Pixels[WriteRow * Width + Col] := Low;
               Inc(Col);
             end;
-            // Odd number of bytes is followed by a pad byte
-            if (OpCode.Command mod 4) in [1, 2] then
-              Inc(SrcPos);
+            // Nibbles in source are padded to whole words
+            Inc(SrcPos, ((SrcCount + 3) div 4) * 2);
           end;
         end
         else
         begin
           // Take padding bytes and nibbles into account
-          if Col + OpCode.Count > Width then
-            OpCode.Count := Width - Col;
+          Count := OpCode.Count;
+          if Col + Count > Width then
+            Count := Width - Col;
           // Store a run of the same color value
-          for I := 0 to OpCode.Count - 1 do
+          for I := 0 to Count - 1 do
           begin
             if (I and 1) = 0 then
               Pixels[WriteRow * Width + Col] := OpCode.Command shr 4
@@ -282,26 +317,22 @@ var
           end;
         end;
       end;
-    finally
-      FreeMem(RLESrc);
     end;
   end;
 
   procedure LoadRLE8;
   var
-    RLESrc: PByteArray;
-    SrcCount, Row, Col: Integer;
-    WriteRow: NativeInt;
-    SrcPos: UInt32;
+    RLESrc: TDynByteArray;
+    Count, SrcCount, Row, Col: Integer;
+    WriteRow, SrcPos, SrcSize: NativeInt;
     DeltaX, DeltaY: Byte;
     Pixels: PBuffer;
     OpCode: TRLEOpcode;
     NegHeightBitmap: Boolean;
   begin
-    GetMem(RLESrc, BI.SizeImage);
-    GetIO.Read(Handle, RLESrc, BI.SizeImage);
+    SrcSize := ReadRleData(RLESrc);
     with Images[0] do
-    try
+    begin
       Pixels := Bits;
       SrcPos := 0;
       NegHeightBitmap := BI.Height < 0;
@@ -310,7 +341,7 @@ var
       // Row in dest image where actual writing will be done
       WriteRow := Iff(NegHeightBitmap, Row, Height - 1 - Row);
 
-      while (Row < Height) and (SrcPos < BI.SizeImage) do
+      while (Row < Height) and (SrcPos + SizeOf(OpCode) <= SrcSize) do
       begin
         // Read RLE op-code
         OpCode := PRLEOpcode(@RLESrc[SrcPos])^;
@@ -331,42 +362,51 @@ var
             2:
               begin
                 // Move to a new relative position
+                if SrcPos + 2 > SrcSize then
+                  Break;
                 DeltaX := RLESrc[SrcPos];
                 DeltaY := RLESrc[SrcPos + 1];
                 Inc(SrcPos, 2);
                 Inc(Col, DeltaX);
                 Inc(Row, DeltaY);
+                WriteRow := Iff(NegHeightBitmap, Row, Height - 1 - Row);
               end
           else
-            SrcCount := OpCode.Command;
-            // Do not read data after EOF
-            if SrcPos + OpCode.Command > BI.SizeImage then
-              OpCode.Command := BI.SizeImage - SrcPos;
-            // Take padding bytes into account
-            if Col + OpCode.Command > Width then
-              OpCode.Command := Width - Col;
             // Store absolute data. Command code is the
             // number of absolute bytes to store
-            Move(RLESrc[SrcPos], Pixels[WriteRow * Width + Col], OpCode.Command);
-            Inc(SrcPos, SrcCount);
-            Inc(Col, OpCode.Command);
+            SrcCount := OpCode.Command;
+            Count := SrcCount;
+            // Do not read data after EOF
+            if SrcPos + Count > SrcSize then
+              Count := SrcSize - SrcPos;
+            // Take padding bytes into account (Col can be also past the end
+            // of row after a delta)
+            if Col + Count > Width then
+              Count := Width - Col;
+
+            if Count > 0 then
+            begin
+              Move(RLESrc[SrcPos], Pixels[WriteRow * Width + Col], Count);
+              Inc(Col, Count);
+            end;
             // Odd number of bytes is followed by a pad byte
-            if (SrcCount mod 2) = 1 then
-              Inc(SrcPos);
+            Inc(SrcPos, SrcCount + (SrcCount and 1));
           end;
         end
         else
         begin
           // Take padding bytes into account
-          if Col + OpCode.Count > Width then
-            OpCode.Count := Width - Col;
+          Count := OpCode.Count;
+          if Col + Count > Width then
+            Count := Width - Col;
           // Store a run of the same color value. Count is number of bytes to store
-          FillChar(Pixels[WriteRow * Width + Col], OpCode.Count, OpCode.Command);
-          Inc(Col, OpCode.Count);
+          if Count > 0 then
+          begin
+            FillChar(Pixels[WriteRow * Width + Col], Count, OpCode.Command);
+            Inc(Col, Count);
+          end;
         end;
       end;
-    finally
-      FreeMem(RLESrc);
     end;
   end;
 
@@ -401,7 +441,13 @@ begin
     else
     begin
       // Windows type bitmap
-      HeaderSize := Min(BI.Size - SizeOf(BI.Size), SizeOf(BI) - SizeOf(BI.Size)); // do not read more than size of BI!
+      // Size of header in the file can be anything: do not read more than size of BI!
+      if BI.Size < SizeOf(BI.Size) then
+        Exit;
+      if BI.Size >= SizeOf(BI) then
+        HeaderSize := SizeOf(BI) - SizeOf(BI.Size)
+      else
+        HeaderSize := BI.Size - SizeOf(BI.Size);
       Read(Handle, @PByteArray(@BI)[SizeOf(BI.Size)], HeaderSize);
       // SizeImage can be 0 for BI_RGB images, but RLE loading needs it. OS/2 2.x
       // header (up to 64 bytes, the first 40 like Windows V3 header) can have it
@@ -421,6 +467,10 @@ begin
     else
       Exit;
     end;
+
+    // Refuse images without pixels or with dimensions that cannot be negated
+    if (BI.Width <= 0) or (BI.Height = 0) or (BI.Height = Low(Int32)) then
+      Exit;
 
     // RLE data cannot be loaded without their size
     if ((BI.Compression = BI_RLE8) or (BI.Compression = BI_RLE4)) and (BI.SizeImage = 0) then
@@ -449,15 +499,15 @@ begin
 
     NewImage(BI.Width, Abs(BI.Height), Format, Images[0]);
     Info := GetFormatInfo(Format);
-    WidthBytes := Width * Info.BytesPerPixel;
-    AlignedWidthBytes := (((Width * BI.BitCount) + 31) shr 5) * 4;
+    WidthBytes := NativeInt(Width) * Info.BytesPerPixel;
+    AlignedWidthBytes := (((Int64(Width) * BI.BitCount) + 31) shr 5) * 4;
     AlignedSize := NativeInt(Height) * AlignedWidthBytes;
 
     // Palette settings and reading
     if BI.BitCount <= 8 then
     begin
       // Seek to the beginning of palette
-      Seek(Handle, StartPos + SizeOf(TBitmapFileHeader) + LongInt(BI.Size),
+      Seek(Handle, StartPos + SizeOf(TBitmapFileHeader) + Int64(BI.Size),
         smFromBeginning);
       if IsOS2 then
       begin
@@ -491,7 +541,7 @@ begin
     end;
 
     // Seek to the beginning of image bits
-    Seek(Handle, StartPos + LongInt(BF.Offset), smFromBeginning);
+    Seek(Handle, StartPos + Int64(BF.Offset), smFromBeginning);
 
     case BI.Compression of
       BI_RGB: LoadRGB;
@@ -610,8 +660,9 @@ var
             begin
               // Stop diff byte counting if there two bytes with the same value
               // or DiffCount is too big
-              if (DiffCount = 255) or (Pixels[SrcPos + DiffCount + 1] =
-                Pixels[SrcPos + DiffCount]) then
+              // (the last byte of the row has no next one to compare with)
+              if (DiffCount = 255) or ((X + DiffCount + 1 < Width) and
+                (Pixels[SrcPos + DiffCount + 1] = Pixels[SrcPos + DiffCount])) then
                 Break;
               Inc(DiffCount);
             end;

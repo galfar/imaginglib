@@ -888,9 +888,13 @@ procedure InitOptions; forward;
 { Frees options array and stack.}
 procedure FreeOptions; forward;
 
-function UpdateExceptMessage(E: Exception; const MsgToPrepend: string; const Args: array of const): Exception;
+{ Prepends message to the exception being handled, it keeps its class.
+  Call it in except block and then re-raise the exception with plain "raise".
+  The exception object itself must not be raised again ("raise E"): it is
+  freed when the except block ends and whoever catches it gets
+  a dangling reference.}
+procedure UpdateExceptMessage(E: Exception; const MsgToPrepend: string; const Args: array of const);
 begin
-  Result := E;
   E.Message := Format(MsgToPrepend, Args) +  ' ' + SExceptMsg + ': ' + E.Message
 end;
 
@@ -955,7 +959,8 @@ begin
       FreeMem(Image.Bits);
       FreeMem(Image.Palette);
       InitImage(Image);
-      raise UpdateExceptMessage(E, SErrorNewImage, [Width, Height, GetFormatName(Format)]);
+      UpdateExceptMessage(E, SErrorNewImage, [Width, Height, GetFormatName(Format)]);
+      raise;
     end;
   end;
 end;
@@ -985,7 +990,8 @@ begin
     end;
     InitImage(Image);
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorFreeImage, [ImageToStr(Image)]);
+    UpdateExceptMessage(GetExceptObject, SErrorFreeImage, [ImageToStr(Image)]);
+    raise;
   end;
 end;
 
@@ -1359,6 +1365,13 @@ var
   Info: PImageFormatInfo;
 begin
   Result := False;
+  if @Image = @Clone then
+  begin
+    // Clone of image into itself, nothing to do (and Clone must not be reset)
+    Result := TestImage(Image);
+    Exit;
+  end;
+
   if TestImage(Image) then
   try
     if TestImage(Clone) and (Image.Bits <> Clone.Bits) then
@@ -1383,7 +1396,8 @@ begin
     Move(Image.Bits^, Clone.Bits^, Clone.Size);
     Result := True;
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorCloneImage, [ImageToStr(Image)]);
+    UpdateExceptMessage(GetExceptObject, SErrorCloneImage, [ImageToStr(Image)]);
+    raise;
   end;
 end;
 
@@ -1513,7 +1527,8 @@ begin
 
     Result := True;
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorConvertImage, [GetFormatName(DstFormat), ImageToStr(Image)]);
+    UpdateExceptMessage(GetExceptObject, SErrorConvertImage, [GetFormatName(DstFormat), ImageToStr(Image)]);
+    raise;
   end;
 end;
 
@@ -1583,7 +1598,8 @@ begin
     DstImage.Palette := NewPal;
     Result := True;
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorConvertImage, [GetFormatName(DstFormat), ImageToStr(SrcImage)]);
+    UpdateExceptMessage(GetExceptObject, SErrorConvertImage, [GetFormatName(DstFormat), ImageToStr(SrcImage)]);
+    raise;
   end;
 end;
 
@@ -1697,7 +1713,8 @@ begin
     Image := WorkImage;
     Result := True;
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorResizeImage, [ImageToStr(Image)]);
+    UpdateExceptMessage(GetExceptObject, SErrorResizeImage, [ImageToStr(Image)]);
+    raise;
   end;
 end;
 
@@ -1720,8 +1737,8 @@ begin
     Info := ImageFormatInfos[Format];
     Data := Bits;
 
-    if (Info.Format = ifR8G8B8) or ((Info.Format = ifA8R8G8B8) and
-       (SrcChannel <> ChannelAlpha) and (DstChannel <> ChannelAlpha)) then
+    if (Info.Format in [ifR8G8B8, ifA8R8G8B8]) and
+       (SrcChannel <> ChannelAlpha) and (DstChannel <> ChannelAlpha) then
     begin
       // Swap channels of most common formats R8G8B8 and A8R8G8B8 (no alpha)
       for I := 0 to NumPixels - 1 do
@@ -1981,7 +1998,8 @@ begin
     FreeImage(CloneARGB);
     Result := True;
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorMapImage, [ImageToStr(Image)]);
+    UpdateExceptMessage(GetExceptObject, SErrorMapImage, [ImageToStr(Image)]);
+    raise;
   end;
 end;
 
@@ -2036,9 +2054,10 @@ begin
         end
         else
         begin
-          // Create smaller edge chunk
-          XTrunc := Image.Width - X * ChunkWidth;
-          YTrunc := Image.Height - Y * ChunkHeight;
+          // Create smaller edge chunk, only dimensions that reach over
+          // the edge of the image are truncated
+          XTrunc := Min(ChunkWidth, Image.Width - X * ChunkWidth);
+          YTrunc := Min(ChunkHeight, Image.Height - Y * ChunkHeight);
           NewImage(XTrunc, YTrunc, Image.Format, Chunks[Y * XChunks + X]);
           CopyRect(Image, X * ChunkWidth, Y * ChunkHeight, XTrunc, YTrunc,
             Chunks[Y * XChunks + X], 0, 0);
@@ -2061,8 +2080,9 @@ begin
 
     Result := True;
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorSplitImage,
+    UpdateExceptMessage(GetExceptObject, SErrorSplitImage,
       [ImageToStr(Image), ChunkWidth, ChunkHeight]);
+    raise;
   end;
 end;
 
@@ -2383,7 +2403,8 @@ begin
     if OldFmt <> Image.Format then
       ConvertImage(Image, OldFmt);
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorRotateImage, [ImageToStr(Image), Angle]);
+    UpdateExceptMessage(GetExceptObject, SErrorRotateImage, [ImageToStr(Image), Angle]);
+    raise;
   end;
 end;
 
@@ -2462,8 +2483,9 @@ begin
     RotImage.Palette := Image.Palette;
     Image := RotImage;
   except
-    raise UpdateExceptMessage(GetExceptObject, 'Error while rotating image %s by %d degrees',
+    UpdateExceptMessage(GetExceptObject, 'Error while rotating image %s by %d degrees',
       [ImageToStr(Image), AngleDeg]);
+    raise;
   end;
 end;
 
@@ -2922,9 +2944,9 @@ begin
     begin
       A := Alpha;
       if RBits > 0 then
-        R := ((I shr Max(0, GBits + BBits - 1)) and (1 shl RBits - 1)) * 255 div (1 shl RBits - 1);
+        R := ((I shr (GBits + BBits)) and (1 shl RBits - 1)) * 255 div (1 shl RBits - 1);
       if GBits > 0 then
-        G := ((I shr Max(0, BBits - 1)) and (1 shl GBits - 1)) * 255 div (1 shl GBits - 1);
+        G := ((I shr BBits) and (1 shl GBits - 1)) * 255 div (1 shl GBits - 1);
       if BBits > 0 then
         B := ((I shr 0) and (1 shl BBits - 1)) * 255 div (1 shl BBits - 1);
     end;
@@ -3275,8 +3297,10 @@ begin
     if SrcImage.Palette <> nil then
       CopyPalette(SrcImage.Palette, WorkImage.Palette, 0, 0, ImageFormatInfos[SrcImage.Format].PaletteEntries);
 
+    // Size of the work image: the fitted one can have zero in one dimension
+    // (very thin image) and nothing would be drawn
     StretchRect(SrcImage, 0, 0, CurSize.CX, CurSize.CY, WorkImage, 0, 0,
-      DestSize.CX, DestSize.CY, Filter);
+      WorkImage.Width, WorkImage.Height, Filter);
   except
     FreeImage(WorkImage);
     raise;
@@ -3512,20 +3536,21 @@ begin
         CurFilter := CurFilter + ';';
     end;
 
-    FmtStr(Descriptions, '%s%s (%s)|%2:s', [Descriptions, FileFormat.Name, CurFilter]);
+    // Separator goes between the listed formats (the last registered ones
+    // can be skipped, there must be no separator after the last listed one)
+    if Descriptions <> '' then
+      Descriptions := Descriptions + '|';
+    Descriptions := Descriptions + FileFormat.Name + ' (' + CurFilter + ')|' + CurFilter;
     if Filters <> '' then
-      FmtStr(Filters, '%s;%s', [Filters, CurFilter])
+      Filters := Filters + ';' + CurFilter
     else
       Filters := CurFilter;
-
-    if I < ImageFileFormats.Count - 1 then
-        Descriptions := Descriptions + '|';
 
     Inc(Count);
   end;
 
   if (Count > 1) and OpenFileFilter then
-    FmtStr(Descriptions, '%s (%s)|%1:s|%s', [SAllFilter, Filters, Descriptions]);
+    Descriptions := SAllFilter + ' (' + Filters + ')|' + Filters + '|' + Descriptions;
 
   Result := Descriptions;
 end;
@@ -3596,13 +3621,15 @@ procedure RaiseImaging(const Msg: string; const Args: array of const);
 var
   WholeMsg: string;
 begin
-  WholeMsg := Msg;
+  // Only Msg is the format string, message of the current exception can
+  // contain anything (e.g. file name with % characters)
+  WholeMsg := Format(Msg, Args);
   if GetExceptObject <> nil then
   begin
     WholeMsg := WholeMsg + ' ' + SExceptMsg + ': ' +
       GetExceptObject.Message;
   end;
-  raise EImagingError.CreateFmt(WholeMsg, Args);
+  raise EImagingError.Create(WholeMsg);
 end;
 
 procedure RaiseImaging(const Msg: string);
@@ -3764,7 +3791,7 @@ begin
         FLastIdx := Index;
       end;
 
-      for I := FFirstIdx to FLastIdx - 1 do
+      for I := FFirstIdx to FLastIdx do
       begin
         if not TestImage(Images[I]) then
           Exit;
@@ -3869,6 +3896,7 @@ begin
       IO.Close(Handle);
     end;
   except
+    FreeImagesInArray(Images);
     RaiseImaging(SErrorLoadingFile, [FileName, FExtensions[0]]);
   end;
 end;
@@ -3933,6 +3961,7 @@ begin
       IO.Close(Handle);
     end;
   except
+    FreeImagesInArray(Images);
     RaiseImaging(SErrorLoadingMemory, [Data, Size, FExtensions[0]]);
   end;
 end;
@@ -3972,7 +4001,7 @@ begin
       Result := True;
       for I := 0 to Len - 1 do
       begin
-        Handle := IO.Open(PChar(Format(FName + '%.3d' + Ext, [I])), omCreate);
+        Handle := IO.Open(PChar(FName + Format('%.3d', [I]) + Ext), omCreate);
         try
           Index := I;
           Result := Result and PrepareSave(Handle, Images, Index) and
@@ -3985,7 +4014,8 @@ begin
       end;
     end;
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorSavingFile, [FileName, FExtensions[0]]);
+    UpdateExceptMessage(GetExceptObject, SErrorSavingFile, [FileName, FExtensions[0]]);
+    raise;
   end;
 end;
 
@@ -4031,7 +4061,8 @@ begin
     end;
   except
     Stream.Position := OldPosition;
-    raise UpdateExceptMessage(GetExceptObject, SErrorSavingStream, [@Stream, FExtensions[0]]);
+    UpdateExceptMessage(GetExceptObject, SErrorSavingStream, [@Stream, FExtensions[0]]);
+    raise;
   end;
 end;
 
@@ -4077,7 +4108,8 @@ begin
       IO.Close(Handle);
     end;
   except
-    raise UpdateExceptMessage(GetExceptObject, SErrorSavingMemory, [Data, Size, FExtensions[0]]);
+    UpdateExceptMessage(GetExceptObject, SErrorSavingMemory, [Data, Size, FExtensions[0]]);
+    raise;
   end;
 end;
 
@@ -4193,8 +4225,8 @@ begin
   Result := False;
   if FPosition >= 0  then
   begin
-    SetLength(Options, Length(FStack[FPosition]));
-    for I := 0 to Length(FStack[FPosition]) - 1 do
+    // Options registered after the push stay registered
+    for I := 0 to Min(Length(FStack[FPosition]), Length(Options)) - 1 do
       if Options[I] <> nil then
         Options[I]^ := FStack[FPosition, I];
     Dec(FPosition);
@@ -4386,6 +4418,11 @@ begin
   if YSize < 0 then
     YSize := XSize;
 
+  // Sizes are divided when translating to other units
+  Result := (XSize > 0) and (YSize > 0);
+  if not Result then
+    Exit;
+
   TranslateUnits(ResUnit, XSize, YSize);
 end;
 
@@ -4396,6 +4433,12 @@ type
 var
   Adder: TAdder;
 begin
+  // Zero (or negative) resolution or size is no resolution at all. Files have
+  // it, e.g. when the resolution is not known, and it cannot be translated
+  // to pixel size.
+  if (XSize <= 0) or (YSize <= 0) then
+    Exit;
+
   TranslateUnits(ResUnit, XSize, YSize);
 
   if MetaForSave then
@@ -4428,12 +4471,12 @@ end;
 
 function TMetadata.HasMetaItem(const Id: string; ImageIndex: Integer): Boolean;
 begin
-  Result := GetMetaByIdMulti(Id, ImageIndex) <> Variants.Null;
+  Result := not VarIsNull(GetMetaByIdMulti(Id, ImageIndex));
 end;
 
 function TMetadata.HasMetaItemForSaving(const Id: string; ImageIndex: Integer): Boolean;
 begin
-  Result := GetSaveMetaByIdMulti(Id, ImageIndex) <> Variants.Null;
+  Result := not VarIsNull(GetSaveMetaByIdMulti(Id, ImageIndex));
 end;
 
 initialization

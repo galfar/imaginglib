@@ -281,6 +281,14 @@ var
         Stream.Read(Context.Buf[Word(Context.Size shr 3)], Bytes);
       Context.Size := Context.Size + (Bytes shl 3);
     end;
+    if Context.Inx + Context.CodeSize > Context.Size then
+    begin
+      // No more data: the image is truncated or broken. Codes must not be
+      // made of bytes outside of the buffer.
+      Result := $FFFF;
+      Exit;
+    end;
+
     ByteIndex := Context.Inx shr 3;
     RawCode := Context.Buf[Word(ByteIndex)] +
       (Word(Context.Buf[Word(ByteIndex + 1)]) shl 8);
@@ -343,14 +351,18 @@ begin
   OldCode := 0;
   FinalChar := 0;
   TableFull := False;
-  GetMem(Prefix, SizeOf(TIntCodeTable));
-  GetMem(Suffix, SizeOf(TIntCodeTable));
-  GetMem(OutCode, SizeOf(TIntCodeTable) + SizeOf(Word));
+  // Tables are zeroed: broken data can use codes that were not defined yet
+  // and their entries must stay inside of the tables
+  Prefix := AllocMem(SizeOf(TIntCodeTable));
+  Suffix := AllocMem(SizeOf(TIntCodeTable));
+  OutCode := AllocMem(SizeOf(TIntCodeTable) + SizeOf(Word));
   try
+    MinCodeSize := 0;
     Stream.Read(MinCodeSize, 1);
     if (MinCodeSize < 2) or (MinCodeSize > 9) then
       RaiseImaging(SGIFDecodingError, []);
     // Initial read context
+    FillChar(ReadCtxt, SizeOf(ReadCtxt), 0);
     ReadCtxt.Inx := 0;
     ReadCtxt.Size := 0;
     ReadCtxt.CodeSize := MinCodeSize + 1;
@@ -406,7 +418,8 @@ begin
         end;
         while CurCode > BitMask do
         begin
-          if OutCount > CodeTableSize then
+          // One more item is added to OutCode after this loop
+          if OutCount >= CodeTableSize then
             RaiseImaging(SGIFDecodingError, []);
           OutCode^[OutCount] := Suffix^[CurCode];
           Inc(OutCount);
@@ -442,8 +455,8 @@ begin
       end;
       Code := ReadCode(ReadCtxt);
     end;
-    if Code = $FFFF then
-      RaiseImaging(SGIFDecodingError, []);
+    // Data that end too early (Code = $FFFF) are not an error: pixels decoded
+    // so far are kept and the rest of the frame stays empty
   finally
     FreeMem(Prefix);
     FreeMem(OutCode);
@@ -680,14 +693,17 @@ var
   var
     BlockSize, BlockType, ExtType: Byte;
     AppRec: TGIFApplicationRec;
-    LoopCount: SmallInt;
+    LoopCount: Word;
 
+    { Skips data sub-blocks up to their terminator (block of zero size)
+      or the end of input.}
     procedure SkipBytes;
     begin
       with GetIO do
       repeat
         // Read block sizes and skip them
-        Read(Handle, @BlockSize, SizeOf(BlockSize));
+        if Read(Handle, @BlockSize, SizeOf(BlockSize)) < SizeOf(BlockSize) then
+          Break;
         Seek(Handle, BlockSize, smFromCurrent);
       until BlockSize = 0;
     end;
@@ -697,79 +713,86 @@ var
     AppRead := False;
 
     // Read extensions until image descriptor is found. Only graphic extension
-    // is stored now (for transparency), others are skipped.
+    // (for transparency) and animation loops are stored now, others are skipped.
     while BlockID = GIFExtensionIntroducer do
     with GetIO do
     begin
-      Read(Handle, @ExtType, SizeOf(ExtType));
-
-      while ExtType in [GIFGraphicControlExtension, GIFCommentExtension, GIFApplicationExtension, GIFPlainText] do
+      if Read(Handle, @ExtType, SizeOf(ExtType)) < SizeOf(ExtType) then
       begin
-        if ExtType = GIFGraphicControlExtension then
-        begin
-          HasGraphicExt := True;
-          Read(Handle, @GraphicExt, SizeOf(GraphicExt));
-        end
-        else if (ExtType = GIFApplicationExtension) and not AppRead then
-        begin
-          Read(Handle, @BlockSize, SizeOf(BlockSize));
-          if BlockSize >= SizeOf(AppRec) then
-          begin
-            Read(Handle, @AppRec, SizeOf(AppRec));
-            if ((AppRec.Identifier = 'NETSCAPE') and (AppRec.Authentication = '2.0')) or
-              ((AppRec.Identifier = 'ANIMEXTS') and (AppRec.Authentication = '1.0')) then
-            begin
-              Read(Handle, @BlockSize, SizeOf(BlockSize));
-              while BlockSize <> 0 do
-              begin
-                BlockType := ReadBlockID;
-                Dec(BlockSize);
+        // End of input
+        BlockID := GIFTrailer;
+        Exit;
+      end;
 
-                case BlockType of
-                  GIFAppLoopExtension:
-                    if (BlockSize >= SizeOf(LoopCount)) then
-                    begin
-                      // Read loop count
-                      Read(Handle, @LoopCount, SizeOf(LoopCount));
-                      Dec(BlockSize, SizeOf(LoopCount));
-                      if LoopCount > 0 then
-                        Inc(LoopCount); // Netscape extension is really "repeats" not "loops"
-                      FMetadata.SetMetaItem(SMetaAnimationLoops, LoopCount);
-                    end;
-                  GIFAppBufferExtension:
-                    begin
-                      Dec(BlockSize, SizeOf(Word));
-                      Seek(Handle, SizeOf(Word), smFromCurrent);
-                    end;
-                end;
+      if ExtType = GIFGraphicControlExtension then
+      begin
+        HasGraphicExt := True;
+        Read(Handle, @GraphicExt, SizeOf(GraphicExt));
+      end
+      else if (ExtType = GIFApplicationExtension) and not AppRead then
+      begin
+        BlockSize := 0;
+        Read(Handle, @BlockSize, SizeOf(BlockSize));
+        if BlockSize >= SizeOf(AppRec) then
+        begin
+          Read(Handle, @AppRec, SizeOf(AppRec));
+          if ((AppRec.Identifier = 'NETSCAPE') and (AppRec.Authentication = '2.0')) or
+            ((AppRec.Identifier = 'ANIMEXTS') and (AppRec.Authentication = '1.0')) then
+          begin
+            BlockSize := 0;
+            Read(Handle, @BlockSize, SizeOf(BlockSize));
+            while BlockSize <> 0 do
+            begin
+              BlockType := ReadBlockID;
+              Dec(BlockSize);
+
+              case BlockType of
+                GIFAppLoopExtension:
+                  if (BlockSize >= SizeOf(LoopCount)) then
+                  begin
+                    // Read loop count
+                    Read(Handle, @LoopCount, SizeOf(LoopCount));
+                    Dec(BlockSize, SizeOf(LoopCount));
+                    // Netscape extension is really "repeats" not "loops"
+                    if LoopCount > 0 then
+                      FMetadata.SetMetaItem(SMetaAnimationLoops, Integer(LoopCount) + 1)
+                    else
+                      FMetadata.SetMetaItem(SMetaAnimationLoops, 0);
+                  end;
+                GIFAppBufferExtension:
+                  if BlockSize >= SizeOf(Word) then
+                  begin
+                    Dec(BlockSize, SizeOf(Word));
+                    Seek(Handle, SizeOf(Word), smFromCurrent);
+                  end;
               end;
-              SkipBytes;
-              AppRead := True;
-            end
-            else
-              begin
-                // Revert all bytes reading
-                Seek(Handle, - SizeOf(AppRec) - SizeOf(BlockSize), smFromCurrent);
-                SkipBytes;
-              end;
+            end;
+            SkipBytes;
+            AppRead := True;
           end
           else
-            begin
-              Seek(Handle, - BlockSize - SizeOf(BlockSize), smFromCurrent);
-              SkipBytes;
-            end;
+          begin
+            // Revert all bytes reading
+            Seek(Handle, - SizeOf(AppRec) - SizeOf(BlockSize), smFromCurrent);
+            SkipBytes;
+          end;
         end
-        else if ExtType in [GIFCommentExtension, GIFApplicationExtension, GIFPlainText] then
-        repeat
-          // Read block sizes and skip them
-          Read(Handle, @BlockSize, SizeOf(BlockSize));
-          Seek(Handle, BlockSize, smFromCurrent);
-        until BlockSize = 0;
-
-        // Read ID of following block
-        BlockID := ReadBlockID;
-        ExtType := BlockID;
+        else
+        begin
+          // Only the block size was read, go back to it
+          Seek(Handle, - SizeOf(BlockSize), smFromCurrent);
+          SkipBytes;
+        end;
       end
+      else
+      begin
+        // Comments, plain text, other application extensions, and extensions
+        // of unknown type are skipped
+        SkipBytes;
+      end;
+
+      // Read ID of following block
+      BlockID := ReadBlockID;
     end;
   end;
 
@@ -814,15 +837,33 @@ var
       SetLength(Images, Length(Images) - 1);
     end;
 
+    { Skips compressed data of a frame that is not loaded, so that reading
+      continues at the next block.}
+    procedure SkipLZWData;
+    var
+      BlockSize: Byte;
+    begin
+      // Code size and then data blocks ended by a block of zero size
+      GetIO.Seek(Handle, 1, smFromCurrent);
+      repeat
+        if GetIO.Read(Handle, @BlockSize, 1) < 1 then
+          Break;
+        GetIO.Seek(Handle, BlockSize, smFromCurrent);
+      until BlockSize = 0;
+    end;
+
   begin
     Idx := Length(Images);
     SetLength(Images, Idx + 1);
     SetLength(FrameInfos, Idx + 1);
+    // Info can be left there by a removed frame
+    FillChar(FrameInfos[Idx], SizeOf(FrameInfos[Idx]), 0);
     FillChar(LocalPal, SizeOf(LocalPal), 0);
 
     with GetIO do
     begin
       // Read and parse image descriptor
+      FillChar(ImageDesc, SizeOf(ImageDesc), 0);
       Read(Handle, @ImageDesc, SizeOf(ImageDesc));
       FrameInfos[Idx].HasLocalPal := (ImageDesc.PackedFields and GIFLocalColorTable) = GIFLocalColorTable;
       Interlaced := (ImageDesc.PackedFields and GIFInterlaced) = GIFInterlaced;
@@ -841,9 +882,6 @@ var
       FrameInfos[Idx].Height := ImageDesc.Height;
       FrameInfos[Idx].BackIndex := Header.BackgroundColorIndex;
 
-      // Create new image for this frame which would be later pasted onto logical screen
-      NewImage(ImageDesc.Width, ImageDesc.Height, ifIndex8, Images[Idx]);
-
       // Load local palette if there is any
       if FrameInfos[Idx].HasLocalPal then
         for I := 0 to LocalPalLength - 1 do
@@ -853,6 +891,17 @@ var
           Read(Handle, @LocalPal[I].G, SizeOf(LocalPal[I].G));
           Read(Handle, @LocalPal[I].B, SizeOf(LocalPal[I].B));
         end;
+
+      if (ImageDesc.Width = 0) or (ImageDesc.Height = 0) then
+      begin
+        // Frame without pixels (the logical screen has no size either)
+        SetLength(Images, Idx);
+        SkipLZWData;
+        Exit;
+      end;
+
+      // Create new image for this frame which would be later pasted onto logical screen
+      NewImage(ImageDesc.Width, ImageDesc.Height, ifIndex8, Images[Idx]);
 
       // Use local pal if present or global pal if present or create
       // default pal if neither of them is present
@@ -873,6 +922,7 @@ var
       begin
         // Remove frame outside logical screen
         RemoveBadFrame;
+        SkipLZWData;
         Exit;
       end;
 
@@ -1069,12 +1119,19 @@ begin
       InitImage(CachedFrame);
       CachedIndex := -1;
 
-      for I := 0 to High(Images) do
-      begin
-        // Create new logical screen
-        NewImage(ScreenWidth, ScreenHeight, ifA8R8G8B8, AnimFrames[I]);
-        // Animate frames to current log screen
-        AnimateFrame(I, AnimFrames[I]);
+      try
+        for I := 0 to High(Images) do
+        begin
+          // Create new logical screen
+          NewImage(ScreenWidth, ScreenHeight, ifA8R8G8B8, AnimFrames[I]);
+          // Animate frames to current log screen
+          AnimateFrame(I, AnimFrames[I]);
+        end;
+      except
+        // E.g. not enough memory for all the frames
+        FreeImage(CachedFrame);
+        FreeImagesInArray(AnimFrames);
+        raise;
       end;
 
       // Now release raw 8bit frames and put animated 32bit ones

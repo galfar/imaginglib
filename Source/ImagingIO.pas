@@ -160,7 +160,7 @@ end;
 
 procedure TBufferedStream.SetPosition(const Value: Int64);
 begin
-  Seek(Value, soFromCurrent);
+  Seek(Value, soFromBeginning);
 end;
 
 function TBufferedStream.GetSize: Int64;
@@ -609,8 +609,8 @@ begin
   Result := Count;
   if Rec.Position + Count > Rec.Size then
     Result := Rec.Size - Rec.Position;
-  // Position can be past the end after Seek
-  if Result <= 0 then
+  // Position can be past the end or before the start after Seek
+  if (Result <= 0) or (Rec.Position < 0) then
   begin
     Result := 0;
     Exit;
@@ -629,7 +629,7 @@ begin
   Result := Count;
   if Rec.Position + Count > Rec.Size then
     Result := Rec.Size - Rec.Position;
-  if Result <= 0 then
+  if (Result <= 0) or (Rec.Position < 0) then
   begin
     Result := 0;
     Exit;
@@ -707,55 +707,53 @@ function ReadLine(const IOFunctions: TIOFunctions; Handle: TImagingHandle;
 const
   MaxLine = 1024;
 var
-  EolPos, Pos: Integer;
+  StartPos: Int64;
   C: AnsiChar;
-  EolReached: Boolean;
-  Endings: set of AnsiChar;
+  Failed: Boolean;
 begin
   Line := '';
-  Pos := 0;
-  EolPos := 0;
-  EolReached := False;
-  Endings := [#10, #13];
-  Result := True;
+  Result := False;
+  Failed := False;
+  StartPos := IOFunctions.Tell(Handle);
 
-  while not IOFunctions.Eof(Handle) do
+  while IOFunctions.Read(Handle, @C, SizeOf(C)) = SizeOf(C) do
   begin
-    IOFunctions.Read(Handle, @C, SizeOf(C));
-
     if FailOnControlChars and (Byte(C) < $20) then
     begin
+      Failed := True;
       Break;
     end;
 
-    if not (C in Endings) then
+    if C in [#10, #13] then
     begin
-      if EolReached then
+      // The line ends here. CR+LF is one delimiter, input stays right after it
+      // (binary data can follow, nothing more than the delimiter is consumed).
+      if C = #13 then
       begin
-        IOFunctions.Seek(Handle, EolPos, smFromBeginning);
-        Exit;
-      end
-      else
-      begin
-        SetLength(Line, Length(Line) + 1);
-        Line[Length(Line)] := C;
+        if (IOFunctions.Read(Handle, @C, SizeOf(C)) = SizeOf(C)) and (C <> #10) then
+          IOFunctions.Seek(Handle, -SizeOf(C), smFromCurrent);
       end;
-    end
-    else if not EolReached then
-    begin
-      EolReached := True;
-      EolPos := IOFunctions.Tell(Handle);
+      Result := True;
+      Exit;
     end;
 
-    Inc(Pos);
-    if Pos >= MaxLine then
+    if Length(Line) >= MaxLine then
     begin
+      Failed := True;
       Break;
     end;
+
+    SetLength(Line, Length(Line) + 1);
+    Line[Length(Line)] := C;
   end;
 
-  Result := False;
-  IOFunctions.Seek(Handle, -Pos, smFromCurrent);
+  // End of input: the last line does not have to end with a delimiter
+  Result := (not Failed) and (Line <> '');
+  if not Result then
+  begin
+    Line := '';
+    IOFunctions.Seek(Handle, StartPos, smFromBeginning);
+  end;
 end;
 
 procedure WriteLine(const IOFunctions: TIOFunctions; Handle: TImagingHandle;
@@ -764,7 +762,8 @@ var
   ToWrite: AnsiString;
 begin
   ToWrite := Line + LineEnding;
-  IOFunctions.Write(Handle, @ToWrite[1], Length(ToWrite));
+  if ToWrite <> '' then
+    IOFunctions.Write(Handle, @ToWrite[1], Length(ToWrite));
 end;
 
 { TReadMemoryStream }

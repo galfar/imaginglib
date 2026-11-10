@@ -515,13 +515,13 @@ var
   FileName: array[0..MAX_PATH] of Char;
 begin
   SetString(Result, FileName,
-    Windows.GetModuleFileName(MainInstance, FileName, SizeOf(FileName)));
+    Windows.GetModuleFileName(MainInstance, FileName, Length(FileName)));
 {$ELSEIF Defined(DELPHI)} // Delphi non Win targets
 var
   FileName: array[0..1024] of Char;
 begin
   SetString(Result, FileName,
-    System.GetModuleFileName(MainInstance, FileName, SizeOf(FileName)));
+    System.GetModuleFileName(MainInstance, FileName, Length(FileName)));
 {$ELSE}
 begin
   Result := ExpandFileName(ParamStr(0));
@@ -1221,7 +1221,9 @@ asm
 end;
 {$ELSE}
 begin
-  Result := Number * Numerator div Denominator;
+  // Product of two Words does not fit signed 32 bits which is how it is computed
+  // by 32-bit compilers
+  Result := UInt32(Number) * Numerator div Denominator;
 end;
 {$IFEND}
 
@@ -1272,6 +1274,8 @@ end;
 procedure SwapEndianWord(P: System.PWord; Count: NativeInt);
 {$IFDEF USE_ASM}
 asm
+  TEST   EDX, EDX
+  JLE    @Exit
 @Loop:
   MOV    CX, [EAX]
   XCHG   CH, CL
@@ -1279,6 +1283,7 @@ asm
   ADD    EAX, 2
   DEC    EDX
   JNZ    @Loop
+@Exit:
 end;
 {$ELSE}
 var
@@ -1312,6 +1317,8 @@ end;
 procedure SwapEndianUInt32(P: PUInt32; Count: NativeInt);
 {$IFDEF USE_ASM}
 asm
+  TEST   EDX, EDX
+  JLE    @Exit
 @Loop:
   MOV    ECX, [EAX]
   BSWAP  ECX
@@ -1319,6 +1326,7 @@ asm
   ADD    EAX, 4
   DEC    EDX
   JNZ    @Loop
+@Exit:
 end;
 {$ELSE}
 var
@@ -1432,8 +1440,8 @@ asm
   MOV    ECX, EDX
   AND    ECX, 3
   REP    STOSB
-  POP    EDI
 @Exit:
+  POP    EDI
 end;
 {$ELSE}
 begin
@@ -1665,10 +1673,8 @@ procedure ClipCopyBounds(var SrcX, SrcY, Width, Height, DstX, DstY: LongInt; Src
   procedure ClipDim(var SrcPos, DstPos, Size: LongInt; SrcClipMax,
     DstClipMin, DstClipMax: LongInt);
   var
-    OldDstPos: LongInt;
     Diff: LongInt;
   begin
-    OldDstPos := Iff(DstPos < 0, DstPos, 0);
     if DstPos < DstClipMin then
     begin
       Diff := DstClipMin - DstPos;
@@ -1678,8 +1684,9 @@ procedure ClipCopyBounds(var SrcX, SrcY, Width, Height, DstX, DstY: LongInt; Src
     end;
     if SrcPos < 0 then
     begin
-      Size := Size + SrcPos - OldDstPos;
-      DstPos := DstPos - SrcPos + OldDstPos;
+      // SrcPos already includes the shift done by destination clipping above
+      Size := Size + SrcPos;
+      DstPos := DstPos - SrcPos;
       SrcPos := 0;
     end;
     if SrcPos + Size > SrcClipMax then Size := SrcClipMax - SrcPos;
@@ -1830,7 +1837,8 @@ end;
 
 function FormatExceptMsg(const Msg: string; const Args: array of const): string;
 begin
-  Result := Format(Msg + SLineBreak + 'Message: ' + GetExceptObject.Message, Args);
+  // Only Msg is the format string, message of the exception can contain anything
+  Result := Format(Msg, Args) + SLineBreak + 'Message: ' + GetExceptObject.Message;
 end;
 
 procedure DebugMsg(const Msg: string; const Args: array of const);
