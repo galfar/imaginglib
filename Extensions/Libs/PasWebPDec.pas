@@ -850,91 +850,6 @@ end;
 const
   HUFF_LUT_BITS = 8;  // root table bits
 
-type
-  THuffTable = array[0..FIXED_TABLE_SIZE-1] of THuffmanCode;
-  PHuffTable = ^THuffTable;
-
-// Correct Huffman build used in VP8L decode
-// Returns True on success. Builds reverse-lookup table.
-function VP8LBuildHuffmanTable(
-  const Lengths: array of Integer; NumSymbols: Integer;
-  Table: PHuffmanCode; TableBits: Integer): Boolean;
-var
-  count:     array[0..16] of Integer;
-  nextcode:  array[0..16] of Cardinal;
-  code:      Cardinal;
-  i, len:    Integer;
-  entry:     THuffmanCode;
-  mirror:    Cardinal;
-  j, step:   Integer;
-  tableSize: Integer;
-begin
-  Result := False;
-  tableSize := 1 shl TableBits;
-  FillChar(count, SizeOf(count), 0);
-  for i := 0 to NumSymbols-1 do
-  begin
-    len := Lengths[i];
-    if (len < 0) or (len > 15) then Exit;
-    Inc(count[len]);
-  end;
-  // Assign canonical codes
-  code := 0;
-  nextcode[0] := 0;
-  for len := 1 to 15 do
-  begin
-    code := (code + Cardinal(count[len-1])) shl 1;
-    nextcode[len] := code;
-  end;
-  // Fill table
-  for i := 0 to tableSize-1 do
-  begin
-    Table[i].Bits  := 0;
-    Table[i].Value := $FFFF;
-  end;
-  for i := 0 to NumSymbols-1 do
-  begin
-    len := Lengths[i];
-    if len = 0 then Continue;
-    if len > TableBits then Continue;  // ignore overflow for now
-    // Reverse the canonical code to get LSB-first lookup key
-    code := nextcode[len];
-    Inc(nextcode[len]);
-    mirror := 0;
-    for j := 0 to len-1 do
-      if (code shr j) and 1 <> 0 then
-        mirror := mirror or (Cardinal(1) shl (len-1-j));
-    // Replicate for all suffixes
-    step := 1 shl len;
-    j := Integer(mirror);
-    while j < tableSize do
-    begin
-      entry.Bits  := Byte(len);
-      entry.Value := Word(i);
-      Table[j]    := entry;
-      Inc(j, step);
-    end;
-  end;
-  Result := True;
-end;
-
-// Read a Huffman symbol using the lookup table
-function HuffReadSymbol(var BR: TVP8LBitReader;
-  const Table: PHuffmanCode; TableBits: Integer): Integer; inline;
-var
-  key: Cardinal;
-  e:   THuffmanCode;
-begin
-  key := VP8LPeekBits(BR, TableBits);
-  e   := Table[key];
-  if e.Bits = 0 then begin Result := -1; Exit; end;
-  // Consume the bits
-  BR.Val := BR.Val shr e.Bits;
-  Dec(BR.Available, e.Bits);
-  if BR.Available <= 32 then VP8LFillBitWindow(BR);
-  Result := Integer(e.Value);
-end;
-
 // ============================================================
 // DECODER DATA TYPES
 // ============================================================
@@ -3006,6 +2921,7 @@ var
   usePrev, length: Integer;
   extraBits: array[0..2] of Integer;
   repOff:    array[0..2] of Integer;
+  e:         THuffmanCode;
 begin
   Result := False;
   extraBits[0] := 2; extraBits[1] := 3; extraBits[2] := 7;
@@ -3025,9 +2941,13 @@ begin
   begin
     if maxSymbol = 0 then Break;
     Dec(maxSymbol);
+    // Codes of code lengths have 7 bits at most, all are in the root table.
+    // Table of a single symbol has codes of 0 bits.
+    e := CLTable[VP8LPeekBits(BR, HUFF_LUT_BITS)];
+    BR.Val := BR.Val shr e.Bits;
+    Dec(BR.Available, e.Bits);
     if BR.Available <= 32 then VP8LFillBitWindow(BR);
-    sym := HuffReadSymbol(BR, CLTable, HUFF_LUT_BITS);
-    if sym < 0 then Exit;
+    sym := e.Value;
     if sym < 16 then
     begin
       Lengths[i] := sym;
@@ -3079,7 +2999,7 @@ begin
     numCodes := Integer(VP8LReadBits(BR, 4)) + 4;
     for j := 0 to numCodes - 1 do
       clLengths[kCodeLengthCodeOrder[j]] := Integer(VP8LReadBits(BR, 3));
-    if not VP8LBuildHuffmanTable(clLengths, 19, @clTable[0], HUFF_LUT_BITS) then
+    if VP8LHuffBuild(@clTable[0], HUFF_LUT_BITS, @clLengths[0], 19) = 0 then
     begin
       Exit;
     end;
