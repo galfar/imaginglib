@@ -3187,12 +3187,12 @@ begin
 end;
 
 // ---- Per-channel wrapping add (for predictor inverse) ----
+// Two channels at a time: sums of alpha/green and of red/blue cannot carry
+// into each other's result bits.
 function VP8LAddPx(a, b: Cardinal): Cardinal; inline;
 begin
-  Result := ((a + b) and $FF)
-    or ((((a shr 8) + (b shr 8)) and $FF) shl 8)
-    or ((((a shr 16) + (b shr 16)) and $FF) shl 16)
-    or ((((a shr 24) + (b shr 24)) and $FF) shl 24);
+  Result := (((a and $FF00FF00) + (b and $FF00FF00)) and $FF00FF00) or
+            (((a and $00FF00FF) + (b and $00FF00FF)) and $00FF00FF);
 end;
 
 // ---- Predictor averages ----
@@ -3201,83 +3201,50 @@ begin
   Result := (((a xor b) and $FEFEFEFE) shr 1) + (a and b);
 end;
 
-function PAvg3(a, b, c: Cardinal): Cardinal; inline;
-begin
-  Result := PAvg2(PAvg2(a, c), b);
-end;
-
-function PAvg4(a, b, c, d: Cardinal): Cardinal; inline;
-begin
-  Result := PAvg2(PAvg2(a, b), PAvg2(c, d));
-end;
-
-function Clip8(v: Integer): Integer; inline;
-begin
-  if v < 0 then Result := 0 else if v > 255 then Result := 255 else Result := v;
-end;
-
+// libwebp Select: the one of a (top), b (left) that is closer to the
+// gradient a + b - c, by sum of absolute differences of channels.
 function PSelect(a, b, c: Cardinal): Cardinal; inline;
 var
-  pa: Integer;
+  d: Integer;
 begin
-  pa := (Abs(Integer((a shr 24) and $FF) - Integer((c shr 24) and $FF))
-       - Abs(Integer((b shr 24) and $FF) - Integer((c shr 24) and $FF)))
-      + (Abs(Integer((a shr 16) and $FF) - Integer((c shr 16) and $FF))
-       - Abs(Integer((b shr 16) and $FF) - Integer((c shr 16) and $FF)))
-      + (Abs(Integer((a shr 8) and $FF) - Integer((c shr 8) and $FF))
-       - Abs(Integer((b shr 8) and $FF) - Integer((c shr 8) and $FF)))
-      + (Abs(Integer(a and $FF) - Integer(c and $FF))
-       - Abs(Integer(b and $FF) - Integer(c and $FF)));
-  // libwebp: Sub3(a,b,c)=|b-c|-|a-c|; returns a when sum<=0. Our pa has the
-  // opposite sign (|a-c|-|b-c|), so return a when pa >= 0.
-  if pa >= 0 then Result := a else Result := b;
+  // sum of |b - c| - |a - c|
+  d := Integer(kAbs0[Integer(b shr 24) - Integer(c shr 24)]) -
+       Integer(kAbs0[Integer(a shr 24) - Integer(c shr 24)]) +
+       Integer(kAbs0[Integer((b shr 16) and $FF) - Integer((c shr 16) and $FF)]) -
+       Integer(kAbs0[Integer((a shr 16) and $FF) - Integer((c shr 16) and $FF)]) +
+       Integer(kAbs0[Integer((b shr 8) and $FF) - Integer((c shr 8) and $FF)]) -
+       Integer(kAbs0[Integer((a shr 8) and $FF) - Integer((c shr 8) and $FF)]) +
+       Integer(kAbs0[Integer(b and $FF) - Integer(c and $FF)]) -
+       Integer(kAbs0[Integer(a and $FF) - Integer(c and $FF)]);
+  if d <= 0 then Result := a else Result := b;
 end;
 
+// Per channel c0 + c1 - c2 clipped to 0..255
 function PClampFull(c0, c1, c2: Cardinal): Cardinal; inline;
 begin
   Result :=
-    (Cardinal(Clip8(Integer(c0 shr 24) + Integer(c1 shr 24) - Integer(c2 shr 24))) shl 24) or
-    (Cardinal(Clip8(Integer((c0 shr 16) and $FF) + Integer((c1 shr 16) and $FF) - Integer((c2 shr 16) and $FF))) shl 16) or
-    (Cardinal(Clip8(Integer((c0 shr 8) and $FF) + Integer((c1 shr 8) and $FF) - Integer((c2 shr 8) and $FF))) shl 8) or
-    Cardinal(Clip8(Integer(c0 and $FF) + Integer(c1 and $FF) - Integer(c2 and $FF)));
+    (Cardinal(kClip1[Integer(c0 shr 24) + Integer(c1 shr 24) - Integer(c2 shr 24)]) shl 24) or
+    (Cardinal(kClip1[Integer((c0 shr 16) and $FF) + Integer((c1 shr 16) and $FF) - Integer((c2 shr 16) and $FF)]) shl 16) or
+    (Cardinal(kClip1[Integer((c0 shr 8) and $FF) + Integer((c1 shr 8) and $FF) - Integer((c2 shr 8) and $FF)]) shl 8) or
+    Cardinal(kClip1[Integer(c0 and $FF) + Integer(c1 and $FF) - Integer(c2 and $FF)]);
 end;
 
+// Per channel a + (a - c2) / 2 clipped to 0..255, a is average of c0 and c1
 function PClampHalf(c0, c1, c2: Cardinal): Cardinal; inline;
 var
   av: Cardinal;
-  aa, ra, ga, ba, ac, rc, gc, bc: Integer;
+  aa, ra, ga, ba: Integer;
 begin
   av := PAvg2(c0, c1);
-  aa := Integer(av shr 24) and $FF;  ac := Integer(c2 shr 24) and $FF;
-  ra := Integer((av shr 16) and $FF); rc := Integer((c2 shr 16) and $FF);
-  ga := Integer((av shr 8) and $FF);  gc := Integer((c2 shr 8) and $FF);
-  ba := Integer(av and $FF);           bc := Integer(c2 and $FF);
+  aa := Integer(av shr 24);
+  ra := Integer((av shr 16) and $FF);
+  ga := Integer((av shr 8) and $FF);
+  ba := Integer(av and $FF);
   Result :=
-    (Cardinal(Clip8(aa + (aa - ac) div 2)) shl 24) or
-    (Cardinal(Clip8(ra + (ra - rc) div 2)) shl 16) or
-    (Cardinal(Clip8(ga + (ga - gc) div 2)) shl 8) or
-     Cardinal(Clip8(ba + (ba - bc) div 2));
-end;
-
-function VP8LPredict(mode: Integer; left, top, topLeft, topRight: Cardinal): Cardinal; inline;
-begin
-  case mode of
-    0:  Result := $FF000000;
-    1:  Result := left;
-    2:  Result := top;
-    3:  Result := topRight;
-    4:  Result := topLeft;
-    5:  Result := PAvg3(left, top, topRight);
-    6:  Result := PAvg2(left, topLeft);
-    7:  Result := PAvg2(left, top);
-    8:  Result := PAvg2(topLeft, top);
-    9:  Result := PAvg2(top, topRight);
-    10: Result := PAvg4(left, topLeft, top, topRight);
-    11: Result := PSelect(top, left, topLeft);
-    12: Result := PClampFull(left, top, topLeft);
-    13: Result := PClampHalf(left, top, topLeft);
-    else Result := $FF000000;
-  end;
+    (Cardinal(kClip1[aa + (aa - Integer(c2 shr 24)) div 2]) shl 24) or
+    (Cardinal(kClip1[ra + (ra - Integer((c2 shr 16) and $FF)) div 2]) shl 16) or
+    (Cardinal(kClip1[ga + (ga - Integer((c2 shr 8) and $FF)) div 2]) shl 8) or
+     Cardinal(kClip1[ba + (ba - Integer(c2 and $FF)) div 2]);
 end;
 
 // ---- Inverse SubGreen: add green to red and blue ----
@@ -3288,130 +3255,217 @@ begin
   begin
     px := Pixels[i];
     g  := (px shr 8) and $FF;
-    Pixels[i] := (px and $FF00FF00)
-               or (((px shr 16) and $FF) + g) and $FF shl 16
-               or ((px and $FF) + g) and $FF;
+    Pixels[i] := (px and $FF00FF00) or (((px and $00FF00FF) + ((g shl 16) or g)) and $00FF00FF);
   end;
 end;
 
 // ---- Inverse Color Transform ----
-function CTDelta(t, c: Integer): Integer; inline;
-begin
-  if t >= 128 then Dec(t, 256);
-  if c >= 128 then Dec(c, 256);
-  Result := SarI(t * c, 5);  // arithmetic shift (C does >>5 on signed int)
-end;
-
-procedure VP8LInvColorXform(TData: PCardinal; TBits, W: Integer;
-  Pixels: PCardinal; Count: Integer);
+// Tile of 2^TBits x 2^TBits pixels has three multipliers (signed bytes):
+// green to red, green to blue, red to blue.
+procedure VP8LInvColorXform(TData: PCardinal; TBits, W, H: Integer;
+  Pixels: PCardinal);
 var
-  i, tw, tx, ty, tileIdx: Integer;
+  x, y, xEnd, tileW, tilesPerRow: Integer;
   px, td: Cardinal;
-  g, r, b: Integer;
+  g, r, b, g2r, g2b, r2b: Integer;
+  tile: PCardinal;
 begin
-  tw := 1 shl TBits;
-  for i := 0 to Count - 1 do
+  tileW := 1 shl TBits;
+  tilesPerRow := (W + tileW - 1) shr TBits;
+
+  for y := 0 to H - 1 do
   begin
-    tx := (i mod W) shr TBits;
-    ty := (i div W) shr TBits;
-    tileIdx := ty * ((W + tw - 1) shr TBits) + tx;
-    td := TData[tileIdx];
-    px := Pixels[i];
-    g  := Integer((px shr 8) and $FF);
-    r  := Integer((px shr 16) and $FF);
-    b  := Integer(px and $FF);
-    r  := (r + CTDelta(td and $FF, g)) and $FF;
-    b  := (b + CTDelta((td shr 8) and $FF, g) + CTDelta((td shr 16) and $FF, r)) and $FF;
-    Pixels[i] := (px and $FF00FF00) or (Cardinal(r) shl 16) or Cardinal(b);
+    tile := TData + (y shr TBits) * tilesPerRow;
+    x := 0;
+
+    while x < W do
+    begin
+      td := tile^;
+      Inc(tile);
+      g2r := ShortInt(td and $FF);
+      g2b := ShortInt((td shr 8) and $FF);
+      r2b := ShortInt((td shr 16) and $FF);
+      xEnd := x + tileW;
+      if xEnd > W then xEnd := W;
+
+      while x < xEnd do
+      begin
+        px := Pixels[x];
+        g  := ShortInt((px shr 8) and $FF);
+        r  := (Integer(px shr 16) + SarI(g2r * g, 5)) and $FF;
+        b  := (Integer(px) + SarI(g2b * g, 5) + SarI(r2b * ShortInt(r), 5)) and $FF;
+        Pixels[x] := (px and $FF00FF00) or (Cardinal(r) shl 16) or Cardinal(b);
+        Inc(x);
+      end;
+    end;
+
+    Inc(Pixels, W);
   end;
 end;
 
 // ---- Inverse Predictor Transform ----
+// Adds predictions to Count residuals at Cur (in place), all by one mode.
+// Upper points to the pixel above Cur^. Pixel to the left of Cur^ is done.
+// At the end of a row the top right pixel is the first one of the row of
+// Cur (the next one in memory), as the format says.
+procedure VP8LPredictorAdd(Mode: Integer; Cur, Upper: PCardinal; Count: Integer);
+var
+  i: Integer;
+  left: Cardinal;
+begin
+  left := (Cur - 1)^;
+
+  case Mode of
+    1:  // left
+      for i := 0 to Count - 1 do
+      begin
+        left := VP8LAddPx(Cur[i], left);
+        Cur[i] := left;
+      end;
+    2:  // top
+      for i := 0 to Count - 1 do
+        Cur[i] := VP8LAddPx(Cur[i], Upper[i]);
+    3:  // top right
+      for i := 0 to Count - 1 do
+        Cur[i] := VP8LAddPx(Cur[i], Upper[i + 1]);
+    4:  // top left
+      for i := 0 to Count - 1 do
+        Cur[i] := VP8LAddPx(Cur[i], Upper[i - 1]);
+    5:
+      for i := 0 to Count - 1 do
+      begin
+        left := VP8LAddPx(Cur[i], PAvg2(PAvg2(left, Upper[i + 1]), Upper[i]));
+        Cur[i] := left;
+      end;
+    6:
+      for i := 0 to Count - 1 do
+      begin
+        left := VP8LAddPx(Cur[i], PAvg2(left, Upper[i - 1]));
+        Cur[i] := left;
+      end;
+    7:
+      for i := 0 to Count - 1 do
+      begin
+        left := VP8LAddPx(Cur[i], PAvg2(left, Upper[i]));
+        Cur[i] := left;
+      end;
+    8:
+      for i := 0 to Count - 1 do
+        Cur[i] := VP8LAddPx(Cur[i], PAvg2(Upper[i - 1], Upper[i]));
+    9:
+      for i := 0 to Count - 1 do
+        Cur[i] := VP8LAddPx(Cur[i], PAvg2(Upper[i], Upper[i + 1]));
+    10:
+      for i := 0 to Count - 1 do
+      begin
+        left := VP8LAddPx(Cur[i], PAvg2(PAvg2(left, Upper[i - 1]),
+                                        PAvg2(Upper[i], Upper[i + 1])));
+        Cur[i] := left;
+      end;
+    11:
+      for i := 0 to Count - 1 do
+      begin
+        left := VP8LAddPx(Cur[i], PSelect(Upper[i], left, Upper[i - 1]));
+        Cur[i] := left;
+      end;
+    12:
+      for i := 0 to Count - 1 do
+      begin
+        left := VP8LAddPx(Cur[i], PClampFull(left, Upper[i], Upper[i - 1]));
+        Cur[i] := left;
+      end;
+    13:
+      for i := 0 to Count - 1 do
+      begin
+        left := VP8LAddPx(Cur[i], PClampHalf(left, Upper[i], Upper[i - 1]));
+        Cur[i] := left;
+      end;
+  else
+    // 0 and the unused 14, 15: opaque black
+    for i := 0 to Count - 1 do
+      Cur[i] := VP8LAddPx(Cur[i], $FF000000);
+  end;
+end;
+
+// Tile of 2^TBits x 2^TBits pixels has its predictor mode in TData (green)
 procedure VP8LInvPredictor(TData: PCardinal; TBits, W, H: Integer;
   Pixels: PCardinal);
 var
-  x, y, tw, tileW, tileIdx: Integer;
-  idx: Integer;
-  pred, residual: Cardinal;
-  mode: Integer;
-  topRow, topRowPrev: PCardinal;
+  x, y, xEnd, tileW, tilesPerRow: Integer;
+  row, tile: PCardinal;
 begin
-  tw := 1 shl TBits;
-  // First row: mode=1 (left prediction) for pixel 0, then mode=1 for rest
-  // Actually: pixel 0 uses mode=0 (black), pixels 1+ use mode=1 (left)
-  // This matches libwebp: PredictorAdd0_C for x=0 y=0, PredictorAdd1_C for rest of first row
-  // Then for y>0: x=0 uses mode=2 (top), rest uses mode from TData
+  tileW := 1 shl TBits;
+  tilesPerRow := (W + tileW - 1) shr TBits;
 
-  // Process first row
+  // First row: black for the first pixel, left for the rest
   Pixels[0] := VP8LAddPx(Pixels[0], $FF000000);
-  for x := 1 to W - 1 do
-    Pixels[x] := VP8LAddPx(Pixels[x], Pixels[x - 1]);
+  if W > 1 then
+    VP8LPredictorAdd(1, Pixels + 1, nil, W - 1);
 
-  // Process remaining rows
+  row := Pixels;
+
   for y := 1 to H - 1 do
   begin
-    idx := y * W;
-    // First pixel of each row: mode=2 (top)
-    Pixels[idx] := VP8LAddPx(Pixels[idx], Pixels[idx - W]);
-    for x := 1 to W - 1 do
+    Inc(row, W);
+    // First pixel of each row: top
+    row[0] := VP8LAddPx(row[0], (row - W)^);
+    tile := TData + (y shr TBits) * tilesPerRow;
+    x := 1;
+
+    while x < W do
     begin
-      // Get tile's predictor mode (from green channel >> 8, shifted into bits 8..11)
-      tileIdx := (y shr TBits) * ((W + tw - 1) shr TBits) + (x shr TBits);
-      mode := Integer((TData[tileIdx] shr 8) and $F);
-      pred := VP8LPredict(mode,
-                Pixels[idx + x - 1],       // left
-                Pixels[idx + x - W],        // top
-                Pixels[idx + x - W - 1],    // top-left
-                Pixels[idx + x - W + 1]);   // top-right (clamp at W-1 is done by caller)
-      Pixels[idx + x] := VP8LAddPx(Pixels[idx + x], pred);
+      xEnd := (x and not (tileW - 1)) + tileW;
+      if xEnd > W then xEnd := W;
+      VP8LPredictorAdd(Integer((tile^ shr 8) and $F), row + x, row + x - W, xEnd - x);
+      Inc(tile);
+      x := xEnd;
     end;
   end;
 end;
 
 // ---- Inverse Color Indexing ----
-// OrigW is the width before packing; W is the encoded (compressed) width
+// OrigW is the width before packing; W is the encoded (compressed) width.
+// Done in place from the end: pixel of the result is never before
+// the packed pixel it comes from.
 procedure VP8LInvColorIndex(Palette: PCardinal; PackBits: Integer;
   OrigW: Integer; Pixels: PCardinal; W, H: Integer);
 var
-  bpp, ppb, bmask, i: Integer;
-  x, y, srcIdx, outIdx, idx: Integer;
+  bpp, bmask, x, y, sx, first: Integer;
+  i: Integer;
+  src, dst: PCardinal;
   packedByte: Cardinal;
-  outBuf: PCardinal;
 begin
   if PackBits = 0 then
   begin
-    for srcIdx := 0 to W * H - 1 do
-    begin
-      idx := Integer((Pixels[srcIdx] shr 8) and $FF);
-      Pixels[srcIdx] := Palette[idx];
-    end;
+    for i := 0 to W * H - 1 do
+      Pixels[i] := Palette[(Pixels[i] shr 8) and $FF];
   end else
   begin
     bpp   := 8 shr PackBits;
-    ppb   := 1 shl PackBits;
     bmask := (1 shl bpp) - 1;
-    outBuf := AllocMem(OrigW * H * SizeOf(Cardinal));
-    outIdx := 0;
-    srcIdx := 0;
-    for y := 0 to H - 1 do
+
+    for y := H - 1 downto 0 do
     begin
-      x := 0;
-      while x < OrigW do
+      src := Pixels + y * W;
+      dst := Pixels + y * OrigW;
+
+      x := OrigW;  // end of the pixels not expanded yet
+
+      for sx := W - 1 downto 0 do
       begin
-        packedByte := (Pixels[srcIdx] shr 8) and $FF;
-        Inc(srcIdx);
-        for i := 0 to ppb - 1 do
+        // Indices of pixels first..x-1, the lowest bits belong to the first one
+        packedByte := (src[sx] shr 8) and $FF;
+        first := sx shl PackBits;
+
+        for i := first to x - 1 do
         begin
-          if x >= OrigW then Break;
-          outBuf[outIdx] := Palette[packedByte and bmask];
+          dst[i] := Palette[packedByte and bmask];
           packedByte := packedByte shr bpp;
-          Inc(x);
-          Inc(outIdx);
         end;
+
+        x := first;
       end;
     end;
-    Move(outBuf^, Pixels^, OrigW * H * SizeOf(Cardinal));
-    FreeMem(outBuf);
   end;
 end;
 
@@ -3728,7 +3782,7 @@ begin
       VP8L_TT_SUBGREEN:
         VP8LInvSubGreen(pixels, encW * h);
       VP8L_TT_COLORXFORM:
-        VP8LInvColorXform(transforms[t].Data, transforms[t].Bits, encW, pixels, encW * h);
+        VP8LInvColorXform(transforms[t].Data, transforms[t].Bits, encW, h, pixels);
       VP8L_TT_PREDICTOR:
         VP8LInvPredictor(transforms[t].Data, transforms[t].Bits, encW, h, pixels);
       VP8L_TT_COLORINDEX:
@@ -3796,14 +3850,18 @@ begin
 
         if not WithAlpha then
         begin
-          for x := 0 to w - 1 do
+          // Four bytes are written where the fourth one is inside the row,
+          // the next pixel goes over it
+          for x := 0 to w - 2 do
           begin
-            px := src[x];
-            line[0] := Byte(px);
-            line[1] := Byte(px shr 8);
-            line[2] := Byte(px shr 16);
+            PCardinal(line)^ := src[x];
             Inc(line, 3);
           end;
+
+          px := src[w - 1];
+          line[0] := Byte(px);
+          line[1] := Byte(px shr 8);
+          line[2] := Byte(px shr 16);
         end
         else if alphaUsed = 0 then
         begin
