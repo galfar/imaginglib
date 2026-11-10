@@ -47,6 +47,30 @@ type
     procedure TestConvertImageIntoInvalidSource;
   end;
 
+  { Regression tests of bugs found by review of the core units.}
+  TTestReviewFixes = class(TImagingTestCase)
+  private
+    function LoadsFromData(const Data: AnsiString; out Image: TImageData): Boolean;
+  published
+    procedure TestErrorKeepsItsClass;
+    procedure TestCopyRectNegativePositions;
+    procedure TestSplitImageEdgeChunks;
+    procedure TestFloatToHalfRounding;
+    procedure TestCustomPaletteHasUniqueColors;
+    procedure TestSwapAlphaOfRGB24;
+    procedure TestCloneImageIntoItself;
+    procedure TestNonFiniteFloatPixels;
+    procedure TestResizeToFitThinImage;
+    procedure TestMemoryIONegativePosition;
+    procedure TestReadLine;
+    procedure TestPnmBinaryDataLikeWhiteSpace;
+    procedure TestPnmHeaderOnOneLine;
+    procedure TestPnmTruncatedText;
+    procedure TestBmpRleDeltaOutOfImage;
+    procedure TestDdsLinearSizeLargerThanImage;
+    procedure TestGifTruncatedInExtension;
+  end;
+
   TTestPixelAccess = class(TImagingTestCase)
   private
     FImage: TImageData;
@@ -875,8 +899,398 @@ begin
   end;
 end;
 
+{ TTestReviewFixes }
+
+function TTestReviewFixes.LoadsFromData(const Data: AnsiString; out Image: TImageData): Boolean;
+begin
+  InitImage(Image);
+  try
+    Result := LoadImageFromMemory(@Data[1], Length(Data), Image);
+  except
+    on E: EImagingError do
+      Result := False;
+  end;
+end;
+
+procedure TTestReviewFixes.TestErrorKeepsItsClass;
+var
+  Image: TImageData;
+  Raised: Boolean;
+begin
+  // The exception was raised again as an object owned by the except block:
+  // access violation instead of the original error
+  InitImage(Image);
+  NewImage(2, 2, ifGray8, Image);
+  Raised := False;
+  try
+    try
+      SaveImageToFile('/no/such/directory/of/imaging/tests/image.png', Image);
+    except
+      on E: EStreamError do
+      begin
+        Raised := True;
+        Check(Pos('image.png', E.Message) > 0, 'Message has the file name');
+      end;
+    end;
+  finally
+    FreeImage(Image);
+  end;
+  Check(Raised, 'Stream error raised');
+end;
+
+procedure TTestReviewFixes.TestCopyRectNegativePositions;
+var
+  Src, Dst: TImageData;
+  I: Integer;
+begin
+  InitImage(Src);
+  InitImage(Dst);
+  NewImage(16, 1, ifGray8, Src);
+  NewImage(16, 1, ifGray8, Dst);
+  try
+    for I := 0 to 15 do
+      PByteArray(Src.Bits)[I] := I + 1;
+    // Source columns -5..4 go to destination columns -2..7: only source
+    // columns 0..4 exist and they belong to destination columns 3..7
+    CopyRect(Src, -5, 0, 10, 1, Dst, -2, 0);
+    for I := 0 to 15 do
+    begin
+      if (I >= 3) and (I <= 7) then
+        CheckEquals(I - 3 + 1, PByteArray(Dst.Bits)[I], Format('Column %d', [I]))
+      else
+        CheckEquals(0, PByteArray(Dst.Bits)[I], Format('Column %d', [I]));
+    end;
+  finally
+    FreeImage(Src);
+    FreeImage(Dst);
+  end;
+end;
+
+procedure TTestReviewFixes.TestSplitImageEdgeChunks;
+var
+  Image: TImageData;
+  Chunks: TDynImageDataArray;
+  XChunks, YChunks, X, Y: Integer;
+begin
+  InitImage(Image);
+  NewImage(10, 10, ifGray8, Image);
+  try
+    SplitImage(Image, Chunks, 4, 4, XChunks, YChunks, False, nil);
+    CheckEquals(3, XChunks, 'XChunks');
+    CheckEquals(3, YChunks, 'YChunks');
+    for Y := 0 to 2 do
+      for X := 0 to 2 do
+      begin
+        CheckEquals(Iff(X < 2, 4, 2), Chunks[Y * 3 + X].Width, Format('Width of %d,%d', [X, Y]));
+        CheckEquals(Iff(Y < 2, 4, 2), Chunks[Y * 3 + X].Height, Format('Height of %d,%d', [X, Y]));
+      end;
+  finally
+    FreeImagesInArray(Chunks);
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestFloatToHalfRounding;
+begin
+  // Significand rounded up to the next power of two carries to the exponent
+  CheckEquals(2.0, HalfToFloat(FloatToHalf(1.9999)), 1e-6, '1.9999');
+  CheckEquals(0.5, HalfToFloat(FloatToHalf(0.49999)), 1e-6, '0.49999');
+  CheckEquals(1.5, HalfToFloat(FloatToHalf(1.5)), 1e-6, '1.5');
+  CheckEquals(-4.0, HalfToFloat(FloatToHalf(-3.9999)), 1e-6, '-3.9999');
+end;
+
+procedure TTestReviewFixes.TestCustomPaletteHasUniqueColors;
+var
+  Pal: PPalette32;
+  I, J: Integer;
+begin
+  GetMem(Pal, 256 * SizeOf(TColor32Rec));
+  try
+    FillCustomPalette(Pal, 256, 3, 3, 2);
+    for I := 0 to 255 do
+      for J := 0 to I - 1 do
+        Check(Pal[I].Color <> Pal[J].Color, Format('Entries %d and %d are the same', [J, I]));
+    CheckEqualsColor32($FFFFFFFF, Pal[255].Color, 'Last entry');
+    CheckEqualsColor32($FF000000, Pal[0].Color, 'First entry');
+  finally
+    FreeMem(Pal);
+  end;
+end;
+
+procedure TTestReviewFixes.TestSwapAlphaOfRGB24;
+var
+  Image: TImageData;
+const
+  Pixels: array[0..5] of Byte = (1, 2, 3, 4, 5, 6);
+begin
+  InitImage(Image);
+  NewImage(2, 1, ifR8G8B8, Image);
+  try
+    Move(Pixels, Image.Bits^, SizeOf(Pixels));
+    // There is no alpha in the pixels: red gets the opaque alpha, bytes of
+    // the neighbour pixels are not touched
+    SwapChannels(Image, ChannelRed, ChannelAlpha);
+    CheckEquals(1, PByteArray(Image.Bits)[0], 'B0');
+    CheckEquals(2, PByteArray(Image.Bits)[1], 'G0');
+    CheckEquals(255, PByteArray(Image.Bits)[2], 'R0');
+    CheckEquals(4, PByteArray(Image.Bits)[3], 'B1');
+    CheckEquals(5, PByteArray(Image.Bits)[4], 'G1');
+    CheckEquals(255, PByteArray(Image.Bits)[5], 'R1');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestCloneImageIntoItself;
+var
+  Image: TImageData;
+  Bits: Pointer;
+begin
+  InitImage(Image);
+  NewImage(4, 4, ifGray8, Image);
+  try
+    Bits := Image.Bits;
+    Check(CloneImage(Image, Image), 'Result');
+    Check(TestImage(Image), 'Image is valid');
+    Check(Image.Bits = Bits, 'Bits are kept');
+    CheckEquals(4, Image.Width, 'Width');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestNonFiniteFloatPixels;
+var
+  Image: TImageData;
+  Pixel: PColorFPRec;
+  Bits: UInt32;
+begin
+  InitImage(Image);
+  NewImage(1, 1, ifA32R32G32B32F, Image);
+  try
+    Pixel := Image.Bits;
+    Pixel.A := 1.0;
+    Pixel.B := 1e30;
+    // Infinity and NaN, written as bits so that no floating point
+    // operation is done with them here
+    Bits := $7F800000;
+    Move(Bits, Pixel.R, SizeOf(Bits));
+    Bits := $7FC00000;
+    Move(Bits, Pixel.G, SizeOf(Bits));
+
+    CheckEqualsColor32($FFFF00FF, GetPixel32(Image, 0, 0).Color, 'GetPixel32');
+    Check(ConvertImage(Image, ifA8R8G8B8), 'ConvertImage');
+    CheckEqualsColor32($FFFF00FF, PColor32Rec(Image.Bits).Color, 'Converted');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestResizeToFitThinImage;
+var
+  Image, Fitted: TImageData;
+begin
+  InitImage(Image);
+  InitImage(Fitted);
+  NewImage(1000, 1, ifGray8, Image);
+  try
+    FillChar(Image.Bits^, Image.Size, 200);
+    ResizeImageToFit(Image, 100, 100, rfBilinear, Fitted);
+    CheckEquals(100, Fitted.Width, 'Width');
+    CheckEquals(1, Fitted.Height, 'Height');
+    CheckEquals(200, PByteArray(Fitted.Bits)[0], 'First pixel');
+    CheckEquals(200, PByteArray(Fitted.Bits)[99], 'Last pixel');
+  finally
+    FreeImage(Image);
+    FreeImage(Fitted);
+  end;
+end;
+
+procedure TTestReviewFixes.TestMemoryIONegativePosition;
+var
+  Buffer: array[0..15] of Byte;
+  Rec: TMemoryIORec;
+  B: Byte;
+begin
+  FillChar(Buffer, SizeOf(Buffer), 7);
+  Rec := PrepareMemIO(@Buffer[8], 8);
+  MemoryIO.Seek(@Rec, -4, smFromBeginning);
+  B := 0;
+  CheckEquals(0, MemoryIO.Read(@Rec, @B, 1), 'Read');
+  CheckEquals(0, B, 'Nothing read');
+  B := 1;
+  CheckEquals(0, MemoryIO.Write(@Rec, @B, 1), 'Write');
+  CheckEquals(7, Buffer[4], 'Nothing written');
+end;
+
+procedure TTestReviewFixes.TestReadLine;
+var
+  Data, Line: AnsiString;
+  Rec: TMemoryIORec;
+begin
+  Data := 'first'#13#10'second'#10#10'last';
+  Rec := PrepareMemIO(@Data[1], Length(Data));
+  Check(ReadLine(MemoryIO, @Rec, Line), 'Line 1');
+  CheckEquals('first', string(Line), 'Line 1');
+  Check(ReadLine(MemoryIO, @Rec, Line), 'Line 2');
+  CheckEquals('second', string(Line), 'Line 2');
+  Check(ReadLine(MemoryIO, @Rec, Line), 'Line 3');
+  CheckEquals('', string(Line), 'Line 3');
+  Check(ReadLine(MemoryIO, @Rec, Line), 'Line 4');
+  CheckEquals('last', string(Line), 'Line 4');
+  Check(not ReadLine(MemoryIO, @Rec, Line), 'End of input');
+end;
+
+procedure TTestReviewFixes.TestPnmBinaryDataLikeWhiteSpace;
+var
+  Image: TImageData;
+begin
+  // Pixels with values of white space characters right after the header
+  Check(LoadsFromData('P5'#10'4 1'#10'255'#10#32#10#13#9, Image), 'Loaded');
+  try
+    CheckEquals(4, Image.Width, 'Width');
+    CheckEquals(32, PByteArray(Image.Bits)[0], 'Pixel 0');
+    CheckEquals(10, PByteArray(Image.Bits)[1], 'Pixel 1');
+    CheckEquals(13, PByteArray(Image.Bits)[2], 'Pixel 2');
+    CheckEquals(9, PByteArray(Image.Bits)[3], 'Pixel 3');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestPnmHeaderOnOneLine;
+var
+  Image: TImageData;
+begin
+  Check(LoadsFromData('P5 3 1 255'#10#1#2#3, Image), 'Loaded');
+  try
+    CheckEquals(3, Image.Width, 'Width');
+    CheckEquals(1, PByteArray(Image.Bits)[0], 'Pixel 0');
+    CheckEquals(3, PByteArray(Image.Bits)[2], 'Pixel 2');
+  finally
+    FreeImage(Image);
+  end;
+
+  // Text bitmap with digits that are not separated
+  Check(LoadsFromData('P1'#10'4 1'#10'0110'#10, Image), 'Bitmap loaded');
+  try
+    CheckEquals(255, PByteArray(Image.Bits)[0], 'Bit 0');
+    CheckEquals(0, PByteArray(Image.Bits)[1], 'Bit 1');
+    CheckEquals(0, PByteArray(Image.Bits)[2], 'Bit 2');
+    CheckEquals(255, PByteArray(Image.Bits)[3], 'Bit 3');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestPnmTruncatedText;
+var
+  Image: TImageData;
+begin
+  // These used to loop forever at the end of input
+  Check(not LoadsFromData('P2'#10'# comment without end', Image), 'Ends in comment');
+  Check(not LoadsFromData('P2'#10'3 ', Image), 'Ends in header');
+  Check(not LoadsFromData('P2 ', Image), 'Ends after ID');
+
+  Check(LoadsFromData('P2'#10'3 1'#10'255'#10'1 999', Image), 'Ends in pixels');
+  try
+    CheckEquals(1, PByteArray(Image.Bits)[0], 'Pixel 0');
+    CheckEquals(255, PByteArray(Image.Bits)[1], 'Pixel 1 over max');
+    CheckEquals(0, PByteArray(Image.Bits)[2], 'Missing pixel');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestBmpRleDeltaOutOfImage;
+var
+  Image: TImageData;
+  Data: AnsiString;
+  I: Integer;
+begin
+  // 4x2 RLE8 bitmap: delta moves 200 columns right, then a run and
+  // absolute pixels follow. Nothing of it is inside the image.
+  Data := 'BM' + #0#0#0#0 + #0#0#0#0 + #$36#4#0#0 +     // file header, offset 1078
+    #40#0#0#0 + #4#0#0#0 + #2#0#0#0 + #1#0 + #8#0 +     // 4x2, 8 bits
+    #1#0#0#0 + #14#0#0#0 +                              // RLE8, size of data
+    #0#0#0#0#0#0#0#0#0#0#0#0#0#0#0#0;
+  SetLength(Data, 14 + 40 + 1024);
+  for I := 14 + 40 + 1 to Length(Data) do
+    Data[I] := #0;
+  Data := Data + #0#2#200#0 + #100#5 + #0#4#1#2#3#4 + #0#0 + #0#1;
+
+  Check(LoadsFromData(Data, Image), 'Loaded');
+  try
+    CheckEquals(4, Image.Width, 'Width');
+    CheckEquals(2, Image.Height, 'Height');
+    for I := 0 to 7 do
+      CheckEquals(0, PByteArray(Image.Bits)[I], Format('Pixel %d', [I]));
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestDdsLinearSizeLargerThanImage;
+var
+  Image, Loaded: TImageData;
+  Stream: TMemoryStream;
+  Data: AnsiString;
+  I: Integer;
+begin
+  InitImage(Image);
+  NewImage(4, 4, ifA8R8G8B8, Image);
+  Stream := TMemoryStream.Create;
+  try
+    for I := 0 to 63 do
+      PByteArray(Image.Bits)[I] := I;
+    Check(SaveImageToStream('dds', Stream, Image), 'Saved');
+    SetString(Data, PAnsiChar(Stream.Memory), Stream.Size);
+    // Linear size (at offset 20) says there is much more data than the
+    // image has and a lot of data really follows: only the pixels are read
+    Data[21] := #0;
+    Data[22] := #0;
+    Data[23] := #1;
+    Data[24] := #0;
+    Data := Data + StringOfChar(AnsiChar(#$AA), 65536);
+
+    Check(LoadsFromData(Data, Loaded), 'Loaded');
+    try
+      CheckImagesEqual(Image, Loaded, 'Loaded image');
+    finally
+      FreeImage(Loaded);
+    end;
+
+    // Billions of mipmap levels (at offset 28)
+    Data[29] := #$FF;
+    Data[30] := #$FF;
+    Data[31] := #$FF;
+    Data[32] := #$7F;
+    Check(LoadsFromData(Data, Loaded), 'Loaded with mipmap count');
+    FreeImage(Loaded);
+  finally
+    Stream.Free;
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestGifTruncatedInExtension;
+var
+  Image: TImageData;
+  Header: AnsiString;
+begin
+  // These used to loop forever
+  Header := 'GIF89a' + #2#0#2#0 + #0#0#0;
+  // Comment extension without the end
+  Check(not LoadsFromData(Header + #$21#$FE#5'abc', Image), 'Comment');
+  // Extension of unknown type
+  Check(not LoadsFromData(Header + #$21#$77#2'ab'#0, Image), 'Unknown extension');
+  // Introducer of extension is the last byte
+  Check(not LoadsFromData(Header + #$21, Image), 'Introducer');
+end;
+
 initialization
   RegisterImagingTest(TTestImageLifetime);
+  RegisterImagingTest(TTestReviewFixes);
   RegisterImagingTest(TTestImageGeometry);
   RegisterImagingTest(TTestPixelAccess);
   RegisterImagingTest(TTestImageFiles);

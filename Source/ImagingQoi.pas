@@ -144,6 +144,7 @@ begin
     SwapQoiHeader(Header); // Convert from Big Endian
 
     if (Header.Width = 0) or (Header.Height = 0) or
+       (Header.Width > UInt32(MaxInt)) or (Header.Height > UInt32(MaxInt)) or
        (Header.Channels < 3) or (Header.Channels > 4) or
        (Header.Colorspace > 1) then
     begin

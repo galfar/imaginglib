@@ -2602,7 +2602,12 @@ begin
       end
       else
       begin
-        // Some MNG files (with BASI-IEND streams) dont have actual pixel data
+        // Some MNG files (with BASI-IEND streams) dont have actual pixel data.
+        // Frame size from the header can be anything, also zero.
+        if (NGFileLoader.MHDR.FrameWidth = 0) or (NGFileLoader.MHDR.FrameHeight = 0) or
+           (NGFileLoader.MHDR.FrameWidth > UInt32(MaxInt)) or
+           (NGFileLoader.MHDR.FrameHeight > UInt32(MaxInt)) then
+          Exit;
         SetLength(Images, 1);
         NewImage(NGFileLoader.MHDR.FrameWidth, NGFileLoader.MHDR.FrameHeight, ifDefault, Images[0]);
       end;
