@@ -91,14 +91,14 @@ implementation
 // ============================================================
 // TYPES
 // ============================================================
+{$IF NOT DECLARED(PInt16)}
 type
-  {$IF NOT DECLARED(PInt16)}
   PInt16  = ^Int16;
-  {$IFEND}
-  {$IF NOT DECLARED(PUInt32)}
+{$IFEND}
+{$IF NOT DECLARED(PUInt32)}
+type
   PUInt32 = ^UInt32;
-  {$IFEND}
-  TCSMode = (csmBGRA, csmBGR);
+{$IFEND}
 
 // ============================================================
 // CONSTANTS
@@ -591,54 +591,20 @@ type
 // Uses the identity: sar(v,n) = ~(~v >> n) for negative v, v>>n for positive v.
 function SarI(v, n: Integer): Integer; inline;
 begin
+{$IFDEF FPC}
+  Result := SarLongint(v, n);
+{$ELSE}
   if v >= 0 then Result := v shr n
   else Result := not (not v shr n);
+{$ENDIF}
 end;
 
 function Clip8b(v: Integer): Byte; inline;
 begin
-  if v < 0 then Result := 0
-  else if v > 255 then Result := 255
-  else Result := Byte(v);
-end;
-
-function ClipMax(v, M: Integer): Integer; inline;
-begin
-  if v < 0 then Result := 0
-  else if v > M then Result := M
-  else Result := v;
-end;
-
-// YUV -> RGB (libwebp formulas from yuv.h)
-function MultHi(v, c: Integer): Integer; inline;
-begin
-  Result := (v * c) shr 8;
-end;
-
-function VP8Clip8(v: Integer): Byte; inline;
-// YUV_FIX2=6, YUV_MASK2=$3FFF
-begin
-  if (v and (not $3FFF)) = 0 then
-    Result := Byte(v shr 6)
-  else if v < 0 then
-    Result := 0
-  else
-    Result := 255;
-end;
-
-function YuvToR(y, v: Integer): Byte; inline;
-begin
-  Result := VP8Clip8(MultHi(y, 19077) + MultHi(v, 26149) - 14234);
-end;
-
-function YuvToG(y, u, v: Integer): Byte; inline;
-begin
-  Result := VP8Clip8(MultHi(y, 19077) - MultHi(u, 6419) - MultHi(v, 13320) + 8708);
-end;
-
-function YuvToB(y, u: Integer): Byte; inline;
-begin
-  Result := VP8Clip8(MultHi(y, 19077) + MultHi(u, 33050) - 17685);
+  // One test for values that need no clipping
+  if (v and (not $FF)) = 0 then Result := Byte(v)
+  else if v < 0 then Result := 0
+  else Result := 255;
 end;
 
 // ============================================================
@@ -691,31 +657,98 @@ end;
 
 // ============================================================
 // VP8 BOOLEAN BIT READER  (MSB-first, range coder)
-// Matches libwebp bit_reader_utils.c:
-//   range starts at 254; split = (range * prob) >> 8
+// Matches libwebp bit_reader_utils.c / bit_reader_inl_utils.h:
+//   range is stored minus one (starts at 254); split = (range * prob) >> 8.
+//   Input is taken several bytes at once (RD_BITS), the window is a native
+//   word: 56 bits in 64-bit programs, 24 bits in 32-bit ones where 64-bit
+//   shifts are slow.
 // ============================================================
 type
+{$IF Defined(CPU64) or Defined(CPU64BITS) or Defined(CPUX64)}
+  {$DEFINE VP8RD_64}
+  TVP8RdValue = UInt64;
+{$ELSE}
+  TVP8RdValue = UInt32;
+{$IFEND}
+
   TVP8Rd = record
-    Val:    UInt64;   // accumulated bit window
-    Range:  UInt32;   // current range [127..254]
-    Bits:   Integer;  // valid bits in Val (>= 0)
+    Val:    TVP8RdValue;  // accumulated bit window
+    Range:  UInt32;       // current range minus one [127..254]
+    Bits:   Integer;      // number of bits in Val below the ones being decoded,
+                          // new bytes are loaded when negative
     Buf:    PByte;
     BufEnd: PByte;
+    BufMax: PByte;        // whole words can be read below this address
     Eof:    Boolean;
   end;
 
-procedure VP8RdLoadByte(var R: TVP8Rd); inline;
+const
+  RD_BITS = {$IFDEF VP8RD_64}56{$ELSE}24{$ENDIF};
+
+var
+  // Number of bits to shift range (stored minus one, below 127) left
+  // so it gets back to 127..254
+  kVP8RdNormShift: array[0..127] of Byte;
+
+procedure VP8RdInitTables;
+var
+  r, s: Integer;
+begin
+  for r := 0 to 127 do
+  begin
+    s := 0;
+    while ((r + 1) shl s) < 128 do
+      Inc(s);
+    kVP8RdNormShift[r] := s;
+  end;
+end;
+
+// End of the data: single bytes, then zeros
+procedure VP8RdLoadFinalBytes(var R: TVP8Rd);
 begin
   if R.Buf < R.BufEnd then
   begin
     R.Val := (R.Val shl 8) or R.Buf^;
     Inc(R.Buf);
-  end else
+    Inc(R.Bits, 8);
+  end
+  else if not R.Eof then
   begin
-    R.Eof := True;
     R.Val := R.Val shl 8;
-  end;
-  Inc(R.Bits, 8);
+    Inc(R.Bits, 8);
+    R.Eof := True;
+  end
+  else
+    R.Bits := 0;  // only zeros from now on, keep shifts in range
+end;
+
+procedure VP8RdLoadNewBytes(var R: TVP8Rd); inline;
+var
+{$IFDEF VP8RD_64}
+  lo, hi: UInt32;
+{$ELSE}
+  p: PByte;
+{$ENDIF}
+begin
+  if R.Buf < R.BufMax then
+  begin
+  {$IFDEF VP8RD_64}
+    // 7 bytes, the first one goes to the top
+    lo := PUInt32(R.Buf)^;
+    hi := PUInt32(R.Buf + 4)^;
+    lo := (lo shr 24) or ((lo shr 8) and $FF00) or ((lo shl 8) and $FF0000) or (lo shl 24);
+    hi := (hi shr 24) or ((hi shr 8) and $FF00) or ((hi shl 8) and $FF0000) or (hi shl 24);
+    R.Val := (R.Val shl 56) or (UInt64(lo) shl 24) or (hi shr 8);
+    Inc(R.Buf, 7);
+  {$ELSE}
+    p := R.Buf;
+    R.Val := (R.Val shl 24) or (UInt32(p[0]) shl 16) or (UInt32(p[1]) shl 8) or p[2];
+    Inc(R.Buf, 3);
+  {$ENDIF}
+    Inc(R.Bits, RD_BITS);
+  end
+  else
+    VP8RdLoadFinalBytes(R);
 end;
 
 procedure VP8RdInit(var R: TVP8Rd; Data: PByte; Size: NativeUInt);
@@ -725,34 +758,42 @@ begin
   R.Bits   := -8;
   R.Buf    := Data;
   R.BufEnd := Data + Size;
-  R.Eof    := (Size = 0);
-  VP8RdLoadByte(R);   // Bits = 0 after this
+  if Size >= 8 then
+    R.BufMax := Data + Size - 7
+  else
+    R.BufMax := Data;
+  R.Eof    := False;
+  VP8RdLoadNewBytes(R);
 end;
 
 function VP8RdGetBit(var R: TVP8Rd; Prob: Integer): Integer; inline;
 var
-  split: UInt32;
+  range, split, value: UInt32;
+  pos, shift: Integer;
 begin
-  if R.Bits < 0 then VP8RdLoadByte(R);
-  split := (R.Range * UInt32(Prob)) shr 8;
-  if (R.Val shr R.Bits) > split then
+  range := R.Range;
+  if R.Bits < 0 then VP8RdLoadNewBytes(R);
+  pos := R.Bits;
+  split := (range * UInt32(Prob)) shr 8;
+  value := UInt32(R.Val shr pos);
+  if value > split then
   begin
-    Dec(R.Range, split + 1);
-    Dec(R.Val, UInt64(split + 1) shl R.Bits);
+    Dec(range, split + 1);
+    Dec(R.Val, TVP8RdValue(split + 1) shl pos);
     Result := 1;
   end else
   begin
-    R.Range := split;
+    range := split;
     Result := 0;
   end;
   // Normalize: keep Range in [127..254]
-  while R.Range < 127 do
+  if range < 127 then
   begin
-    R.Range := R.Range * 2 + 1;
-    Dec(R.Bits);
-    if R.Bits < 0 then
-      VP8RdLoadByte(R);
+    shift := kVP8RdNormShift[range];
+    range := ((range + 1) shl shift) - 1;
+    R.Bits := pos - shift;
   end;
+  R.Range := range;
 end;
 
 function VP8RdGet(var R: TVP8Rd): Integer; inline;
@@ -760,31 +801,26 @@ begin
   Result := VP8RdGetBit(R, 128);
 end;
 
-// Specialized sign-bit read matching C's VP8GetSigned(br, v):
+// Sign bit read matching C's VP8GetSigned(br, v):
 //   Returns v if sign=0, -v if sign=1.
-//   Uses prob=128 but with the simplified update matching libwebp's VP8GetSigned.
-//   Unlike VP8RdGetBit(128), this does NOT normalize Range afterward,
-//   instead it unconditionally decrements Bits by 1 and sets Range |= 1.
-//   The two functions diverge only for Range=254 with sign=0:
-//     VP8RdGetBit gives Range=127, Bits unchanged;
-//     VP8RdGetSigned gives Range=255, Bits-=1.
-//   Using VP8RdGetSigned matches the C reference decoder exactly.
+//   Uses prob=128 with simplified update: unlike VP8RdGetBit(128), this does
+//   not normalize Range afterward, instead it unconditionally decrements Bits
+//   by 1 and sets Range |= 1.
 function VP8RdGetSigned(var R: TVP8Rd; v: Integer): Integer; inline;
 var
   pos: Integer;
   split, value: UInt32;
   mask: Integer;
 begin
-  if R.Bits < 0 then VP8RdLoadByte(R);
+  if R.Bits < 0 then VP8RdLoadNewBytes(R);
   pos   := R.Bits;                              // save original Bits position
   split := R.Range shr 1;
   value := UInt32(R.Val shr pos);
-  // SarI: arithmetic right shift gives 0 or -1 (FPC shr is logical -> wrong)
-  mask  := SarI(Integer(split) - Integer(value), 31);
+  mask  := SarI(Integer(split) - Integer(value), 31);  // 0 or -1
   R.Bits := pos - 1;                            // decrement by 1 (may become -1)
   Inc(R.Range, UInt32(mask));                   // range-1 if bit=1 (mask=-1), range if bit=0
   R.Range := R.Range or 1;                      // always ensure lowest bit set
-  Dec(R.Val, UInt64((split + 1) and UInt32(mask)) shl pos);  // use original pos, not decremented
+  Dec(R.Val, TVP8RdValue((split + 1) and UInt32(mask)) shl pos);  // use original pos, not decremented
   Result := (v xor mask) - mask;                // v if mask=0, -v if mask=-1
 end;
 
@@ -946,7 +982,6 @@ type
     ModeLFDelta:    array[0..NUM_MODE_LF_DELTAS-1] of Integer;
 
     // Decoded output row (YUV -> RGB, written row by row)
-    OutputMode:  TCSMode;
     OutStride:   NativeInt; // bytes per output row
     OutBpp:      Integer;   // bytes per pixel
 
@@ -1450,10 +1485,70 @@ begin
     a2 := SarI(b - c2 + 4, 3);
     a3 := SarI(a - d2 + 4, 3);
     // Add prediction and clip
-    (Dst + i * Bps + 0)^ := Clip8b(Integer((Pred + i * Bps + 0)^) + a0);
-    (Dst + i * Bps + 1)^ := Clip8b(Integer((Pred + i * Bps + 1)^) + a1);
-    (Dst + i * Bps + 2)^ := Clip8b(Integer((Pred + i * Bps + 2)^) + a2);
-    (Dst + i * Bps + 3)^ := Clip8b(Integer((Pred + i * Bps + 3)^) + a3);
+    Dst[0] := Clip8b(Integer(Pred[0]) + a0);
+    Dst[1] := Clip8b(Integer(Pred[1]) + a1);
+    Dst[2] := Clip8b(Integer(Pred[2]) + a2);
+    Dst[3] := Clip8b(Integer(Pred[3]) + a3);
+    Inc(Dst, Bps);
+    Inc(Pred, Bps);
+  end;
+end;
+
+// The same for a block with DC coefficient only: one value is added
+// to all pixels (libwebp TransformDC).
+procedure VP8TransformDC(C: PInt16; Dst: PByte; Bps: Integer);
+var
+  i, dc: Integer;
+begin
+  dc := SarI(C[0] + 4, 3);
+
+  for i := 0 to 3 do
+  begin
+    Dst[0] := Clip8b(Integer(Dst[0]) + dc);
+    Dst[1] := Clip8b(Integer(Dst[1]) + dc);
+    Dst[2] := Clip8b(Integer(Dst[2]) + dc);
+    Dst[3] := Clip8b(Integer(Dst[3]) + dc);
+    Inc(Dst, Bps);
+  end;
+end;
+
+// The same for a block where only C[0], C[1] and C[4] can be non-zero
+// (the first three coefficients in zigzag order; libwebp TransformAC3).
+procedure VP8TransformAC3(C: PInt16; Dst: PByte; Bps: Integer);
+var
+  i, a, c4, d4, c1, d1: Integer;
+  dc: array[0..3] of Integer;
+begin
+  a  := C[0] + 4;
+  c4 := SarI(C[4] * 35468, 16);
+  d4 := SarI(C[4] * 20091, 16) + C[4];
+  c1 := SarI(C[1] * 35468, 16);
+  d1 := SarI(C[1] * 20091, 16) + C[1];
+  dc[0] := a + d4;
+  dc[1] := a + c4;
+  dc[2] := a - c4;
+  dc[3] := a - d4;
+
+  for i := 0 to 3 do
+  begin
+    a := dc[i];
+    Dst[0] := Clip8b(Integer(Dst[0]) + SarI(a + d1, 3));
+    Dst[1] := Clip8b(Integer(Dst[1]) + SarI(a + c1, 3));
+    Dst[2] := Clip8b(Integer(Dst[2]) + SarI(a - c1, 3));
+    Dst[3] := Clip8b(Integer(Dst[3]) + SarI(a - d1, 3));
+    Inc(Dst, Bps);
+  end;
+end;
+
+// Adds residuals of one 4x4 block to the prediction in Dst. Code says what
+// the block has (two bits made by VP8ParseResiduals): 0 = nothing, 1 = DC
+// only, 2 = first three coefficients, 3 = anything.
+procedure VP8DoTransform(Code: Cardinal; C: PInt16; Dst: PByte); inline;
+begin
+  case Code of
+    1: VP8TransformDC(C, Dst, BPS);
+    2: VP8TransformAC3(C, Dst, BPS);
+    3: VP8TransformOne(C, Dst, Dst, BPS);
   end;
 end;
 
@@ -1859,6 +1954,7 @@ var
   leftU, leftV: array[0..7] of Byte;
   yDst, uDst, vDst: PByte;
   leftCol: array[0..15] of Byte;
+  bits: Cardinal;
 begin
   mb := @D.MBData;
   yBase := @D.YuvBuf[Y_OFF];
@@ -1885,18 +1981,19 @@ begin
     FillChar(leftV,  8, 129);
   end;
 
-  // Luma prediction
+  // Luma prediction. Two bits per block in NonZeroY, the first block on top
+  bits := mb^.NonZeroY;
+
   if not mb^.IsI4x4 then
   begin
     // I16x16: predict then apply residuals per 4x4 block
     // WHT DCs were already injected into mb^.Coeffs[n*16+0] by VP8ParseResiduals
     VP8PredLuma16(mb^.IModes[0], yBase, topY, @leftY[0], HasTop, HasLeft, BPS);
-    for y := 0 to 3 do
-      for x := 0 to 3 do
+    if bits <> 0 then
+      for n := 0 to 15 do
       begin
-        n := y * 4 + x;
-        yDst := yBase + kScan[n];
-        VP8TransformOne(@mb^.Coeffs[n*16], yDst, yDst, BPS);
+        VP8DoTransform(bits shr 30, @mb^.Coeffs[n*16], yBase + kScan[n]);
+        bits := bits shl 2;
       end;
   end else
   begin
@@ -1917,22 +2014,27 @@ begin
                    (yDst - BPS - 1)^,
                    BPS);
       // Apply IDCT residuals
-      VP8TransformOne(@mb^.Coeffs[n*16], yDst, yDst, BPS);
+      VP8DoTransform(bits shr 30, @mb^.Coeffs[n*16], yDst);
+      bits := bits shl 2;
     end;
   end;
 
   // Chroma prediction (8x8 U and V)
   VP8PredChroma8(mb^.UVMode, uBase, topU, @leftU[0], HasTop, HasLeft, BPS);
   VP8PredChroma8(mb^.UVMode, vBase, topV, @leftV[0], HasTop, HasLeft, BPS);
-  // Apply chroma IDCT (4 blocks each for U and V)
-  for n := 0 to 3 do
-  begin
-    x := n and 1; y := n shr 1;
-    uDst := uBase + (x*4) + (y*4*BPS);
-    vDst := vBase + (x*4) + (y*4*BPS);
-    VP8TransformOne(@mb^.Coeffs[(16+n)*16], uDst, uDst, BPS);
-    VP8TransformOne(@mb^.Coeffs[(20+n)*16], vDst, vDst, BPS);
-  end;
+  // Apply chroma IDCT (4 blocks each for U and V). NonZeroUV has two bits
+  // per block: U in bits 7..0, V in bits 15..8, the first block on top.
+  bits := mb^.NonZeroUV;
+
+  if bits <> 0 then
+    for n := 0 to 3 do
+    begin
+      x := n and 1; y := n shr 1;
+      uDst := uBase + (x*4) + (y*4*BPS);
+      vDst := vBase + (x*4) + (y*4*BPS);
+      VP8DoTransform((bits shr (6 - 2*n)) and 3, @mb^.Coeffs[(16+n)*16], uDst);
+      VP8DoTransform((bits shr (14 - 2*n)) and 3, @mb^.Coeffs[(20+n)*16], vDst);
+    end;
 
   // Update top-row context
   Move((yBase + 15*BPS)^, topY^, 16);
@@ -1944,136 +2046,176 @@ end;
 // VP8 IN-LOOP FILTER  (port of dsp/dec.c + frame_dec.c)
 // ============================================================
 
-function FSclip1(v: Integer): Integer; inline;
-begin if v < -128 then Result := -128 else if v > 127 then Result := 127 else Result := v; end;
-function FSclip2(v: Integer): Integer; inline;
-begin if v < -16 then Result := -16 else if v > 15 then Result := 15 else Result := v; end;
-function FClip1(v: Integer): Integer; inline;
-begin if v < 0 then Result := 0 else if v > 255 then Result := 255 else Result := v; end;
+// Clipping and absolute value by tables indexed with negative values too,
+// as libwebp does (dsp/dec_clip_tables.c): the filters have no branches that
+// depend on pixel values besides the filter/no filter decisions.
+var
+  kAbs0:   array[-255..255] of Byte;        // abs(i)
+  kSclip1: array[-1020..1020] of ShortInt;  // clips [-1020, 1020] to [-128, 127]
+  kSclip2: array[-112..112] of ShortInt;    // clips [-112, 112] to [-16, 15]
+  kClip1:  array[-255..510] of Byte;        // clips [-255, 510] to [0, 255]
 
-// 4 pixels in, 2 pixels out
-procedure FDoFilter2(p: PByte; step: Integer); inline;
-var p1, p0, q0, q1, a, a1, a2: Integer;
+procedure VP8InitClipTables;
+var
+  i: Integer;
 begin
-  p1 := (p + (-2*step))^; p0 := (p + (-step))^; q0 := p^; q1 := (p + step)^;
-  a  := 3*(q0 - p0) + FSclip1(p1 - q1);
-  a1 := FSclip2(SarI(a + 4, 3));
-  a2 := FSclip2(SarI(a + 3, 3));
-  (p + (-step))^ := Byte(FClip1(p0 + a2));
-  p^             := Byte(FClip1(q0 - a1));
+  for i := -255 to 255 do
+    kAbs0[i] := Abs(i);
+
+  for i := -1020 to 1020 do
+    if i < -128 then kSclip1[i] := -128
+    else if i > 127 then kSclip1[i] := 127
+    else kSclip1[i] := i;
+
+  for i := -112 to 112 do
+    if i < -16 then kSclip2[i] := -16
+    else if i > 15 then kSclip2[i] := 15
+    else kSclip2[i] := i;
+
+  for i := -255 to 510 do
+    if i < 0 then kClip1[i] := 0
+    else if i > 255 then kClip1[i] := 255
+    else kClip1[i] := i;
 end;
 
-// 4 pixels in, 4 pixels out
-procedure FDoFilter4(p: PByte; step: Integer); inline;
-var p1, p0, q0, q1, a, a1, a2, a3: Integer;
+// Pixels across the filtered edge are p3 p2 p1 p0 | q0 q1 q2 q3, step bytes
+// apart. Each loop loads them once, decides and filters.
+
+// --- Simple filter (luma only): 4 pixels in, 2 pixels out ---
+procedure FSimpleFilterLoop(p: PByte; hstride, vstride: NativeInt; thresh: Integer);
+var
+  i, t2, p1, p0, q0, q1, a, a1, a2: Integer;
 begin
-  p1 := (p + (-2*step))^; p0 := (p + (-step))^; q0 := p^; q1 := (p + step)^;
-  a  := 3*(q0 - p0);
-  a1 := FSclip2(SarI(a + 4, 3));
-  a2 := FSclip2(SarI(a + 3, 3));
-  a3 := SarI(a1 + 1, 1);
-  (p + (-2*step))^ := Byte(FClip1(p1 + a3));
-  (p + (-step))^   := Byte(FClip1(p0 + a2));
-  p^               := Byte(FClip1(q0 - a1));
-  (p + step)^      := Byte(FClip1(q1 - a3));
+  t2 := 2*thresh + 1;
+
+  for i := 0 to 15 do
+  begin
+    p1 := (p - 2*hstride)^; p0 := (p - hstride)^; q0 := p^; q1 := (p + hstride)^;
+
+    if 4*kAbs0[p0 - q0] + kAbs0[p1 - q1] <= t2 then
+    begin
+      a  := 3*(q0 - p0) + kSclip1[p1 - q1];
+      a1 := kSclip2[SarI(a + 4, 3)];
+      a2 := kSclip2[SarI(a + 3, 3)];
+      (p - hstride)^ := kClip1[p0 + a2];
+      p^             := kClip1[q0 - a1];
+    end;
+
+    Inc(p, vstride);
+  end;
 end;
 
-// 6 pixels in, 6 pixels out
-procedure FDoFilter6(p: PByte; step: Integer); inline;
-var p2, p1, p0, q0, q1, q2, a, a1, a2, a3: Integer;
-begin
-  p2 := (p + (-3*step))^; p1 := (p + (-2*step))^; p0 := (p + (-step))^;
-  q0 := p^; q1 := (p + step)^; q2 := (p + 2*step)^;
-  a  := FSclip1(3*(q0 - p0) + FSclip1(p1 - q1));
-  a1 := SarI(27*a + 63, 7);
-  a2 := SarI(18*a + 63, 7);
-  a3 := SarI(9*a  + 63, 7);
-  (p + (-3*step))^ := Byte(FClip1(p2 + a3));
-  (p + (-2*step))^ := Byte(FClip1(p1 + a2));
-  (p + (-step))^   := Byte(FClip1(p0 + a1));
-  p^               := Byte(FClip1(q0 - a1));
-  (p + step)^      := Byte(FClip1(q1 - a2));
-  (p + 2*step)^    := Byte(FClip1(q2 - a3));
-end;
-
-function FHev(p: PByte; step, thresh: Integer): Boolean; inline;
-var p1, p0, q0, q1: Integer;
-begin
-  p1 := (p + (-2*step))^; p0 := (p + (-step))^; q0 := p^; q1 := (p + step)^;
-  Result := (Abs(p1 - p0) > thresh) or (Abs(q1 - q0) > thresh);
-end;
-
-function FNeedsFilter(p: PByte; step, t: Integer): Boolean; inline;
-var p1, p0, q0, q1: Integer;
-begin
-  p1 := (p + (-2*step))^; p0 := (p + (-step))^; q0 := p^; q1 := (p + step)^;
-  Result := (4*Abs(p0 - q0) + Abs(p1 - q1)) <= t;
-end;
-
-function FNeedsFilter2(p: PByte; step, t, it: Integer): Boolean; inline;
-var p3, p2, p1, p0, q0, q1, q2, q3: Integer;
-begin
-  p3 := (p + (-4*step))^; p2 := (p + (-3*step))^; p1 := (p + (-2*step))^; p0 := (p + (-step))^;
-  q0 := p^; q1 := (p + step)^; q2 := (p + 2*step)^; q3 := (p + 3*step)^;
-  if (4*Abs(p0 - q0) + Abs(p1 - q1)) > t then begin Result := False; Exit; end;
-  Result := (Abs(p3-p2) <= it) and (Abs(p2-p1) <= it) and (Abs(p1-p0) <= it)
-        and (Abs(q3-q2) <= it) and (Abs(q2-q1) <= it) and (Abs(q1-q0) <= it);
-end;
-
-// --- Simple filter (luma only) ---
 procedure FSimpleVFilter16(p: PByte; stride, thresh: Integer);
-var i, t2: Integer;
-begin
-  t2 := 2*thresh + 1;
-  for i := 0 to 15 do
-    if FNeedsFilter(p + i, stride, t2) then FDoFilter2(p + i, stride);
-end;
+begin FSimpleFilterLoop(p, stride, 1, thresh); end;
 procedure FSimpleHFilter16(p: PByte; stride, thresh: Integer);
-var i, t2: Integer;
-begin
-  t2 := 2*thresh + 1;
-  for i := 0 to 15 do
-    if FNeedsFilter(p + i*stride, 1, t2) then FDoFilter2(p + i*stride, 1);
-end;
+begin FSimpleFilterLoop(p, 1, stride, thresh); end;
 procedure FSimpleVFilter16i(p: PByte; stride, thresh: Integer);
 var k: Integer;
 begin
-  for k := 3 downto 1 do begin p := p + 4*stride; FSimpleVFilter16(p, stride, thresh); end;
+  for k := 3 downto 1 do begin p := p + 4*stride; FSimpleFilterLoop(p, stride, 1, thresh); end;
 end;
 procedure FSimpleHFilter16i(p: PByte; stride, thresh: Integer);
 var k: Integer;
 begin
-  for k := 3 downto 1 do begin p := p + 4; FSimpleHFilter16(p, stride, thresh); end;
+  for k := 3 downto 1 do begin p := p + 4; FSimpleFilterLoop(p, 1, stride, thresh); end;
 end;
 
 // --- Complex filter ---
-procedure FFilterLoop26(p: PByte; hstride, vstride, size, thresh, ithresh, hevt: Integer);
-var t2: Integer;
+// Macroblock edges: 2 pixels out when the edge has high variance (hev),
+// 6 pixels otherwise
+procedure FFilterLoop26(p: PByte; hstride, vstride: NativeInt;
+  size, thresh, ithresh, hevt: Integer);
+var
+  t2, p3, p2, p1, p0, q0, q1, q2, q3, a, a1, a2, a3: Integer;
 begin
   t2 := 2*thresh + 1;
+
   while size > 0 do
   begin
-    if FNeedsFilter2(p, hstride, t2, ithresh) then
+    p1 := (p - 2*hstride)^; p0 := (p - hstride)^; q0 := p^; q1 := (p + hstride)^;
+
+    if 4*kAbs0[p0 - q0] + kAbs0[p1 - q1] <= t2 then
     begin
-      if FHev(p, hstride, hevt) then FDoFilter2(p, hstride)
-      else FDoFilter6(p, hstride);
+      p3 := (p - 4*hstride)^; p2 := (p - 3*hstride)^;
+      q2 := (p + 2*hstride)^; q3 := (p + 3*hstride)^;
+
+      if (kAbs0[p3 - p2] <= ithresh) and (kAbs0[p2 - p1] <= ithresh) and
+         (kAbs0[p1 - p0] <= ithresh) and (kAbs0[q3 - q2] <= ithresh) and
+         (kAbs0[q2 - q1] <= ithresh) and (kAbs0[q1 - q0] <= ithresh) then
+      begin
+        if (kAbs0[p1 - p0] > hevt) or (kAbs0[q1 - q0] > hevt) then
+        begin
+          a  := 3*(q0 - p0) + kSclip1[p1 - q1];
+          a1 := kSclip2[SarI(a + 4, 3)];
+          a2 := kSclip2[SarI(a + 3, 3)];
+          (p - hstride)^ := kClip1[p0 + a2];
+          p^             := kClip1[q0 - a1];
+        end
+        else
+        begin
+          a  := kSclip1[3*(q0 - p0) + kSclip1[p1 - q1]];
+          a1 := SarI(27*a + 63, 7);
+          a2 := SarI(18*a + 63, 7);
+          a3 := SarI(9*a  + 63, 7);
+          (p - 3*hstride)^ := kClip1[p2 + a3];
+          (p - 2*hstride)^ := kClip1[p1 + a2];
+          (p - hstride)^   := kClip1[p0 + a1];
+          p^               := kClip1[q0 - a1];
+          (p + hstride)^   := kClip1[q1 - a2];
+          (p + 2*hstride)^ := kClip1[q2 - a3];
+        end;
+      end;
     end;
-    p := p + vstride;
+
+    Inc(p, vstride);
     Dec(size);
   end;
 end;
-procedure FFilterLoop24(p: PByte; hstride, vstride, size, thresh, ithresh, hevt: Integer);
-var t2: Integer;
+
+// Inner edges: 2 pixels out for hev, 4 pixels otherwise
+procedure FFilterLoop24(p: PByte; hstride, vstride: NativeInt;
+  size, thresh, ithresh, hevt: Integer);
+var
+  t2, p3, p2, p1, p0, q0, q1, q2, q3, a, a1, a2, a3: Integer;
 begin
   t2 := 2*thresh + 1;
+
   while size > 0 do
   begin
-    if FNeedsFilter2(p, hstride, t2, ithresh) then
+    p1 := (p - 2*hstride)^; p0 := (p - hstride)^; q0 := p^; q1 := (p + hstride)^;
+
+    if 4*kAbs0[p0 - q0] + kAbs0[p1 - q1] <= t2 then
     begin
-      if FHev(p, hstride, hevt) then FDoFilter2(p, hstride)
-      else FDoFilter4(p, hstride);
+      p3 := (p - 4*hstride)^; p2 := (p - 3*hstride)^;
+      q2 := (p + 2*hstride)^; q3 := (p + 3*hstride)^;
+
+      if (kAbs0[p3 - p2] <= ithresh) and (kAbs0[p2 - p1] <= ithresh) and
+         (kAbs0[p1 - p0] <= ithresh) and (kAbs0[q3 - q2] <= ithresh) and
+         (kAbs0[q2 - q1] <= ithresh) and (kAbs0[q1 - q0] <= ithresh) then
+      begin
+        if (kAbs0[p1 - p0] > hevt) or (kAbs0[q1 - q0] > hevt) then
+        begin
+          a  := 3*(q0 - p0) + kSclip1[p1 - q1];
+          a1 := kSclip2[SarI(a + 4, 3)];
+          a2 := kSclip2[SarI(a + 3, 3)];
+          (p - hstride)^ := kClip1[p0 + a2];
+          p^             := kClip1[q0 - a1];
+        end
+        else
+        begin
+          a  := 3*(q0 - p0);
+          a1 := kSclip2[SarI(a + 4, 3)];
+          a2 := kSclip2[SarI(a + 3, 3)];
+          a3 := SarI(a1 + 1, 1);
+          (p - 2*hstride)^ := kClip1[p1 + a3];
+          (p - hstride)^   := kClip1[p0 + a2];
+          p^               := kClip1[q0 - a1];
+          (p + hstride)^   := kClip1[q1 - a3];
+        end;
+      end;
     end;
-    p := p + vstride;
+
+    Inc(p, vstride);
     Dec(size);
   end;
 end;
@@ -2214,35 +2356,79 @@ begin
       VP8DoFilter(D, mbx, mby);
 end;
 
-// Write one RGB(A) pixel from a (Y,U,V) sample.
-procedure StorePixel(yv, uv, vv: Integer; p: PByte; Mode: TCSMode); inline;
-var r, g, b: Byte;
+// YUV -> RGB by libwebp formulas from yuv.h (14-bit fixed point results,
+// YUV_FIX2 = 6):
+//   R = clip((y * 19077 >> 8) + (v * 26149 >> 8) - 14234)
+//   G = clip((y * 19077 >> 8) - (u * 6419 >> 8) - (v * 13320 >> 8) + 8708)
+//   B = clip((y * 19077 >> 8) + (u * 33050 >> 8) - 17685)
+// where clip(c) is c >> 6 limited to 0..255. The terms and clipping are taken
+// from tables, results are the same.
+var
+  kYuvY:    array[Byte] of Integer;
+  kYuvVToR: array[Byte] of Integer;
+  kYuvUToG: array[Byte] of Integer;
+  kYuvVToG: array[Byte] of Integer;
+  kYuvUToB: array[Byte] of Integer;
+  kYuvClip: array[-320..639] of Byte;  // sums >> 6 are in -277..534
+
+procedure VP8InitYuvTables;
+var
+  i: Integer;
 begin
-  r := YuvToR(yv, vv);
-  g := YuvToG(yv, uv, vv);
-  b := YuvToB(yv, uv);
-  case Mode of
-    csmBGRA: begin p[0]:=b; p[1]:=g; p[2]:=r; p[3]:=255; end;
-    csmBGR:  begin p[0]:=b; p[1]:=g; p[2]:=r; end;
+  for i := 0 to 255 do
+  begin
+    kYuvY[i]    := (i * 19077) shr 8;
+    kYuvVToR[i] := ((i * 26149) shr 8) - 14234;
+    kYuvUToG[i] := 8708 - ((i * 6419) shr 8);
+    kYuvVToG[i] := -((i * 13320) shr 8);
+    kYuvUToB[i] := ((i * 33050) shr 8) - 17685;
   end;
+
+  for i := Low(kYuvClip) to High(kYuvClip) do
+    if i < 0 then kYuvClip[i] := 0
+    else if i > 255 then kYuvClip[i] := 255
+    else kYuvClip[i] := i;
+end;
+
+// Write one B, G, R pixel from a (Y,U,V) sample
+procedure StoreBGR(yv, uv, vv: Integer; p: PByte); inline;
+var
+  yy: Integer;
+begin
+  yy := kYuvY[yv];
+  p[0] := kYuvClip[SarI(yy + kYuvUToB[uv], 6)];
+  p[1] := kYuvClip[SarI(yy + kYuvUToG[uv] + kYuvVToG[vv], 6)];
+  p[2] := kYuvClip[SarI(yy + kYuvVToR[vv], 6)];
 end;
 
 // Fancy (bilinear) chroma upsampling for a pair of output rows.
 // Faithful port of libwebp UPSAMPLE_FUNC (dsp/upsampling.c).
+// Pixels are bpp bytes apart; with 4 bytes the last one is alpha, set to 255.
 procedure UpsamplePair(topY, botY, topU, topV, curU, curV, topDst, botDst: PByte;
-  len, bpp: Integer; Mode: TCSMode);
+  len, bpp: Integer);
 var
   x, lastPair: Integer;
   tlU, tlV, lU, lV, tU, tV, cU, cV: Integer;
   avgU, avgV, d12U, d12V, d03U, d03V: Integer;
+  withAlpha: Boolean;
 begin
+  withAlpha := bpp = 4;
   lastPair := (len - 1) shr 1;
   tlU := topU[0]; tlV := topV[0];
   lU  := curU[0]; lV  := curV[0];
+
   // first pixel
-  StorePixel(topY[0], (3*tlU + lU + 2) shr 2, (3*tlV + lV + 2) shr 2, topDst, Mode);
+  StoreBGR(topY[0], (3*tlU + lU + 2) shr 2, (3*tlV + lV + 2) shr 2, topDst);
+  if withAlpha then topDst[3] := 255;
+  Inc(topDst, bpp);
+
   if botY <> nil then
-    StorePixel(botY[0], (3*lU + tlU + 2) shr 2, (3*lV + tlV + 2) shr 2, botDst, Mode);
+  begin
+    StoreBGR(botY[0], (3*lU + tlU + 2) shr 2, (3*lV + tlV + 2) shr 2, botDst);
+    if withAlpha then botDst[3] := 255;
+    Inc(botDst, bpp);
+  end;
+
   for x := 1 to lastPair do
   begin
     tU := topU[x]; tV := topV[x];
@@ -2251,20 +2437,41 @@ begin
     avgV := tlV + tV + lV + cV + 8;
     d12U := (avgU + 2*(tU + lU)) shr 3;  d12V := (avgV + 2*(tV + lV)) shr 3;
     d03U := (avgU + 2*(tlU + cU)) shr 3; d03V := (avgV + 2*(tlV + cV)) shr 3;
-    StorePixel(topY[2*x-1], (d12U + tlU) shr 1, (d12V + tlV) shr 1, topDst + (2*x-1)*bpp, Mode);
-    StorePixel(topY[2*x],   (d03U + tU)  shr 1, (d03V + tV)  shr 1, topDst + (2*x)*bpp,   Mode);
+
+    StoreBGR(topY[2*x-1], (d12U + tlU) shr 1, (d12V + tlV) shr 1, topDst);
+    StoreBGR(topY[2*x],   (d03U + tU)  shr 1, (d03V + tV)  shr 1, topDst + bpp);
+    if withAlpha then
+    begin
+      topDst[3] := 255;
+      topDst[7] := 255;
+    end;
+    Inc(topDst, 2*bpp);
+
     if botY <> nil then
     begin
-      StorePixel(botY[2*x-1], (d03U + lU) shr 1, (d03V + lV) shr 1, botDst + (2*x-1)*bpp, Mode);
-      StorePixel(botY[2*x],   (d12U + cU) shr 1, (d12V + cV) shr 1, botDst + (2*x)*bpp,   Mode);
+      StoreBGR(botY[2*x-1], (d03U + lU) shr 1, (d03V + lV) shr 1, botDst);
+      StoreBGR(botY[2*x],   (d12U + cU) shr 1, (d12V + cV) shr 1, botDst + bpp);
+      if withAlpha then
+      begin
+        botDst[3] := 255;
+        botDst[7] := 255;
+      end;
+      Inc(botDst, 2*bpp);
     end;
+
     tlU := tU; tlV := tV; lU := cU; lV := cV;
   end;
+
   if (len and 1) = 0 then
   begin
-    StorePixel(topY[len-1], (3*tlU + lU + 2) shr 2, (3*tlV + lV + 2) shr 2, topDst + (len-1)*bpp, Mode);
+    StoreBGR(topY[len-1], (3*tlU + lU + 2) shr 2, (3*tlV + lV + 2) shr 2, topDst);
+    if withAlpha then topDst[3] := 255;
+
     if botY <> nil then
-      StorePixel(botY[len-1], (3*lU + tlU + 2) shr 2, (3*lV + tlV + 2) shr 2, botDst + (len-1)*bpp, Mode);
+    begin
+      StoreBGR(botY[len-1], (3*lU + tlU + 2) shr 2, (3*lV + tlV + 2) shr 2, botDst);
+      if withAlpha then botDst[3] := 255;
+    end;
   end;
 end;
 
@@ -2283,7 +2490,7 @@ begin
   if H <= 0 then Exit;
 
   // First output row: mirror chroma row 0.
-  UpsamplePair(fy, nil, fu, fv, fu, fv, ob, nil, W, bpp, D.OutputMode);
+  UpsamplePair(fy, nil, fu, fv, fu, fv, ob, nil, W, bpp);
   cu := 0;
   y := 0;
   while y + 2 < H do
@@ -2294,7 +2501,7 @@ begin
                  fu + (cu+1)*uvs, fv + (cu+1)*uvs,
                  ob + NativeInt(y+1)*os,
                  ob + NativeInt(y+2)*os,
-                 W, bpp, D.OutputMode);
+                 W, bpp);
     Inc(cu);
     Inc(y, 2);
   end;
@@ -2302,7 +2509,7 @@ begin
   if (H and 1) = 0 then
     UpsamplePair(fy + (H-1)*ys, nil,
                  fu + cu*uvs, fv + cu*uvs, fu + cu*uvs, fv + cu*uvs,
-                 ob + NativeInt(H-1)*os, nil, W, bpp, D.OutputMode);
+                 ob + NativeInt(H-1)*os, nil, W, bpp);
 end;
 
 // ============================================================
@@ -3851,7 +4058,7 @@ end;
 // VP8 LOSSY DECODE (FULL DRIVER)
 // ============================================================
 
-function VP8Decode(Data: PByte; DataSize: NativeUInt; Mode: TCSMode;
+function VP8Decode(Data: PByte; DataSize: NativeUInt; WithAlpha: Boolean;
   Dest: PByte; DestStride: NativeInt; Width, Height: Integer): Boolean;
 var
   D:          TVP8Decoder;
@@ -3863,11 +4070,10 @@ begin
   Result := False;
 
   FillChar(D, SizeOf(D), 0);
-  D.OutputMode := Mode;
-  if Mode = csmBGR then
-    D.OutBpp := 3
+  if WithAlpha then
+    D.OutBpp := 4
   else
-    D.OutBpp := 4;
+    D.OutBpp := 3;
   D.SegHdr.UseSegment := False;
   D.SegHdr.AbsoluteDelta := True;
 
@@ -3989,7 +4195,6 @@ var
   alphaSize: NativeUInt;
   alphaPlane, src, dst: PByte;
   x, y: Integer;
-  mode: TCSMode;
 begin
   Result := False;
   if (Dest = nil) or (Width <= 0) or (Height <= 0) then Exit;
@@ -4002,12 +4207,7 @@ begin
     Exit;
   end;
 
-  if WithAlpha then
-    mode := csmBGRA
-  else
-    mode := csmBGR;
-
-  Result := VP8Decode(chunkData, chunkSize, mode, Dest, DestStride, Width, Height);
+  Result := VP8Decode(chunkData, chunkSize, WithAlpha, Dest, DestStride, Width, Height);
 
   // Decode and apply the alpha plane (VP8X + ALPH chunk), if present.
   if Result and WithAlpha and hasAlpha and (alphaData <> nil) then
@@ -4036,5 +4236,10 @@ begin
     end;
   end;
 end;
+
+initialization
+  VP8RdInitTables;
+  VP8InitClipTables;
+  VP8InitYuvTables;
 
 end.
