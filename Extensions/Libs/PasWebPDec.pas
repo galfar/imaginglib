@@ -619,7 +619,9 @@ type
     Eos:       Boolean;
   end;
 
-procedure VP8LFillBitWindow(var BR: TVP8LBitReader); inline;
+// End of the data: single bytes. Eos is set when more bits were taken than
+// the data has (zeros are read then).
+procedure VP8LFillBitWindowEnd(var BR: TVP8LBitReader);
 begin
   while (BR.Available <= 56) and (BR.Buf < BR.BufEnd) do
   begin
@@ -629,6 +631,23 @@ begin
   end;
   if (BR.Buf >= BR.BufEnd) and (BR.Available < 0) then
     BR.Eos := True;
+end;
+
+// Makes the window hold at least 57 bits (while there is data)
+procedure VP8LFillBitWindow(var BR: TVP8LBitReader); inline;
+var
+  n: Integer;
+begin
+  if BR.BufEnd - BR.Buf >= 8 then
+  begin
+    // Eight bytes at once, those that do not fit whole are read again later
+    BR.Val := BR.Val or (PUInt64(BR.Buf)^ shl BR.Available);
+    n := (63 - BR.Available) shr 3;
+    Inc(BR.Buf, n);
+    Inc(BR.Available, n * 8);
+  end
+  else
+    VP8LFillBitWindowEnd(BR);
 end;
 
 procedure VP8LInitBitReader(var BR: TVP8LBitReader; Data: PByte; Size: NativeUInt);
@@ -2719,6 +2738,10 @@ type
 
   TVP8LHuffGroup = record
     T: array[0..4] of TVP8LHuffTable;
+    // Red, blue and alpha have one value each (codes of no bits):
+    // only green is read for a pixel
+    IsTrivialLiteral: Boolean;
+    LiteralARB: Cardinal;
   end;
   PVP8LHuffGroup = ^TVP8LHuffGroup;
 
@@ -3040,37 +3063,44 @@ begin
   alphabets[1] := 256; alphabets[2] := 256;
   alphabets[3] := 256; alphabets[4] := 40;
   for g := 0 to NumGroups - 1 do
+  begin
     for j := 0 to 4 do
       if not VP8LReadHuffTable(BR, alphabets[j], Groups[g].T[j]) then
       begin
         Exit;
       end;
+
+    // Only table of a single symbol has entries with 0 bits
+    if (Groups[g].T[1].E[0].Bits = 0) and (Groups[g].T[2].E[0].Bits = 0) and
+       (Groups[g].T[3].E[0].Bits = 0) then
+    begin
+      Groups[g].IsTrivialLiteral := True;
+      Groups[g].LiteralARB := (Cardinal(Groups[g].T[3].E[0].Value) shl 24) or
+                              (Cardinal(Groups[g].T[1].E[0].Value) shl 16) or
+                              Cardinal(Groups[g].T[2].E[0].Value);
+    end;
+  end;
   Result := True;
 end;
 
 // ---- Symbol read with two-level LUT ----
-function VP8LReadSym(var BR: TVP8LBitReader; const HT: TVP8LHuffTable): Integer;
+// Does not refill the window: 15 bits must be there (VP8LFillBitWindow
+// gives enough for three symbols).
+function VP8LReadSym(var BR: TVP8LBitReader; Table: PHuffmanCode): Integer; inline;
 var
-  key:     Cardinal;
-  e:       PHuffmanCode;
-  nbits:   Integer;
-  xkey:    Cardinal;
+  e: PHuffmanCode;
 begin
-  key   := VP8LPeekBits(BR, HUFF_LUT_BITS);
-  e     := @HT.E[key];
-  nbits := Integer(e^.Bits) - HUFF_LUT_BITS;
-  if nbits > 0 then
+  e := @Table[Cardinal(BR.Val) and ((1 shl HUFF_LUT_BITS) - 1)];
+  if e^.Bits > HUFF_LUT_BITS then
   begin
     BR.Val := BR.Val shr HUFF_LUT_BITS;
     Dec(BR.Available, HUFF_LUT_BITS);
-    if BR.Available <= 32 then VP8LFillBitWindow(BR);
-    xkey := VP8LPeekBits(BR, nbits);
-    Inc(e, Integer(e^.Value) + Integer(xkey));
+    Inc(e, Integer(e^.Value) +
+           Integer(Cardinal(BR.Val) and ((Cardinal(1) shl (e^.Bits - HUFF_LUT_BITS)) - 1)));
   end;
   BR.Val := BR.Val shr e^.Bits;
   Dec(BR.Available, e^.Bits);
-  if BR.Available <= 32 then VP8LFillBitWindow(BR);
-  Result := Integer(e^.Value);
+  Result := e^.Value;
 end;
 
 // ---- Convert plane-code to pixel distance ----
@@ -3121,24 +3151,6 @@ begin
   Result := (((a xor b) and $FEFEFEFE) shr 1) + (a and b);
 end;
 
-// libwebp Select: the one of a (top), b (left) that is closer to the
-// gradient a + b - c, by sum of absolute differences of channels.
-function PSelect(a, b, c: Cardinal): Cardinal; inline;
-var
-  d: Integer;
-begin
-  // sum of |b - c| - |a - c|
-  d := Integer(kAbs0[Integer(b shr 24) - Integer(c shr 24)]) -
-       Integer(kAbs0[Integer(a shr 24) - Integer(c shr 24)]) +
-       Integer(kAbs0[Integer((b shr 16) and $FF) - Integer((c shr 16) and $FF)]) -
-       Integer(kAbs0[Integer((a shr 16) and $FF) - Integer((c shr 16) and $FF)]) +
-       Integer(kAbs0[Integer((b shr 8) and $FF) - Integer((c shr 8) and $FF)]) -
-       Integer(kAbs0[Integer((a shr 8) and $FF) - Integer((c shr 8) and $FF)]) +
-       Integer(kAbs0[Integer(b and $FF) - Integer(c and $FF)]) -
-       Integer(kAbs0[Integer(a and $FF) - Integer(c and $FF)]);
-  if d <= 0 then Result := a else Result := b;
-end;
-
 // Per channel c0 + c1 - c2 clipped to 0..255
 function PClampFull(c0, c1, c2: Cardinal): Cardinal; inline;
 begin
@@ -3169,13 +3181,19 @@ end;
 
 // ---- Inverse SubGreen: add green to red and blue ----
 procedure VP8LInvSubGreen(Pixels: PCardinal; Count: Integer);
-var i: Integer; px, g: Cardinal;
+var
+  pixEnd: PCardinal;
+  px: Cardinal;
 begin
-  for i := 0 to Count - 1 do
+  pixEnd := Pixels + Count;
+
+  while Pixels < pixEnd do
   begin
-    px := Pixels[i];
-    g  := (px shr 8) and $FF;
-    Pixels[i] := (px and $FF00FF00) or (((px and $00FF00FF) + ((g shl 16) or g)) and $00FF00FF);
+    px := Pixels^;
+    // green * $00010001 is green in the red and blue bytes
+    Pixels^ := (px and $FF00FF00) or
+               (((px and $00FF00FF) + ((px shr 8) and $FF) * $00010001) and $00FF00FF);
+    Inc(Pixels);
   end;
 end;
 
@@ -3230,8 +3248,8 @@ end;
 // Cur (the next one in memory), as the format says.
 procedure VP8LPredictorAdd(Mode: Integer; Cur, Upper: PCardinal; Count: Integer);
 var
-  i: Integer;
-  left: Cardinal;
+  i, d: Integer;
+  left, top, topLeft: Cardinal;
 begin
   left := (Cur - 1)^;
 
@@ -3283,9 +3301,25 @@ begin
         Cur[i] := left;
       end;
     11:
+      // Select: top or left, the one closer to the gradient left + top -
+      // top left by sum of absolute differences of the channels
       for i := 0 to Count - 1 do
       begin
-        left := VP8LAddPx(Cur[i], PSelect(Upper[i], left, Upper[i - 1]));
+        top := Upper[i];
+        topLeft := Upper[i - 1];
+        // sum of |left - topLeft| - |top - topLeft|
+        d := Integer(kAbs0[Integer(left shr 24) - Integer(topLeft shr 24)]) -
+             Integer(kAbs0[Integer(top shr 24) - Integer(topLeft shr 24)]) +
+             Integer(kAbs0[Integer((left shr 16) and $FF) - Integer((topLeft shr 16) and $FF)]) -
+             Integer(kAbs0[Integer((top shr 16) and $FF) - Integer((topLeft shr 16) and $FF)]) +
+             Integer(kAbs0[Integer((left shr 8) and $FF) - Integer((topLeft shr 8) and $FF)]) -
+             Integer(kAbs0[Integer((top shr 8) and $FF) - Integer((topLeft shr 8) and $FF)]) +
+             Integer(kAbs0[Integer(left and $FF) - Integer(topLeft and $FF)]) -
+             Integer(kAbs0[Integer(top and $FF) - Integer(topLeft and $FF)]);
+        if d <= 0 then
+          left := VP8LAddPx(Cur[i], top)
+        else
+          left := VP8LAddPx(Cur[i], left);
         Cur[i] := left;
       end;
     12:
@@ -3419,74 +3453,107 @@ function VP8LDecodeSubImage(var BR: TVP8LBitReader; SW, SH: Integer;
 function VP8LDecodePixels(var S: TVP8LState; Pixels: PCardinal; W, H: Integer): Boolean;
 var
   nPix, pidx, x, y, i: Integer;
-  sym, length, dcode, pdist, sidx: Integer;
-  green, red, blue, alpha: Cardinal;
+  sym, length, dcode, pdist: Integer;
+  red, blue, alpha: Cardinal;
   px: Cardinal;
-  cidx: Integer;
-  grpIdx: Integer;
+  tileMask, cacheShift, cacheEnd, lastCached: Integer;
   grp: PVP8LHuffGroup;
+  src, dst: PCardinal;
 begin
   Result := False;
   nPix   := W * H;
   pidx   := 0; x := 0; y := 0;
+  grp    := nil;
+
+  // Huffman codes can change at the left side of a tile of the Huffman image
+  if S.HuffBits > 0 then
+    tileMask := (1 shl S.HuffBits) - 1
+  else
+    tileMask := -1;
+
+  // Symbols of the first alphabet: 256 literals, 24 length codes, color cache
+  cacheEnd := 256 + 24;
+  cacheShift := 32 - S.CacheBits;
+  if S.CacheBits > 0 then
+    Inc(cacheEnd, 1 shl S.CacheBits);
+  // Pixels are put to the color cache only when it is going to be read
+  lastCached := 0;
+
   while pidx < nPix do
   begin
-    if S.HuffBits > 0 then
+    if (grp = nil) or ((x and tileMask) = 0) then
     begin
-      grpIdx := Integer(S.HuffImage[(y shr S.HuffBits) * S.HuffW + (x shr S.HuffBits)]);
-      grp := @S.Groups[grpIdx];
-    end else
-      grp := @S.Groups[0];
+      if S.HuffBits > 0 then
+        grp := @S.Groups[S.HuffImage[(y shr S.HuffBits) * S.HuffW + (x shr S.HuffBits)]]
+      else
+        grp := @S.Groups[0];
+    end;
 
-    sym := VP8LReadSym(S.BR, grp^.T[0]);
-    if sym < 0 then Exit;
+    VP8LFillBitWindow(S.BR);
+    sym := VP8LReadSym(S.BR, grp^.T[0].E);
 
     if sym < 256 then
     begin
-      green := Cardinal(sym);
-      red   := Cardinal(VP8LReadSym(S.BR, grp^.T[1]));
-      blue  := Cardinal(VP8LReadSym(S.BR, grp^.T[2]));
-      alpha := Cardinal(VP8LReadSym(S.BR, grp^.T[3]));
-      px := (alpha shl 24) or (red shl 16) or (green shl 8) or blue;
-      Pixels[pidx] := px;
-      if S.CacheBits > 0 then
+      // Literal: green in sym
+      if grp^.IsTrivialLiteral then
+        px := grp^.LiteralARB or (Cardinal(sym) shl 8)
+      else
       begin
-        cidx := Integer(Cardinal(px * Cardinal($1E35A7BD)) shr (32 - S.CacheBits));
-        S.ColorCache[cidx] := px;
+        red   := Cardinal(VP8LReadSym(S.BR, grp^.T[1].E));
+        blue  := Cardinal(VP8LReadSym(S.BR, grp^.T[2].E));
+        VP8LFillBitWindow(S.BR);
+        alpha := Cardinal(VP8LReadSym(S.BR, grp^.T[3].E));
+        px := (alpha shl 24) or (red shl 16) or (Cardinal(sym) shl 8) or blue;
       end;
-      Inc(pidx); Inc(x); if x >= W then begin x := 0; Inc(y); end;
-    end else if sym < 256 + 24 then
+
+      Pixels[pidx] := px;
+      Inc(pidx);
+      Inc(x);
+      if x >= W then begin x := 0; Inc(y); end;
+    end
+    else if sym < 256 + 24 then
     begin
+      // Backward reference: copy of pixels decoded before
       length := VP8LCopyCode(sym - 256, S.BR);
-      dcode  := VP8LReadSym(S.BR, grp^.T[4]);
-      if dcode < 0 then Exit;
-      pdist := VP8LPlaneCodeToDist(W, VP8LCopyCode(dcode, S.BR));
-      if (pdist < 1) or (pdist > pidx) then Exit;  // invalid back-reference
-      // Standard LZ77 copy: read pdist behind, advancing both (handles overlap)
+      VP8LFillBitWindow(S.BR);
+      dcode  := VP8LReadSym(S.BR, grp^.T[4].E);
+      VP8LFillBitWindow(S.BR);
+      pdist  := VP8LPlaneCodeToDist(W, VP8LCopyCode(dcode, S.BR));
+      if (pdist > pidx) or (length > nPix - pidx) then Exit;
+
+      // One by one from the start: the source can overlap the destination
+      dst := Pixels + pidx;
+      src := dst - pdist;
       for i := 0 to length - 1 do
+        dst[i] := src[i];
+
+      Inc(pidx, length);
+      Inc(x, length);
+      while x >= W do begin Dec(x, W); Inc(y); end;
+      grp := nil;  // can be in another tile now
+    end
+    else if sym < cacheEnd then
+    begin
+      // Pixel from the color cache
+      while lastCached < pidx do
       begin
-        if pidx >= nPix then Break;
-        px := Pixels[pidx - pdist];
-        Pixels[pidx] := px;
-        if S.CacheBits > 0 then
-        begin
-          cidx := Integer(Cardinal(px * Cardinal($1E35A7BD)) shr (32 - S.CacheBits));
-          S.ColorCache[cidx] := px;
-        end;
-        Inc(pidx); Inc(x); if x >= W then begin x := 0; Inc(y); end;
+        px := Pixels[lastCached];
+        S.ColorCache[Cardinal(px * Cardinal($1E35A7BD)) shr cacheShift] := px;
+        Inc(lastCached);
       end;
-    end else if (S.CacheBits > 0) and (sym < 256 + 24 + (1 shl S.CacheBits)) then
-    begin
-      cidx := sym - 256 - 24;
-      px := S.ColorCache[cidx];
-      Pixels[pidx] := px;
-      Inc(pidx); Inc(x); if x >= W then begin x := 0; Inc(y); end;
-    end else
-    begin
-      Inc(pidx); Inc(x); if x >= W then begin x := 0; Inc(y); end;
-    end;
+
+      Pixels[pidx] := S.ColorCache[sym - (256 + 24)];
+      Inc(pidx);
+      Inc(x);
+      if x >= W then begin x := 0; Inc(y); end;
+    end
+    else
+      Exit;  // not a valid symbol
   end;
-  Result := True;
+
+  // Fails when the data ended before the pixels did
+  VP8LFillBitWindow(S.BR);
+  Result := not S.BR.Eos;
 end;
 
 // ---- Setup state from BR: color-cache + meta-huffman + huffman tables ----
