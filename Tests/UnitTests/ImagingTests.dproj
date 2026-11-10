@@ -95,6 +95,7 @@
         <DCCReference Include="TestImagingHuge.pas"/>
         <DCCReference Include="TestImagingFileFormats.pas"/>
         <DCCReference Include="TestImagingTiff.pas"/>
+        <DCCReference Include="TestImagingWebP.pas"/>
         <DCCReference Include="TestImagingDynLibs.pas"/>
         <DCCReference Include="TestImagingComponents.pas"/>
         <BuildConfiguration Include="Debug">

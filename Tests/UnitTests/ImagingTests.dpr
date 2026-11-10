@@ -77,6 +77,7 @@ uses
   TestImagingHuge in 'TestImagingHuge.pas',
   TestImagingFileFormats in 'TestImagingFileFormats.pas',
   TestImagingTiff in 'TestImagingTiff.pas',
+  TestImagingWebP in 'TestImagingWebP.pas',
   TestImagingDynLibs in 'TestImagingDynLibs.pas',
   TestImagingComponents in 'TestImagingComponents.pas';
 
