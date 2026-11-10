@@ -77,7 +77,7 @@
 
 // WebP (Extensions/Libs/ImagingLibWebP.pas)
 {.$DEFINE WEBP_NO_DYNLIB}         // never look for libwebp shared library
-{.$DEFINE WEBP_NO_BUNDLED}        // leave out Pascal WebP decoder (WebPDec)
+{.$DEFINE WEBP_NO_BUNDLED}        // leave out Pascal WebP decoder (PasWebPDec)
 
 { Source options
   ------------------------------ }

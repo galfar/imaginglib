@@ -1,16 +1,70 @@
-﻿unit WebPDec;
+{
+  PasWebP - pure Pascal WebP codec
+  Part of Vampyre Imaging Library
+  https://github.com/galfar/imaginglib
+  - - - - -
+  WebP decoder (lossy VP8 with alpha, lossless VP8L).
 
-////////////////////////////////////////////////////////////////////////////////
-//                                                                            //
-// Description:	WEBP port                                                     //
-// Version:	0.5                                                           //
-// Date:	30-MAY-2026                                                   //
-// License:     MIT                                                           //
-// Target:	Win64, Free Pascal, Delphi                                    //
-// Copyright:	(c) 2026 Xelitan.com.                                         //
-//		All rights reserved.                                          //
-//                                                                            //
-////////////////////////////////////////////////////////////////////////////////
+  This unit is a fork of WebPDec.pas 0.5 by Xelitan
+  (https://github.com/Xelitan/Pure-Pascal-Webp-for-Delphi-Lazarus-Free-Pascal),
+  changed for Imaging: see the Git history of this file. The original is
+  a port of the decoder of libwebp. Both notices follow.
+
+    MIT License
+
+    Copyright (c) 2026 Xelitan
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+  libwebp:
+
+    Copyright (c) 2010, Google Inc. All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+
+      * Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
+
+      * Redistributions in binary form must reproduce the above copyright
+        notice, this list of conditions and the following disclaimer in
+        the documentation and/or other materials provided with the
+        distribution.
+
+      * Neither the name of Google nor the names of its contributors may
+        be used to endorse or promote products derived from this software
+        without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+}
+unit PasWebPDec;
 
 {$IFDEF FPC}
   {$MODE DELPHI}{$H+}{$inline on}
@@ -75,7 +129,7 @@ const
   B_HD_PRED = 8;  B_HU_PRED = 9;
   NUM_BMODES = 10;
 
-  // 16x16 / UV intra modes — MUST match B_*_PRED values so that
+  // 16x16 / UV intra modes - MUST match B_*_PRED values so that
   // I16x16 mode values stored as I4x4 top/left context use correct kBModesProba rows.
   // C: DC_PRED=B_DC_PRED=0, TM_PRED=B_TM_PRED=1, V_PRED=B_VE_PRED=2, H_PRED=B_HE_PRED=3
   DC_PRED = 0;  TM_PRED = 1;  V_PRED = 2;  H_PRED = 3;  B_PRED = 4;
@@ -558,7 +612,7 @@ begin
   else Result := v;
 end;
 
-// YUV → RGB (libwebp formulas from yuv.h)
+// YUV -> RGB (libwebp formulas from yuv.h)
 function MultHi(v, c: Integer): Integer; inline;
 begin
   Result := (v * c) shr 8;
@@ -728,7 +782,7 @@ begin
   pos   := R.Bits;                              // save original Bits position
   split := R.Range shr 1;
   value := UInt32(R.Val shr pos);
-  // SarI: arithmetic right shift gives 0 or -1 (FPC shr is logical → wrong)
+  // SarI: arithmetic right shift gives 0 or -1 (FPC shr is logical -> wrong)
   mask  := SarI(Integer(split) - Integer(value), 31);
   R.Bits := pos - 1;                            // decrement by 1 (may become -1)
   Inc(R.Range, UInt32(mask));                   // range-1 if bit=1 (mask=-1), range if bit=0
@@ -886,7 +940,7 @@ type
     // Probability tables
     Proba:       TVP8Proba;
 
-    // Filter (skipped — just store for parsing)
+    // Filter (skipped - just store for parsing)
     FilterSimple:   Boolean;
     FilterLevel:    Integer;
     FilterSharpness:Integer;
@@ -894,7 +948,7 @@ type
     RefLFDelta:     array[0..NUM_REF_LF_DELTAS-1] of Integer;
     ModeLFDelta:    array[0..NUM_MODE_LF_DELTAS-1] of Integer;
 
-    // Decoded output row (YUV → RGB, written row by row)
+    // Decoded output row (YUV -> RGB, written row by row)
     OutputMode:  TCSMode;
     OutStride:   Integer;   // bytes per output row
     OutBpp:      Integer;   // bytes per pixel
@@ -1105,10 +1159,10 @@ end;
 
 procedure VP8ParseIntraModes(var D: TVP8Decoder);
 // Parses all macroblock intra prediction modes for the current frame.
-// Fills D.MBData[] — called ONCE per frame before residual decoding.
+// Fills D.MBData[] - called ONCE per frame before residual decoding.
 // For each MB: IsI4x4, IModes[16], UVMode, Segment
 var
-  topY: PByte;  // [MbW * 16] — Y top-row modes for 4x4
+  topY: PByte;  // [MbW * 16] - Y top-row modes for 4x4
   seg_proba: array[0..MB_FEATURE_TREE_PROBS-1] of Byte;
   leftMode: array[0..15] of Byte; // left column 4x4 modes
 begin
@@ -1122,7 +1176,7 @@ begin
   // Default segment proba
   seg_proba[0] := 145; seg_proba[1] := 145; seg_proba[2] := 145;
 
-  //pMB := PVP8MBData(D.OutBuf); // WRONG — need separate mode buffer
+  //pMB := PVP8MBData(D.OutBuf); // WRONG - need separate mode buffer
   // Actually store modes in D.MBData (only last row needed for residuals)
   // For simplicity, we parse modes and residuals together per-row in the main loop
   FreeMem(topY);
@@ -1214,7 +1268,7 @@ begin
       end;
       p := @(BandsPtr[n + 1]^.Probas[2, 0]);  // ctx=2 for next
     end;
-    // Sign bit — use VP8RdGetSigned (matches C's VP8GetSigned) for exact range-coder state
+    // Sign bit - use VP8RdGetSigned (matches C's VP8GetSigned) for exact range-coder state
     v := VP8RdGetSigned(BR, v);
     // Dequantize: DC (n=0) uses Dq0, AC uses Dq1
     if n = 0 then
@@ -1282,7 +1336,7 @@ begin
       nz_val := SarI(Integer(dcBuf[0]) + 3, 3);
       for y := 0 to 15 do mb^.Coeffs[y * 16] := Int16(nz_val);
     end;
-    // else all zero — Coeffs already zero
+    // else all zero - Coeffs already zero
     first := 1;
     acBands := @D.Proba.BandsPtr[0];
   end else
@@ -1322,7 +1376,7 @@ begin
   outLNZ := lnz shr 4;
   mb^.NonZeroY := nonZeroY;
 
-  // === UV chroma blocks (type 2): 2 channels × 2×2 blocks ===
+  // === UV chroma blocks (type 2): 2 channels x 2x2 blocks ===
   for ch := 0 to 1 do
   begin
     nzCoeffs := 0;
@@ -1378,7 +1432,7 @@ begin
     a  := C[0+i] + C[8+i];
     b  := C[0+i] - C[8+i];
     // MUL1(x) = ((x*20091)>>16)+x;  MUL2(x) = (x*35468)>>16
-    // Use SarI (arithmetic) because FPC shr is logical — wrong for negative values
+    // Use SarI (arithmetic) because FPC shr is logical - wrong for negative values
     c2 := SarI(C[4+i] * 35468, 16) - (SarI(C[12+i] * 20091, 16) + C[12+i]);
     d2 := (SarI(C[4+i] * 20091, 16) + C[4+i]) + SarI(C[12+i] * 35468, 16);
     tmp[i,0] := a + d2;
@@ -1386,7 +1440,7 @@ begin
     tmp[i,2] := b - c2;
     tmp[i,3] := a - d2;
   end;
-  // Horizontal pass (process rows of tmp → output rows)
+  // Horizontal pass (process rows of tmp -> output rows)
   for i := 0 to 3 do
   begin
     a  := tmp[0,i] + tmp[2,i];
@@ -1406,7 +1460,7 @@ begin
   end;
 end;
 
-// WHT transform: 16 DC coefficients (PInt16 DC) → 16 DCs (PInt16 Out16)
+// WHT transform: 16 DC coefficients (PInt16 DC) -> 16 DCs (PInt16 Out16)
 procedure VP8TransformWHT(DC: PInt16; Out16: PInt16);
 var
   tmp: array[0..15] of Integer;
@@ -1512,7 +1566,7 @@ begin
   // Top-left corner lives at Dst[-Stride-1] in the YUV buffer.
   // For mby=0 it was initialised to 127; for mby>0,mbx=0 to 129; for mbx>0 the
   // column-rotation copies the last byte of the previous MB's top-row here.
-  // Always read the buffer directly — do NOT override with 129 when HasTop=False,
+  // Always read the buffer directly - do NOT override with 129 when HasTop=False,
   // because TM_PRED requires the actual value (127 for the first MB row, not 129).
   topLeft := (Dst - Stride - 1)^;
   case Mode of
@@ -2328,7 +2382,7 @@ begin
     // Top-left corner and top row initialisation
     if mby = 0 then
     begin
-      // First row: no top context → fill top row + top-left with 127
+      // First row: no top context -> fill top row + top-left with 127
       FillChar((yBase - BPS - 1)^, 16 + 4 + 1, 127);
       FillChar((uBase - BPS - 1)^, 8 + 1, 127);
       FillChar((vBase - BPS - 1)^, 8 + 1, 127);
@@ -2352,7 +2406,7 @@ begin
     begin
       hasLeft := (mbx > 0);
 
-      // --- Rotate right column → left column (left context for this MB) ---
+      // --- Rotate right column -> left column (left context for this MB) ---
       // Mirrors C's Copy32b(y_dst[j*BPS-4], y_dst[j*BPS+12]) for j=-1..15
       if mbx > 0 then
       begin
@@ -2377,7 +2431,7 @@ begin
         else
           FillChar((yBase - BPS + 16)^, 4, (D.YTopBuf + mbx * 16 + 15)^);
       end;
-      // Replicate top-right to rows 3/7/11 in the buffer — always, for I4x4
+      // Replicate top-right to rows 3/7/11 in the buffer - always, for I4x4
       // (C: top_right[k*BPS] = top_right[0] where top_right is uint32_t*,
       //  stride = BPS * sizeof(uint32_t) = 128 bytes each step)
       PCardinal(yBase + 3  * BPS + 16)^ := PCardinal(yBase - BPS + 16)^;
@@ -2391,8 +2445,8 @@ begin
       // --- Parse intra modes from partition 0 ---
       br := @D.BR;
 
-      // Segment ID — balanced binary tree (VP8 spec §9.3):
-      //   bit0=0 → {0,1} via prob[1];  bit0=1 → {2,3} via prob[2]
+      // Segment ID - balanced binary tree (VP8 spec section 9.3):
+      //   bit0=0 -> {0,1} via prob[1];  bit0=1 -> {2,3} via prob[2]
       // Always consumes exactly 2 bits when update_map is set.
       if D.SegHdr.UseSegment and D.SegHdr.UpdateMap then
       begin
@@ -2538,12 +2592,12 @@ begin
   // Number of token partitions: 2^n (n = 2-bit value)
   D.NumParts := 1 shl Integer(VP8RdGetValue(D.BR, 2));
   VP8ParseQuant(D.BR, D);
-  VP8RdGet(D.BR); // update_proba bit — read and ignore (not an error if 1)
+  VP8RdGet(D.BR); // update_proba bit - read and ignore (not an error if 1)
   VP8ParseProba(D.BR, D);  // also reads use_skip_proba/skip_p at the end
 
   // Token partition data starts immediately after partition 0.
-  // Layout: [(NumParts-1) × 3-byte sizes][part0 data][part1 data]...
-  // partData → size table entries; szPtr → pointer advancing through sizes
+  // Layout: [(NumParts-1) x 3-byte sizes][part0 data][part1 data]...
+  // partData -> size table entries; szPtr -> pointer advancing through sizes
   partData := Data + 10 + partLen;           // start of token area (= size table)
   szPtr    := partData;                       // walks through 3-byte size entries
   partData := partData + NativeUInt(D.NumParts - 1) * 3;  // start of actual data

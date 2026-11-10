@@ -18,7 +18,8 @@
     and encodes (lossy and lossless) and is the only option for Delphi older
     than 2009. Define WEBP_NO_DYNLIB to never look for it.
 
-  - WebPDec, pure Pascal decoder by Xelitan (port of libwebp decoder).
+  - PasWebPDec, pure Pascal decoder (fork of WebPDec by Xelitan, which is
+    a port of libwebp decoder).
     Used when libwebp is not found, decoding only. Needs FPC or Delphi 2009+.
     Define WEBP_NO_BUNDLED to leave it out.
 
@@ -99,7 +100,7 @@ uses
   LibWebPDynLib,
 {$ENDIF}
 {$IFDEF WEBP_USE_BUNDLED}
-  WebPDec,
+  PasWebPDec,
 {$ENDIF}
   SysUtils, Imaging;
 
@@ -263,7 +264,7 @@ function PascalGetImageInfo(Data: Pointer; Size: Int64; out Info: TWebPImageInfo
 begin
   Result := ParseWebPContainer(Data, Size, Info);
   if Result and not Info.Animated then
-    Result := WebPDec.WebPGetInfo(Data, Size, Info.Width, Info.Height);
+    Result := PasWebPDec.WebPGetInfo(Data, Size, Info.Width, Info.Height);
 end;
 
 function PascalLoadImage(Data: Pointer; Size: Int64; var Image: TImageData;
@@ -278,12 +279,12 @@ begin
   if Info.HasAlpha then
   begin
     Format := ifA8R8G8B8;
-    Pixels := WebPDec.WebPDecodeBGRA(Data, Size, Width, Height);
+    Pixels := PasWebPDec.WebPDecodeBGRA(Data, Size, Width, Height);
   end
   else
   begin
     Format := ifR8G8B8;
-    Pixels := WebPDec.WebPDecodeBGR(Data, Size, Width, Height);
+    Pixels := PasWebPDec.WebPDecodeBGR(Data, Size, Width, Height);
   end;
 
   if Pixels = nil then
@@ -297,7 +298,7 @@ begin
       Result := True;
     end;
   finally
-    WebPDec.WebPFree(Pixels);
+    PasWebPDec.WebPFree(Pixels);
   end;
 end;
 {$ENDIF}

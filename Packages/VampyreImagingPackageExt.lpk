@@ -110,9 +110,9 @@
         <UnitName Value="LibWebPDynLib"/>
       </Item18>
       <Item19>
-        <Filename Value="..\Extensions\Libs\WebPDec.pas"/>
+        <Filename Value="..\Extensions\Libs\PasWebPDec.pas"/>
         <AddToUsesPkgSection Value="False"/>
-        <UnitName Value="WebPDec"/>
+        <UnitName Value="PasWebPDec"/>
       </Item19>
       <Item20>
         <Filename Value="..\Extensions\Libs\ImagingTiffBackend.pas"/>
