@@ -918,13 +918,20 @@ end;
 function TMultiImage.GetImage(Index: Integer): TImageData;
 begin
   if (Index >= 0) and (Index < GetImageCount) then
-    Result := FDataArray[Index];
+    Result := FDataArray[Index]
+  else
+    InitImage(Result);
 end;
 
 procedure TMultiImage.SetImage(Index: Integer; Value: TImageData);
 begin
   if (Index >= 0) and (Index < GetImageCount) then
   begin
+    // Image got from Images property and set back: it is already there
+    // (a clone would leave the old bits allocated)
+    if (Value.Bits <> nil) and (Value.Bits = FDataArray[Index].Bits) then
+      Exit;
+
     Imaging.CloneImage(Value, FDataArray[Index]);
     if Index = FActiveImage then
       DoDataSizeChanged;
@@ -1032,14 +1039,18 @@ end;
 procedure TMultiImage.DoInsertImages(Index: Integer; const Images: TDynImageDataArray);
 var
   I, Len, OldActive: Integer;
+  Source: TDynImageDataArray;
 begin
-  Len := Length(Images);
+  // Images can be the array of this image (images added to itself): the
+  // reference keeps it alive and unchanged when FDataArray is resized
+  Source := Images;
+  Len := Length(Source);
   OldActive := FActiveImage;
 
   if PrepareInsert(Index, Len) then
   begin
     for I := 0 to Len - 1 do
-      Imaging.CloneImage(Images[I], FDataArray[Index + I]);
+      Imaging.CloneImage(Source[I], FDataArray[Index + I]);
 
     ImageArrayChanged(OldActive);
   end;
@@ -1063,6 +1074,10 @@ procedure TMultiImage.Assign(Source: TPersistent);
 var
   Arr: TDynImageDataArray;
 begin
+  // Images would be freed before they are copied
+  if Source = Self then
+    Exit;
+
   if Source = nil then
   begin
     DeleteAllImages;

@@ -693,7 +693,7 @@ var
   var
     BlockSize, BlockType, ExtType: Byte;
     AppRec: TGIFApplicationRec;
-    LoopCount: Word;
+    LoopCount: UInt16;
 
     { Skips data sub-blocks up to their terminator (block of zero size)
       or the end of input.}

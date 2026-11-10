@@ -181,6 +181,7 @@ resourcestring
   SErrorLoadingChunk = 'Error when reading %s chunk data. File may be corrupted.';
   SErrorChunkCrc = 'CRC of %s chunk does not match its data. File is corrupted.';
   SErrorChunkSize = 'Size of %s chunk is invalid. File is corrupted.';
+  SErrorBadImageHeader = 'Image header has invalid dimensions or color type.';
   SErrorJngJpegData = 'JPEG data of JNG image are not grayscale or YCbCr.';
   SErrorJngJpegSave = 'JPEG data of JNG image could not be saved.';
 
@@ -616,6 +617,15 @@ var
       RaiseImaging(SErrorChunkCrc, [string(Chunk.ChunkID)]);
   end;
 
+  { Chunks are read as records: critical chunk shorter than its record is
+    refused, ancillary one is to be skipped (returns False then).}
+  function ChunkHasSize(MinSize: Integer): Boolean;
+  begin
+    Result := Chunk.DataSize >= UInt32(MinSize);
+    if not Result and ((Ord(Chunk.ChunkID[0]) and $20) = 0) then
+      RaiseImaging(SErrorLoadingChunk, [string(Chunk.ChunkID)]);
+  end;
+
   { Appends data of image data chunk to Stream (SkipBytes are non-image data at the beginning).
     Truncated chunk is used up to the end of file, chunk with bad CRC is not
     used; nothing after them is used (Ended is set), rows of the image that
@@ -654,6 +664,10 @@ var
 
     if Chunk.ChunkID = fcTLChunk then
     begin
+      // Frame control needs the header of the image first
+      if (Chunk.DataSize < SizeOf(TfcTL)) or (Length(Frames) = 0) then
+        RaiseImaging(SErrorLoadingChunk, [string(Chunk.ChunkID)]);
+
       if (Length(Frames) = 1) and (Frames[0].IDATMemory.Size = 0) then
       begin
         // First fcTL chunk maybe for first IDAT frame which is alredy created
@@ -676,6 +690,7 @@ var
     else
     begin
       // This is frame defined by IHDR chunk
+      ChunkHasSize(SizeOf(TIHDR));
       Frame := AddFrameInfo;
       Frame.IHDR := PIHDR(ChunkData)^;
       SwapEndianUInt32(@Frame.IHDR, 2);
@@ -690,6 +705,7 @@ var
     Frame: TFrameInfo;
   begin
     ReadChunkData;
+    ChunkHasSize(SizeOf(TJHDR));
     Frame := AddFrameInfo;
     Frame.IsJpegFrame := True;
     Frame.JHDR := PJHDR(ChunkData)^;
@@ -774,7 +790,7 @@ var
       begin
         // Use global transparency
         GetMem(GetLastFrame.Transparency, GlobalTransparencySize);
-        Move(GlobalTransparency^, GetLastFrame.Transparency^, Chunk.DataSize);
+        Move(GlobalTransparency^, GetLastFrame.Transparency^, GlobalTransparencySize);
         GetLastFrame.TransparencySize := GlobalTransparencySize;
       end
       else
@@ -789,7 +805,8 @@ var
 
   procedure LoadbKGD;
   begin
-    if not ReadChunkData then
+    // There is no image yet for chunks at the top level of MNG file
+    if not ReadChunkData or (GetLastFrame = nil) then
       Exit;
     if GetLastFrame.Background = nil then
     begin
@@ -801,7 +818,7 @@ var
 
   procedure HandleacTL;
   begin
-    if not ReadChunkData then
+    if not ReadChunkData or not ChunkHasSize(SizeOf(acTL)) then
       Exit;
     FileType := ngAPNG;
     acTL := PacTL(ChunkData)^;
@@ -810,7 +827,7 @@ var
 
   procedure LoadpHYs;
   begin
-    if not ReadChunkData then
+    if not ReadChunkData or not ChunkHasSize(SizeOf(TpHYs)) or (GetLastFrame = nil) then
       Exit;
     with GetLastFrame do
     begin
@@ -838,6 +855,8 @@ begin
       if not ReadChunk then
         Exit;
       ReadChunkData;
+      if Chunk.DataSize < SizeOf(MHDR) then
+        RaiseImaging(SErrorLoadingChunk, [string(Chunk.ChunkID)]);
       MHDR := PMHDR(ChunkData)^;
       SwapEndianUInt32(@MHDR, SizeOf(MHDR) div SizeOf(UInt32));
     end;
@@ -906,7 +925,9 @@ var
                   shl (StartBit[BitCount] - (Col * BitCount mod 8));
                 Inc(Col, ColumnIncrement[Pass]);
                 Dec(CurBit, BitCount);
-              until CurBit < 0;
+                // The rest of the last byte is padding, its pixels would be
+                // written after the end of the row
+              until (CurBit < 0) or (Col >= Width);
               Inc(Src);
             until Col >= Width;
           end;
@@ -1077,6 +1098,13 @@ begin
         end;
         BitCount := IHDR.BitDepth * 4;
       end;
+  end;
+
+  // Combination of color type and bit depth that does not exist, no pixels
+  if (Image.Format = ifUnknown) or (FrameWidth <= 0) or (FrameHeight <= 0) then
+  begin
+    InitImage(Image);
+    RaiseImaging(SErrorBadImageHeader);
   end;
 
   GetImageFormatInfo(Image.Format, Info);
@@ -2236,76 +2264,93 @@ begin
     DestFormat := ifA8R8G8B8;
 
   SetLength(DestFrames, Len);
-  DestCanvas := ImagingCanvases.FindBestCanvasForImage(DestFormat).Create;
-  SrcCanvas := ImagingCanvases.FindBestCanvasForImage(Images[0]).Create;
+  DestCanvas := nil;
+  SrcCanvas := nil;
   InitImage(PreviousCache);
-  NewImage(SrcFrames[0].IHDR.Width, SrcFrames[0].IHDR.Height, DestFormat, PreviousCache);
 
-  for I := 0 to Len - 1 do
-  begin
-    SrcIdx := I + Offset;
+  try
+    try
+      DestCanvas := ImagingCanvases.FindBestCanvasForImage(DestFormat).Create;
+      SrcCanvas := ImagingCanvases.FindBestCanvasForImage(Images[0]).Create;
+      NewImage(SrcFrames[0].IHDR.Width, SrcFrames[0].IHDR.Height, DestFormat, PreviousCache);
 
-    NewImage(SrcFrames[SrcIdx].IHDR.Width, SrcFrames[SrcIdx].IHDR.Height,
-      DestFormat, DestFrames[I]);
-    if DestFrames[I].Format = ifIndex8 then
-      Move(Images[SrcIdx].Palette^, DestFrames[I].Palette^, 256 * SizeOf(TColor32));
+      for I := 0 to Len - 1 do
+      begin
+        SrcIdx := I + Offset;
 
-    DestCanvas.CreateForData(@DestFrames[I]);
+        NewImage(SrcFrames[SrcIdx].IHDR.Width, SrcFrames[SrcIdx].IHDR.Height,
+          DestFormat, DestFrames[I]);
+        if DestFrames[I].Format = ifIndex8 then
+          Move(Images[SrcIdx].Palette^, DestFrames[I].Palette^, 256 * SizeOf(TColor32));
 
-    if (SrcFrames[SrcIdx].fcTL.DisposeOp = DisposeOpPrevious) and (SrcFrames[SrcIdx - 1].fcTL.DisposeOp <> DisposeOpPrevious) then
-    begin
-      // Cache current output buffer so we may return to it later (previous dispose op)
-      CopyRect(DestFrames[I - 1], 0, 0, DestFrames[I - 1].Width, DestFrames[I - 1].Height,
-        PreviousCache, 0, 0);
+        DestCanvas.CreateForData(@DestFrames[I]);
+
+        // The first frame has no previous one to return to
+        if (I > 0) and (SrcFrames[SrcIdx].fcTL.DisposeOp = DisposeOpPrevious) and
+           (SrcFrames[SrcIdx - 1].fcTL.DisposeOp <> DisposeOpPrevious) then
+        begin
+          // Cache current output buffer so we may return to it later (previous dispose op)
+          CopyRect(DestFrames[I - 1], 0, 0, DestFrames[I - 1].Width, DestFrames[I - 1].Height,
+            PreviousCache, 0, 0);
+        end;
+
+        if (I = 0) or (SrcIdx = 0) then
+        begin
+          // Clear whole frame with transparent black color (default for first frame)
+          DestCanvas.FillColor32 := pcClear;
+          DestCanvas.Clear;
+        end
+        else if SrcFrames[SrcIdx - 1].fcTL.DisposeOp = DisposeOpBackground then
+        begin
+          // Restore background color (clear) on previous frame's area and leave previous content outside of it
+          CopyRect(DestFrames[I - 1], 0, 0, DestFrames[I - 1].Width, DestFrames[I - 1].Height,
+            DestFrames[I], 0, 0);
+          DestCanvas.FillColor32 := pcClear;
+          DestCanvas.FillRect(BoundsToRect(Integer(SrcFrames[SrcIdx - 1].fcTL.XOffset), Integer(SrcFrames[SrcIdx - 1].fcTL.YOffset),
+            SrcFrames[SrcIdx - 1].FrameWidth, SrcFrames[SrcIdx - 1].FrameHeight));
+        end
+        else if SrcFrames[SrcIdx - 1].fcTL.DisposeOp = DisposeOpNone then
+        begin
+          // Clone previous frame - no change to output buffer
+          CopyRect(DestFrames[I - 1], 0, 0, DestFrames[I - 1].Width, DestFrames[I - 1].Height,
+            DestFrames[I], 0, 0);
+        end
+        else if SrcFrames[SrcIdx - 1].fcTL.DisposeOp = DisposeOpPrevious then
+        begin
+          // Revert to previous frame (cached, can't just restore DestFrames[I - 2])
+          CopyRect(PreviousCache, 0, 0, PreviousCache.Width, PreviousCache.Height,
+            DestFrames[I], 0, 0);
+        end;
+
+        // Copy pixels or alpha blend them over
+        if SrcFrames[SrcIdx].fcTL.BlendOp = BlendOpSource then
+        begin
+          CopyRect(Images[SrcIdx], 0, 0, Images[SrcIdx].Width, Images[SrcIdx].Height,
+            DestFrames[I], Integer(SrcFrames[SrcIdx].fcTL.XOffset), Integer(SrcFrames[SrcIdx].fcTL.YOffset));
+        end
+        else if SrcFrames[SrcIdx].fcTL.BlendOp = BlendOpOver then
+        begin
+          SrcCanvas.CreateForData(@Images[SrcIdx]);
+          SrcCanvas.DrawAlpha(SrcCanvas.ClipRect, DestCanvas,
+            Integer(SrcFrames[SrcIdx].fcTL.XOffset), Integer(SrcFrames[SrcIdx].fcTL.YOffset));
+        end;
+
+        FreeImage(Images[SrcIdx]);
+      end;
+    except
+      // Frames animated so far (source images are freed by the caller)
+      FreeImagesInArray(DestFrames);
+      raise;
     end;
-
-    if (I = 0) or (SrcIdx = 0) then
-    begin
-      // Clear whole frame with transparent black color (default for first frame)
-      DestCanvas.FillColor32 := pcClear;
-      DestCanvas.Clear;
-    end
-    else if SrcFrames[SrcIdx - 1].fcTL.DisposeOp = DisposeOpBackground then
-    begin
-      // Restore background color (clear) on previous frame's area and leave previous content outside of it
-      CopyRect(DestFrames[I - 1], 0, 0, DestFrames[I - 1].Width, DestFrames[I - 1].Height,
-        DestFrames[I], 0, 0);
-      DestCanvas.FillColor32 := pcClear;
-      DestCanvas.FillRect(BoundsToRect(SrcFrames[SrcIdx - 1].fcTL.XOffset, SrcFrames[SrcIdx - 1].fcTL.YOffset,
-        SrcFrames[SrcIdx - 1].FrameWidth, SrcFrames[SrcIdx - 1].FrameHeight));
-    end
-    else if SrcFrames[SrcIdx - 1].fcTL.DisposeOp = DisposeOpNone then
-    begin
-      // Clone previous frame - no change to output buffer
-      CopyRect(DestFrames[I - 1], 0, 0, DestFrames[I - 1].Width, DestFrames[I - 1].Height,
-        DestFrames[I], 0, 0);
-    end
-    else if SrcFrames[SrcIdx - 1].fcTL.DisposeOp = DisposeOpPrevious then
-    begin
-      // Revert to previous frame (cached, can't just restore DestFrames[I - 2])
-      CopyRect(PreviousCache, 0, 0, PreviousCache.Width, PreviousCache.Height,
-        DestFrames[I], 0, 0);
-    end;
-
-    // Copy pixels or alpha blend them over
-    if SrcFrames[SrcIdx].fcTL.BlendOp = BlendOpSource then
-    begin
-      CopyRect(Images[SrcIdx], 0, 0, Images[SrcIdx].Width, Images[SrcIdx].Height,
-        DestFrames[I], SrcFrames[SrcIdx].fcTL.XOffset, SrcFrames[SrcIdx].fcTL.YOffset);
-    end
-    else if SrcFrames[SrcIdx].fcTL.BlendOp = BlendOpOver then
-    begin
-      SrcCanvas.CreateForData(@Images[SrcIdx]);
-      SrcCanvas.DrawAlpha(SrcCanvas.ClipRect, DestCanvas,
-        SrcFrames[SrcIdx].fcTL.XOffset, SrcFrames[SrcIdx].fcTL.YOffset);
-    end;
-
-    FreeImage(Images[SrcIdx]);
+  finally
+    DestCanvas.Free;
+    SrcCanvas.Free;
+    FreeImage(PreviousCache);
   end;
 
-  DestCanvas.Free;
-  SrcCanvas.Free;
-  FreeImage(PreviousCache);
+  // Default image that is not a part of the animation was not used
+  if Offset = 1 then
+    FreeImage(Images[0]);
 
   // Assign dest frames to final output images
   Images := DestFrames;

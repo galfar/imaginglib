@@ -723,10 +723,11 @@ end;
 
 function TransformGamma(const Pixel: TColorFPRec; R, G, B: Single): TColorFPRec;
 begin
+  // Negative values (floating point images can have them) have no power
   Result.A := Pixel.A;
-  Result.R := Power(Pixel.R, 1.0 / R);
-  Result.G := Power(Pixel.G, 1.0 / G);
-  Result.B := Power(Pixel.B, 1.0 / B);
+  Result.R := Power(MaxFloat(Pixel.R, 0.0), 1.0 / R);
+  Result.G := Power(MaxFloat(Pixel.G, 0.0), 1.0 / G);
+  Result.B := Power(MaxFloat(Pixel.B, 0.0), 1.0 / B);
 end;
 
 function TransformInvert(const Pixel: TColorFPRec; P1, P2, P3: Single): TColorFPRec;
@@ -1250,8 +1251,18 @@ procedure TImagingCanvas.FloodFill(X, Y: Integer; BoundaryFillMode: Boolean);
 var
   Stack: array of TPoint;
   StackPos, Y1: Integer;
-  OldColor: TColor32;
+  OldColor, FillColor, PenColor: TColor32;
   SpanLeft, SpanRight: Boolean;
+
+  { Returns the color as it is read back from a pixel of the image
+    (data format of the image may not be able to store it exactly).}
+  function ColorInImage(Color: TColor32): TColor32;
+  var
+    Native: TColorFPRec; // Large enough for pixel in any format
+  begin
+    SetPixel32Generic(@Native, @FFormatInfo, FPData.Palette, TColor32Rec(Color));
+    Result := GetPixel32Generic(@Native, @FFormatInfo, FPData.Palette).Color;
+  end;
 
   procedure Push(AX, AY: Integer);
   begin
@@ -1287,7 +1298,7 @@ var
   begin
     Color := GetPixel32(AX, AY);
     if BoundaryFillMode then
-      Result := (Color <> FFillColor32) and (Color <> FPenColor32)
+      Result := (Color <> FillColor) and (Color <> PenColor)
     else
       Result := Color = OldColor;
   end;
@@ -1302,6 +1313,14 @@ begin
   StackPos := 0;
 
   OldColor := GetPixel32(X, Y);
+  // Filled pixels are recognized by their color in the image
+  FillColor := ColorInImage(FFillColor32);
+  PenColor := ColorInImage(FPenColor32);
+
+  // Area that already has the fill color: nothing to do, and filled pixels
+  // could not be told from the ones to fill (endless filling)
+  if not BoundaryFillMode and (OldColor = FillColor) then
+    Exit;
 
   Push(X, Y);
 
@@ -1798,7 +1817,8 @@ procedure TFastARGB32Canvas.AlphaBlendPixels(SrcPix, DestPix: PColor32Rec);
 var
   SrcAlpha, DestAlpha, FinalAlpha: Integer;
 begin
-  FinalAlpha := SrcPix.A + 1 + (DestPix.A * (256 - SrcPix.A)) shr 8;
+  // Transparent source leaves alpha of destination as it is, opaque one sets 255
+  FinalAlpha := SrcPix.A + (DestPix.A * (256 - SrcPix.A)) shr 8;
   if FinalAlpha = 0 then
     SrcAlpha := 0
   else

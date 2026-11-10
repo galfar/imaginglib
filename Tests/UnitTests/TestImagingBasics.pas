@@ -69,6 +69,9 @@ type
     procedure TestBmpRleDeltaOutOfImage;
     procedure TestDdsLinearSizeLargerThanImage;
     procedure TestGifTruncatedInExtension;
+    procedure TestPngInterlacedPaddingBits;
+    procedure TestPngChunksWithoutImage;
+    procedure TestPngInvalidHeader;
   end;
 
   TTestPixelAccess = class(TImagingTestCase)
@@ -949,16 +952,16 @@ begin
   NewImage(16, 1, ifGray8, Dst);
   try
     for I := 0 to 15 do
-      PByteArray(Src.Bits)[I] := I + 1;
+      PBuffer(Src.Bits)[I] := I + 1;
     // Source columns -5..4 go to destination columns -2..7: only source
     // columns 0..4 exist and they belong to destination columns 3..7
     CopyRect(Src, -5, 0, 10, 1, Dst, -2, 0);
     for I := 0 to 15 do
     begin
       if (I >= 3) and (I <= 7) then
-        CheckEquals(I - 3 + 1, PByteArray(Dst.Bits)[I], Format('Column %d', [I]))
+        CheckEquals(I - 3 + 1, PBuffer(Dst.Bits)[I], Format('Column %d', [I]))
       else
-        CheckEquals(0, PByteArray(Dst.Bits)[I], Format('Column %d', [I]));
+        CheckEquals(0, PBuffer(Dst.Bits)[I], Format('Column %d', [I]));
     end;
   finally
     FreeImage(Src);
@@ -1030,12 +1033,12 @@ begin
     // There is no alpha in the pixels: red gets the opaque alpha, bytes of
     // the neighbour pixels are not touched
     SwapChannels(Image, ChannelRed, ChannelAlpha);
-    CheckEquals(1, PByteArray(Image.Bits)[0], 'B0');
-    CheckEquals(2, PByteArray(Image.Bits)[1], 'G0');
-    CheckEquals(255, PByteArray(Image.Bits)[2], 'R0');
-    CheckEquals(4, PByteArray(Image.Bits)[3], 'B1');
-    CheckEquals(5, PByteArray(Image.Bits)[4], 'G1');
-    CheckEquals(255, PByteArray(Image.Bits)[5], 'R1');
+    CheckEquals(1, PBuffer(Image.Bits)[0], 'B0');
+    CheckEquals(2, PBuffer(Image.Bits)[1], 'G0');
+    CheckEquals(255, PBuffer(Image.Bits)[2], 'R0');
+    CheckEquals(4, PBuffer(Image.Bits)[3], 'B1');
+    CheckEquals(5, PBuffer(Image.Bits)[4], 'G1');
+    CheckEquals(255, PBuffer(Image.Bits)[5], 'R1');
   finally
     FreeImage(Image);
   end;
@@ -1098,8 +1101,8 @@ begin
     ResizeImageToFit(Image, 100, 100, rfBilinear, Fitted);
     CheckEquals(100, Fitted.Width, 'Width');
     CheckEquals(1, Fitted.Height, 'Height');
-    CheckEquals(200, PByteArray(Fitted.Bits)[0], 'First pixel');
-    CheckEquals(200, PByteArray(Fitted.Bits)[99], 'Last pixel');
+    CheckEquals(200, PBuffer(Fitted.Bits)[0], 'First pixel');
+    CheckEquals(200, PBuffer(Fitted.Bits)[99], 'Last pixel');
   finally
     FreeImage(Image);
     FreeImage(Fitted);
@@ -1149,10 +1152,10 @@ begin
   Check(LoadsFromData('P5'#10'4 1'#10'255'#10#32#10#13#9, Image), 'Loaded');
   try
     CheckEquals(4, Image.Width, 'Width');
-    CheckEquals(32, PByteArray(Image.Bits)[0], 'Pixel 0');
-    CheckEquals(10, PByteArray(Image.Bits)[1], 'Pixel 1');
-    CheckEquals(13, PByteArray(Image.Bits)[2], 'Pixel 2');
-    CheckEquals(9, PByteArray(Image.Bits)[3], 'Pixel 3');
+    CheckEquals(32, PBuffer(Image.Bits)[0], 'Pixel 0');
+    CheckEquals(10, PBuffer(Image.Bits)[1], 'Pixel 1');
+    CheckEquals(13, PBuffer(Image.Bits)[2], 'Pixel 2');
+    CheckEquals(9, PBuffer(Image.Bits)[3], 'Pixel 3');
   finally
     FreeImage(Image);
   end;
@@ -1165,8 +1168,8 @@ begin
   Check(LoadsFromData('P5 3 1 255'#10#1#2#3, Image), 'Loaded');
   try
     CheckEquals(3, Image.Width, 'Width');
-    CheckEquals(1, PByteArray(Image.Bits)[0], 'Pixel 0');
-    CheckEquals(3, PByteArray(Image.Bits)[2], 'Pixel 2');
+    CheckEquals(1, PBuffer(Image.Bits)[0], 'Pixel 0');
+    CheckEquals(3, PBuffer(Image.Bits)[2], 'Pixel 2');
   finally
     FreeImage(Image);
   end;
@@ -1174,10 +1177,10 @@ begin
   // Text bitmap with digits that are not separated
   Check(LoadsFromData('P1'#10'4 1'#10'0110'#10, Image), 'Bitmap loaded');
   try
-    CheckEquals(255, PByteArray(Image.Bits)[0], 'Bit 0');
-    CheckEquals(0, PByteArray(Image.Bits)[1], 'Bit 1');
-    CheckEquals(0, PByteArray(Image.Bits)[2], 'Bit 2');
-    CheckEquals(255, PByteArray(Image.Bits)[3], 'Bit 3');
+    CheckEquals(255, PBuffer(Image.Bits)[0], 'Bit 0');
+    CheckEquals(0, PBuffer(Image.Bits)[1], 'Bit 1');
+    CheckEquals(0, PBuffer(Image.Bits)[2], 'Bit 2');
+    CheckEquals(255, PBuffer(Image.Bits)[3], 'Bit 3');
   finally
     FreeImage(Image);
   end;
@@ -1194,9 +1197,9 @@ begin
 
   Check(LoadsFromData('P2'#10'3 1'#10'255'#10'1 999', Image), 'Ends in pixels');
   try
-    CheckEquals(1, PByteArray(Image.Bits)[0], 'Pixel 0');
-    CheckEquals(255, PByteArray(Image.Bits)[1], 'Pixel 1 over max');
-    CheckEquals(0, PByteArray(Image.Bits)[2], 'Missing pixel');
+    CheckEquals(1, PBuffer(Image.Bits)[0], 'Pixel 0');
+    CheckEquals(255, PBuffer(Image.Bits)[1], 'Pixel 1 over max');
+    CheckEquals(0, PBuffer(Image.Bits)[2], 'Missing pixel');
   finally
     FreeImage(Image);
   end;
@@ -1224,7 +1227,7 @@ begin
     CheckEquals(4, Image.Width, 'Width');
     CheckEquals(2, Image.Height, 'Height');
     for I := 0 to 7 do
-      CheckEquals(0, PByteArray(Image.Bits)[I], Format('Pixel %d', [I]));
+      CheckEquals(0, PBuffer(Image.Bits)[I], Format('Pixel %d', [I]));
   finally
     FreeImage(Image);
   end;
@@ -1242,7 +1245,7 @@ begin
   Stream := TMemoryStream.Create;
   try
     for I := 0 to 63 do
-      PByteArray(Image.Bits)[I] := I;
+      PBuffer(Image.Bits)[I] := I;
     Check(SaveImageToStream('dds', Stream, Image), 'Saved');
     SetString(Data, PAnsiChar(Stream.Memory), Stream.Size);
     // Linear size (at offset 20) says there is much more data than the
@@ -1286,6 +1289,74 @@ begin
   Check(not LoadsFromData(Header + #$21#$77#2'ab'#0, Image), 'Unknown extension');
   // Introducer of extension is the last byte
   Check(not LoadsFromData(Header + #$21, Image), 'Introducer');
+end;
+
+function HexToData(const Hex: string): AnsiString;
+var
+  I: Integer;
+begin
+  SetLength(Result, Length(Hex) div 2);
+  for I := 1 to Length(Result) do
+    Result[I] := AnsiChar(StrToInt('$' + Copy(Hex, I * 2 - 1, 2)));
+end;
+
+procedure TTestReviewFixes.TestPngInterlacedPaddingBits;
+var
+  Image: TImageData;
+begin
+  // 1x2 interlaced 1-bit image, all bits of its data bytes are set: pixels
+  // of the padding bits were written after the end of the row (and image)
+  Check(LoadsFromData(HexToData('89504e470d0a1a0a0000000d4948445200000001000000020100000001c6fdbb1c' +
+    '0000000c49444154789c63f8cff01f00040001ff220a3af00000000049454e44ae426082'), Image), 'Loaded');
+  try
+    CheckEquals(1, Image.Width, 'Width');
+    CheckEquals(2, Image.Height, 'Height');
+    CheckEquals(Ord(ifBinary), Ord(Image.Format), 'Format');
+    CheckEquals($80, PBuffer(Image.Bits)[0], 'Row 0');
+    CheckEquals($80, PBuffer(Image.Bits)[1], 'Row 1');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestPngChunksWithoutImage;
+var
+  Image: TImageData;
+begin
+  // bKGD and pHYs chunks before the image header
+  Check(LoadsFromData(HexToData('89504e470d0a1a0a00000002624b47440000aa8d2332000000097048597300000001' +
+    '00000001013822f4400000000d4948445200000002000000010800000000d1492056' +
+    '0000000b49444154789c63606503000013000c0e96b8a70000000049454e44ae426082'), Image), 'Chunks before header');
+  try
+    CheckEquals(2, Image.Width, 'Width');
+    CheckEquals(5, PBuffer(Image.Bits)[0], 'Pixel 0');
+    CheckEquals(6, PBuffer(Image.Bits)[1], 'Pixel 1');
+  finally
+    FreeImage(Image);
+  end;
+
+  // Zero pixels per meter in pHYs chunk: no resolution, not a division by zero
+  Check(LoadsFromData(HexToData('89504e470d0a1a0a0000000d4948445200000002000000010800000000d1492056' +
+    '0000000970485973000000000000000001ea6516a4' +
+    '0000000b49444154789c63606503000013000c0e96b8a70000000049454e44ae426082'), Image), 'Zero resolution');
+  try
+    CheckEquals(2, Image.Width, 'Width');
+    Check(not GlobalMetadata.HasMetaItem(SMetaPhysicalPixelSizeX), 'No pixel size');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestReviewFixes.TestPngInvalidHeader;
+var
+  Image: TImageData;
+begin
+  // Header chunk shorter than the header
+  Check(not LoadsFromData(HexToData('89504e470d0a1a0a0000000449484452000000018509d9f6' +
+    '0000000049454e44ae426082'), Image), 'Short header');
+  // RGB image with 4 bits per sample does not exist
+  Check(not LoadsFromData(HexToData('89504e470d0a1a0a0000000d4948445200000002000000010402000000beb005dc' +
+    '0000000b49444154789c63606503000013000c0e96b8a70000000049454e44ae426082'), Image), 'Color type and depth');
 end;
 
 initialization

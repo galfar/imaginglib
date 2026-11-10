@@ -28,6 +28,20 @@ type
     procedure TestSpecialFormatsAreRefused;
   end;
 
+  { Images of TMultiImage assigned and added to themselves.}
+  TTestMultiImageSelf = class(TImagingTestCase)
+  private
+    FImage: TMultiImage;
+  protected
+    procedure SetUp; override;
+    procedure TearDown; override;
+  published
+    procedure TestAssignSelf;
+    procedure TestAddImagesOfSelf;
+    procedure TestSetImageGotFromSelf;
+    procedure TestImageOutOfRange;
+  end;
+
   { Conversion of an image into another one (TBaseImage.ConvertInto).}
   TTestImageConvertInto = class(TImagingTestCase)
   private
@@ -294,7 +308,71 @@ begin
   end;
 end;
 
+{ TTestMultiImageSelf }
+
+procedure TTestMultiImageSelf.SetUp;
+var
+  I: Integer;
+begin
+  FImage := TMultiImage.CreateFromParams(4, 2, ifGray8, 3);
+  for I := 0 to 2 do
+    FillChar(FImage.Images[I].Bits^, 8, I + 1);
+end;
+
+procedure TTestMultiImageSelf.TearDown;
+begin
+  FreeAndNil(FImage);
+end;
+
+procedure TTestMultiImageSelf.TestAssignSelf;
+begin
+  FImage.Assign(FImage);
+  CheckEquals(3, FImage.ImageCount, 'Count');
+  Check(FImage.AllImagesValid, 'Valid');
+  CheckEquals(3, PBuffer(FImage.Images[2].Bits)[0], 'Pixels');
+end;
+
+procedure TTestMultiImageSelf.TestAddImagesOfSelf;
+var
+  I: Integer;
+begin
+  FImage.AddImages(FImage);
+  CheckEquals(6, FImage.ImageCount, 'Count');
+  Check(FImage.AllImagesValid, 'Valid');
+  for I := 0 to 5 do
+    CheckEquals(I mod 3 + 1, PBuffer(FImage.Images[I].Bits)[7], Format('Pixels of %d', [I]));
+  Check(FImage.Images[0].Bits <> FImage.Images[3].Bits, 'Clones');
+
+  FImage.InsertImages(1, FImage);
+  CheckEquals(12, FImage.ImageCount, 'Count after insert');
+  Check(FImage.AllImagesValid, 'Valid after insert');
+  CheckEquals(1, PBuffer(FImage.Images[1].Bits)[0], 'Inserted image');
+end;
+
+procedure TTestMultiImageSelf.TestSetImageGotFromSelf;
+var
+  Bits: Pointer;
+begin
+  // Memory checks of the test build tell when the old bits are left allocated
+  Bits := FImage.Images[1].Bits;
+  FImage.Images[1] := FImage.Images[1];
+  Check(FImage.Images[1].Bits = Bits, 'Image is kept');
+  CheckEquals(2, PBuffer(FImage.Images[1].Bits)[0], 'Pixels');
+end;
+
+procedure TTestMultiImageSelf.TestImageOutOfRange;
+var
+  Data: TImageData;
+begin
+  FillChar(Data, SizeOf(Data), $AA);
+  Data := FImage.Images[3];
+  Check(Data.Bits = nil, 'Bits');
+  CheckEquals(0, Data.Width, 'Width');
+  Check(not TestImage(Data), 'Not valid');
+end;
+
 initialization
+  RegisterImagingTest(TTestMultiImageSelf);
   RegisterImagingTest(TTestImagePixelAccess);
   RegisterImagingTest(TTestImageConvertInto);
 end.

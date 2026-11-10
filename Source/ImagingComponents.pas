@@ -1685,8 +1685,11 @@ begin
   begin
     SetLength(Arr, 1);
     AssignToImageData(Arr[0]);
-    TMultiImage(Dest).CreateFromArray(Arr);
-    Imaging.FreeImagesInArray(Arr);
+    try
+      TMultiImage(Dest).AssignFromArray(Arr);
+    finally
+      Imaging.FreeImagesInArray(Arr);
+    end;
   end
   else
     inherited AssignTo(Dest);
@@ -1796,9 +1799,13 @@ end;
 procedure TImagingBitmap.SaveToStream(Stream: TStream);
 begin
   Imaging.PushOptions;
-  Imaging.SetOption(ImagingBitmapRLE, Ord(FUseRLE));
-  inherited SaveToStream(Stream);
-  Imaging.PopOptions;
+  try
+    Imaging.SetOption(ImagingBitmapRLE, Ord(FUseRLE));
+    inherited SaveToStream(Stream);
+  finally
+    // Options are restored also when the saving fails
+    Imaging.PopOptions;
+  end;
 end;
 {$ENDIF}
 
@@ -1825,10 +1832,14 @@ end;
 procedure TImagingJpeg.SaveToStream(Stream: TStream);
 begin
   Imaging.PushOptions;
-  Imaging.SetOption(ImagingJpegQuality, FQuality);
-  Imaging.SetOption(ImagingJpegProgressive, Ord(FProgressive));
-  inherited SaveToStream(Stream);
-  Imaging.PopOptions;
+  try
+    Imaging.SetOption(ImagingJpegQuality, FQuality);
+    Imaging.SetOption(ImagingJpegProgressive, Ord(FProgressive));
+    inherited SaveToStream(Stream);
+  finally
+    // Options are restored also when the saving fails
+    Imaging.PopOptions;
+  end;
 end;
 
 {$ENDIF}
@@ -1849,10 +1860,14 @@ end;
 procedure TImagingPNG.SaveToStream(Stream: TStream);
 begin
   Imaging.PushOptions;
-  Imaging.SetOption(ImagingPNGPreFilter, FPreFilter);
-  Imaging.SetOption(ImagingPNGCompressLevel, FCompressLevel);
-  inherited SaveToStream(Stream);
-  Imaging.PopOptions;
+  try
+    Imaging.SetOption(ImagingPNGPreFilter, FPreFilter);
+    Imaging.SetOption(ImagingPNGCompressLevel, FCompressLevel);
+    inherited SaveToStream(Stream);
+  finally
+    // Options are restored also when the saving fails
+    Imaging.PopOptions;
+  end;
 end;
 {$ENDIF}
 
@@ -1878,9 +1893,13 @@ end;
 procedure TImagingTarga.SaveToStream(Stream: TStream);
 begin
   Imaging.PushOptions;
-  Imaging.SetOption(ImagingTargaRLE, Ord(FUseRLE));
-  inherited SaveToStream(Stream);
-  Imaging.PopOptions;
+  try
+    Imaging.SetOption(ImagingTargaRLE, Ord(FUseRLE));
+    inherited SaveToStream(Stream);
+  finally
+    // Options are restored also when the saving fails
+    Imaging.PopOptions;
+  end;
 end;
 {$ENDIF}
 
@@ -1905,12 +1924,16 @@ begin
     dcDXT5: FSavingFormat := ifDXT5;
   end;
   Imaging.PushOptions;
-  Imaging.SetOption(ImagingDDSSaveCubeMap, Ord(False));
-  Imaging.SetOption(ImagingDDSSaveVolume, Ord(False));
-  Imaging.SetOption(ImagingDDSSaveMipMapCount, 1);
-  Imaging.SetOption(ImagingDDSSaveDepth, 1);
-  inherited SaveToStream(Stream);
-  Imaging.PopOptions;
+  try
+    Imaging.SetOption(ImagingDDSSaveCubeMap, Ord(False));
+    Imaging.SetOption(ImagingDDSSaveVolume, Ord(False));
+    Imaging.SetOption(ImagingDDSSaveMipMapCount, 1);
+    Imaging.SetOption(ImagingDDSSaveDepth, 1);
+    inherited SaveToStream(Stream);
+  finally
+    // Options are restored also when the saving fails
+    Imaging.PopOptions;
+  end;
 end;
 {$ENDIF}
 
@@ -1941,14 +1964,18 @@ end;
 procedure TImagingMNG.SaveToStream(Stream: TStream);
 begin
   Imaging.PushOptions;
-  Imaging.SetOption(ImagingMNGLossyCompression, Ord(FLossyCompression));
-  Imaging.SetOption(ImagingMNGLossyAlpha, Ord(FLossyAlpha));
-  Imaging.SetOption(ImagingMNGPreFilter, FPreFilter);
-  Imaging.SetOption(ImagingMNGCompressLevel, FCompressLevel);
-  Imaging.SetOption(ImagingMNGQuality, FQuality);
-  Imaging.SetOption(ImagingMNGProgressive, Ord(FProgressive));
-  inherited SaveToStream(Stream);
-  Imaging.PopOptions;
+  try
+    Imaging.SetOption(ImagingMNGLossyCompression, Ord(FLossyCompression));
+    Imaging.SetOption(ImagingMNGLossyAlpha, Ord(FLossyAlpha));
+    Imaging.SetOption(ImagingMNGPreFilter, FPreFilter);
+    Imaging.SetOption(ImagingMNGCompressLevel, FCompressLevel);
+    Imaging.SetOption(ImagingMNGQuality, FQuality);
+    Imaging.SetOption(ImagingMNGProgressive, Ord(FProgressive));
+    inherited SaveToStream(Stream);
+  finally
+    // Options are restored also when the saving fails
+    Imaging.PopOptions;
+  end;
 end;
 {$ENDIF}
 
@@ -1971,13 +1998,17 @@ end;
 procedure TImagingJNG.SaveToStream(Stream: TStream);
 begin
   Imaging.PushOptions;
-  Imaging.SetOption(ImagingJNGLossyALpha, Ord(FLossyAlpha));
-  Imaging.SetOption(ImagingJNGAlphaPreFilter, FAlphaPreFilter);
-  Imaging.SetOption(ImagingJNGAlphaCompressLevel, FAlphaCompressLevel);
-  Imaging.SetOption(ImagingJNGQuality, FQuality);
-  Imaging.SetOption(ImagingJNGProgressive, Ord(FProgressive));
-  inherited SaveToStream(Stream);
-  Imaging.PopOptions;
+  try
+    Imaging.SetOption(ImagingJNGLossyALpha, Ord(FLossyAlpha));
+    Imaging.SetOption(ImagingJNGAlphaPreFilter, FAlphaPreFilter);
+    Imaging.SetOption(ImagingJNGAlphaCompressLevel, FAlphaCompressLevel);
+    Imaging.SetOption(ImagingJNGQuality, FQuality);
+    Imaging.SetOption(ImagingJNGProgressive, Ord(FProgressive));
+    inherited SaveToStream(Stream);
+  finally
+    // Options are restored also when the saving fails
+    Imaging.PopOptions;
+  end;
 end;
 {$ENDIF}
 

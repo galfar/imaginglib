@@ -37,6 +37,9 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
+    procedure TestFloodFillWithColorOfArea;
+    procedure TestFloodFillInexactColor;
+    procedure TestDrawAlphaKeepsAlpha;
     procedure TestEllipseIsClipped;
     procedure TestEllipseOutsideOfCanvas;
     procedure TestLargeEllipse;
@@ -612,6 +615,69 @@ begin
         CheckDraw(Formats[I], Filters[J], Colors[K], 200, 150, 130, 97);
         CheckDraw(Formats[I], Filters[J], Colors[K], 200, 150, 77, 61);
       end;
+end;
+
+procedure TTestCanvases.TestFloodFillWithColorOfArea;
+begin
+  // Filling of area that already has the fill color never ended
+  NewCanvas(8, 8, ifA8R8G8B8);
+  FCanvas.FillColor32 := $FF102030;
+  FCanvas.Clear;
+  FCanvas.FloodFill(3, 3);
+  CheckEqualsColor32($FF102030, GetColor(0, 0), 'Same color');
+
+  FCanvas.FillColor32 := $FF405060;
+  FCanvas.FloodFill(3, 3);
+  CheckEqualsColor32($FF405060, GetColor(0, 0), 'Corner');
+  CheckEqualsColor32($FF405060, GetColor(7, 7), 'Other corner');
+end;
+
+procedure TTestCanvases.TestFloodFillInexactColor;
+begin
+  // The fill color cannot be stored exactly in the image (gray of the color
+  // is stored): filled pixels are still recognized
+  NewCanvas(8, 8, ifGray8);
+  FCanvas.FillColor32 := $FF646564;
+  FCanvas.FloodFill(3, 3);
+  CheckEquals(101, GetByte(0, 0), 'Corner');
+  CheckEquals(101, GetByte(7, 7), 'Other corner');
+  // And again with the color the area has now
+  FCanvas.FloodFill(3, 3);
+  CheckEquals(101, GetByte(4, 4), 'Filled twice');
+
+  // Boundary fill stops at pixels of pen color
+  FCanvas.PenColor32 := $FFFFFFFF;
+  FCanvas.VertLine(4, 0, 8);
+  FCanvas.FillColor32 := $FF0A0A0A;
+  FCanvas.FloodFill(1, 1, True);
+  CheckEquals(10, GetByte(0, 7), 'Left of the line');
+  CheckEquals(255, GetByte(4, 3), 'Line');
+  CheckEquals(101, GetByte(6, 3), 'Right of the line');
+end;
+
+procedure TTestCanvases.TestDrawAlphaKeepsAlpha;
+var
+  Dest: TImageData;
+  DestCanvas: TImagingCanvas;
+begin
+  NewCanvas(2, 1, ifA8R8G8B8);
+  InitImage(Dest);
+  NewImage(2, 1, ifA8R8G8B8, Dest);
+  DestCanvas := TFastARGB32Canvas.CreateForData(@Dest);
+  try
+    // Transparent pixel over a half transparent one, opaque over opaque
+    PColor32RecBuffer(FImage.Bits)[0].Color := $00FFFFFF;
+    PColor32RecBuffer(FImage.Bits)[1].Color := $FF0000FF;
+    PColor32RecBuffer(Dest.Bits)[0].Color := $64102030;
+    PColor32RecBuffer(Dest.Bits)[1].Color := $FFFF0000;
+
+    FCanvas.DrawAlpha(Rect(0, 0, 2, 1), DestCanvas, 0, 0);
+    CheckEqualsColor32($64102030, PColor32RecBuffer(Dest.Bits)[0].Color, 'Transparent source');
+    CheckEqualsColor32($FF0000FF, PColor32RecBuffer(Dest.Bits)[1].Color, 'Opaque source');
+  finally
+    DestCanvas.Free;
+    FreeImage(Dest);
+  end;
 end;
 
 initialization
