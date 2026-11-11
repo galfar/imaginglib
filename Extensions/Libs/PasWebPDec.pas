@@ -85,7 +85,10 @@ function PasWebPGetInfo(Data: PByte; DataSize: NativeUInt;
 function PasWebPDecodeInto(Data: PByte; DataSize: NativeUInt; Dest: PByte;
   DestStride: NativeInt; Width, Height: Integer; WithAlpha: Boolean): Boolean;
 
-implementation
+{ What follows is not for users of the decoder: tables of the VP8 format and
+  the routines that make pixels of a macroblock, shared with the lossy
+  encoder (PasWebPLossy), which must make the same pixels as the decoder. }
+
 {$POINTERMATH ON}
 
 // ============================================================
@@ -519,6 +522,24 @@ const
 
   // Alphabet sizes for the 5 Huffman code groups in VP8L
   kAlphabetSize: array[0..4] of Integer = (280, 256, 256, 256, 40);
+
+// Intra prediction of a 16x16 luma and 8x8 chroma block to Dst from the row
+// above (TopCtx) and the column to the left (LeftCtx); the top left pixel is
+// taken from Dst[-Stride - 1]. Missing neighbors are 127 (top) and 129 (left).
+procedure VP8PredLuma16(Mode: Integer; Dst: PByte; TopCtx, LeftCtx: PByte;
+  HasTop, HasLeft: Boolean; Stride: Integer);
+procedure VP8PredChroma8(Mode: Integer; Dst: PByte; TopCtx, LeftCtx: PByte;
+  HasTop, HasLeft: Boolean; Stride: Integer);
+// Intra prediction of a 4x4 luma block: Top has 8 pixels (above and above
+// right), Left 4 pixels, TL is the top left pixel.
+procedure VP8PredLuma4(Mode: Integer; Dst: PByte; Top, Left: PByte;
+  TL: Byte; Stride: Integer);
+// Inverse DCT of a 4x4 block added to Pred, stored to Dst (can be the same)
+procedure VP8TransformOne(C: PInt16; Pred: PByte; Dst: PByte; Bps: Integer);
+// Inverse Walsh-Hadamard transform of the 16 DC coefficients of a macroblock
+procedure VP8TransformWHT(DC: PInt16; Out16: PInt16);
+
+implementation
 
 // ============================================================
 // RECORD TYPES  (after consts so sizes are known)
@@ -1248,8 +1269,6 @@ begin
   Result := n;
 end;
 
-// Forward declaration needed: VP8TransformWHT is defined in the IDCT section below
-procedure VP8TransformWHT(DC: PInt16; Out16: PInt16); forward;
 
 // Parse residuals for one macroblock. Matches C ParseResiduals exactly.
 // WHT for I16x16 is applied HERE and DCs injected into Coeffs[n*16+0].
