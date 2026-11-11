@@ -16,7 +16,10 @@
   from 37x29 pixel crops of Demos/Data images, expected CRC32 of the pixels
   is of what dwebp 1.3.2 (libwebp) decodes from them.
 
-  Lossless encoder: what it writes must decode to the same pixels.}
+  Lossless encoder: what it writes must decode to the same pixels.
+
+  Lossy encoder: what it writes must decode (to the same pixels by libwebp
+  where it is found), alpha must be exact, colors close to the source.}
 unit TestImagingWebP;
 
 {$I ImagingOptions.inc}
@@ -36,7 +39,7 @@ interface
 uses
   SysUtils, Classes, ImagingTypes, Imaging, ImagingUtility,
 {$IFDEF TEST_PASWEBP}
-  PasWebPDec, PasWebPLossless, ImagingLibWebP, ImagingExtFileFormats,
+  PasWebPDec, PasWebPLossless, PasWebPLossy, ImagingLibWebP, ImagingExtFileFormats,
 {$ENDIF}
 {$IFDEF TEST_PASWEBP_WITH_LIBWEBP}
   LibWebPDynLib,
@@ -78,6 +81,27 @@ type
     procedure TestWidestImage;
     procedure TestAlphaPlane;
     procedure TestSizeOfDemoImages;
+    procedure TestImagingSaveLoad;
+    procedure TestDecodedByLibWebP;
+  end;
+
+  TTestWebPLossy = class(TImagingTestCase)
+  private
+    { Encodes the pixels, decodes the file, checks size of the image and
+      that alpha is the same. Returns PSNR of the color channels of visible
+      pixels in dB and the size of the file. }
+    function EncodeAndDecode(const Name: string; const Pixels: TDynByteArray;
+      Width, Height: Integer; WithAlpha: Boolean; Quality, Effort: Integer;
+      out FileSize: Integer): Double;
+  published
+    procedure TestSizes;
+    procedure TestQualitiesAndEfforts;
+    procedure TestQualityOrder;
+    procedure TestOpaqueAlphaIsNotStored;
+    procedure TestInvisiblePixels;
+    procedure TestWrongParameters;
+    procedure TestWidestImage;
+    procedure TestDemoPhoto;
     procedure TestImagingSaveLoad;
     procedure TestDecodedByLibWebP;
   end;
@@ -679,6 +703,11 @@ begin
 end;
 {$ENDIF}
 
+const
+  // Tigers.jpg by the lossy encoder at quality 75: now 16 520 bytes, 38.4 dB
+  DemoPhotoMaxSize = 18000;
+  DemoPhotoMinPsnr: Double = 37.5;
+
 { TTestWebPLossless }
 
 type
@@ -686,7 +715,8 @@ type
     tcPhoto,     // smooth gradients with some texture, as photographs have
     tcDrawing,   // flat areas, lines and a repeated pattern
     tcNoise,     // every pixel different
-    tcFlat);     // one color
+    tcFlat,      // one color
+    tcSmooth);   // slow changes of all channels, a little texture
 
 { Deterministic test images: B, G, R, A bytes. Alpha is 255 unless
   WithAlpha, then it changes over the image. }
@@ -742,6 +772,13 @@ begin
           begin
             R := Next; G := Next; B := Next;
             if WithAlpha then A := Next;
+          end;
+        tcSmooth:
+          begin
+            R := 40 + X * 150 div Width + (Next and 1);
+            G := 60 + Y * 120 div Height + (Next and 3);
+            B := 90 + Abs((X + Y) mod 160 - 80);
+            if WithAlpha then A := 255 - Y * 200 div Height;
           end;
       else
         R := 17; G := 130; B := 201;
@@ -1160,9 +1197,368 @@ begin
 end;
 {$ENDIF}
 
+{ TTestWebPLossy }
+
+function TTestWebPLossy.EncodeAndDecode(const Name: string; const Pixels: TDynByteArray;
+  Width, Height: Integer; WithAlpha: Boolean; Quality, Effort: Integer;
+  out FileSize: Integer): Double;
+const
+  MaxPsnr: Double = 99.0;
+  Peak: Double = 255.0 * 255.0;
+var
+  Data: TPasWebPBytes;
+  Decoded: TDynByteArray;
+  W, H, Bpp, I, C, D, Count: Integer;
+  Sum: Double;
+  Msg: string;
+begin
+  Msg := Format('%s %dx%d, alpha %d, quality %d, effort %d: ',
+                [Name, Width, Height, Ord(WithAlpha), Quality, Effort]);
+  if WithAlpha then Bpp := 4 else Bpp := 3;
+
+  CheckTrue(PasWebPEncodeLossy(Pointer(Pixels), Width * Bpp, Width, Height, WithAlpha,
+                               Quality, Effort, Data), Msg + 'encoding');
+  FileSize := Length(Data);
+  CheckTrue(FileSize > 20, Msg + 'encoded data');
+  CheckEquals(0, FileSize and 1, Msg + 'even size of the file');
+  CheckEquals(FileSize - 8, Integer(Data[4]) or (Integer(Data[5]) shl 8) or (Integer(Data[6]) shl 16) or
+                            (Integer(Data[7]) shl 24), Msg + 'size in RIFF header');
+
+  CheckTrue(PasWebPGetInfo(Pointer(Data), Length(Data), W, H), Msg + 'PasWebPGetInfo');
+  CheckEquals(Width, W, Msg + 'width');
+  CheckEquals(Height, H, Msg + 'height');
+  Decoded := nil;
+  SetLength(Decoded, Length(Pixels));
+  CheckTrue(PasWebPDecodeInto(Pointer(Data), Length(Data), Pointer(Decoded), Width * Bpp,
+                              Width, Height, WithAlpha), Msg + 'decoding');
+
+  Sum := 0;
+  Count := 0;
+
+  for I := 0 to Width * Height - 1 do
+  begin
+    if WithAlpha then
+    begin
+      if Decoded[I * 4 + 3] <> Pixels[I * 4 + 3] then
+        Fail(Format('%salpha of pixel %d is %d, was %d', [Msg, I, Decoded[I * 4 + 3], Pixels[I * 4 + 3]]));
+      // Colors of invisible pixels are not kept
+      if Pixels[I * 4 + 3] = 0 then
+        Continue;
+    end;
+
+    for C := 0 to 2 do
+    begin
+      D := Integer(Decoded[I * Bpp + C]) - Integer(Pixels[I * Bpp + C]);
+      Sum := Sum + D * D;
+    end;
+    Inc(Count, 3);
+  end;
+
+  if (Sum = 0) or (Count = 0) then
+    Result := MaxPsnr
+  else
+    Result := 10 * Ln(Peak * Count / Sum) / Ln(10);
+end;
+
+procedure TTestWebPLossy.TestSizes;
+const
+  Sizes: array[0..10, 0..1] of Integer = ((1, 1), (2, 1), (1, 2), (1, 9), (9, 1), (15, 17),
+    (16, 16), (17, 15), (33, 17), (48, 32), (100, 75));
+var
+  I, FileSize: Integer;
+  Content: TTestContent;
+  WithAlpha: Boolean;
+begin
+  // Around the size of macroblocks, single rows and columns
+  for I := Low(Sizes) to High(Sizes) do
+    for Content := Low(TTestContent) to High(TTestContent) do
+      for WithAlpha := False to True do
+        EncodeAndDecode('content ' + IntToStr(Ord(Content)),
+                        MakePixels(Content, Sizes[I, 0], Sizes[I, 1], WithAlpha),
+                        Sizes[I, 0], Sizes[I, 1], WithAlpha, 75, PasWebPDefaultEffort, FileSize);
+end;
+
+procedure TTestWebPLossy.TestQualitiesAndEfforts;
+const
+  Qualities: array[0..5] of Integer = (-5, 0, 30, 75, 100, 130);
+var
+  Q, Effort, FileSize: Integer;
+  Content: TTestContent;
+  WithAlpha: Boolean;
+  Psnr: Double;
+begin
+  // Values outside of the ranges are taken as the nearest ones
+  for Q := Low(Qualities) to High(Qualities) do
+    for Effort := PasWebPMinEffort - 1 to PasWebPMaxEffort + 1 do
+      for Content := Low(TTestContent) to High(TTestContent) do
+        for WithAlpha := False to True do
+        begin
+          Psnr := EncodeAndDecode('content ' + IntToStr(Ord(Content)),
+                                  MakePixels(Content, 70, 45, WithAlpha), 70, 45, WithAlpha,
+                                  Qualities[Q], Effort, FileSize);
+          // Flat image is easy at any quality but the lowest ones
+          if (Content = tcFlat) and (Qualities[Q] >= 30) then
+            CheckTrue(Psnr > 40, Format('Flat image at quality %d, effort %d: PSNR %.1f dB',
+                                        [Qualities[Q], Effort, Psnr]));
+        end;
+end;
+
+procedure TTestWebPLossy.TestQualityOrder;
+const
+  Qualities: array[0..4] of Integer = (10, 40, 70, 90, 100);
+  // Measured 38.3, 41.0, 42.3, 44.7 and 46.3 dB
+  MinPsnr: array[0..4] of Double = (36.5, 39.5, 41.0, 43.5, 45.0);
+var
+  I, FileSize, PrevSize: Integer;
+  Pixels: TDynByteArray;
+  Psnr, PrevPsnr: Double;
+begin
+  // Higher quality: larger file, closer to the source
+  Pixels := MakePixels(tcSmooth, 240, 160, False);
+  PrevSize := 0;
+  PrevPsnr := 0;
+
+  for I := Low(Qualities) to High(Qualities) do
+  begin
+    Psnr := EncodeAndDecode('photo', Pixels, 240, 160, False, Qualities[I], PasWebPDefaultEffort, FileSize);
+    CheckTrue(FileSize > PrevSize, Format('Quality %d: %d bytes, lower quality had %d',
+                                          [Qualities[I], FileSize, PrevSize]));
+    CheckTrue(Psnr > PrevPsnr, Format('Quality %d: PSNR %.2f dB, lower quality had %.2f',
+                                      [Qualities[I], Psnr, PrevPsnr]));
+    CheckTrue(Psnr >= MinPsnr[I], Format('Quality %d: PSNR %.2f dB, at least %.1f expected',
+                                         [Qualities[I], Psnr, MinPsnr[I]]));
+    PrevSize := FileSize;
+    PrevPsnr := Psnr;
+  end;
+
+  // The file is much smaller than the pixels
+  Psnr := EncodeAndDecode('photo', Pixels, 240, 160, False, 75, PasWebPDefaultEffort, FileSize);
+  CheckTrue(FileSize < 240 * 160 * 3 div 4, 'Photo at quality 75 takes ' + IntToStr(FileSize) + ' bytes');
+end;
+
+procedure TTestWebPLossy.TestOpaqueAlphaIsNotStored;
+var
+  Pixels: TDynByteArray;
+  Data: TPasWebPBytes;
+  I: Integer;
+begin
+  // Simple file with the frame alone
+  Pixels := MakePixels(tcPhoto, 50, 40, True);
+  for I := 0 to 50 * 40 - 1 do
+    Pixels[I * 4 + 3] := 255;
+  CheckTrue(PasWebPEncodeLossy(Pointer(Pixels), 200, 50, 40, True, 75, 6, Data), 'Encoding');
+  CheckTrue((Data[12] = Ord('V')) and (Data[13] = Ord('P')) and (Data[14] = Ord('8')) and
+            (Data[15] = Ord(' ')), 'File of an opaque image starts with VP8 chunk');
+
+  // Extended file with alpha chunk
+  Pixels[7] := 254;
+  CheckTrue(PasWebPEncodeLossy(Pointer(Pixels), 200, 50, 40, True, 75, 6, Data), 'Encoding');
+  CheckTrue((Data[12] = Ord('V')) and (Data[13] = Ord('P')) and (Data[14] = Ord('8')) and
+            (Data[15] = Ord('X')), 'File of an image with alpha starts with VP8X chunk');
+  CheckEquals($10, Data[20], 'Alpha flag of VP8X chunk');
+  CheckEquals(49, Integer(Data[24]) or (Integer(Data[25]) shl 8), 'Width - 1 in VP8X chunk');
+  CheckEquals(39, Integer(Data[27]) or (Integer(Data[28]) shl 8), 'Height - 1 in VP8X chunk');
+end;
+
+procedure TTestWebPLossy.TestInvisiblePixels;
+var
+  Pixels: TDynByteArray;
+  I, X, Y, FileSize, SizeWithNoise: Integer;
+  Psnr: Double;
+begin
+  // Noise in fully transparent pixels must cost nearly nothing and must
+  // not spoil the visible ones: left half visible photo, right half noise
+  Pixels := MakePixels(tcSmooth, 96, 64, True);
+  for I := 0 to 96 * 64 - 1 do
+    Pixels[I * 4 + 3] := 255;
+  for Y := 0 to 63 do
+    for X := 48 to 95 do
+      Pixels[(Y * 96 + X) * 4 + 3] := 0;
+  EncodeAndDecode('half transparent', Pixels, 96, 64, True, 75, 6, FileSize);
+
+  for Y := 0 to 63 do
+    for X := 48 to 95 do
+    begin
+      I := (Y * 96 + X) * 4;
+      Pixels[I] := (X * 97 + Y * 31) and $FF;
+      Pixels[I + 1] := (X * 13 + Y * 201) and $FF;
+      Pixels[I + 2] := (X * 151 + Y * 57) and $FF;
+    end;
+  Psnr := EncodeAndDecode('half transparent noise', Pixels, 96, 64, True, 75, 6, SizeWithNoise);
+  // Measured 39.8 dB
+  CheckTrue(Psnr > 37, Format('PSNR of visible pixels %.2f dB', [Psnr]));
+  CheckTrue(SizeWithNoise < FileSize + FileSize div 4,
+    Format('Noise in invisible pixels: %d bytes, %d without it', [SizeWithNoise, FileSize]));
+end;
+
+procedure TTestWebPLossy.TestWrongParameters;
+var
+  Pixels: TDynByteArray;
+  Data: TPasWebPBytes;
+begin
+  Pixels := MakePixels(tcFlat, 4, 4, True);
+  CheckFalse(PasWebPEncodeLossy(nil, 16, 4, 4, True, 75, 6, Data), 'No pixels');
+  CheckFalse(PasWebPEncodeLossy(Pointer(Pixels), 16, 0, 4, True, 75, 6, Data), 'Zero width');
+  CheckFalse(PasWebPEncodeLossy(Pointer(Pixels), 16, 4, 0, True, 75, 6, Data), 'Zero height');
+  CheckFalse(PasWebPEncodeLossy(Pointer(Pixels), 16, PasWebPMaxSize + 1, 1, True, 75, 6, Data),
+    'Width over the limit of WebP');
+  CheckFalse(PasWebPEncodeLossy(Pointer(Pixels), 16, 1, PasWebPMaxSize + 1, True, 75, 6, Data),
+    'Height over the limit of WebP');
+  CheckEquals(0, Length(Data), 'No data when encoding fails');
+end;
+
+procedure TTestWebPLossy.TestWidestImage;
+var
+  FileSize: Integer;
+begin
+  EncodeAndDecode('widest', MakePixels(tcPhoto, PasWebPMaxSize, 3, False), PasWebPMaxSize, 3, False,
+                  75, 2, FileSize);
+  EncodeAndDecode('tallest', MakePixels(tcDrawing, 3, PasWebPMaxSize, True), 3, PasWebPMaxSize, True,
+                  75, 2, FileSize);
+end;
+
+procedure TTestWebPLossy.TestDemoPhoto;
+var
+  Image: TImageData;
+  Pixels: TDynByteArray;
+  FileSize: Integer;
+  Psnr: Double;
+begin
+  // A real photograph. Limits are a few percent off what the encoder gives
+  // now (which is about what cwebp gives): to notice when it gets worse.
+  InitImage(Image);
+  CheckTrue(LoadImageFromFile(GetTestDataFile('Tigers.jpg'), Image), 'Loading of Tigers.jpg');
+  try
+    CheckTrue(ConvertImage(Image, ifR8G8B8), 'Conversion');
+    SetLength(Pixels, Image.Size);
+    Move(Image.Bits^, Pointer(Pixels)^, Image.Size);
+    Psnr := EncodeAndDecode('Tigers.jpg', Pixels, Image.Width, Image.Height, False, 75,
+                            PasWebPDefaultEffort, FileSize);
+    CheckTrue(FileSize <= DemoPhotoMaxSize, Format('Tigers.jpg at quality 75 takes %d bytes, limit is %d',
+                                                   [FileSize, DemoPhotoMaxSize]));
+    CheckTrue(Psnr >= DemoPhotoMinPsnr, Format('Tigers.jpg at quality 75: PSNR %.2f dB, at least %.1f expected',
+                                               [Psnr, DemoPhotoMinPsnr]));
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+procedure TTestWebPLossy.TestImagingSaveLoad;
+var
+  Previous: TWebPBackend;
+  Image, Loaded: TImageData;
+  Stream: TMemoryStream;
+  Pixels: TDynByteArray;
+  LossySize: Int64;
+  I, D, MaxDiff: Integer;
+begin
+  // Through the file format class with the Pascal codec, also where
+  // libwebp is found
+  Previous := WebPBackend;
+  CheckTrue(SelectWebPBackend(wbPascal), 'Pascal WebP codec is available');
+  InitImage(Image);
+  InitImage(Loaded);
+  Stream := TMemoryStream.Create;
+  PushOptions;
+  try
+    CheckTrue(SetOption(ImagingWebPLossless, 0), 'ImagingWebPLossless');
+    CheckTrue(SetOption(ImagingWebPQuality, 90), 'ImagingWebPQuality');
+
+    Pixels := MakePixels(tcSmooth, 90, 70, True);
+    CheckTrue(NewImage(90, 70, ifA8R8G8B8, Image), 'NewImage');
+    Move(Pointer(Pixels)^, Image.Bits^, Image.Size);
+    CheckTrue(SaveImageToStream('webp', Stream, Image), 'Saving');
+    LossySize := Stream.Size;
+    Stream.Position := 0;
+    CheckTrue(LoadImageFromStream(Stream, Loaded), 'Loading');
+    CheckTrue(Loaded.Format = ifA8R8G8B8, 'Image with alpha is loaded as A8R8G8B8');
+    CheckEquals(90, Loaded.Width, 'Width');
+    CheckEquals(70, Loaded.Height, 'Height');
+
+    MaxDiff := 0;
+    for I := 0 to Image.Size - 1 do
+    begin
+      D := Abs(Integer(PByteArray(Image.Bits)[I]) - Integer(PByteArray(Loaded.Bits)[I]));
+      if I mod 4 = 3 then
+        CheckEquals(0, D, 'Difference of alpha')
+      else if D > MaxDiff then
+        MaxDiff := D;
+    end;
+    // Measured 6
+    CheckTrue(MaxDiff < 16, 'Largest difference of a color channel at quality 90: ' + IntToStr(MaxDiff));
+
+    // Lower quality gives a smaller file, lossless a larger one
+    CheckTrue(SetOption(ImagingWebPQuality, 30), 'ImagingWebPQuality');
+    Stream.Clear;
+    CheckTrue(SaveImageToStream('webp', Stream, Image), 'Saving at lower quality');
+    CheckTrue(Stream.Size < LossySize, 'File at quality 30 is smaller than at 90');
+    CheckTrue(SetOption(ImagingWebPLossless, 1), 'ImagingWebPLossless');
+    Stream.Clear;
+    CheckTrue(SaveImageToStream('webp', Stream, Image), 'Saving lossless');
+    CheckTrue(Stream.Size > LossySize, 'Lossless file is larger than lossy one');
+  finally
+    PopOptions;
+    SelectWebPBackend(Previous);
+    Stream.Free;
+    FreeImage(Image);
+    FreeImage(Loaded);
+  end;
+end;
+
+procedure TTestWebPLossy.TestDecodedByLibWebP;
+{$IFDEF TEST_PASWEBP_WITH_LIBWEBP}
+const
+  Qualities: array[0..2] of Integer = (20, 75, 98);
+var
+  Content: TTestContent;
+  WithAlpha, Ok: Boolean;
+  Q, Effort, Bpp: Integer;
+  Pixels, ByLib, ByPascal: TDynByteArray;
+  Data: TPasWebPBytes;
+  Msg: string;
+begin
+  // Only where libwebp is installed (CI: Linux). The encoder predicts from
+  // the pixels the Pascal decoder gives: any difference of the decoders
+  // would mean files that look wrong elsewhere.
+  if not LoadLibWebP then
+    Exit;
+
+  for Content := Low(TTestContent) to High(TTestContent) do
+    for WithAlpha := False to True do
+      for Q := Low(Qualities) to High(Qualities) do
+        for Effort := 0 to 2 do
+        begin
+          Msg := Format('content %d, alpha %d, quality %d, effort %d: ',
+                        [Ord(Content), Ord(WithAlpha), Qualities[Q], Effort * 4]);
+          if WithAlpha then Bpp := 4 else Bpp := 3;
+          Pixels := MakePixels(Content, 131, 77, WithAlpha);
+          CheckTrue(PasWebPEncodeLossy(Pointer(Pixels), 131 * Bpp, 131, 77, WithAlpha,
+                                       Qualities[Q], Effort * 4, Data), Msg + 'encoding');
+          ByLib := nil;
+          ByPascal := nil;
+          SetLength(ByLib, Length(Pixels));
+          SetLength(ByPascal, Length(Pixels));
+          if WithAlpha then
+            Ok := WebPDecodeBGRAInto(Pointer(Data), Length(Data), Pointer(ByLib), Length(ByLib), 131 * 4) <> nil
+          else
+            Ok := WebPDecodeBGRInto(Pointer(Data), Length(Data), Pointer(ByLib), Length(ByLib), 131 * 3) <> nil;
+          CheckTrue(Ok, Msg + 'decoding by libwebp');
+          CheckTrue(PasWebPDecodeInto(Pointer(Data), Length(Data), Pointer(ByPascal), 131 * Bpp,
+                                      131, 77, WithAlpha), Msg + 'decoding by Pascal decoder');
+          CheckSameMem(Pointer(ByLib), Pointer(ByPascal), Length(ByLib),
+            Msg + 'pixels by libwebp and by Pascal decoder');
+        end;
+end;
+{$ELSE}
+begin
+  // Built without the binding of libwebp
+end;
+{$ENDIF}
+
 initialization
   RegisterImagingTest(TTestWebPDecoder);
   RegisterImagingTest(TTestWebPLossless);
+  RegisterImagingTest(TTestWebPLossy);
 
 {$ENDIF}
 
