@@ -19,9 +19,8 @@
     than 2009. Define WEBP_NO_DYNLIB to never look for it.
 
   - PasWebP, pure Pascal codec: decoder PasWebPDec (fork of WebPDec by
-    Xelitan, which is a port of libwebp decoder) and lossless encoder
-    PasWebPLossless. Used when libwebp is not found. It has no lossy encoder
-    yet: images are saved lossless whatever was asked for.
+    Xelitan, which is a port of libwebp decoder) and encoders PasWebPLossless
+    and PasWebPLossy. Used when libwebp is not found.
     Needs FPC or Delphi 2009+. Define WEBP_NO_BUNDLED to leave it out.
 
   In Delphi older than 2009, if libwebp is not found, there is no WebP support.
@@ -53,7 +52,7 @@ type
   { WebP codec implementation in use. }
   TWebPBackend = (
     wbNone,     // nothing available, WebP can't be loaded nor saved
-    wbPascal,   // Pascal codec: loading, lossless saving
+    wbPascal,   // Pascal codec
     wbLibWebP   // libwebp shared library, loading and saving
   );
 
@@ -68,8 +67,8 @@ type
   TWebPSaveParams = record
     Quality: Integer;  // Quality of lossy compression, 0..100
     Lossless: Boolean;
-    { Time spent to make lossless image smaller, 0 (fast) .. 9 (smallest).
-      Used by the Pascal encoder only. }
+    { Time spent to make the file smaller, 0 (fast) .. 9 (smallest).
+      Used by the Pascal encoders only. }
     Effort: Integer;
   end;
 
@@ -105,7 +104,7 @@ uses
   LibWebPDynLib,
 {$ENDIF}
 {$IFDEF WEBP_USE_BUNDLED}
-  PasWebPDec, PasWebPLossless,
+  PasWebPDec, PasWebPLossless, PasWebPLossy,
 {$ENDIF}
   SysUtils, Imaging;
 
@@ -622,11 +621,17 @@ begin
     Result := LibSaveImage(Image, Params, Data);
 {$ENDIF}
 {$IFDEF WEBP_USE_BUNDLED}
-  // The Pascal codec has only the lossless encoder so far
   if WebPBackend = wbPascal then
-    Result := PasWebPEncodeLossless(Image.Bits, GetPixelsSize(Image.Format, Image.Width, 1),
-                                    Image.Width, Image.Height, Image.Format = ifA8R8G8B8,
-                                    Params.Effort, TPasWebPBytes(Data));
+  begin
+    if Params.Lossless then
+      Result := PasWebPEncodeLossless(Image.Bits, GetPixelsSize(Image.Format, Image.Width, 1),
+                                      Image.Width, Image.Height, Image.Format = ifA8R8G8B8,
+                                      Params.Effort, TPasWebPBytes(Data))
+    else
+      Result := PasWebPEncodeLossy(Image.Bits, GetPixelsSize(Image.Format, Image.Width, 1),
+                                   Image.Width, Image.Height, Image.Format = ifA8R8G8B8,
+                                   Params.Quality, Params.Effort, TPasWebPBytes(Data));
+  end;
 {$ENDIF}
 end;
 
