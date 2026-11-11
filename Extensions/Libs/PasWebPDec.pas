@@ -66,10 +66,7 @@
 }
 unit PasWebPDec;
 
-{$IFDEF FPC}
-  {$MODE DELPHI}{$H+}{$inline on}
-{$ENDIF}
-{$R-}{$Q-}
+{$I PasWebP.inc}
 
 interface
 
@@ -88,8 +85,6 @@ function PasWebPDecodeInto(Data: PByte; DataSize: NativeUInt; Dest: PByte;
 { What follows is not for users of the decoder: tables of the VP8 format and
   the routines that make pixels of a macroblock, shared with the lossy
   encoder (PasWebPLossy), which must make the same pixels as the decoder. }
-
-{$POINTERMATH ON}
 
 // ============================================================
 // TYPES

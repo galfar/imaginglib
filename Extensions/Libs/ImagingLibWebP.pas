@@ -83,7 +83,7 @@ function SelectWebPBackend(ABackend: TWebPBackend): Boolean;
 
 { Loads libwebp from the given file and uses it from now on (instead of
   looking for it in the default locations) - updates the current backend.
-  Returns False and falls back to the Pascal decoder (if available)
+  Returns False and falls back to the Pascal codec (if available)
   when the library can't be loaded. }
 function TryLoadWebPLibrary(const FileName: string): Boolean;
 

@@ -66,11 +66,7 @@
   FPC and Delphi 2009+. }
 unit PasWebPLossy;
 
-{$IFDEF FPC}
-  {$MODE DELPHI}{$H+}{$INLINE ON}
-{$ENDIF}
-{$R-}{$Q-}
-{$POINTERMATH ON}
+{$I PasWebP.inc}
 
 interface
 
