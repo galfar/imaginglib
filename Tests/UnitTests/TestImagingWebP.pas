@@ -19,7 +19,12 @@
   Lossless encoder: what it writes must decode to the same pixels.
 
   Lossy encoder: what it writes must decode (to the same pixels by libwebp
-  where it is found), alpha must be exact, colors close to the source.}
+  where it is found), alpha must be exact, colors close to the source.
+
+  Animations: two small files made by tools of libwebp 1.3.2 (webpmux,
+  gif2webp) are stored here, expected CRC32 of each frame is of what
+  anim_dump writes (colors of fully transparent pixels zeroed). Animations
+  saved by Imaging must load back as they were.}
 unit TestImagingWebP;
 
 {$I ImagingOptions.inc}
@@ -104,6 +109,26 @@ type
     procedure TestDemoPhoto;
     procedure TestImagingSaveLoad;
     procedure TestDecodedByLibWebP;
+  end;
+
+  TTestWebPAnimation = class(TImagingTestCase)
+  private
+    { Loads animation from memory with the given codec and checks frames
+      against CRCs. }
+    procedure CheckAnimation(const Name: string; Backend: TWebPBackend; Data: Pointer;
+      Size, Width, Height: Integer; const Crcs: array of UInt32);
+    procedure CheckSavedAndLoaded(const Name: string; const Frames: TDynImageDataArray;
+      Lossless: Boolean; Backend: TWebPBackend);
+  published
+    procedure TestLoadFrames;
+    procedure TestMetadata;
+    procedure TestRawFrames;
+    procedure TestFirstFrameOnly;
+    procedure TestSaveLoadLossless;
+    procedure TestSaveLoadDifferentSizes;
+    procedure TestSaveLoadLossy;
+    procedure TestRepeatedFrames;
+    procedure TestDamagedData;
   end;
 {$ENDIF}
 
@@ -1555,10 +1580,629 @@ begin
 end;
 {$ENDIF}
 
+{ TTestWebPAnimation }
+
+const
+  { Seven frames on a canvas of 160x120: whole and small ones at offsets,
+    blended and replacing, cleared away after and left, lossless and lossy.
+    Delays 100, 50, 70, 90, 40, 120, 60 ms, 7 loops. }
+  AnimOffsets: array[0..1997] of Byte = (
+    $52, $49, $46, $46, $C6, $07, $00, $00, $57, $45, $42, $50, $56, $50, $38, $58,
+    $0A, $00, $00, $00, $12, $00, $00, $00, $9F, $00, $00, $77, $00, $00, $41, $4E,
+    $49, $4D, $06, $00, $00, $00, $00, $00, $FF, $FF, $07, $00, $41, $4E, $4D, $46,
+    $24, $02, $00, $00, $00, $00, $00, $00, $00, $00, $9F, $00, $00, $77, $00, $00,
+    $64, $00, $00, $02, $56, $50, $38, $4C, $0B, $02, $00, $00, $2F, $9F, $C0, $1D,
+    $10, $09, $B5, $6D, $DB, $30, $B6, $93, $31, $FF, $DF, $DC, $33, $47, $F4, $7F,
+    $02, $E2, $D7, $66, $9E, $62, $09, $9E, $B2, $E2, $42, $6D, $DB, $36, $0C, $FF,
+    $BF, $DC, $A9, $73, $10, $04, $82, $84, $30, $C2, $FE, $54, $23, $8C, $D0, $FF,
+    $09, $E0, $D7, $1E, $C9, $0A, $16, $00, $8D, $34, $D7, $C0, $B1, $B5, $6D, $8D,
+    $F2, $9D, $A4, $1A, $03, $2A, $77, $E8, $DD, $A5, $72, $58, $B1, $43, $E5, $0E,
+    $0B, $70, $87, $CA, $A1, $72, $FD, $63, $EF, $F8, $4C, $B4, $C6, $F5, $DF, $40,
+    $D8, $85, $E3, $DA, $B6, $D5, $E4, $FE, $5F, $41, $12, $68, $C8, $61, $E6, $32,
+    $77, $77, $A8, $C2, $DD, $61, $EC, $6E, $F1, $0E, $B0, $4E, $A8, $80, $30, $86,
+    $24, $49, $50, $83, $ED, $B3, $20, $D6, $E6, $0E, $67, $21, $12, $0E, $41, $DB,
+    $B6, $F1, $58, $9D, $5D, $54, $76, $87, $C5, $C0, $6D, $23, $45, $59, $66, $A6,
+    $BB, $1F, $10, $7E, $44, $86, $E8, $DC, $E9, $52, $E2, $69, $BE, $5E, $02, $46,
+    $47, $27, $A2, $BF, $88, $18, $78, $8E, $78, $BA, $7D, $F7, $F2, $F7, $48, $45,
+    $30, $5E, $DA, $E7, $12, $23, $79, $80, $C3, $35, $DC, $47, $B8, $C0, $48, $DE,
+    $A0, $F1, $39, $C2, $5F, $92, $3F, $EE, $BB, $2D, $CC, $25, $F5, $BF, $FF, $B0,
+    $E1, $89, $5A, $FE, $77, $89, $38, $D1, $1D, $34, $FA, $0F, $69, $C3, $1D, $CE,
+    $7B, $96, $05, $8A, $CE, $98, $71, $67, $52, $7F, $D2, $EF, $89, $EE, $80, $71,
+    $A7, $6F, $5B, $78, $68, $4F, $1A, $B7, $F5, $47, $45, $A7, $DB, $F8, $C0, $B1,
+    $C0, $D0, $9A, $36, $5B, $7F, $52, $B4, $3B, $6C, $E8, $54, $48, $F6, $5D, $57,
+    $67, $13, $22, $19, $91, $0E, $BC, $64, $02, $1D, $18, $34, $E7, $4D, $67, $16,
+    $23, $F7, $02, $41, $63, $D1, $6C, $76, $9A, $ED, $36, $C6, $17, $06, $2E, $31,
+    $92, $1A, $0E, $81, $DA, $B2, $D9, $52, $A8, $B7, $D9, $94, $50, $08, $78, $96,
+    $D8, $72, $F0, $B8, $9A, $A0, $AC, $62, $73, $FA, $93, $34, $2A, $2D, $B6, $28,
+    $95, $66, $35, $19, $5F, $CC, $D1, $4F, $96, $AA, $55, $54, $31, $69, $AC, $48,
+    $55, $F2, $05, $C0, $BD, $D3, $90, $D8, $F2, $50, $E8, $5C, $DD, $AC, $55, $76,
+    $D9, $A4, $B0, $2D, $54, $EE, $87, $50, $E8, $5E, $A7, $EF, $36, $2A, $BD, $68,
+    $EC, $EC, $F3, $95, $F9, $02, $C4, $BB, $62, $BF, $55, $EC, $CD, $4E, $7F, $02,
+    $E3, $5D, $F6, $C7, $5A, $9B, $3F, $1D, $07, $02, $19, $26, $EC, $1B, $90, $7C,
+    $77, $3C, $E8, $55, $20, $6D, $4F, $73, $AC, $56, $1A, $0F, $98, $EF, $2A, $C7,
+    $83, $22, $3A, $BE, $B8, $3D, $CE, $A9, $50, $EF, $01, $01, $3C, $DF, $A5, $4E,
+    $C7, $F5, $4E, $64, $3C, $61, $BB, $CF, $F9, $AA, $DE, $FF, $7D, $3C, $A0, $BE,
+    $EB, $9D, $2F, $EA, $FE, $6F, $1C, $8F, $4A, $EC, $E4, $7F, $17, $C2, $4E, $8F,
+    $76, $88, $52, $7C, $9F, $B4, $E1, $0E, $77, $F8, $53, $F1, $08, $7B, $7A, $1C,
+    $99, $F8, $D2, $23, $7C, $42, $07, $00, $41, $4E, $4D, $46, $28, $00, $00, $00,
+    $0A, $00, $00, $05, $00, $00, $1D, $00, $00, $15, $00, $00, $32, $00, $00, $01,
+    $56, $50, $38, $4C, $10, $00, $00, $00, $2F, $1D, $40, $05, $10, $07, $D0, $FF,
+    $FE, $47, $69, $03, $11, $D1, $FF, $00, $41, $4E, $4D, $46, $74, $00, $00, $00,
+    $32, $00, $00, $1E, $00, $00, $28, $00, $00, $20, $00, $00, $46, $00, $00, $00,
+    $56, $50, $38, $4C, $5B, $00, $00, $00, $2F, $28, $00, $08, $10, $0F, $30, $FF,
+    $FB, $3F, $FF, $DF, $FA, $0F, $2D, $30, $8A, $6D, $AB, $4D, $7A, $96, $48, $40,
+    $0A, $D2, $D2, $8C, $05, $27, $48, $60, $99, $0E, $E4, $5D, $11, $11, $FD, $8F,
+    $23, $A5, $94, $EA, $88, $1D, $1B, $46, $98, $4F, $F6, $D0, $14, $95, $02, $3C,
+    $5A, $98, $4F, $F6, $91, $3B, $34, $05, $25, $8F, $0D, $23, $CC, $23, $77, $68,
+    $8A, $4A, $01, $0B, $46, $98, $4F, $F6, $91, $8B, $4A, $01, $1E, $1B, $C6, $4A,
+    $16, $AE, $02, $00, $41, $4E, $4D, $46, $FC, $01, $00, $00, $1E, $00, $00, $0F,
+    $00, $00, $28, $00, $00, $20, $00, $00, $5A, $00, $00, $03, $41, $4C, $50, $48,
+    $53, $00, $00, $00, $01, $0F, $F0, $AD, $FF, $88, $88, $C0, $28, $B6, $AD, $36,
+    $E9, $59, $22, $01, $29, $48, $4B, $33, $16, $9C, $20, $81, $65, $3A, $90, $77,
+    $45, $44, $F4, $3F, $8E, $94, $52, $AA, $23, $76, $6C, $18, $61, $3E, $D9, $43,
+    $53, $54, $0A, $F0, $68, $61, $3E, $D9, $47, $EE, $D0, $14, $94, $3C, $36, $8C,
+    $30, $8F, $DC, $A1, $29, $2A, $05, $2C, $18, $61, $3E, $D9, $47, $2E, $2A, $05,
+    $78, $6C, $18, $2B, $59, $B8, $0A, $00, $56, $50, $38, $20, $88, $01, $00, $00,
+    $50, $0B, $00, $9D, $01, $2A, $29, $00, $21, $00, $3E, $B5, $4C, $A2, $4B, $A7,
+    $24, $23, $21, $AA, $BA, $AA, $A8, $E0, $16, $89, $6C, $00, $78, $1F, $F1, $DF,
+    $C8, $0F, $C4, $07, $F0, $0D, $C0, $1F, $AC, $DE, $80, $1F, $C0, $3A, $C0, $3F,
+    $B7, $75, $00, $7A, $00, $7E, $99, $FA, $59, $7B, $05, $FE, $B2, $FE, $D2, $FB,
+    $2C, $A7, $81, $40, $07, $B2, $C7, $B1, $86, $92, $4F, $9C, $76, $14, $D9, $C4,
+    $07, $13, $4E, $86, $CD, $04, $91, $0E, $73, $2E, $2D, $89, $25, $64, $B7, $F6,
+    $74, $4C, $00, $00, $FE, $A2, $FD, $CE, $2E, $1C, $67, $CC, $CD, $D9, $71, $86,
+    $5C, $61, $91, $6C, $16, $C3, $07, $AD, $21, $CF, $E2, $51, $6E, $61, $0F, $44,
+    $33, $40, $34, $E8, $A5, $9C, $41, $0D, $BE, $11, $1F, $FA, $9B, $FA, $B7, $4B,
+    $B0, $0A, $7B, $7B, $A7, $CC, $64, $74, $B4, $BF, $E1, $61, $0F, $E6, $36, $F9,
+    $2F, $6D, $89, $17, $1E, $BA, $4C, $7E, $43, $0F, $1B, $7E, $F9, $6A, $3A, $2B,
+    $41, $7F, $53, $A8, $2F, $F7, $92, $97, $1E, $27, $15, $98, $C3, $D9, $11, $EF,
+    $5C, $6E, $15, $66, $C4, $6C, $93, $79, $63, $1C, $87, $E1, $8E, $D1, $4B, $24,
+    $13, $F9, $6A, $27, $FF, $FB, $7B, $FC, $31, $38, $71, $20, $23, $1F, $B0, $E7,
+    $FC, $AC, $EC, $39, $92, $EF, $B9, $21, $8E, $51, $3A, $1F, $34, $1E, $60, $E9,
+    $43, $58, $8A, $57, $C9, $90, $72, $77, $96, $0A, $C6, $A0, $0D, $90, $8A, $1C,
+    $FE, $25, $16, $EF, $3A, $5F, $98, $EB, $39, $EB, $ED, $B1, $90, $CB, $42, $B5,
+    $42, $A5, $7E, $93, $E6, $CC, $C9, $50, $F6, $DD, $FF, $F5, $73, $B7, $C9, $7C,
+    $D8, $9C, $2C, $1B, $EC, $66, $F5, $F4, $41, $6A, $07, $B2, $87, $3A, $27, $FF,
+    $E2, $F8, $3F, $85, $46, $79, $B2, $6D, $AE, $34, $DD, $D9, $BD, $F6, $A1, $A1,
+    $6E, $B1, $A3, $A8, $A1, $54, $0C, $77, $60, $D4, $D2, $B4, $5E, $02, $25, $D3,
+    $F4, $13, $C3, $8C, $E4, $E4, $28, $E7, $7D, $F4, $72, $5D, $43, $31, $B7, $10,
+    $50, $BC, $29, $97, $32, $4F, $FF, $C6, $2F, $B5, $37, $97, $13, $C8, $0E, $E9,
+    $CE, $7C, $20, $42, $F8, $97, $F7, $06, $EB, $CB, $70, $84, $97, $D1, $8A, $80,
+    $22, $44, $C4, $7C, $62, $64, $00, $00, $41, $4E, $4D, $46, $28, $00, $00, $00,
+    $41, $00, $00, $31, $00, $00, $1D, $00, $00, $15, $00, $00, $28, $00, $00, $00,
+    $56, $50, $38, $4C, $10, $00, $00, $00, $2F, $1D, $40, $05, $10, $07, $D0, $FF,
+    $FE, $47, $69, $03, $11, $D1, $FF, $00, $41, $4E, $4D, $46, $12, $02, $00, $00,
+    $00, $00, $00, $00, $00, $00, $9F, $00, $00, $77, $00, $00, $78, $00, $00, $01,
+    $56, $50, $38, $4C, $FA, $01, $00, $00, $2F, $9F, $C0, $1D, $10, $09, $B5, $6D,
+    $1B, $39, $70, $28, $6F, $FF, $95, $F3, $7F, $1D, $D1, $FF, $09, $88, $9F, $06,
+    $9C, $23, $80, $02, $82, $B9, $2B, $17, $6A, $DB, $B6, $61, $F8, $FF, $E5, $4E,
+    $9D, $83, $48, $DB, $36, $55, $78, $78, $09, $EB, $FF, $04, $F0, $6B, $8F, $04,
+    $2D, $82, $50, $60, $A0, $05, $6E, $6D, $DB, $AA, $95, $33, $FE, $8F, $70, $0A,
+    $20, $82, $DC, $DD, $DD, $DA, $A0, $30, $DA, $70, $72, $C9, $68, $80, $9F, $E1,
+    $AE, $91, $EB, $3D, $4F, $36, $0E, $7B, $E0, $5F, $4E, $76, $0B, $70, $1D, $DB,
+    $B6, $D2, $DC, $47, $0D, $54, $45, $19, $7C, $BB, $BB, $BB, $3B, $C4, $A5, $06,
+    $6F, $23, $0D, $11, $C6, $90, $24, $09, $6A, $B0, $7D, $26, $C4, $DA, $DC, $E1,
+    $2C, $44, $C1, $21, $68, $DB, $36, $19, $AB, $B3, $B3, $CA, $EE, $B0, $1C, $B8,
+    $8D, $A4, $48, $AE, $65, $86, $BB, $E5, $17, $08, $FC, $09, $5A, $82, $AD, $EB,
+    $AA, $66, $B8, $D8, $2F, $57, $02, $16, $D1, $E5, $E5, $57, $12, $16, $BC, $96,
+    $0F, $80, $8F, $BB, $8F, $6C, $4B, $EF, $97, $56, $B9, $79, $8B, $BF, $33, $58,
+    $EA, $1F, $C1, $73, $0C, $1F, $B0, $53, $58, $EA, $83, $F8, $D3, $B7, $F3, $FB,
+    $AB, $C7, $DD, $11, $B7, $C9, $B6, $4C, $FE, $CB, $3E, $6D, $BC, $04, $94, $A1,
+    $B0, $7D, $CA, $B6, $E6, $F1, $83, $37, $32, $22, $35, $B3, $C9, $0E, $3C, $06,
+    $D2, $76, $D5, $E5, $CE, $0C, $B1, $CD, $A6, $47, $C0, $E8, $CB, $DA, $27, $EF,
+    $CD, $00, $D5, $66, $27, $A0, $1C, $77, $BB, $8B, $46, $A7, $24, $D1, $F2, $69,
+    $8F, $A2, $D2, $59, $B6, $4F, $D7, $E5, $4A, $A0, $65, $51, $37, $4A, $DC, $B4,
+    $DF, $5D, $8E, $19, $AF, $5B, $DA, $EB, $E6, $5A, $92, $E1, $88, $62, $5A, $DB,
+    $E6, $5E, $92, $20, $FC, $51, $61, $EE, $0B, $04, $8D, $5D, $FB, $A4, $26, $0B,
+    $27, $10, $F8, $53, $AE, $27, $60, $71, $BB, $54, $F4, $BE, $76, $68, $D4, $A9,
+    $25, $DB, $E2, $85, $B8, $57, $4C, $BF, $22, $F6, $F2, $29, $C5, $A0, $94, $BA,
+    $50, $F1, $AA, $F8, $1F, $77, $BD, $7A, $3D, $63, $5F, $51, $B7, $1A, $02, $CB,
+    $2A, $2A, $CB, $27, $CA, $1E, $85, $80, $29, $57, $13, $82, $75, $15, $85, $F5,
+    $23, $20, $D8, $A6, $86, $B3, $CD, $3D, $86, $82, $6D, $1B, $38, $DA, $DE, $61,
+    $38, $D8, $AE, $81, $93, $DD, $05, $0B, $85, $67, $54, $B3, $9B, $51, $64, $B6,
+    $FB, $1D, $DC, $29, $3D, $56, $58, $CF, $2D, $22, $9B, $83, $84, $74, $81, $D1,
+    $EE, $76, $74, $22, $5D, $74, $2A, $82, $41, $1E, $65, $08, $5A, $E9, $3C, $B5,
+    $DD, $74, $52, $21, $D8, $4A, $17, $1C, $8B, $C4, $83, $E4, $49, $C1, $CD, $07,
+    $06, $79, $F7, $7A, $D1, $FA, $EE, $F0, $C9, $4B, $60, $C7, $97, $9D, $54, $FE,
+    $BE, $7F, $F3, $BD, $E2, $A7, $DD, $3D, $9C, $C0, $1E, $DF, $90, $25, $CB, $67,
+    $AF, $10, $41, $4E, $4D, $46, $74, $00, $00, $00, $01, $00, $00, $01, $00, $00,
+    $28, $00, $00, $20, $00, $00, $3C, $00, $00, $02, $56, $50, $38, $4C, $5B, $00,
+    $00, $00, $2F, $28, $00, $08, $10, $0F, $30, $FF, $FB, $3F, $FF, $DF, $FA, $0F,
+    $2D, $30, $8A, $6D, $AB, $4D, $7A, $96, $48, $40, $0A, $D2, $D2, $8C, $05, $27,
+    $48, $60, $99, $0E, $E4, $5D, $11, $11, $FD, $8F, $23, $A5, $94, $EA, $88, $1D,
+    $1B, $46, $98, $4F, $F6, $D0, $14, $95, $02, $3C, $5A, $98, $4F, $F6, $91, $3B,
+    $34, $05, $25, $8F, $0D, $23, $CC, $23, $77, $68, $8A, $4A, $01, $0B, $46, $98,
+    $4F, $F6, $91, $8B, $4A, $01, $1E, $1B, $C6, $4A, $16, $AE, $02, $00);
+  AnimOffsetsSize: array[0..1] of Integer = (160, 120);
+  AnimOffsetsCrcs: array[0..6] of UInt32 = (
+    $0C47DB2C, $C7740026, $6BD3F930, $38549EB3, $3CAB5677, $C00FB443, $1B368052);
+
+  AnimOffsetsDelays: array[0..6] of Integer = (100, 50, 70, 90, 40, 120, 60);
+  AnimOffsetsLoops = 7;
+  // Sizes of the frames as they are stored
+  AnimOffsetsFrameSizes: array[0..6, 0..1] of Integer =
+    ((160, 120), (30, 22), (41, 33), (41, 33), (30, 22), (160, 120), (41, 33));
+
+  { Six frames of 90x70 converted from GIF: partial frames, transparency. }
+  AnimFromGif: array[0..747] of Byte = (
+    $52, $49, $46, $46, $E4, $02, $00, $00, $57, $45, $42, $50, $56, $50, $38, $58,
+    $0A, $00, $00, $00, $12, $00, $00, $00, $59, $00, $00, $45, $00, $00, $41, $4E,
+    $49, $4D, $06, $00, $00, $00, $00, $00, $00, $00, $03, $00, $41, $4E, $4D, $46,
+    $7A, $00, $00, $00, $02, $00, $00, $02, $00, $00, $38, $00, $00, $2E, $00, $00,
+    $32, $00, $00, $03, $56, $50, $38, $4C, $61, $00, $00, $00, $2F, $38, $80, $0B,
+    $10, $17, $20, $10, $48, $DA, $1F, $7A, $8D, $F9, $8F, $F9, $0F, $6C, $81, $71,
+    $24, $D9, $4A, $3E, $2E, $77, $F2, $21, $04, $9D, $1C, $29, $C2, $B4, $27, $F8,
+    $31, $A2, $FF, $0A, $DC, $B6, $51, $32, $3E, $86, $5F, $04, $4D, $E6, $65, $95,
+    $FA, $67, $71, $33, $99, $C8, $44, $3A, $20, $92, $00, $68, $E4, $28, $87, $69,
+    $47, $26, $D5, $72, $D9, $EE, $C1, $4A, $77, $20, $BA, $16, $E7, $42, $EA, $6B,
+    $A8, $6F, $A5, $BE, $A4, $F6, $CE, $EA, $2F, $E8, $7F, $14, $00, $00, $41, $4E,
+    $4D, $46, $66, $00, $00, $00, $07, $00, $00, $02, $00, $00, $2E, $00, $00, $32,
+    $00, $00, $64, $00, $00, $00, $56, $50, $38, $4C, $4D, $00, $00, $00, $2F, $2E,
+    $80, $0C, $10, $0F, $30, $FF, $11, $F3, $1F, $0C, $A6, $B1, $6D, $C5, $B9, $28,
+    $24, $25, $50, $0A, $A5, $D1, $1A, $25, $21, $B3, $5F, $95, $3D, $F1, $11, $FD,
+    $9F, $00, $00, $D8, $2C, $3F, $F6, $D2, $21, $01, $58, $81, $A6, $01, $BA, $46,
+    $18, $34, $C1, $A2, $19, $36, $2D, $7B, $6A, $BD, $63, $D3, $B2, $B7, $68, $86,
+    $41, $13, $74, $8D, $D0, $34, $00, $56, $80, $21, $01, $00, $41, $4E, $4D, $46,
+    $70, $00, $00, $00, $0C, $00, $00, $02, $00, $00, $24, $00, $00, $36, $00, $00,
+    $96, $00, $00, $00, $56, $50, $38, $4C, $57, $00, $00, $00, $2F, $24, $80, $0D,
+    $10, $17, $30, $FF, $21, $20, $28, $F2, $7F, $B4, $F9, $0F, $F8, $80, $4D, $1B,
+    $49, $92, $4A, $7B, $FF, $A1, $B8, $78, $F1, $DC, $F0, $19, $28, $13, $8E, $9A,
+    $E6, $3E, $E9, $A6, $11, $FD, $9F, $00, $26, $7F, $33, $B3, $63, $2D, $96, $F4,
+    $1B, $94, $A9, $E8, $79, $21, $4A, $27, $0A, $FE, $76, $12, $5C, $8D, $0B, $D0,
+    $0B, $64, $05, $52, $85, $D0, $0B, $84, $DA, $02, $D0, $54, $DA, $90, $54, $3A,
+    $A4, $5E, $00, $00, $41, $4E, $4D, $46, $72, $00, $00, $00, $07, $00, $00, $02,
+    $00, $00, $2E, $00, $00, $3A, $00, $00, $32, $00, $00, $02, $56, $50, $38, $4C,
+    $5A, $00, $00, $00, $2F, $2E, $80, $0E, $10, $17, $30, $FF, $F3, $1F, $F3, $1F,
+    $A8, $C0, $38, $92, $6C, $25, $B8, $DD, $7F, $3E, $3F, $04, $6C, $72, $A4, $08,
+    $F3, $BB, $C2, $35, $A2, $FF, $0A, $DB, $B6, $6D, $94, $EE, $5D, $9D, $D1, $F8,
+    $E3, $79, $55, $6C, $3F, $CC, $5F, $84, $04, $07, $80, $B0, $D8, $01, $5A, $BB,
+    $76, $54, $D2, $00, $BB, $EF, $E8, $DE, $26, $A3, $1F, $4C, $44, $7A, $C2, $0F,
+    $72, $FF, $D7, $E9, $C1, $ED, $C7, $ED, $CD, $E9, $D3, $E3, $B9, $01, $41, $4E,
+    $4D, $46, $6C, $00, $00, $00, $0F, $00, $00, $02, $00, $00, $23, $00, $00, $3E,
+    $00, $00, $50, $00, $00, $00, $56, $50, $38, $4C, $53, $00, $00, $00, $2F, $23,
+    $80, $0F, $10, $17, $20, $10, $48, $DA, $1F, $7A, $8D, $F9, $8F, $F9, $0F, $6C,
+    $81, $6D, $24, $49, $4E, $E6, $11, $BE, $BC, $7C, $2E, $04, $D4, $E6, $43, $3C,
+    $A4, $79, $F7, $6F, $52, $98, $11, $FD, $9F, $00, $9A, $9F, $37, $7E, $B6, $3F,
+    $B0, $64, $53, $CB, $98, $6D, $58, $66, $DC, $89, $8F, $DC, $63, $B8, $47, $76,
+    $01, $AE, $82, $CB, $40, $02, $14, $0D, $D8, $43, $01, $90, $64, $44, $97, $00,
+    $00, $00, $41, $4E, $4D, $46, $62, $00, $00, $00, $0F, $00, $00, $02, $00, $00,
+    $2D, $00, $00, $41, $00, $00, $3C, $00, $00, $00, $56, $50, $38, $4C, $49, $00,
+    $00, $00, $2F, $2D, $40, $10, $10, $0F, $30, $FF, $11, $F3, $1F, $0C, $37, $B5,
+    $6D, $4B, $CD, $66, $EE, $40, $02, $36, $A8, $06, $29, $48, $C0, $01, $48, $43,
+    $12, $E5, $98, $BC, $8A, $32, $2B, $6D, $44, $FF, $27, $C0, $FB, $37, $86, $9F,
+    $F6, $17, $26, $8C, $6F, $19, $13, $15, $33, $35, $1D, $3D, $3D, $8F, $B5, $E5,
+    $A8, $F6, $86, $3D, $A2, $62, $8B, $48, $10, $0B, $00, $00);
+  AnimFromGifSize: array[0..1] of Integer = (90, 70);
+  AnimFromGifCrcs: array[0..5] of UInt32 = (
+    $DDC2DB6F, $640233EC, $D70C9922, $8526BE9B, $0F7F7ACD, $0E79316C);
+
+
+{ Makes the colors of fully transparent pixels zero: they are not seen
+  and codecs are free to change them. }
+procedure ZeroInvisible(var Image: TImageData);
+var
+  I: Integer;
+  P: PColor32Rec;
+begin
+  P := Image.Bits;
+  for I := 0 to Image.Width * Image.Height - 1 do
+  begin
+    if P.A = 0 then
+      P.Color := 0;
+    Inc(P);
+  end;
+end;
+
+function LoadAnimationFromMemory(Data: Pointer; Size: Integer; var Images: TDynImageDataArray): Boolean;
+begin
+  Result := LoadMultiImageFromMemory(Data, Size, Images);
+end;
+
+procedure TTestWebPAnimation.CheckAnimation(const Name: string; Backend: TWebPBackend;
+  Data: Pointer; Size, Width, Height: Integer; const Crcs: array of UInt32);
+var
+  Previous: TWebPBackend;
+  Images: TDynImageDataArray;
+  I: Integer;
+  Crc: UInt32;
+  Msg: string;
+begin
+  Previous := WebPBackend;
+  if not SelectWebPBackend(Backend) then
+    Exit;  // libwebp is not installed
+
+  Images := nil;
+  try
+    Msg := Format('%s, backend %d: ', [Name, Ord(Backend)]);
+    CheckTrue(LoadAnimationFromMemory(Data, Size, Images), Msg + 'loading');
+    CheckEquals(Length(Crcs), Length(Images), Msg + 'number of frames');
+
+    for I := 0 to High(Images) do
+    begin
+      CheckEquals(Width, Images[I].Width, Msg + 'width of frame ' + IntToStr(I));
+      CheckEquals(Height, Images[I].Height, Msg + 'height of frame ' + IntToStr(I));
+      CheckTrue(Images[I].Format = ifA8R8G8B8, Msg + 'format of frame ' + IntToStr(I));
+      ZeroInvisible(Images[I]);
+      Crc := $FFFFFFFF;
+      CalcCrc32(Crc, Images[I].Bits, Images[I].Size);
+      Crc := not Crc;
+      CheckEquals(Int64(Crcs[I]), Int64(Crc), Msg + 'CRC of frame ' + IntToStr(I));
+    end;
+  finally
+    FreeImagesInArray(Images);
+    SelectWebPBackend(Previous);
+  end;
+end;
+
+procedure TTestWebPAnimation.TestLoadFrames;
+var
+  Backend: TWebPBackend;
+begin
+  // Frames put together by Imaging must be what libwebp shows, with
+  // either codec decoding the frames
+  for Backend := wbPascal to wbLibWebP do
+  begin
+    CheckAnimation('offsets', Backend, @AnimOffsets, SizeOf(AnimOffsets), AnimOffsetsSize[0],
+                   AnimOffsetsSize[1], AnimOffsetsCrcs);
+    CheckAnimation('from GIF', Backend, @AnimFromGif, SizeOf(AnimFromGif), AnimFromGifSize[0],
+                   AnimFromGifSize[1], AnimFromGifCrcs);
+  end;
+end;
+
+procedure TTestWebPAnimation.TestMetadata;
+var
+  Images: TDynImageDataArray;
+  I: Integer;
+begin
+  Images := nil;
+  CheckTrue(LoadAnimationFromMemory(@AnimOffsets, SizeOf(AnimOffsets), Images), 'Loading');
+  try
+    CheckEquals(AnimOffsetsLoops, Integer(GlobalMetadata.MetaItems[SMetaAnimationLoops]), 'Loops');
+    for I := 0 to High(AnimOffsetsDelays) do
+      CheckEquals(AnimOffsetsDelays[I], Integer(GlobalMetadata.MetaItemsMulti[SMetaFrameDelay, I]),
+        'Delay of frame ' + IntToStr(I));
+  finally
+    FreeImagesInArray(Images);
+  end;
+end;
+
+procedure TTestWebPAnimation.TestRawFrames;
+var
+  Images: TDynImageDataArray;
+  I: Integer;
+begin
+  // Frames as the file has them
+  Images := nil;
+  PushOptions;
+  try
+    CheckTrue(SetOption(ImagingWebPLoadAnimated, 0), 'ImagingWebPLoadAnimated');
+    CheckTrue(LoadAnimationFromMemory(@AnimOffsets, SizeOf(AnimOffsets), Images), 'Loading');
+    CheckEquals(Length(AnimOffsetsFrameSizes), Length(Images), 'Number of frames');
+    for I := 0 to High(Images) do
+    begin
+      CheckEquals(AnimOffsetsFrameSizes[I, 0], Images[I].Width, 'Width of stored frame ' + IntToStr(I));
+      CheckEquals(AnimOffsetsFrameSizes[I, 1], Images[I].Height, 'Height of stored frame ' + IntToStr(I));
+    end;
+  finally
+    PopOptions;
+    FreeImagesInArray(Images);
+  end;
+end;
+
+procedure TTestWebPAnimation.TestFirstFrameOnly;
+var
+  Image: TImageData;
+  Crc: UInt32;
+begin
+  // Loading of a single image gives the first frame on the canvas
+  InitImage(Image);
+  CheckTrue(LoadImageFromMemory(@AnimOffsets, SizeOf(AnimOffsets), Image), 'Loading');
+  try
+    CheckEquals(AnimOffsetsSize[0], Image.Width, 'Width');
+    CheckEquals(AnimOffsetsSize[1], Image.Height, 'Height');
+    ZeroInvisible(Image);
+    Crc := $FFFFFFFF;
+    CalcCrc32(Crc, Image.Bits, Image.Size);
+    CheckEquals(Int64(AnimOffsetsCrcs[0]), Int64(not Crc), 'CRC of the first frame');
+  finally
+    FreeImage(Image);
+  end;
+end;
+
+{ Frames of an animation: a background with a square that moves, optionally
+  with a part where alpha changes. }
+procedure MakeFrames(var Frames: TDynImageDataArray; Count, Width, Height: Integer;
+  ChangingAlpha: Boolean; Format: TImageFormat);
+var
+  I, X, Y: Integer;
+  P: PColor32Rec;
+begin
+  SetLength(Frames, Count);
+
+  for I := 0 to Count - 1 do
+  begin
+    InitImage(Frames[I]);
+    NewImage(Width, Height, ifA8R8G8B8, Frames[I]);
+    P := Frames[I].Bits;
+
+    for Y := 0 to Height - 1 do
+      for X := 0 to Width - 1 do
+      begin
+        P.R := 40 + X * 150 div Width;
+        P.G := 60 + Y * 120 div Height;
+        P.B := 128;
+        P.A := 255;
+
+        if (X >= 5 + I * 7) and (X < 20 + I * 7) and (Y >= 8 + I * 3) and (Y < 22 + I * 3) then
+        begin
+          P.R := 250;
+          P.G := 30;
+          P.B := 30;
+        end;
+
+        if ChangingAlpha and (Y >= Height - 10) then
+          P.A := (X * 5 + I * 40) and $FF;
+        Inc(P);
+      end;
+
+    if Format <> ifA8R8G8B8 then
+      ConvertImage(Frames[I], Format);
+  end;
+end;
+
+procedure TTestWebPAnimation.CheckSavedAndLoaded(const Name: string;
+  const Frames: TDynImageDataArray; Lossless: Boolean; Backend: TWebPBackend);
+const
+  MaxMeanDiff = 6;  // measured up to 3.0 at quality 90
+var
+  Previous: TWebPBackend;
+  Stream: TMemoryStream;
+  Loaded: TDynImageDataArray;
+  Expected: TImageData;
+  I, P, CanvasWidth, CanvasHeight, SumDiff, D: Integer;
+  Msg: string;
+begin
+  Previous := WebPBackend;
+  if not SelectWebPBackend(Backend) then
+    Exit;  // libwebp is not installed
+
+  Msg := Format('%s, lossless %d, backend %d: ', [Name, Ord(Lossless), Ord(Backend)]);
+  Stream := TMemoryStream.Create;
+  Loaded := nil;
+  InitImage(Expected);
+  PushOptions;
+  try
+    SetOption(ImagingWebPLossless, Ord(Lossless));
+    SetOption(ImagingWebPQuality, 90);
+    SetOption(ImagingWebPEffort, 3);
+    GlobalMetadata.ClearMetaItemsForSaving;
+    GlobalMetadata.SetMetaItemForSaving(SMetaAnimationLoops, 5);
+    for I := 0 to High(Frames) do
+      GlobalMetadata.SetMetaItemForSaving(SMetaFrameDelay, 30 + I * 25, I);
+
+    CheckTrue(SaveMultiImageToStream('webp', Stream, Frames), Msg + 'saving');
+    Stream.Position := 0;
+    CheckTrue(LoadMultiImageFromStream(Stream, Loaded), Msg + 'loading');
+    CheckEquals(Length(Frames), Length(Loaded), Msg + 'number of frames');
+    CheckEquals(5, Integer(GlobalMetadata.MetaItems[SMetaAnimationLoops]), Msg + 'loops');
+
+    CanvasWidth := 0;
+    CanvasHeight := 0;
+    for I := 0 to High(Frames) do
+    begin
+      if Frames[I].Width > CanvasWidth then CanvasWidth := Frames[I].Width;
+      if Frames[I].Height > CanvasHeight then CanvasHeight := Frames[I].Height;
+    end;
+
+    for I := 0 to High(Frames) do
+    begin
+      CheckEquals(30 + I * 25, Integer(GlobalMetadata.MetaItemsMulti[SMetaFrameDelay, I]),
+        Msg + 'delay of frame ' + IntToStr(I));
+      CheckEquals(CanvasWidth, Loaded[I].Width, Msg + 'width of frame ' + IntToStr(I));
+      CheckEquals(CanvasHeight, Loaded[I].Height, Msg + 'height of frame ' + IntToStr(I));
+
+      // What the frame must look like: the image in the top left corner
+      // of a transparent canvas
+      FreeImage(Expected);
+      NewImage(CanvasWidth, CanvasHeight, ifA8R8G8B8, Expected);
+      FillChar(Expected.Bits^, Expected.Size, 0);
+      CheckTrue(CopyRect(Frames[I], 0, 0, Frames[I].Width, Frames[I].Height, Expected, 0, 0),
+        Msg + 'CopyRect');
+      CheckTrue(ConvertImage(Loaded[I], ifA8R8G8B8), Msg + 'conversion');
+      ZeroInvisible(Expected);
+      ZeroInvisible(Loaded[I]);
+
+      if Lossless then
+        CheckImagesEqual(Expected, Loaded[I], Msg + 'frame ' + IntToStr(I))
+      else
+      begin
+        // Edges of the red square are blurred by the half resolution of
+        // chroma: the mean difference is what tells
+        SumDiff := 0;
+        for P := 0 to Expected.Size - 1 do
+        begin
+          D := Abs(Integer(PByteArray(Expected.Bits)[P]) - Integer(PByteArray(Loaded[I].Bits)[P]));
+          if P mod 4 = 3 then
+            CheckEquals(0, D, Msg + 'difference of alpha in frame ' + IntToStr(I))
+          else
+            Inc(SumDiff, D);
+        end;
+        CheckTrue(SumDiff < MaxMeanDiff * (Expected.Size * 3 div 4),
+          Format('%sframe %d: mean difference of a channel %.2f', [Msg, I, SumDiff / (Expected.Size * 3 div 4)]));
+      end;
+    end;
+  finally
+    PopOptions;
+    GlobalMetadata.ClearMetaItemsForSaving;
+    FreeImage(Expected);
+    FreeImagesInArray(Loaded);
+    Stream.Free;
+    SelectWebPBackend(Previous);
+  end;
+end;
+
+procedure TTestWebPAnimation.TestSaveLoadLossless;
+var
+  Frames: TDynImageDataArray;
+  Backend: TWebPBackend;
+begin
+  for Backend := wbPascal to wbLibWebP do
+  begin
+    // Opaque changes: only the changed part is stored and blended
+    MakeFrames(Frames, 6, 96, 64, False, ifA8R8G8B8);
+    CheckSavedAndLoaded('opaque changes', Frames, True, Backend);
+    FreeImagesInArray(Frames);
+    // Changes of alpha: the changed part replaces what is there
+    MakeFrames(Frames, 5, 96, 64, True, ifA8R8G8B8);
+    CheckSavedAndLoaded('alpha changes', Frames, True, Backend);
+    FreeImagesInArray(Frames);
+    // Images without alpha
+    MakeFrames(Frames, 4, 51, 37, False, ifR8G8B8);
+    CheckSavedAndLoaded('no alpha', Frames, True, Backend);
+    FreeImagesInArray(Frames);
+  end;
+end;
+
+procedure TTestWebPAnimation.TestSaveLoadDifferentSizes;
+var
+  Frames, Small: TDynImageDataArray;
+  Backend: TWebPBackend;
+  Lossless: Boolean;
+begin
+  // Smaller images are in the corner of the canvas, the rest is transparent
+  // and nothing of the larger images before them is left
+  for Backend := wbPascal to wbLibWebP do
+    for Lossless := False to True do
+    begin
+      MakeFrames(Frames, 4, 80, 50, True, ifA8R8G8B8);
+      MakeFrames(Small, 2, 33, 61, False, ifA8R8G8B8);
+      FreeImage(Frames[1]);
+      Frames[1] := Small[0];
+      FreeImage(Frames[3]);
+      Frames[3] := Small[1];
+      Small := nil;
+      CheckSavedAndLoaded('different sizes', Frames, Lossless, Backend);
+      FreeImagesInArray(Frames);
+    end;
+end;
+
+procedure TTestWebPAnimation.TestSaveLoadLossy;
+var
+  Frames: TDynImageDataArray;
+  Backend: TWebPBackend;
+begin
+  for Backend := wbPascal to wbLibWebP do
+  begin
+    MakeFrames(Frames, 4, 96, 64, True, ifA8R8G8B8);
+    CheckSavedAndLoaded('lossy with alpha', Frames, False, Backend);
+    FreeImagesInArray(Frames);
+    MakeFrames(Frames, 3, 70, 45, False, ifR8G8B8);
+    CheckSavedAndLoaded('lossy without alpha', Frames, False, Backend);
+    FreeImagesInArray(Frames);
+  end;
+end;
+
+procedure TTestWebPAnimation.TestRepeatedFrames;
+var
+  Frames: TDynImageDataArray;
+  Stream: TMemoryStream;
+  Lossless: Boolean;
+  I: Integer;
+  SizeOfTwo: Int64;
+begin
+  // An image shown again takes a few bytes, lossy too, and stays a frame
+  for Lossless := False to True do
+  begin
+    MakeFrames(Frames, 2, 96, 64, False, ifA8R8G8B8);
+    Stream := TMemoryStream.Create;
+    PushOptions;
+    try
+      SetOption(ImagingWebPLossless, Ord(Lossless));
+      CheckTrue(SaveMultiImageToStream('webp', Stream, Frames), 'Saving of two frames');
+      SizeOfTwo := Stream.Size;
+
+      SetLength(Frames, 6);
+      for I := 2 to 5 do
+      begin
+        InitImage(Frames[I]);
+        CheckTrue(CloneImage(Frames[1], Frames[I]), 'CloneImage');
+      end;
+      Stream.Clear;
+      CheckTrue(SaveMultiImageToStream('webp', Stream, Frames), 'Saving of six frames');
+      CheckTrue(Stream.Size < SizeOfTwo + 4 * 80,
+        Format('Four repeated frames (lossless %d): %d bytes, two frames take %d',
+               [Ord(Lossless), Stream.Size, SizeOfTwo]));
+      CheckSavedAndLoaded('repeated frames', Frames, Lossless, WebPBackend);
+    finally
+      PopOptions;
+      Stream.Free;
+      FreeImagesInArray(Frames);
+    end;
+  end;
+end;
+
+procedure TTestWebPAnimation.TestDamagedData;
+var
+  Data: TDynByteArray;
+  Images: TDynImageDataArray;
+  Size, I, J: Integer;
+  Seed: UInt32;
+  Previous: TWebPBackend;
+
+  function Next(Range: Integer): Integer;
+  begin
+    Seed := UInt32((UInt64(Seed) * 1664525 + 1013904223) and $FFFFFFFF);
+    Result := Integer((Seed shr 8) mod UInt32(Range));
+  end;
+
+  procedure TryLoad;
+  begin
+    Images := nil;
+    try
+      // Failure is an exception of Imaging or False; frames that are whole
+      // can be given
+      LoadMultiImageFromMemory(Pointer(Data), Length(Data), Images);
+    except
+      on E: EImagingError do ;
+    end;
+    FreeImagesInArray(Images);
+  end;
+
+begin
+  Previous := WebPBackend;
+  CheckTrue(SelectWebPBackend(wbPascal), 'Pascal WebP codec is available');
+  try
+    // Cut at every length
+    for Size := 1 to SizeOf(AnimOffsets) - 1 do
+    begin
+      Data := nil;
+      SetLength(Data, Size);
+      Move(AnimOffsets, Pointer(Data)^, Size);
+      TryLoad;
+    end;
+
+    // Bytes changed: sizes and offsets of frames beyond the canvas, wrong
+    // chunk sizes, broken images
+    Seed := 20261113;
+    for I := 1 to 600 do
+    begin
+      Data := nil;
+      SetLength(Data, SizeOf(AnimOffsets));
+      Move(AnimOffsets, Pointer(Data)^, SizeOf(AnimOffsets));
+      for J := 0 to Next(3) do
+        // Not the size of the canvas: large canvases only take time
+        Data[30 + Next(SizeOf(AnimOffsets) - 30)] := Next(256);
+      TryLoad;
+    end;
+  finally
+    SelectWebPBackend(Previous);
+  end;
+end;
+
 initialization
   RegisterImagingTest(TTestWebPDecoder);
   RegisterImagingTest(TTestWebPLossless);
   RegisterImagingTest(TTestWebPLossy);
+  RegisterImagingTest(TTestWebPAnimation);
 
 {$ENDIF}
 
