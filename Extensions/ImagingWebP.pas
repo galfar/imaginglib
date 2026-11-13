@@ -26,13 +26,16 @@ type
     without alpha channel).
     Works when libwebp shared library is found or when the Pascal codec is
     compiled in (FPC, Delphi 2009+).
-    Only the first frame of animated WebP files is loaded.
+    Animations are loaded as one image for each frame with delays of frames
+    and number of loops in metadata (SMetaFrameDelay, SMetaAnimationLoops);
+    more images are saved as an animation. See ImagingWebPLoadAnimated option.
     Note that WebP has a maximum size of 16383 x 16383 pixel.}
   TWebPFileFormat = class(TImageFileFormat)
   protected
     FQuality: LongInt;
     FLossless: LongBool;
     FEffort: LongInt;
+    FLoadAnimated: LongBool;
     procedure Define; override;
     function LoadData(Handle: TImagingHandle; var Images: TDynImageDataArray;
       OnlyFirstLevel: Boolean): Boolean; override;
@@ -58,6 +61,12 @@ type
       files, slow). Used by the Pascal encoders only.
       Accessible trough ImagingWebPEffort option. }
     property Effort: LongInt read FEffort write FEffort;
+    { If True frames of animations are loaded as they look when shown: each
+      one is the whole canvas with the frame drawn over the previous ones.
+      If False they are loaded as stored in the file (often only the part
+      of the canvas that changes), to be put together by the caller.
+      Accessible trough ImagingWebPLoadAnimated option. }
+    property LoadAnimated: LongBool read FLoadAnimated write FLoadAnimated;
   end;
 
 implementation
@@ -73,6 +82,8 @@ const
   WebPDefaultLossless = False;
   WebPDefaultEffort = 6;
   WebPMaxEffort = 9;
+  WebPDefaultLoadAnimated = True;
+  WebPDefaultFrameDelay = 100;
 
 resourcestring
   SWebPDecodingFailed = 'WebP image could not be decoded';
@@ -105,16 +116,18 @@ begin
   FQuality := WebPDefaultQuality;
   FLossless := WebPDefaultLossless;
   FEffort := WebPDefaultEffort;
+  FLoadAnimated := WebPDefaultLoadAnimated;
 
   AddMasks(SWebPMasks);
   RegisterOption(ImagingWebPQuality, @FQuality);
   RegisterOption(ImagingWebPLossless, @FLossless);
   RegisterOption(ImagingWebPEffort, @FEffort);
+  RegisterOption(ImagingWebPLoadAnimated, @FLoadAnimated);
 end;
 
 procedure TWebPFileFormat.RefreshBackend;
 begin
-  FFeatures := [];
+  FFeatures := [ffMultiImage];
   // WebP backend is selected at this point (if not already) as WebPCanLoad
   // triggers backend setup.
   if WebPCanLoad then
@@ -138,6 +151,8 @@ var
   Data: PBuffer;
   DataSize, RestSize: Int64;
   Info: TWebPImageInfo;
+  Anim: TWebPAnimInfo;
+  I, MaxFrames: Integer;
 begin
   Result := False;
   SetLength(Images, 1);
@@ -165,7 +180,23 @@ begin
         RestSize := 0;
       DataSize := SizeOf(Hdr) + RestSize;
 
-      Result := WebPLoadImage(Data, DataSize, Images[0], Info);
+      if WebPGetImageInfo(Data, DataSize, Info) and Info.Animated then
+      begin
+        MaxFrames := 0;
+        if OnlyFirstLevel then
+          MaxFrames := 1;
+        Result := WebPLoadAnimation(Data, DataSize, FLoadAnimated, MaxFrames, Images, Anim);
+
+        if Result then
+        begin
+          FMetadata.SetMetaItem(SMetaAnimationLoops, Anim.LoopCount);
+          for I := 0 to High(Anim.Frames) do
+            FMetadata.SetMetaItem(SMetaFrameDelay, Anim.Frames[I].Duration, I);
+        end;
+      end
+      else
+        Result := WebPLoadImage(Data, DataSize, Images[0], Info);
+
       if not Result then
         RaiseImaging(SWebPDecodingFailed);
     finally
@@ -181,16 +212,50 @@ var
   MustBeFreed: Boolean;
   Params: TWebPSaveParams;
   Data: TDynByteArray;
+  Frames: TDynImageDataArray;
+  Owned: array of Boolean;
+  Delays: array of Integer;
+  I, Count, Loops: Integer;
 begin
   Result := False;
+  FillChar(Params, SizeOf(Params), 0);
+  Params.Quality := FQuality;
+  Params.Lossless := FLossless;
+  Params.Effort := FEffort;
 
-  if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
+  if FLastIdx > FFirstIdx then
+  begin
+    // More images: animation
+    Count := FLastIdx - FFirstIdx + 1;
+    SetLength(Frames, Count);
+    SetLength(Owned, Count);
+    SetLength(Delays, Count);
+
+    try
+      for I := 0 to Count - 1 do
+      begin
+        if not MakeCompatible(Images[FFirstIdx + I], Frames[I], Owned[I]) then
+          Exit;
+
+        Delays[I] := WebPDefaultFrameDelay;
+        if FMetadata.HasMetaItemForSaving(SMetaFrameDelay, FFirstIdx + I) then
+          Delays[I] := FMetadata.MetaItemsForSavingMulti[SMetaFrameDelay, FFirstIdx + I];
+      end;
+
+      Loops := 0;
+      if FMetadata.HasMetaItemForSaving(SMetaAnimationLoops) then
+        Loops := FMetadata.MetaItemsForSaving[SMetaAnimationLoops];
+
+      if WebPSaveAnimation(Frames, 0, Count - 1, Delays, Loops, Params, Data) then
+        Result := GetIO.Write(Handle, Pointer(Data), Length(Data)) = Length(Data);
+    finally
+      for I := 0 to Count - 1 do
+        if Owned[I] then
+          FreeImage(Frames[I]);
+    end;
+  end
+  else if MakeCompatible(Images[Index], ImageToSave, MustBeFreed) then
   try
-    FillChar(Params, SizeOf(Params), 0);
-    Params.Quality := FQuality;
-    Params.Lossless := FLossless;
-    Params.Effort := FEffort;
-
     if WebPSaveImage(ImageToSave, Params, Data) then
       Result := GetIO.Write(Handle, Pointer(Data), Length(Data)) = Length(Data);
   finally

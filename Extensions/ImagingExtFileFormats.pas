@@ -94,6 +94,11 @@ const
     files, slow). Used by the Pascal encoders (when libwebp library is
     not found). Default value is 6. }
   ImagingWebPEffort                  = 77;
+  { Boolean option that specifies whether frames of animated WebP images
+    are put together by Imaging (each loaded image is the whole canvas as
+    it looks when the frame is shown) or loaded as stored in the file
+    (if you want to animate them yourself). Default value is 1. }
+  ImagingWebPLoadAnimated            = 78;
 
 implementation
 
