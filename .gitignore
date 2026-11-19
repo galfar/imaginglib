@@ -58,8 +58,9 @@ Demos/**/*.cfg
 !Demos/**/MainIcon.res
 !Demos/**/Logo.res
 
-Demos/ObjectPascal/FireMonkeyDemo/*emplate*.xml
+Demos/ObjectPascal/**/*Template*.xml
 Demos/ObjectPascal/FireMonkeyDemo/Deploy
 
 !Tests/UnitTests
 Tests/**/*.res
+

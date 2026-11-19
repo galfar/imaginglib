@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!--
+      Imported by the console demo projects after their .deployproj, fixes
+      Run/Debug of macOS console applications in Delphi 13.
+
+      The IDE deploys a console application into a plain folder
+      $(PROJECTNAME)/ (not a .app bundle), but CodeGear.Deployment.targets
+      cleans and code signs $(PROJECTNAME).app, which does not exist
+      ("E0264 ... .app: No such file or directory"). Signing the executable
+      in the folder instead fails while Info.plist is deployed next to it:
+      codesign then takes the folder for a bundle ("unsealed contents present
+      in the bundle root"). A console application needs neither Info.plist
+      nor the bundle icon, so they are not deployed, the folder is cleaned
+      instead of the .app (removes their copies from earlier deployments),
+      and the executable is signed with the entitlements that allow
+      attaching the debugger. MSBuild uses the last definition of a target
+      or property, so these replace the ones from CodeGear.Deployment.targets.
+    -->
+    <PropertyGroup Condition="'$(Platform)'=='OSX64' Or '$(Platform)'=='OSXARM64'">
+        <RemoteDirToClean>$(PROJECTNAME)</RemoteDirToClean>
+        <DeployDependsOnTargets>_MacConsoleDropBundleFiles;$(DeployDependsOnTargets)</DeployDependsOnTargets>
+    </PropertyGroup>
+
+    <Target Name="_MacConsoleDropBundleFiles" Condition="'$(Platform)'=='OSX64' Or '$(Platform)'=='OSXARM64'">
+        <ItemGroup>
+            <_MacConsoleDeployFile Include="@(DeployFile)"
+                Condition="'%(DeployFile.DeployClass)'!='ProjectOSXInfoPList' And '%(DeployFile.DeployClass)'!='ProjectOSXResource'"/>
+            <DeployFile Remove="@(DeployFile)"/>
+            <DeployFile Include="@(_MacConsoleDeployFile)"/>
+        </ItemGroup>
+    </Target>
+
+    <Target Name="_OSXAppNormal" DependsOnTargets="_CheckEntitlementsFile;_CheckIdentity"
+        Condition="('$(Platform)'=='OSX64' Or '$(Platform)'=='OSXARM64') And '$(BT_BuildType)'=='Debug'">
+        <PAClient
+            ProfileName="$(Profile)"
+            Certificate="$(DeveloperCert)"
+            CodesignPath="$(PROJECTNAME)\$(PROJECTNAME)"
+            Entitlements="@(EntitlementFile->'%(RemoteDir)%(RemoteName)')"
+            BuildType="$(BT_BuildType)"
+            SignApplication="true"
+        />
+    </Target>
+</Project>
