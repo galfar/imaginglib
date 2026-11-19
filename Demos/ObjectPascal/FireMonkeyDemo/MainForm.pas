@@ -39,6 +39,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
+  System.Generics.Collections,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.DialogService, FMX.Filter.Effects, FMX.Graphics,
   FMX.Layouts, FMX.ListBox, FMX.ExtCtrls, FMX.Objects, FMX.StdCtrls, FMX.Effects,
   FMX.Controls.Presentation, System.ImageList, FMX.ImgList, FMX.ComboEdit, FMX.Edit,
@@ -91,6 +92,8 @@ type
     FImage: TMultiImage;
     FFileName: string;
     FLoaderThread: TThread;
+    FThumbs: TObjectList<TBitmap>;
+    procedure ClearListBox;
     procedure OpenFile(const FileName: string);
     procedure LoadingFinished(Success: Boolean; const ErrorMsg: string);
     procedure FillListBox(Image: TMultiImage);
@@ -200,6 +203,7 @@ procedure TFormMain.FormCreate(Sender: TObject);
 begin
   Caption := Caption + ' - ' + Imaging.SImagingLibTitle + ' ' + Imaging.GetVersionStr;
   FImage := TMultiImage.Create;
+  FThumbs := TObjectList<TBitmap>.Create;
   // For panning the scaled up image with a mouse drag
   ImageViewer.AniCalculations.TouchTracking := [ttVertical, ttHorizontal];
 
@@ -209,9 +213,17 @@ end;
 
 procedure TFormMain.FormDestroy(Sender: TObject);
 begin
-  ListImages.Clear;
+  ClearListBox;
+  FThumbs.Free;
   ClearImagesAndThumbs(FImage);
   FImage.Free;
+end;
+
+procedure TFormMain.ClearListBox;
+begin
+  // Items first, they still look at the thumbnails when freed
+  ListImages.Clear;
+  FThumbs.Clear;
 end;
 
 procedure TFormMain.FillListBox(Image: TMultiImage);
@@ -222,33 +234,30 @@ var
   Data: TImageData;
   Bmp: TBitmap;
 begin
-  ListImages.Clear;
-  Bmp := TBitmap.Create(0, 0);
+  ClearListBox;
 
-  try
-    for I := 0 to FImage.ImageCount - 1 do
-    begin
-      Data := FImage.DataArray[I];
+  for I := 0 to FImage.ImageCount - 1 do
+  begin
+    Data := FImage.DataArray[I];
 
-      Item := TListBoxItem.Create(ListImages);
-      Item.Parent := ListImages;
-      Item.StyleLookup := 'ListBoxItem';
+    Item := TListBoxItem.Create(ListImages);
+    Item.Parent := ListImages;
+    Item.StyleLookup := 'ListBoxItem';
 
-      ImgSize := Data.Size;
-      if ImgSize > 8192 then
-        ImgSize := ImgSize div 1024;
+    ImgSize := Data.Size;
+    if ImgSize > 8192 then
+      ImgSize := ImgSize div 1024;
 
-      ImagingFmx.ConvertImageToFmxBitmap(TSingleImage(Data.Tag), Bmp);
+    Bmp := TBitmap.Create(0, 0);
+    FThumbs.Add(Bmp);
+    ImagingFmx.ConvertImageToFmxBitmap(TSingleImage(Data.Tag), Bmp);
 
-      Item.StylesData['ImgThumb'] := Bmp;
-      Item.StylesData['TextTitle'] := Format('Image %d/%d', [I + 1, FImage.ImageCount]);
-      Item.StylesData['TextInfo'] :=
-        Format('Resolution: %dx%d', [Data.Width, Data.Height]) + sLineBreak +
-        Format('Format: %s', [GetFormatName(Data.Format)]) + sLineBreak +
-        Format('Size: %.0n %s', [ImgSize + 0.0, Iff(ImgSize = Data.Size, 'B', 'KiB')]);
-    end;
-  finally
-    Bmp.Free;
+    Item.StylesData['ImgThumb'] := Bmp;
+    Item.StylesData['TextTitle'] := Format('Image %d/%d', [I + 1, FImage.ImageCount]);
+    Item.StylesData['TextInfo'] :=
+      Format('Resolution: %dx%d', [Data.Width, Data.Height]) + sLineBreak +
+      Format('Format: %s', [GetFormatName(Data.Format)]) + sLineBreak +
+      Format('Size: %.0n %s', [ImgSize + 0.0, Iff(ImgSize = Data.Size, 'B', 'KiB')]);
   end;
 end;
 
@@ -386,7 +395,7 @@ procedure TFormMain.OpenFile(const FileName: string);
 begin
   FFileName := FileName;
 
-  ListImages.Clear;
+  ClearListBox;
   ImageViewer.Bitmap.SetSize(0, 0);
   ToolBar.Enabled := False;
   AniIndicator.Visible := True;
